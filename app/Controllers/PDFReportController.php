@@ -144,8 +144,8 @@ class PDFReportController extends Controller
         $pdf->Cell(0, 6, strtoupper($payroll['descripcion']), 0, 1, 'C');
         
         $pdf->SetFont('helvetica', '', 10);
-        $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_inicio']));
-        $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
+        $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_desde']));
+        $fechaFin = date('d/m/Y', strtotime($payroll['fecha_hasta']));
         $pdf->Cell(0, 6, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
         
         $pdf->Ln(5);
