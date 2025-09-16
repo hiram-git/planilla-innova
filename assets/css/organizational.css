@@ -1,0 +1,194 @@
+/**
+ * Estilos para el Módulo Organizacional
+ * Jerarquía visual y componentes del organigrama
+ */
+
+/* Estilos base del árbol organizacional */
+.organizational-tree {
+    list-style: none;
+    padding-left: 0;
+}
+
+.organizational-tree ul {
+    list-style: none;
+    padding-left: 30px;
+}
+
+/* Nodos del árbol */
+.tree-node {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #007bff;
+    transition: all 0.3s ease;
+}
+
+.tree-node:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    box-shadow: 0 2px 8px rgba(0,123,255,0.2);
+}
+
+/* Colores por nivel jerárquico */
+.tree-node.level-0 { 
+    border-left-color: #dc3545; 
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%); 
+}
+
+.tree-node.level-1 { 
+    border-left-color: #28a745; 
+    background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); 
+}
+
+.tree-node.level-2 { 
+    border-left-color: #ffc107; 
+    background: linear-gradient(135deg, #fffbf0 0%, #feebc8 100%); 
+}
+
+.tree-node.level-3 { 
+    border-left-color: #17a2b8; 
+    background: linear-gradient(135deg, #f0fdff 0%, #bee3f8 100%); 
+}
+
+.tree-node.level-4 { 
+    border-left-color: #6f42c1; 
+    background: linear-gradient(135deg, #f8f5ff 0%, #e0d9ff 100%); 
+}
+
+.tree-node.level-5 { 
+    border-left-color: #fd7e14; 
+    background: linear-gradient(135deg, #fff8f0 0%, #ffe5cc 100%); 
+}
+
+/* Iconos del árbol */
+.toggle-icon, .leaf-icon {
+    margin-right: 8px;
+    color: #6c757d;
+    cursor: pointer;
+    font-size: 12px;
+    min-width: 16px;
+    text-align: center;
+}
+
+.toggle-icon:hover {
+    color: #007bff;
+}
+
+.leaf-icon {
+    cursor: default;
+}
+
+/* Título del nodo */
+.node-title {
+    flex: 1;
+    font-weight: 500;
+    color: #495057;
+    word-break: break-word;
+}
+
+/* Acciones del nodo */
+.node-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+/* Estados de colapso */
+.collapsed > ul {
+    display: none;
+}
+
+.collapsed > .tree-node .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+/* Resultados de búsqueda */
+#searchResults {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.search-result {
+    padding: 8px;
+    border-bottom: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.search-result:hover {
+    background-color: #f8f9fa;
+}
+
+.search-result:last-child {
+    border-bottom: none;
+}
+
+/* Elementos destacados */
+.tree-node.highlighted {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;
+    border-left-color: #ffc107 !important;
+    animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .tree-node {
+        padding: 6px 8px;
+        font-size: 0.9rem;
+    }
+    
+    .node-actions .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .organizational-tree ul {
+        padding-left: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .tree-node {
+        flex-wrap: wrap;
+    }
+    
+    .node-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 4px;
+        margin-left: 0;
+    }
+}
+
+/* Loading states */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,.1);
+    border-radius: 50%;
+    border-top-color: #007bff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Drag and drop styles (future enhancement) */
+.tree-node.drag-over {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%) !important;
+    border-left-color: #17a2b8 !important;
+}
+
+.tree-node.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}

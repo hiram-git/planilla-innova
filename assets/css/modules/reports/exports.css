@@ -1,0 +1,70 @@
+/**
+ * Estilos: Módulo de Reportes de Exportación
+ * Componentes: Tarjetas hover, descripción visual, responsive
+ */
+
+/* Tarjetas de exportación */
+.export-card {
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
+
+.export-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+
+/* Iconos principales */
+.fa-3x {
+    margin-bottom: 1rem;
+}
+
+/* Bloque de descripción */
+.description-block {
+    padding: 10px 0;
+}
+
+.description-header {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.description-text {
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+/* Separadores */
+.border-right {
+    border-right: 1px solid rgba(255,255,255,0.3);
+}
+
+/* Componentes generales */
+.alert {
+    border-radius: 8px;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .export-card {
+        margin-bottom: 20px;
+    }
+    
+    .fa-3x {
+        font-size: 2.5em;
+    }
+    
+    .description-block {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .description-block:last-child {
+        border-bottom: none;
+    }
+}

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Instalación - Sistema de Planillas MVC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            margin: -20px -20px 40px -20px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+        }
+        
+        .toc h2 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        
+        .toc ul {
+            list-style: none;
+        }
+        
+        .toc ul li {
+            padding: 5px 0;
+        }
+        
+        .toc ul li a {
+            color: #495057;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .toc ul li a:hover {
+            color: #28a745;
+        }
+        
+        .section {
+            margin: 40px 0;
+        }
+        
+        .section h2 {
+            color: #343a40;
+            border-bottom: 3px solid #28a745;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        
+        .section h3 {
+            color: #495057;
+            margin: 25px 0 15px 0;
+            font-size: 1.4em;
+        }
+        
+        .section h4 {
+            color: #6c757d;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+        }
+        
+        .step-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .step-list ol {
+            margin-left: 20px;
+        }
+        
+        .step-list li {
+            margin: 10px 0;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .code-inline {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #495057;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        table th,
+        table td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        table th {
+            background-color: #28a745;
+            color: white;
+            font-weight: 600;
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .os-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            margin: 20px 0 0 0;
+        }
+        
+        .os-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: #6c757d;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .os-tab.active {
+            background: #28a745;
+        }
+        
+        .os-tab:first-child {
+            border-radius: 8px 0 0 0;
+        }
+        
+        .os-tab:last-child {
+            border-radius: 0 8px 0 0;
+        }
+        
+        .os-content {
+            border: 2px solid #28a745;
+            border-top: none;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Manual de Instalación</h1>
+            <p>Sistema de Planillas MVC - Guía Completa de Instalación Multi-Plataforma</p>
+            <p>Versión 2.1 | Actualizado: Septiembre 2025</p>
+        </div>
+
+        <div class="toc">
+            <h2>📋 Tabla de Contenidos</h2>
+            <ul>
+                <li><a href="#requisitos">1. Requisitos del Sistema</a></li>
+                <li><a href="#preparacion">2. Preparación del Entorno</a></li>
+                <li><a href="#instalacion-automatica">3. Instalación Automática</a></li>
+                <li><a href="#instalacion-manual">4. Instalación Manual</a></li>
+                <li><a href="#configuracion">5. Configuración Post-Instalación</a></li>
+                <li><a href="#base-datos">6. Configuración de Base de Datos</a></li>
+                <li><a href="#pruebas">7. Pruebas y Verificación</a></li>
+                <li><a href="#troubleshooting">8. Resolución de Problemas</a></li>
+                <li><a href="#actualizacion">9. Actualización del Sistema</a></li>
+                <li><a href="#respaldo">10. Respaldo y Restauración</a></li>
+                <li><a href="#caracteristicas-nuevas">11. Características Recientes (v2.1)</a></li>
+            </ul>
+        </div>
+
+        <div class="section" id="requisitos">
+            <h2>1. 📋 Requisitos del Sistema</h2>
+
+            <h3>1.1 Requisitos Mínimos</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Componente</th>
+                        <th>Requisito Mínimo</th>
+                        <th>Recomendado</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>RAM</strong></td>
+                        <td>2 GB</td>
+                        <td>4 GB+</td>
+                        <td>Para hasta 500 empleados</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Almacenamiento</strong></td>
+                        <td>5 GB libres</td>
+                        <td>20 GB+</td>
+                        <td>Incluye logs y respaldos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>PHP</strong></td>
+                        <td>8.1</td>
+                        <td>8.3</td>
+                        <td>Con extensiones requeridas</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Servidor Web</strong></td>
+                        <td>Apache 2.4</td>
+                        <td>Apache 2.4+ / Nginx 1.20+</td>
+                        <td>Con mod_rewrite habilitado</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Base de Datos</strong></td>
+                        <td>MySQL 8.0</td>
+                        <td>MySQL 8.0+ / MariaDB 10.6+</td>
+                        <td>Con InnoDB habilitado</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>1.2 Extensiones PHP Requeridas</h3>
+            <div class="step-list">
+                <ul>
+                    <li><code>pdo_mysql</code> - Conexión a base de datos</li>
+                    <li><code>mbstring</code> - Soporte para caracteres multibyte</li>
+                    <li><code>json</code> - Manejo de datos JSON</li>
+                    <li><code>session</code> - Manejo de sesiones</li>
+                    <li><code>curl</code> - Peticiones HTTP</li>
+                    <li><code>zip</code> - Compresión de archivos</li>
+                    <li><code>gd</code> - Procesamiento de imágenes</li>
+                    <li><code>xml</code> - Procesamiento XML</li>
+                    <li><code>intl</code> - Internacionalización</li>
+                </ul>
+            </div>
+
+            <h3>1.3 Sistemas Operativos Compatibles</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sistema Operativo</th>
+                        <th>Versión</th>
+                        <th>Estado</th>
+                        <th>Script Disponible</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Windows Server</strong></td>
+                        <td>2019, 2022</td>
+                        <td>✅ Soportado</td>
+                        <td>✅ Sí</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Windows 10/11</strong></td>
+                        <td>Pro/Enterprise</td>
+                        <td>✅ Soportado</td>
+                        <td>✅ Sí</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ubuntu</strong></td>
+                        <td>20.04 LTS, 22.04 LTS</td>
+                        <td>✅ Soportado</td>
+                        <td>✅ Sí</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CentOS/RHEL</strong></td>
+                        <td>8, 9</td>
+                        <td>✅ Soportado</td>
+                        <td>✅ Sí</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Debian</strong></td>
+                        <td>11, 12</td>
+                        <td>✅ Soportado</td>
+                        <td>🔄 Manual</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="preparacion">
+            <h2>2. 🛠️ Preparación del Entorno</h2>
+
+            <div class="os-tabs">
+                <button class="os-tab active" onclick="showOS('windows')">🪟 Windows</button>
+                <button class="os-tab" onclick="showOS('ubuntu')">🐧 Ubuntu</button>
+                <button class="os-tab" onclick="showOS('centos')">🎩 CentOS</button>
+            </div>
+
+            <div class="os-content" id="windows-content">
+                <h3>Windows Server 2019/2022 o Windows 10/11</h3>
+                
+                <h4>Opción 1: XAMPP (Recomendado para desarrollo)</h4>
+                <div class="step-list">
+                    <ol>
+                        <li>Descargar XAMPP 8.3.x desde <a href="https://www.apachefriends.org/">apachefriends.org</a></li>
+                        <li>Ejecutar como administrador el instalador</li>
+                        <li>Seleccionar componentes: Apache, MySQL, PHP, phpMyAdmin</li>
+                        <li>Instalar en <code>C:\xampp</code></li>
+                        <li>Iniciar Apache y MySQL desde el Panel de Control</li>
+                    </ol>
+                </div>
+
+                <h4>Opción 2: IIS + PHP (Producción)</h4>
+                <div class="step-list">
+                    <ol>
+                        <li>Habilitar IIS desde Panel de Control > Características de Windows</li>
+                        <li>Instalar PHP 8.3 desde <a href="https://windows.php.net/">windows.php.net</a></li>
+                        <li>Configurar PHP en IIS usando FastCGI</li>
+                        <li>Instalar MySQL 8.0 Server</li>
+                        <li>Configurar certificado SSL si es necesario</li>
+                    </ol>
+                </div>
+
+                <div class="warning-box">
+                    <strong>⚠️ Importante:</strong> Asegúrese de que el Firewall de Windows permita conexiones HTTP/HTTPS y MySQL (puertos 80, 443, 3306).
+                </div>
+            </div>
+
+            <div class="os-content" id="ubuntu-content" style="display: none;">
+                <h3>Ubuntu 20.04/22.04 LTS</h3>
+                
+                <h4>Actualizar el sistema</h4>
+                <div class="code-block">
+sudo apt update && sudo apt upgrade -y
+sudo apt install curl wget unzip git -y
+                </div>
+
+                <h4>Instalar Stack LAMP</h4>
+                <div class="code-block">
+# Instalar Apache
+sudo apt install apache2 -y
+sudo systemctl enable apache2
+
+# Instalar MySQL
+sudo apt install mysql-server -y
+sudo mysql_secure_installation
+
+# Instalar PHP 8.3
+sudo apt install software-properties-common -y
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt update
+sudo apt install php8.3 php8.3-mysql php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-gd php8.3-json -y
+
+# Habilitar mod_rewrite
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+                </div>
+
+                <div class="info-box">
+                    <strong>💡 Tip:</strong> Use <code>systemctl status apache2</code> y <code>systemctl status mysql</code> para verificar que los servicios estén ejecutándose.
+                </div>
+            </div>
+
+            <div class="os-content" id="centos-content" style="display: none;">
+                <h3>CentOS 8/9 - Rocky Linux - AlmaLinux</h3>
+                
+                <h4>Actualizar el sistema</h4>
+                <div class="code-block">
+sudo dnf update -y
+sudo dnf install curl wget unzip git -y
+                </div>
+
+                <h4>Instalar Stack LAMP</h4>
+                <div class="code-block">
+# Instalar Apache
+sudo dnf install httpd -y
+sudo systemctl enable httpd
+sudo systemctl start httpd
+
+# Instalar MySQL
+sudo dnf install mysql-server -y
+sudo systemctl enable mysqld
+sudo systemctl start mysqld
+sudo mysql_secure_installation
+
+# Instalar PHP 8.3 (Remi Repository)
+sudo dnf install epel-release -y
+sudo dnf install https://rpms.remirepo.net/enterprise/remi-release-9.rpm -y
+sudo dnf module enable php:remi-8.3 -y
+sudo dnf install php php-mysql php-mbstring php-xml php-curl php-zip php-gd php-json -y
+
+# Configurar SELinux
+sudo setsebool -P httpd_can_network_connect 1
+sudo systemctl restart httpd
+                </div>
+
+                <div class="warning-box">
+                    <strong>⚠️ Firewall:</strong> Configure firewalld para permitir HTTP/HTTPS:
+                    <div class="code-block">
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="instalacion-automatica">
+            <h2>3. 🤖 Instalación Automática</h2>
+
+            <p>Hemos creado scripts automatizados para facilitar la instalación en cada sistema operativo.</p>
+
+            <h3>3.1 Windows - Script PowerShell</h3>
+            <div class="step-list">
+                <ol>
+                    <li>Descargar el script: <code>install-windows.ps1</code></li>
+                    <li>Abrir PowerShell como Administrador</li>
+                    <li>Ejecutar: <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></li>
+                    <li>Ejecutar: <code>.\install-windows.ps1</code></li>
+                    <li>Seguir las instrucciones en pantalla</li>
+                </ol>
+            </div>
+
+            <h3>3.2 Ubuntu - Script Bash</h3>
+            <div class="code-block">
+# Descargar y ejecutar
+curl -O https://raw.githubusercontent.com/tu-repo/planilla-mvc/main/scripts/install-ubuntu.sh
+chmod +x install-ubuntu.sh
+sudo ./install-ubuntu.sh
+            </div>
+
+            <h3>3.3 CentOS - Script Bash</h3>
+            <div class="code-block">
+# Descargar y ejecutar
+curl -O https://raw.githubusercontent.com/tu-repo/planilla-mvc/main/scripts/install-centos.sh
+chmod +x install-centos.sh
+sudo ./install-centos.sh
+            </div>
+
+            <div class="success-box">
+                <strong>✅ Ventajas de la Instalación Automática:</strong>
+                <ul>
+                    <li>Instalación completa en 5-10 minutos</li>
+                    <li>Configuración automática de permisos</li>
+                    <li>Creación automática de base de datos</li>
+                    <li>Configuración de virtual hosts</li>
+                    <li>Instalación de dependencias</li>
+                    <li>Configuración de SSL básico</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section" id="instalacion-manual">
+            <h2>4. 🔧 Instalación Manual</h2>
+
+            <h3>4.1 Descargar el Sistema</h3>
+            <div class="step-list">
+                <ol>
+                    <li>Clonar el repositorio o descargar el archivo ZIP</li>
+                    <li>Extraer en el directorio web del servidor:
+                        <ul>
+                            <li><strong>Windows/XAMPP:</strong> <code>C:\xampp\htdocs\planilla-mvc</code></li>
+                            <li><strong>Linux:</strong> <code>/var/www/html/planilla-mvc</code></li>
+                        </ul>
+                    </li>
+                    <li>Establecer permisos apropiados (solo Linux)</li>
+                </ol>
+            </div>
+
+            <div class="code-block">
+# Solo para Linux - Configurar permisos
+sudo chown -R www-data:www-data /var/www/html/planilla-mvc
+sudo chmod -R 755 /var/www/html/planilla-mvc
+sudo chmod -R 777 /var/www/html/planilla-mvc/storage
+sudo chmod -R 777 /var/www/html/planilla-mvc/logs
+            </div>
+
+            <h3>4.2 Configurar Virtual Host</h3>
+            
+            <h4>Apache (Linux)</h4>
+            <div class="code-block">
+# Crear archivo de configuración
+sudo nano /etc/apache2/sites-available/planilla-mvc.conf
+
+# Contenido del archivo:
+&lt;VirtualHost *:80&gt;
+    ServerName planilla-mvc.local
+    DocumentRoot /var/www/html/planilla-mvc
+    
+    &lt;Directory /var/www/html/planilla-mvc&gt;
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    &lt;/Directory&gt;
+    
+    ErrorLog ${APACHE_LOG_DIR}/planilla-mvc-error.log
+    CustomLog ${APACHE_LOG_DIR}/planilla-mvc-access.log combined
+&lt;/VirtualHost&gt;
+
+# Habilitar el sitio
+sudo a2ensite planilla-mvc.conf
+sudo systemctl reload apache2
+            </div>
+
+            <h4>Nginx (Opcional)</h4>
+            <div class="code-block">
+# Crear archivo de configuración
+sudo nano /etc/nginx/sites-available/planilla-mvc
+
+# Contenido del archivo:
+server {
+    listen 80;
+    server_name planilla-mvc.local;
+    root /var/www/html/planilla-mvc;
+    index index.php index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+    
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+    }
+}
+
+# Habilitar el sitio
+sudo ln -s /etc/nginx/sites-available/planilla-mvc /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+            </div>
+        </div>
+
+        <div class="section" id="configuracion">
+            <h2>5. ⚙️ Configuración Post-Instalación</h2>
+
+            <h3>5.1 Archivo de Configuración (.env)</h3>
+            <div class="step-list">
+                <ol>
+                    <li>Copiar <code>.env.example</code> a <code>.env</code></li>
+                    <li>Editar las variables de configuración:</li>
+                </ol>
+            </div>
+
+            <div class="code-block">
+# Configuración de la aplicación
+APP_NAME="Sistema de Planillas"
+APP_URL="http://localhost/planilla-mvc"
+APP_ENV="production"
+APP_DEBUG=false
+
+# Base de datos
+DB_HOST="localhost"
+DB_DATABASE="planilla_mvc"
+DB_USERNAME="planilla_user"
+DB_PASSWORD="tu_password_seguro"
+
+# Configuración regional
+TIMEZONE="America/Panama"
+LOCALE="es_ES"
+
+# Configuración de correo (opcional)
+MAIL_HOST="smtp.gmail.com"
+MAIL_PORT=587
+MAIL_USERNAME="tu_email@gmail.com"
+MAIL_PASSWORD="tu_password_email"
+            </div>
+
+            <h3>5.2 Configuración de PHP</h3>
+            <p>Ajustar los siguientes valores en <code>php.ini</code>:</p>
+
+            <div class="code-block">
+memory_limit = 256M
+max_execution_time = 300
+upload_max_filesize = 10M
+post_max_size = 10M
+max_input_vars = 3000
+date.timezone = America/Panama
+
+# Habilitar extensiones
+extension=pdo_mysql
+extension=mbstring
+extension=curl
+extension=zip
+extension=gd
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ Reinicio Requerido:</strong> Después de modificar php.ini, reinicie Apache/Nginx y PHP-FPM.
+            </div>
+        </div>
+
+        <div class="section" id="base-datos">
+            <h2>6. 🗄️ Configuración de Base de Datos</h2>
+
+            <h3>6.1 Crear Base de Datos</h3>
+            <div class="code-block">
+# Conectar a MySQL
+mysql -u root -p
+
+# Crear base de datos
+CREATE DATABASE planilla_mvc CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+# Crear usuario
+CREATE USER 'planilla_user'@'localhost' IDENTIFIED BY 'tu_password_seguro';
+GRANT ALL PRIVILEGES ON planilla_mvc.* TO 'planilla_user'@'localhost';
+FLUSH PRIVILEGES;
+
+# Salir
+EXIT;
+            </div>
+
+            <h3>6.2 Importar Estructura</h3>
+            <div class="step-list">
+                <ol>
+                    <li>Localizar el archivo <code>database/schema.sql</code></li>
+                    <li>Importar la estructura de la base de datos:</li>
+                </ol>
+            </div>
+
+            <div class="code-block">
+mysql -u planilla_user -p planilla_mvc < database/schema.sql
+            </div>
+
+            <h3>6.3 Datos de Prueba (Opcional)</h3>
+            <div class="code-block">
+# Importar datos de ejemplo
+mysql -u planilla_user -p planilla_mvc < database/seeders.sql
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Datos por Defecto:</strong> El sistema creará automáticamente un usuario administrador:
+                <ul>
+                    <li><strong>Usuario:</strong> admin</li>
+                    <li><strong>Contraseña:</strong> admin123</li>
+                    <li><strong>⚠️ Importante:</strong> Cambiar estas credenciales inmediatamente después del primer acceso</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section" id="pruebas">
+            <h2>7. ✅ Pruebas y Verificación</h2>
+
+            <h3>7.1 Verificar Instalación</h3>
+            <div class="step-list">
+                <ol>
+                    <li>Abrir navegador web</li>
+                    <li>Navegar a <code>http://localhost/planilla-mvc</code></li>
+                    <li>Verificar que aparece la página de login</li>
+                    <li>Iniciar sesión con las credenciales por defecto</li>
+                    <li>Verificar acceso al dashboard</li>
+                </ol>
+            </div>
+
+            <h3>7.2 Checklist de Funcionalidades</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Funcionalidad</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th>Notas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Login/Logout</td>
+                        <td>Autenticación de usuarios</td>
+                        <td>☐</td>
+                        <td>Probar con admin/admin123</td>
+                    </tr>
+                    <tr>
+                        <td>Dashboard</td>
+                        <td>Panel principal con estadísticas</td>
+                        <td>☐</td>
+                        <td>Verificar gráficos y métricas</td>
+                    </tr>
+                    <tr>
+                        <td>Gestión Empleados</td>
+                        <td>CRUD de empleados</td>
+                        <td>☐</td>
+                        <td>Crear, editar, eliminar empleado</td>
+                    </tr>
+                    <tr>
+                        <td>Procesamiento Planilla</td>
+                        <td>Generar nueva planilla</td>
+                        <td>☐</td>
+                        <td>Verificar cálculos</td>
+                    </tr>
+                    <tr>
+                        <td>Reportes PDF</td>
+                        <td>Generación de reportes</td>
+                        <td>☐</td>
+                        <td>Descargar y verificar PDF</td>
+                    </tr>
+                    <tr>
+                        <td>Exportaciones CSV</td>
+                        <td>Exportación de datos</td>
+                        <td>☐</td>
+                        <td>Abrir CSV en Excel</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>7.3 Verificar Logs</h3>
+            <div class="code-block">
+# Verificar logs de Apache
+tail -f /var/log/apache2/error.log
+
+# Verificar logs de PHP
+tail -f /var/log/php/error.log
+
+# Verificar logs de MySQL
+sudo tail -f /var/log/mysql/error.log
+            </div>
+        </div>
+
+        <div class="section" id="troubleshooting">
+            <h2>8. 🔧 Resolución de Problemas</h2>
+
+            <h3>8.1 Problemas Comunes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Problema</th>
+                        <th>Causa Probable</th>
+                        <th>Solución</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Página en blanco</td>
+                        <td>Error de PHP o permisos</td>
+                        <td>Revisar logs, verificar permisos 755/777</td>
+                    </tr>
+                    <tr>
+                        <td>Error de base de datos</td>
+                        <td>Credenciales incorrectas</td>
+                        <td>Verificar .env y conexión MySQL</td>
+                    </tr>
+                    <tr>
+                        <td>404 Not Found</td>
+                        <td>mod_rewrite deshabilitado</td>
+                        <td>Habilitar mod_rewrite en Apache</td>
+                    </tr>
+                    <tr>
+                        <td>Error de permisos</td>
+                        <td>Permisos restrictivos</td>
+                        <td>chmod 755 archivos, 777 directorios</td>
+                    </tr>
+                    <tr>
+                        <td>No se generan PDFs</td>
+                        <td>Memoria PHP insuficiente</td>
+                        <td>Aumentar memory_limit a 256M</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>8.2 Comandos de Diagnóstico</h3>
+            <div class="code-block">
+# Verificar versión PHP y extensiones
+php -v
+php -m | grep -E "(pdo_mysql|mbstring|curl|zip|gd)"
+
+# Verificar estado de servicios (Linux)
+sudo systemctl status apache2
+sudo systemctl status mysql
+
+# Verificar conectividad MySQL
+mysql -u planilla_user -p -h localhost -e "SELECT VERSION();"
+
+# Verificar permisos
+ls -la /var/www/html/planilla-mvc/
+            </div>
+        </div>
+
+        <div class="section" id="actualizacion">
+            <h2>9. 🔄 Actualización del Sistema</h2>
+
+            <h3>9.1 Proceso de Actualización</h3>
+            <div class="step-list">
+                <ol>
+                    <li><strong>Crear respaldo completo</strong> (base de datos + archivos)</li>
+                    <li>Descargar nueva versión</li>
+                    <li>Mantener archivos de configuración (.env)</li>
+                    <li>Reemplazar archivos del sistema</li>
+                    <li>Ejecutar migraciones de base de datos</li>
+                    <li>Verificar funcionalidad</li>
+                </ol>
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ Importante:</strong> Siempre realice actualizaciones en horarios de bajo tráfico y mantenga respaldos recientes.
+            </div>
+        </div>
+
+        <div class="section" id="respaldo">
+            <h2>10. 💾 Respaldo y Restauración</h2>
+
+            <h3>10.1 Script de Respaldo Automático</h3>
+            <div class="code-block">
+#!/bin/bash
+# backup-planilla.sh
+
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/var/backups/planilla-mvc"
+DB_NAME="planilla_mvc"
+DB_USER="planilla_user"
+DB_PASS="tu_password"
+
+# Crear directorio de respaldo
+mkdir -p $BACKUP_DIR/$DATE
+
+# Respaldar base de datos
+mysqldump -u $DB_USER -p$DB_PASS $DB_NAME > $BACKUP_DIR/$DATE/database.sql
+
+# Respaldar archivos
+tar -czf $BACKUP_DIR/$DATE/files.tar.gz /var/www/html/planilla-mvc
+
+# Limpiar respaldos antiguos (mantener últimos 7 días)
+find $BACKUP_DIR -type d -mtime +7 -exec rm -rf {} \;
+
+echo "Respaldo completado: $BACKUP_DIR/$DATE"
+            </div>
+
+            <h3>10.2 Programar Respaldos Automáticos</h3>
+            <div class="code-block">
+# Editar crontab
+crontab -e
+
+# Agregar línea para respaldo diario a las 2:00 AM
+0 2 * * * /path/to/backup-planilla.sh
+            </div>
+
+            <div class="success-box">
+                <strong>✅ Sistema Instalado Exitosamente</strong>
+                <p>Su sistema de planillas MVC está ahora instalado y configurado. Para soporte adicional, consulte la documentación de usuario o contacte al equipo de desarrollo.</p>
+            </div>
+        </div>
+
+        <div class="section" id="caracteristicas-nuevas">
+            <h2>11. 🆕 Características Recientes (v2.1)</h2>
+
+            <h3>11.1 Mejoras en Procesamiento de Planillas</h3>
+            <div class="info-box">
+                <strong>💡 Nuevas Funcionalidades:</strong>
+                <ul>
+                    <li><strong>Filtrado por Tipo de Planilla:</strong> Procesamiento específico según situación de empleado</li>
+                    <li><strong>Validación de Empleados:</strong> Verificación previa antes del procesamiento</li>
+                    <li><strong>Seguimiento Mejorado:</strong> Progress tracking más preciso y confiable</li>
+                    <li><strong>Regeneración Selectiva:</strong> Reprocesar planillas manteniendo parámetros originales</li>
+                </ul>
+            </div>
+
+            <h3>11.2 Gestión de Acreedores Mejorada</h3>
+            <div class="step-list">
+                <h4>Validaciones de Seguridad</h4>
+                <ul>
+                    <li>Verificación de deducciones activas antes de eliminar</li>
+                    <li>Mensajes de confirmación más descriptivos</li>
+                    <li>Protección contra eliminaciones accidentales</li>
+                    <li>Interfaz simplificada sin funciones redundantes</li>
+                </ul>
+            </div>
+
+            <h3>11.3 Correcciones Importantes</h3>
+            <div class="warning-box">
+                <strong>🔧 Fixes Aplicados:</strong>
+                <ul>
+                    <li><strong>JavaScript Syntax:</strong> Eliminados errores de sintaxis en formularios</li>
+                    <li><strong>Campos de Fecha:</strong> Corrección en visualización de períodos de planilla</li>
+                    <li><strong>Conflictos de Nombres:</strong> Resolución de conflictos entre funciones JavaScript</li>
+                    <li><strong>Progress Tracking:</strong> Eliminados falsos positivos en seguimiento</li>
+                </ul>
+            </div>
+
+            <h3>11.4 Consideraciones Post-Actualización</h3>
+            <div class="step-list">
+                <ol>
+                    <li><strong>Limpiar Cache del Navegador:</strong> Ctrl+F5 para forzar recarga de recursos</li>
+                    <li><strong>Verificar Permisos:</strong> Asegurar que los directorios de logs tengan permisos de escritura</li>
+                    <li><strong>Probar Funcionalidades:</strong> Ejecutar prueba completa de procesamiento de planilla</li>
+                    <li><strong>Revisar Configuraciones:</strong> Verificar que las configuraciones de empresa estén correctas</li>
+                </ol>
+            </div>
+
+            <h3>11.5 Comandos de Verificación v2.1</h3>
+            <div class="code-block">
+# Verificar logs de errores recientes
+tail -f /path/to/planilla-mvc/logs/error.log
+
+# Limpiar cache de navegador (usuarios)
+# Presionar Ctrl+F5 en navegador
+
+# Verificar permisos de escritura
+ls -la /path/to/planilla-mvc/logs/
+ls -la /path/to/planilla-mvc/storage/
+
+# Probar conexión a base de datos
+php -r "try { new PDO('mysql:host=localhost;dbname=planilla_mvc', 'user', 'pass'); echo 'OK\n'; } catch(Exception \$e) { echo 'Error: ' . \$e->getMessage() . '\n'; }"
+            </div>
+
+            <div class="success-box">
+                <strong>✅ Actualización v2.1 Completada</strong>
+                <p>El sistema ha sido actualizado con las últimas mejoras en estabilidad, seguridad y funcionalidad. Todas las características están completamente probadas y documentadas.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showOS(os) {
+            // Ocultar todos los contenidos
+            document.querySelectorAll('.os-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Remover clase active de todos los tabs
+            document.querySelectorAll('.os-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar el contenido seleccionado
+            document.getElementById(os + '-content').style.display = 'block';
+            
+            // Agregar clase active al tab seleccionado
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
