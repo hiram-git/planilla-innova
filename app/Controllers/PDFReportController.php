@@ -244,74 +244,83 @@ class PDFReportController extends Controller
     private function addSignatures($pdf, $companyInfo)
     {
         $pdf->Ln(15);
-        
-        // Espacio para firmas - 3 columnas
-        $colWidth = 90; // Ancho de cada columna para 3 firmas
+
+        // Determinar qué firmas mostrar basado en si tienen contenido
+        $firmas = [];
+
+        // Firmas básicas siempre presentes
+        $firmas[] = [
+            'nombre' => $companyInfo['elaborado_por'],
+            'cargo' => $companyInfo['cargo_elaborador']
+        ];
+
+        $firmas[] = [
+            'nombre' => $companyInfo['jefe_recursos_humanos'],
+            'cargo' => $companyInfo['cargo_jefe_rrhh']
+        ];
+
+        // Firma director solo si tiene contenido
+        if (!empty($companyInfo['firma_director_planilla']) && trim($companyInfo['firma_director_planilla']) !== '') {
+            $firmas[] = [
+                'nombre' => $companyInfo['firma_director_planilla'],
+                'cargo' => $companyInfo['cargo_director_planilla']
+            ];
+        }
+
+        $numFirmas = count($firmas);
+        $colWidth = $numFirmas > 0 ? (270 / $numFirmas) : 90; // Ancho dinámico
         $sigHeight = 25; // Altura del área de firma
-        
+
         // Primera fila de firmas
         $pdf->SetFont('helvetica', '', 9);
-        
-        // Elaborado por
-        $pdf->Cell($colWidth, $sigHeight, '', 'B', 0, 'C'); // Línea superior para firma
-        $pdf->Cell(5, $sigHeight, '', 0, 0, 'C'); // Espaciado
-        
-        // Revisado por (Jefe de RRHH)
-        $pdf->Cell($colWidth, $sigHeight, '', 'B', 0, 'C'); // Línea superior para firma
-        $pdf->Cell(5, $sigHeight, '', 0, 0, 'C'); // Espaciado
-        
-        // Aprobado por (Director)
-        $pdf->Cell($colWidth, $sigHeight, '', 'B', 1, 'C'); // Línea superior para firma
-        
+
+        // Generar firmas dinámicamente
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, $sigHeight, '', 'B', ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, $sigHeight, '', 0, 0, 'C'); // Espaciado
+            }
+        }
+
         // Nombres bajo las líneas de firma
         $pdf->SetFont('helvetica', 'B', 8);
-        
-        // Elaborado por
-        $pdf->Cell($colWidth, 6, strtoupper($companyInfo['elaborado_por']), 0, 0, 'C');
-        $pdf->Cell(5, 6, '', 0, 0, 'C');
-        
-        // Revisado por
-        $pdf->Cell($colWidth, 6, strtoupper($companyInfo['jefe_recursos_humanos']), 0, 0, 'C');
-        $pdf->Cell(5, 6, '', 0, 0, 'C');
-        
-        // Aprobado por
-        $pdf->Cell($colWidth, 6, strtoupper($companyInfo['firma_director_planilla']), 0, 1, 'C');
-        
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, 6, strtoupper($firmas[$i]['nombre']), 0, ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, 6, '', 0, 0, 'C'); // Espaciado
+            }
+        }
+
         // Cargos bajo los nombres
         $pdf->SetFont('helvetica', '', 7);
-        
-        // Cargo elaborador
-        $pdf->Cell($colWidth, 5, $companyInfo['cargo_elaborador'], 0, 0, 'C');
-        $pdf->Cell(5, 5, '', 0, 0, 'C');
-        
-        // Cargo RRHH
-        $pdf->Cell($colWidth, 5, $companyInfo['cargo_jefe_rrhh'], 0, 0, 'C');
-        $pdf->Cell(5, 5, '', 0, 0, 'C');
-        
-        // Cargo Director
-        $pdf->Cell($colWidth, 5, $companyInfo['cargo_director_planilla'], 0, 1, 'C');
-        
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, 5, $firmas[$i]['cargo'], 0, ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, 5, '', 0, 0, 'C'); // Espaciado
+            }
+        }
+
         $pdf->Ln(8);
-        
+
         // Segunda fila para firma del contador si existe
-        if (!empty($companyInfo['firma_contador_planilla'])) {
+        if (!empty($companyInfo['firma_contador_planilla']) && trim($companyInfo['firma_contador_planilla']) !== '') {
             $pdf->SetFont('helvetica', '', 9);
-            
+
             // Centrar la firma del contador
             $pdf->Cell(95, $sigHeight, '', 0, 0, 'C'); // Espacio para centrar
             $pdf->Cell($colWidth, $sigHeight, '', 'B', 1, 'C'); // Línea para firma del contador
-            
+
             // Nombre del contador
             $pdf->SetFont('helvetica', 'B', 8);
             $pdf->Cell(95, 6, '', 0, 0, 'C');
             $pdf->Cell($colWidth, 6, strtoupper($companyInfo['firma_contador_planilla']), 0, 1, 'C');
-            
+
             // Cargo del contador
             $pdf->SetFont('helvetica', '', 7);
             $pdf->Cell(95, 5, '', 0, 0, 'C');
             $pdf->Cell($colWidth, 5, $companyInfo['cargo_contador_planilla'], 0, 1, 'C');
         }
-        
+
         // Información adicional al final
         $pdf->Ln(5);
         $pdf->SetFont('helvetica', '', 7);
@@ -618,12 +627,12 @@ class PDFReportController extends Controller
             $reportModel = $this->model('Report');
             $db = $reportModel->getDatabase();
             $connection = $db->getConnection();
-            
+
             $sql = "SELECT * FROM companies WHERE id = 1";
             $stmt = $connection->prepare($sql);
             $stmt->execute();
             $company = $stmt->fetch();
-            
+
             return [
                 'company_name' => $company['company_name'] ?? 'EMPRESA EJEMPLO S.A.',
                 'ruc' => $company['ruc'] ?? '1234567890-1-DV',
@@ -633,10 +642,19 @@ class PDFReportController extends Controller
                 'cargo_jefe_rrhh' => $company['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
                 'elaborado_por' => $company['elaborado_por'] ?? 'Especialista en Nóminas',
                 'cargo_elaborador' => $company['cargo_elaborador'] ?? 'Especialista en Nóminas',
-                'firma_director_planilla' => $company['firma_director_planilla'] ?? $company['legal_representative'] ?? 'Director General',
-                'cargo_director_planilla' => $company['cargo_director_planilla'] ?? 'Director General',
-                'firma_contador_planilla' => $company['firma_contador_planilla'] ?? 'Contador General',
-                'cargo_contador_planilla' => $company['cargo_contador_planilla'] ?? 'Contador General'
+                // Solo usar valores de BD si existen y no están vacíos
+                'firma_director_planilla' => (!empty($company['firma_director_planilla']) && trim($company['firma_director_planilla']) !== '')
+                    ? $company['firma_director_planilla']
+                    : ($company['legal_representative'] ?? ''),
+                'cargo_director_planilla' => (!empty($company['cargo_director_planilla']) && trim($company['cargo_director_planilla']) !== '')
+                    ? $company['cargo_director_planilla']
+                    : '',
+                'firma_contador_planilla' => (!empty($company['firma_contador_planilla']) && trim($company['firma_contador_planilla']) !== '')
+                    ? $company['firma_contador_planilla']
+                    : '',
+                'cargo_contador_planilla' => (!empty($company['cargo_contador_planilla']) && trim($company['cargo_contador_planilla']) !== '')
+                    ? $company['cargo_contador_planilla']
+                    : ''
             ];
         } catch (\Exception $e) {
             return [
@@ -648,10 +666,10 @@ class PDFReportController extends Controller
                 'cargo_jefe_rrhh' => 'Jefe de Recursos Humanos',
                 'elaborado_por' => 'Especialista en Nóminas',
                 'cargo_elaborador' => 'Especialista en Nóminas',
-                'firma_director_planilla' => 'Director General',
-                'cargo_director_planilla' => 'Director General',
-                'firma_contador_planilla' => 'Contador General',
-                'cargo_contador_planilla' => 'Contador General'
+                'firma_director_planilla' => '',
+                'cargo_director_planilla' => '',
+                'firma_contador_planilla' => '',
+                'cargo_contador_planilla' => ''
             ];
         }
     }

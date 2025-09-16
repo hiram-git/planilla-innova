@@ -53,7 +53,7 @@ class App
                     'schedules' => ['controller' => 'Schedule', 'method' => null],
                     'attendance' => ['controller' => 'Attendance', 'method' => null],
                     'payrolls' => ['controller' => 'PayrollController', 'method' => null],
-                    'concepts' => ['controller' => 'eConceptController', 'method' => null],
+                    'concepts' => ['controller' => 'ConceptController', 'method' => null],
                     'tipos-planilla' => ['controller' => 'TipoPlanillaController', 'method' => null],
                     'frecuencias' => ['controller' => 'FrecuenciaController', 'method' => null],
                     'situaciones' => ['controller' => 'SituacionController', 'method' => null],
