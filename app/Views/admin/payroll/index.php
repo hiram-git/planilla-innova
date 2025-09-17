@@ -178,9 +178,9 @@ $csrf_token = $data['csrf_token'] ?? '';
                 <!-- Fase de confirmación -->
                 <div id="confirmationPhase">
                     <p>¿Está seguro que desea procesar la planilla <strong id="processPayrollName"></strong>?</p>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        Este proceso calculará automáticamente los conceptos para todos los empleados.
+                    <div class="callout callout-info">
+                        <h5><i class="fas fa-info-circle"></i> Información</h5>
+                        <p>Este proceso calculará automáticamente los conceptos para todos los empleados.</p>
                     </div>
                 </div>
                 
@@ -286,9 +286,9 @@ $csrf_token = $data['csrf_token'] ?? '';
                 <!-- Fase de confirmación -->
                 <div id="reprocessConfirmationPhase">
                     <p>¿Está seguro que desea reprocesar la planilla <strong id="reprocessPayrollName"></strong>?</p>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Esto eliminará los datos actuales y recalculará todos los conceptos.
+                    <div class="callout callout-warning">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Advertencia</h5>
+                        <p>Esto eliminará los datos actuales y recalculará todos los conceptos.</p>
                     </div>
                 </div>
                 
@@ -392,9 +392,9 @@ $csrf_token = $data['csrf_token'] ?? '';
             </div>
             <div class="modal-body">
                 <p>¿Está seguro que desea cerrar la planilla <strong id="closePayrollName"></strong>?</p>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    Una vez cerrada, no se podrá modificar.
+                <div class="callout callout-info">
+                    <h5><i class="fas fa-info-circle"></i> Información</h5>
+                    <p>Una vez cerrada, no se podrá modificar.</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -419,9 +419,9 @@ $csrf_token = $data['csrf_token'] ?? '';
             </div>
             <div class="modal-body">
                 <p>¿Está seguro que desea anular la planilla <strong id="cancelPayrollName"></strong>?</p>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Esta acción no se puede deshacer.
+                <div class="callout callout-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Peligro</h5>
+                    <p>Esta acción no se puede deshacer.</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -446,9 +446,9 @@ $csrf_token = $data['csrf_token'] ?? '';
             </div>
             <div class="modal-body">
                 <p>¿Está seguro que desea eliminar la planilla <strong id="deletePayrollName"></strong>?</p>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Esta acción eliminará permanentemente todos los datos relacionados.
+                <div class="callout callout-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Peligro</h5>
+                    <p>Esta acción eliminará permanentemente todos los datos relacionados.</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -473,9 +473,9 @@ $csrf_token = $data['csrf_token'] ?? '';
             </div>
             <div class="modal-body">
                 <p>¿Está seguro que desea reabrir la planilla <strong id="reopenPayrollName"></strong>?</p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Esta acción realizará un rollback automático de los acumulados procesados.
+                <div class="callout callout-warning">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Advertencia</h5>
+                    <p>Esta acción realizará un rollback automático de los acumulados procesados.</p>
                 </div>
                 <div class="form-group">
                     <label for="reopenMotivo">Motivo de reapertura <span class="text-danger">*</span></label>
@@ -505,18 +505,18 @@ $csrf_token = $data['csrf_token'] ?? '';
             </div>
             <div class="modal-body">
                 <p>¿Está seguro que desea marcar la planilla <strong id="markPendingPayrollName"></strong> como PENDIENTE?</p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>¡ATENCIÓN!</strong> Esta acción eliminará automáticamente:
+                <div class="callout callout-warning">
+                    <h5><i class="fas fa-exclamation-triangle"></i> ¡ATENCIÓN!</h5>
+                    <p>Esta acción eliminará automáticamente:</p>
                     <ul class="mt-2 mb-0">
                         <li>Todos los detalles de planilla procesados</li>
                         <li>Todos los acumulados generados</li>
                         <li>Registros consolidados asociados</li>
                     </ul>
                 </div>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    La planilla quedará completamente limpia y lista para ser reprocesada desde cero.
+                <div class="callout callout-info">
+                    <h5><i class="fas fa-info-circle"></i> Información</h5>
+                    <p>La planilla quedará completamente limpia y lista para ser reprocesada desde cero.</p>
                 </div>
                 <div class="form-group">
                     <label for="markPendingMotivo">Motivo del cambio <span class="text-danger">*</span></label>
