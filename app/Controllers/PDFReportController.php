@@ -155,7 +155,7 @@ class PDFReportController extends Controller
         $pdf->SetFillColor(220, 220, 220);
         
         // Anchos de columna para orientación horizontal
-        $colWidths = [50, 20, 20, 20, 30, 20, 20, 20, 20, 20];
+        $colWidths = [70, 20, 20, 20, 30, 20, 20, 20, 20, 20];
         
         $pdf->Cell($colWidths[0], 6, 'Empleado', 1, 0, 'C', true);
         $pdf->Cell($colWidths[1], 6, 'Cédula', 1, 0, 'C', true);
@@ -175,7 +175,7 @@ class PDFReportController extends Controller
     private function addEmployeeTable($pdf, $employees)
     {
         // Anchos de columna para orientación horizontal
-        $colWidths = [100, 20, 20, 20, 30, 20, 20, 20, 20, 20];
+        $colWidths = [70, 20, 20, 20, 30, 20, 20, 20, 20, 20];
         
         // Datos de empleados
         $pdf->SetFont('helvetica', '', 7);
@@ -195,7 +195,7 @@ class PDFReportController extends Controller
         foreach ($employees as $emp) {
             // Nombre completo (truncado si es muy largo)
             $nombreCompleto = $emp['lastname'] . ', ' . $emp['firstname'];
-            if (strlen($nombreCompleto) > 30) {
+            if (strlen($nombreCompleto) > 50) {
                 $nombreCompleto = substr($nombreCompleto, 0, 27) . '...';
             }
             
