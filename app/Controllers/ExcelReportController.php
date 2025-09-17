@@ -5,6 +5,11 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Payroll;
 use App\Models\Employee;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 /**
  * Controlador específico para reportes Excel
@@ -64,33 +69,51 @@ class ExcelReportController extends Controller
     }
 
     /**
-     * Generar el archivo Excel
+     * Generar el archivo Excel usando PhpSpreadsheet
      */
     private function generateExcelReport($planillaData, $companyInfo, $signatures)
     {
         $payroll = $planillaData['payroll'];
         $employees = $planillaData['employees'] ?? [];
-        
+
+        // Crear nueva instancia de Spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Configurar propiedades del documento
+        $spreadsheet->getProperties()
+            ->setCreator('Sistema de Planillas MVC')
+            ->setTitle('Planilla de Sueldos - ' . $payroll['descripcion'])
+            ->setSubject('Reporte de Planilla')
+            ->setDescription('Planilla generada por Sistema MVC')
+            ->setKeywords('planilla sueldos panama')
+            ->setCategory('Recursos Humanos');
+
+        // Configurar el worksheet
+        $sheet->setTitle('Planilla');
+
+        // Generar contenido
+        $this->buildExcelContent($sheet, $payroll, $employees, $companyInfo);
+
         // Nombre del archivo
         $filename = 'Planilla_Panama_' . $payroll['id'] . '_' . date('Y-m-d') . '.xlsx';
-        
+
         // Limpiar buffer de salida
         if (ob_get_level()) {
             ob_end_clean();
         }
-        
-        // Configurar headers para XLSX
+
+        // Configurar headers para descarga
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
         header('Cache-Control: must-revalidate');
         header('Pragma: public');
         header('Expires: 0');
-        
-        // Generar contenido HTML que Excel interpretará como XLSX
-        $content = $this->generateExcelContent($payroll, $employees, $companyInfo, $signatures);
-        
-        echo $content;
+
+        // Crear writer y generar archivo
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
         exit;
     }
 
@@ -811,6 +834,198 @@ class ExcelReportController extends Controller
             'cargo_elaborador' => $_SESSION['cargo_elaborador'] ?? 'Especialista en Nóminas',
             'cargo_jefe_rrhh' => $_SESSION['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos'
         ];
+    }
+
+    /**
+     * Construir contenido del Excel usando PhpSpreadsheet
+     */
+    private function buildExcelContent($sheet, $payroll, $employees, $companyInfo)
+    {
+        $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_inicio']));
+        $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
+
+        $row = 1;
+
+        // Header de la empresa
+        $sheet->setCellValue('A' . $row, $companyInfo['company_name']);
+        $sheet->mergeCells('A' . $row . ':O' . $row);
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => 'FFFFFF']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']]
+        ]);
+        $row++;
+
+        // Subtítulo
+        $sheet->setCellValue('A' . $row, 'PLANILLA DE SUELDOS - ' . strtoupper($payroll['descripcion']));
+        $sheet->mergeCells('A' . $row . ':O' . $row);
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '8FAADC']]
+        ]);
+        $row++;
+
+        // Período
+        $sheet->setCellValue('A' . $row, 'Período: ' . $fechaInicio . ' al ' . $fechaFin);
+        $sheet->mergeCells('A' . $row . ':O' . $row);
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 11],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E2F3']]
+        ]);
+        $row += 2; // Fila vacía
+
+        // Headers de columnas
+        $headers = [
+            'A' => 'Cédula',
+            'B' => 'Apellidos',
+            'C' => 'Nombres',
+            'D' => 'Puesto',
+            'E' => 'Función',
+            'F' => 'Fecha Ingreso',
+            'G' => 'Sueldo Base',
+            'H' => 'Total Ingresos',
+            'I' => 'Seguro Social',
+            'J' => 'Seguro Educativo',
+            'K' => 'ISR',
+            'L' => 'Otras Deducciones',
+            'M' => 'Total Deducciones',
+            'N' => 'Salario Neto',
+            'O' => 'Días Laborados'
+        ];
+
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col . $row, $header);
+            $sheet->getStyle($col . $row)->applyFromArray([
+                'font' => ['bold' => true],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ]);
+        }
+        $row++;
+
+        // Datos de empleados
+        $totalesGenerales = $this->initializePayrollTotals();
+
+        foreach ($employees as $emp) {
+            $totales = $this->calculatePayrollTotals($emp);
+            $this->accumulatePayrollTotals($totalesGenerales, $totales);
+
+            $sheet->setCellValue('A' . $row, $emp['document_id'] ?? 'N/A');
+            $sheet->setCellValue('B' . $row, $emp['lastname'] ?? '');
+            $sheet->setCellValue('C' . $row, $emp['firstname'] ?? '');
+            $sheet->setCellValue('D' . $row, $emp['puesto_actual'] ?? 'N/A');
+            $sheet->setCellValue('E' . $row, $emp['funcion_name'] ?? 'N/A');
+            $sheet->setCellValue('F' . $row, !empty($emp['fecha_ingreso']) ? date('d/m/Y', strtotime($emp['fecha_ingreso'])) : 'N/A');
+            $sheet->setCellValue('G' . $row, $emp['salary'] ?? 0);
+            $sheet->setCellValue('H' . $row, $totales['ingresos']);
+            $sheet->setCellValue('I' . $row, $totales['seguro_social']);
+            $sheet->setCellValue('J' . $row, $totales['seguro_educativo']);
+            $sheet->setCellValue('K' . $row, $totales['impuesto_renta']);
+            $sheet->setCellValue('L' . $row, $totales['otras_deducciones']);
+            $sheet->setCellValue('M' . $row, $totales['deducciones']);
+            $sheet->setCellValue('N' . $row, $totales['neto']);
+            $sheet->setCellValue('O' . $row, $totales['dias_laborados']);
+
+            // Aplicar formatos
+            $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ]);
+
+            // Formato moneda para columnas numéricas
+            $sheet->getStyle('G' . $row . ':N' . $row)->getNumberFormat()
+                  ->setFormatCode('$#,##0.00');
+
+            $row++;
+        }
+
+        // Fila de totales
+        $sheet->setCellValue('A' . $row, 'TOTALES GENERALES');
+        $sheet->mergeCells('A' . $row . ':G' . $row);
+        $sheet->setCellValue('H' . $row, $totalesGenerales['ingresos']);
+        $sheet->setCellValue('I' . $row, $totalesGenerales['seguro_social']);
+        $sheet->setCellValue('J' . $row, $totalesGenerales['seguro_educativo']);
+        $sheet->setCellValue('K' . $row, $totalesGenerales['impuesto_renta']);
+        $sheet->setCellValue('L' . $row, $totalesGenerales['otras_deducciones']);
+        $sheet->setCellValue('M' . $row, $totalesGenerales['deducciones']);
+        $sheet->setCellValue('N' . $row, $totalesGenerales['neto']);
+        $sheet->setCellValue('O' . $row, $totalesGenerales['dias_laborados']);
+
+        // Estilo para totales
+        $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'C5E0B4']],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THICK]]
+        ]);
+
+        $sheet->getStyle('H' . $row . ':N' . $row)->getNumberFormat()
+              ->setFormatCode('$#,##0.00');
+
+        // Ajustar anchos de columnas
+        $this->autoSizeColumns($sheet);
+
+        // Congelar paneles en headers
+        $sheet->freezePane('A6');
+    }
+
+    /**
+     * Inicializar totales para planilla
+     */
+    private function initializePayrollTotals()
+    {
+        return [
+            'ingresos' => 0,
+            'deducciones' => 0,
+            'seguro_social' => 0,
+            'seguro_educativo' => 0,
+            'impuesto_renta' => 0,
+            'otras_deducciones' => 0,
+            'neto' => 0,
+            'dias_laborados' => 0
+        ];
+    }
+
+    /**
+     * Calcular totales de un empleado
+     */
+    private function calculatePayrollTotals($emp)
+    {
+        // Los totales ya vienen calculados en la estructura del empleado
+        $totals = $emp['totals'] ?? [];
+        $diasLaborados = $emp['reference_value'] ?? 15; // Campo referencia como días laborados
+
+        return [
+            'ingresos' => $totals['ingresos'] ?? 0,
+            'deducciones' => $totals['deducciones'] ?? 0,
+            'seguro_social' => $totals['seguro_social'] ?? 0,
+            'seguro_educativo' => $totals['seguro_educativo'] ?? 0,
+            'impuesto_renta' => $totals['impuesto_renta'] ?? 0,
+            'otras_deducciones' => $totals['otras_deducciones'] ?? 0,
+            'neto' => $totals['neto'] ?? 0,
+            'dias_laborados' => $diasLaborados,
+        ];
+    }
+
+    /**
+     * Acumular totales
+     */
+    private function accumulatePayrollTotals(&$totalesGenerales, $totales)
+    {
+        foreach ($totales as $key => $value) {
+            $totalesGenerales[$key] += $value;
+        }
+    }
+
+    /**
+     * Ajustar automáticamente el ancho de las columnas
+     */
+    private function autoSizeColumns($sheet)
+    {
+        foreach (range('A', 'O') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
     }
 
     /**
