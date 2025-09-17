@@ -594,10 +594,10 @@ class ExcelReportController extends Controller
             $db = $reportModel->getDatabase();
             $connection = $db->getConnection();
             
-            // Información básica de la planilla (legacy)
-            $sql = "SELECT p.*, 
-                           p.fecha as fecha_inicio,
-                           p.fecha as fecha_fin,
+            // Información básica de la planilla
+            $sql = "SELECT p.*,
+                           p.fecha_desde as fecha_inicio,
+                           p.fecha_hasta as fecha_fin,
                            tp.descripcion as tipo_descripcion
                    FROM planilla_cabecera p
                    LEFT JOIN tipos_planilla tp ON p.tipo_planilla_id = tp.id
@@ -885,14 +885,14 @@ class ExcelReportController extends Controller
             'E' => 'Función',
             'F' => 'Fecha Ingreso',
             'G' => 'Sueldo Base',
-            'H' => 'Total Ingresos',
-            'I' => 'Seguro Social',
-            'J' => 'Seguro Educativo',
-            'K' => 'ISR',
-            'L' => 'Otras Deducciones',
-            'M' => 'Total Deducciones',
-            'N' => 'Salario Neto',
-            'O' => 'Días Laborados'
+            'H' => 'Días Laborados',
+            'I' => 'Total Ingresos',
+            'J' => 'Seguro Social',
+            'K' => 'Seguro Educativo',
+            'L' => 'ISR',
+            'M' => 'Otras Deducciones',
+            'N' => 'Total Deducciones',
+            'O' => 'Salario Neto'
         ];
 
         foreach ($headers as $col => $header) {
@@ -920,23 +920,24 @@ class ExcelReportController extends Controller
             $sheet->setCellValue('E' . $row, $emp['funcion_name'] ?? 'N/A');
             $sheet->setCellValue('F' . $row, !empty($emp['fecha_ingreso']) ? date('d/m/Y', strtotime($emp['fecha_ingreso'])) : 'N/A');
             $sheet->setCellValue('G' . $row, $emp['salary'] ?? 0);
-            $sheet->setCellValue('H' . $row, $totales['ingresos']);
-            $sheet->setCellValue('I' . $row, $totales['seguro_social']);
-            $sheet->setCellValue('J' . $row, $totales['seguro_educativo']);
-            $sheet->setCellValue('K' . $row, $totales['impuesto_renta']);
-            $sheet->setCellValue('L' . $row, $totales['otras_deducciones']);
-            $sheet->setCellValue('M' . $row, $totales['deducciones']);
-            $sheet->setCellValue('N' . $row, $totales['neto']);
-            $sheet->setCellValue('O' . $row, $totales['dias_laborados']);
+            $sheet->setCellValue('H' . $row, $totales['dias_laborados']);
+            $sheet->setCellValue('I' . $row, $totales['ingresos']);
+            $sheet->setCellValue('J' . $row, $totales['seguro_social']);
+            $sheet->setCellValue('K' . $row, $totales['seguro_educativo']);
+            $sheet->setCellValue('L' . $row, $totales['impuesto_renta']);
+            $sheet->setCellValue('M' . $row, $totales['otras_deducciones']);
+            $sheet->setCellValue('N' . $row, $totales['deducciones']);
+            $sheet->setCellValue('O' . $row, $totales['neto']);
 
             // Aplicar formatos
             $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
             ]);
 
-            // Formato moneda para columnas numéricas
-            $sheet->getStyle('G' . $row . ':N' . $row)->getNumberFormat()
-                  ->setFormatCode('$#,##0.00');
+            // Formato moneda para columnas numéricas (excluyendo días laborados H)
+            $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('$#,##0.00'); // Sueldo Base
+            $sheet->getStyle('I' . $row . ':N' . $row)->getNumberFormat()->setFormatCode('$#,##0.00'); // Ingresos hasta Deducciones
+            $sheet->getStyle('O' . $row)->getNumberFormat()->setFormatCode('$#,##0.00'); // Salario Neto
 
             $row++;
         }
@@ -944,14 +945,14 @@ class ExcelReportController extends Controller
         // Fila de totales
         $sheet->setCellValue('A' . $row, 'TOTALES GENERALES');
         $sheet->mergeCells('A' . $row . ':G' . $row);
-        $sheet->setCellValue('H' . $row, $totalesGenerales['ingresos']);
-        $sheet->setCellValue('I' . $row, $totalesGenerales['seguro_social']);
-        $sheet->setCellValue('J' . $row, $totalesGenerales['seguro_educativo']);
-        $sheet->setCellValue('K' . $row, $totalesGenerales['impuesto_renta']);
-        $sheet->setCellValue('L' . $row, $totalesGenerales['otras_deducciones']);
-        $sheet->setCellValue('M' . $row, $totalesGenerales['deducciones']);
-        $sheet->setCellValue('N' . $row, $totalesGenerales['neto']);
-        $sheet->setCellValue('O' . $row, $totalesGenerales['dias_laborados']);
+        $sheet->setCellValue('H' . $row, $totalesGenerales['dias_laborados']);
+        $sheet->setCellValue('I' . $row, $totalesGenerales['ingresos']);
+        $sheet->setCellValue('J' . $row, $totalesGenerales['seguro_social']);
+        $sheet->setCellValue('K' . $row, $totalesGenerales['seguro_educativo']);
+        $sheet->setCellValue('L' . $row, $totalesGenerales['impuesto_renta']);
+        $sheet->setCellValue('M' . $row, $totalesGenerales['otras_deducciones']);
+        $sheet->setCellValue('N' . $row, $totalesGenerales['deducciones']);
+        $sheet->setCellValue('O' . $row, $totalesGenerales['neto']);
 
         // Estilo para totales
         $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
@@ -960,8 +961,11 @@ class ExcelReportController extends Controller
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THICK]]
         ]);
 
-        $sheet->getStyle('H' . $row . ':N' . $row)->getNumberFormat()
-              ->setFormatCode('$#,##0.00');
+        // Formato de moneda para totales (excluyendo días laborados H)
+        $sheet->getStyle('I' . $row . ':N' . $row)->getNumberFormat()
+              ->setFormatCode('$#,##0.00'); // Ingresos hasta Deducciones
+        $sheet->getStyle('O' . $row)->getNumberFormat()
+              ->setFormatCode('$#,##0.00'); // Salario Neto
 
         // Ajustar anchos de columnas
         $this->autoSizeColumns($sheet);
