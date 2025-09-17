@@ -813,14 +813,20 @@ class ExcelReportController extends Controller
                 'company_name' => $company['company_name'] ?? 'EMPRESA EJEMPLO S.A.',
                 'ruc' => $company['ruc'] ?? '1234567890-1-DV',
                 'address' => $company['address'] ?? 'Dirección Empresa',
-                'currency_symbol' => $company['currency_symbol'] ?? 'Q'
+                'currency_symbol' => $company['currency_symbol'] ?? 'Q',
+                'logo_empresa' => $company['logo_empresa'] ?? '',
+                'logo_izquierdo_reportes' => $company['logo_izquierdo_reportes'] ?? '',
+                'logo_derecho_reportes' => $company['logo_derecho_reportes'] ?? ''
             ];
         } catch (\Exception $e) {
             return [
                 'company_name' => 'EMPRESA EJEMPLO S.A.',
                 'ruc' => '1234567890-1-DV',
                 'address' => 'Dirección Empresa',
-                'currency_symbol' => 'Q'
+                'currency_symbol' => 'Q',
+                'logo_empresa' => '',
+                'logo_izquierdo_reportes' => '',
+                'logo_derecho_reportes' => ''
             ];
         }
     }
@@ -847,6 +853,12 @@ class ExcelReportController extends Controller
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
 
         $row = 1;
+
+        // Insertar logos si están disponibles
+        if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes'])) {
+            $this->insertLogosInExcel($sheet, $row, $companyInfo);
+            $row += 3; // Espacio para logos
+        }
 
         // Header de la empresa
         $sheet->setCellValue('A' . $row, $companyInfo['company_name']);
@@ -1035,6 +1047,64 @@ class ExcelReportController extends Controller
         foreach (range('A', 'O') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
+    }
+
+    /**
+     * Insertar logos en el Excel
+     */
+    private function insertLogosInExcel($sheet, $row, $companyInfo)
+    {
+        $logoPath = __DIR__ . '/../../images/logos/';
+
+        // Logo izquierdo
+        if (!empty($companyInfo['logo_izquierdo_reportes'])) {
+            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
+            if (file_exists($leftLogoPath)) {
+                try {
+                    // Crear objeto Drawing para logo izquierdo
+                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                    $drawing->setName('Logo Izquierdo');
+                    $drawing->setDescription('Logo Izquierdo para Reportes');
+                    $drawing->setPath($leftLogoPath);
+                    $drawing->setHeight(60); // Altura en pixels
+                    $drawing->setCoordinates('A' . $row); // Posición
+                    $drawing->setWorksheet($sheet);
+
+                    error_log("ExcelReportController: Logo izquierdo insertado desde: " . $leftLogoPath);
+                } catch (\Exception $e) {
+                    error_log("ExcelReportController: Error insertando logo izquierdo: " . $e->getMessage());
+                }
+            } else {
+                error_log("ExcelReportController: Logo izquierdo no encontrado: " . $leftLogoPath);
+            }
+        }
+
+        // Logo derecho
+        if (!empty($companyInfo['logo_derecho_reportes'])) {
+            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
+            if (file_exists($rightLogoPath)) {
+                try {
+                    // Crear objeto Drawing para logo derecho
+                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                    $drawing->setName('Logo Derecho');
+                    $drawing->setDescription('Logo Derecho para Reportes');
+                    $drawing->setPath($rightLogoPath);
+                    $drawing->setHeight(60); // Altura en pixels
+                    $drawing->setCoordinates('M' . $row); // Posición hacia la derecha
+                    $drawing->setWorksheet($sheet);
+
+                    error_log("ExcelReportController: Logo derecho insertado desde: " . $rightLogoPath);
+                } catch (\Exception $e) {
+                    error_log("ExcelReportController: Error insertando logo derecho: " . $e->getMessage());
+                }
+            } else {
+                error_log("ExcelReportController: Logo derecho no encontrado: " . $rightLogoPath);
+            }
+        }
+
+        // Ajustar altura de las filas para los logos
+        $sheet->getRowDimension($row)->setRowHeight(45);
+        $sheet->getRowDimension($row + 1)->setRowHeight(15);
     }
 
     /**

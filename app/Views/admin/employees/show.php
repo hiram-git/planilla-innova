@@ -134,6 +134,10 @@ $content .= '
                                         <td><strong>Fecha Creación:</strong></td>
                                         <td>' . ($employee['created_on'] ? date('d/m/Y H:i', strtotime($employee['created_on'])) : 'No disponible') . '</td>
                                     </tr>
+                                    <tr>
+                                        <td><strong>Elemento Organigrama:</strong></td>
+                                        <td>' . (!empty($employee['organigrama_descripcion']) ? htmlspecialchars($employee['organigrama_descripcion']) : '<span class="text-muted">No asignado</span>') . '</td>
+                                    </tr>
                                 </table>
                             </div>
                         </div>

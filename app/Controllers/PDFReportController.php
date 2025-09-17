@@ -131,6 +131,9 @@ class PDFReportController extends Controller
      */
     private function addPDFHeader($pdf, $companyInfo, $payroll)
     {
+        // Insertar logos si existen
+        $this->insertLogosInPDF($pdf, $companyInfo);
+
         // Título de la empresa
         $pdf->SetFont('helvetica', 'B', 16);
         $pdf->Cell(0, 10, $companyInfo['company_name'], 0, 1, 'C');
@@ -346,7 +349,10 @@ class PDFReportController extends Controller
         
         $employee = $data['employee'];
         $payroll = $data['payroll'];
-        
+
+        // Insertar logos si existen
+        $this->insertLogosInPDF($pdf, $companyInfo);
+
         // Header del comprobante
         $pdf->SetFont('helvetica', 'B', 16);
         $pdf->Cell(0, 10, 'COMPROBANTE DE PAGO', 0, 1, 'C');
@@ -654,7 +660,10 @@ class PDFReportController extends Controller
                     : '',
                 'cargo_contador_planilla' => (!empty($company['cargo_contador_planilla']) && trim($company['cargo_contador_planilla']) !== '')
                     ? $company['cargo_contador_planilla']
-                    : ''
+                    : '',
+                'logo_empresa' => $company['logo_empresa'] ?? '',
+                'logo_izquierdo_reportes' => $company['logo_izquierdo_reportes'] ?? '',
+                'logo_derecho_reportes' => $company['logo_derecho_reportes'] ?? ''
             ];
         } catch (\Exception $e) {
             return [
@@ -669,7 +678,10 @@ class PDFReportController extends Controller
                 'firma_director_planilla' => '',
                 'cargo_director_planilla' => '',
                 'firma_contador_planilla' => '',
-                'cargo_contador_planilla' => ''
+                'cargo_contador_planilla' => '',
+                'logo_empresa' => '',
+                'logo_izquierdo_reportes' => '',
+                'logo_derecho_reportes' => ''
             ];
         }
     }
@@ -681,6 +693,55 @@ class PDFReportController extends Controller
     {
         if (!isset($_SESSION['admin'])) {
             $this->redirect('/admin');
+        }
+    }
+
+    /**
+     * Insertar logos en el PDF
+     */
+    private function insertLogosInPDF($pdf, $companyInfo)
+    {
+        $logoPath = __DIR__ . '/../../images/logos/';
+        $logoHeight = 20; // Altura de los logos
+        $pageWidth = $pdf->getPageWidth();
+        $margin = 10;
+
+        // Guardar posición actual
+        $currentY = $pdf->GetY();
+
+        // Logo izquierdo
+        if (!empty($companyInfo['logo_izquierdo_reportes'])) {
+            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
+            if (file_exists($leftLogoPath)) {
+                $pdf->Image($leftLogoPath, $margin, $currentY, 0, $logoHeight, '', '', '', false, 300, '', false, false, 0);
+            }
+        }
+
+        // Logo derecho
+        if (!empty($companyInfo['logo_derecho_reportes'])) {
+            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
+            if (file_exists($rightLogoPath)) {
+                // Calcular posición X para alinear a la derecha
+                $logoWidth = 30; // Ancho estimado del logo
+                $rightX = $pageWidth - $margin - $logoWidth;
+                $pdf->Image($rightLogoPath, $rightX, $currentY, 0, $logoHeight, '', '', '', false, 300, '', false, false, 0);
+            }
+        }
+
+        // Logo principal (centro) - solo si no hay logos laterales o como alternativa
+        if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
+            $mainLogoPath = $logoPath . $companyInfo['logo_empresa'];
+            if (file_exists($mainLogoPath)) {
+                // Centrar el logo
+                $logoWidth = 40;
+                $centerX = ($pageWidth - $logoWidth) / 2;
+                $pdf->Image($mainLogoPath, $centerX, $currentY, 0, $logoHeight, '', '', '', false, 300, '', false, false, 0);
+            }
+        }
+
+        // Mover posición Y después de los logos
+        if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
+            $pdf->SetY($currentY + $logoHeight + 5);
         }
     }
 

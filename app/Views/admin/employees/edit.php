@@ -279,36 +279,9 @@ $content .= '            </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="edit_organigrama_level">Nivel en Organigrama</label>
-                                <input type="text" class="form-control" id="edit_organigrama_level" name="edit_organigrama_level" 
-                                       placeholder="Opcional" value="' . ($_SESSION['old_data']['edit_organigrama_level'] ?? $employee['organigrama_path']) . '">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card-footer">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Actualizar Empleado
-                    </button>
-                    <a href="' . url('/panel/employees') . '" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancelar
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>';
-
-$scripts = '
-<script>
-$(document).ready(function() {
-    // Obtener tipo de institución de la empresa
-    var companyType = "' . ($company_config['tipo_institucion'] ?? 'privada') . '";
-    
-    // Mostrar/ocultar campos según tipo de institución
-    function toggleFieldsByCompanyType() {
-        if (companyType === "privada") {
+                                <label for="edit_organigrama_id">Elemento del Organigrama</label>
+                                <select class="form-control" id="edit_organigrama_id" name="edit_organigrama_id">
+                                    <option value="">Seleccionar elemento del organigrama...</option>';
             // Empresa privada: mostrar cargos, funciones, partidas y sueldo individual (SIN posición)
             $("#edit-private-company-fields").show();
             $("#edit-salary-section").show();

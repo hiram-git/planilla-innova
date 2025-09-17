@@ -176,7 +176,7 @@ class Employee extends Model
                        c.descripcion as cargo_name,
                        p.partida as partida_name,
                        f.descripcion as funcion_name,
-                       org.descripcion as organigrama_name,
+                       org.descripcion as organigrama_descripcion,
                        sit.descripcion as situacion_nombre,
                        comp.currency_symbol as moneda_simbolo
                 FROM employees e
@@ -185,7 +185,7 @@ class Employee extends Model
                 LEFT JOIN cargos c ON pos.id_cargo = c.id
                 LEFT JOIN partidas p ON pos.id_partida = p.id
                 LEFT JOIN funciones f ON pos.id_funcion = f.id
-                LEFT JOIN organigrama org ON e.organigrama_path = org.path
+                LEFT JOIN organigrama org ON e.organigrama_id = org.id
                 LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                 LEFT JOIN companies comp ON 1=1
                 WHERE e.id = ?";

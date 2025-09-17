@@ -36,6 +36,7 @@ class Employee extends Controller
         $cargo = $this->model('Cargo');
         $funcion = $this->model('Funcion');
         $partida = $this->model('Partida');
+        $organigrama = $this->model('Organizational');
 
         $data = [
             'title' => 'Agregar Empleado',
@@ -47,6 +48,7 @@ class Employee extends Controller
             'cargos' => $cargo->all(),
             'funciones' => $funcion->all(),
             'partidas' => $partida->all(),
+            'organigrama_elementos' => $organigrama->getOrganizationalFlat(),
             'company_config' => $company->getCompanyConfig(),
             'csrf_token' => AuthMiddleware::generateCSRF()
         ];
@@ -163,6 +165,7 @@ class Employee extends Controller
         $cargo = $this->model('Cargo');
         $funcion = $this->model('Funcion');
         $partida = $this->model('Partida');
+        $organigrama = $this->model('Organizational');
 
         $employeeData = $employee->getEmployeeWithFullDetails($id);
         if (!$employeeData) {
@@ -181,6 +184,7 @@ class Employee extends Controller
             'cargos' => $cargo->all(),
             'funciones' => $funcion->all(),
             'partidas' => $partida->all(),
+            'organigrama_elementos' => $organigrama->getOrganizationalFlat(),
             'company_config' => $company->getCompanyConfig(),
             'csrf_token' => AuthMiddleware::generateCSRF()
         ];

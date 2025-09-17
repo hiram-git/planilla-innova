@@ -274,12 +274,22 @@ $content .= '                </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="organigrama_level">Nivel en Organigrama</label>
-                        <input type="text" class="form-control" id="organigrama_level" name="organigrama_level" 
-                               placeholder="Opcional" value="' . ($_SESSION['old_data']['organigrama_level'] ?? '') . '">
+                        <label for="organigrama_id">Elemento del Organigrama</label>
+                        <select class="form-control" id="organigrama_id" name="organigrama_id">
+                            <option value="">Seleccionar elemento del organigrama...</option>';
+
+foreach ($organigrama_elementos as $elemento) {
+    $selected = ($_SESSION['old_data']['organigrama_id'] ?? '') == $elemento['id'] ? ' selected' : '';
+    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', substr_count($elemento['path'] ?? '', '/'));
+    $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . $indent . htmlspecialchars($elemento['descripcion']) . '</option>';
+}
+
+$content .= '                        </select>
+                                    <small class="form-text text-muted">Opcional. Elemento del organigrama al que pertenece el empleado</small>
+                                    ' . (isset($_SESSION['errors']['organigrama_id']) ? '<small class="text-danger">' . $_SESSION['errors']['organigrama_id'] . '</small>' : '') . '
                     </div>
                 </div>
-                
+
                 <div class="card-footer">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Guardar Empleado

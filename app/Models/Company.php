@@ -13,10 +13,11 @@ class Company extends Model
 {
     public $table = 'companies';
     protected $fillable = [
-        'company_name', 'ruc', 'legal_representative', 
-        'address', 'phone', 'email', 'currency_symbol', 
-        'currency_code', 'logo_path', 'tipo_institucion',
-        'jefe_recursos_humanos', 'cargo_jefe_rrhh', 
+        'company_name', 'ruc', 'legal_representative',
+        'address', 'phone', 'email', 'currency_symbol',
+        'currency_code', 'logo_empresa', 'logo_izquierdo_reportes',
+        'logo_derecho_reportes', 'tipo_institucion',
+        'jefe_recursos_humanos', 'cargo_jefe_rrhh',
         'elaborado_por', 'cargo_elaborador'
     ];
 
@@ -62,14 +63,15 @@ class Company extends Model
             
             if ($existing) {
                 // Actualizar empresa existente
-                $sql = "UPDATE {$this->table} 
-                       SET company_name = ?, ruc = ?, legal_representative = ?, 
-                           address = ?, phone = ?, email = ?, currency_symbol = ?, 
-                           currency_code = ?, logo_path = ?, tipo_institucion = ?,
-                           jefe_recursos_humanos = ?, cargo_jefe_rrhh = ?, 
+                $sql = "UPDATE {$this->table}
+                       SET company_name = ?, ruc = ?, legal_representative = ?,
+                           address = ?, phone = ?, email = ?, currency_symbol = ?,
+                           currency_code = ?, logo_empresa = ?, logo_izquierdo_reportes = ?,
+                           logo_derecho_reportes = ?, tipo_institucion = ?,
+                           jefe_recursos_humanos = ?, cargo_jefe_rrhh = ?,
                            elaborado_por = ?, cargo_elaborador = ?
                        WHERE id = 1";
-                
+
                 $stmt = $this->pdo->prepare($sql);
                 $result = $stmt->execute([
                     $data['company_name'],
@@ -80,7 +82,9 @@ class Company extends Model
                     $data['email'],
                     $data['currency_symbol'] ?? 'Q',
                     $data['currency_code'] ?? 'GTQ',
-                    $data['logo_path'] ?? null,
+                    $data['logo_empresa'] ?? null,
+                    $data['logo_izquierdo_reportes'] ?? null,
+                    $data['logo_derecho_reportes'] ?? null,
                     $data['tipo_institucion'] ?? 'privada',
                     $data['jefe_recursos_humanos'] ?? '',
                     $data['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
@@ -91,12 +95,13 @@ class Company extends Model
                 $message = 'Configuración de empresa actualizada exitosamente';
             } else {
                 // Crear nueva empresa
-                $sql = "INSERT INTO {$this->table} 
-                       (id, company_name, ruc, legal_representative, address, phone, email, 
-                        currency_symbol, currency_code, logo_path, tipo_institucion,
+                $sql = "INSERT INTO {$this->table}
+                       (id, company_name, ruc, legal_representative, address, phone, email,
+                        currency_symbol, currency_code, logo_empresa, logo_izquierdo_reportes,
+                        logo_derecho_reportes, tipo_institucion,
                         jefe_recursos_humanos, cargo_jefe_rrhh, elaborado_por, cargo_elaborador)
-                       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                
+                       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
                 $stmt = $this->pdo->prepare($sql);
                 $result = $stmt->execute([
                     $data['company_name'],
@@ -107,7 +112,9 @@ class Company extends Model
                     $data['email'],
                     $data['currency_symbol'] ?? 'Q',
                     $data['currency_code'] ?? 'GTQ',
-                    $data['logo_path'] ?? null,
+                    $data['logo_empresa'] ?? null,
+                    $data['logo_izquierdo_reportes'] ?? null,
+                    $data['logo_derecho_reportes'] ?? null,
                     $data['tipo_institucion'] ?? 'privada',
                     $data['jefe_recursos_humanos'] ?? '',
                     $data['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
