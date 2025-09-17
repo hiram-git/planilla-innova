@@ -195,12 +195,7 @@ switch ($payroll['estado']) {
                 <i class="fas fa-users fa-3x text-muted mb-3"></i>
                 <h4>No hay empleados en esta planilla</h4>
                 <?php if ($payroll['estado'] === 'PENDIENTE'): ?>
-                    <p class="text-muted">Procese la planilla para generar los datos de empleados.</p>
-                    <button type="button" class="btn btn-success" id="processBtn2" 
-                            data-id="<?= $payroll['id'] ?>" 
-                            data-description="<?= htmlspecialchars($payroll['descripcion']) ?>">
-                        <i class="fas fa-play"></i> Procesar Planilla
-                    </button>
+                    <p class="text-muted">Esta planilla no tiene empleados asociados.</p>
                 <?php endif; ?>
             </div>
         </div>
