@@ -325,7 +325,7 @@ class PDFReportController extends Controller
         $pdf->Ln(5);
         $pdf->SetFont('helvetica', '', 7);
         $pdf->Cell(0, 4, 'Fecha de Generación: ' . date('d/m/Y H:i:s'), 0, 1, 'R');
-        $pdf->Cell(0, 4, 'Generado por: Sistema de Planillas MVC', 0, 1, 'R');
+        //$pdf->Cell(0, 4, 'Generado por: Sistema de Planillas MVC', 0, 1, 'R');
     }
 
     /**
