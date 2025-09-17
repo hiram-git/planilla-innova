@@ -810,15 +810,17 @@ class ExcelReportController extends Controller
             $company = $stmt->fetch();
             
             return [
-                'company_name' => $company['nombre'] ?? 'EMPRESA EJEMPLO S.A.',
+                'company_name' => $company['company_name'] ?? 'EMPRESA EJEMPLO S.A.',
                 'ruc' => $company['ruc'] ?? '1234567890-1-DV',
-                'address' => $company['direccion'] ?? 'Dirección Empresa'
+                'address' => $company['address'] ?? 'Dirección Empresa',
+                'currency_symbol' => $company['currency_symbol'] ?? 'Q'
             ];
         } catch (\Exception $e) {
             return [
                 'company_name' => 'EMPRESA EJEMPLO S.A.',
                 'ruc' => '1234567890-1-DV',
-                'address' => 'Dirección Empresa'
+                'address' => 'Dirección Empresa',
+                'currency_symbol' => 'Q'
             ];
         }
     }
@@ -934,10 +936,10 @@ class ExcelReportController extends Controller
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
             ]);
 
-            // Formato moneda para columnas numéricas (excluyendo días laborados H)
-            $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('$#,##0.00'); // Sueldo Base
-            $sheet->getStyle('I' . $row . ':N' . $row)->getNumberFormat()->setFormatCode('$#,##0.00'); // Ingresos hasta Deducciones
-            $sheet->getStyle('O' . $row)->getNumberFormat()->setFormatCode('$#,##0.00'); // Salario Neto
+            // Formato numérico para columnas de montos (sin símbolo de moneda)
+            $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Sueldo Base
+            $sheet->getStyle('I' . $row . ':N' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Ingresos hasta Deducciones
+            $sheet->getStyle('O' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Salario Neto
 
             $row++;
         }
@@ -961,11 +963,14 @@ class ExcelReportController extends Controller
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THICK]]
         ]);
 
-        // Formato de moneda para totales (excluyendo días laborados H)
+        // Formato de moneda para totales usando símbolo de la empresa
+        $currencySymbol = $companyInfo['currency_symbol'];
+        $currencyFormat = '"' . $currencySymbol . '"#,##0.00';
+
         $sheet->getStyle('I' . $row . ':N' . $row)->getNumberFormat()
-              ->setFormatCode('$#,##0.00'); // Ingresos hasta Deducciones
+              ->setFormatCode($currencyFormat); // Ingresos hasta Deducciones
         $sheet->getStyle('O' . $row)->getNumberFormat()
-              ->setFormatCode('$#,##0.00'); // Salario Neto
+              ->setFormatCode($currencyFormat); // Salario Neto
 
         // Ajustar anchos de columnas
         $this->autoSizeColumns($sheet);
