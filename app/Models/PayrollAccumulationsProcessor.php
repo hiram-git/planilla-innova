@@ -76,7 +76,7 @@ class PayrollAccumulationsProcessor
                     pc.fecha, 
                     pc.tipo_planilla_id,
                     tp.descripcion as tipo_planilla,
-                    pf.frecuencia_id as frecuencia,
+                    pc.frecuencia_id as frecuencia,
                     MONTH(pc.fecha) as mes,
                     YEAR(pc.fecha) as ano
                 FROM planilla_cabecera pc
