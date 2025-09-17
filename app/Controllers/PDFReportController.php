@@ -175,7 +175,7 @@ class PDFReportController extends Controller
     private function addEmployeeTable($pdf, $employees)
     {
         // Anchos de columna para orientación horizontal
-        $colWidths = [50, 20, 20, 20, 30, 20, 20, 20, 20, 20];
+        $colWidths = [100, 20, 20, 20, 30, 20, 20, 20, 20, 20];
         
         // Datos de empleados
         $pdf->SetFont('helvetica', '', 7);

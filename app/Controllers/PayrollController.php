@@ -1447,21 +1447,25 @@ class PayrollController extends Controller
                         $amount = 0;
                     }
 
+                    // Calcular valor de referencia según la unidad del concepto
+                    $referenciaValor = $this->calculateReferenceValue($concept, $employee);
+
                     // Insertar en planilla_detalle si hay monto o si el concepto permite monto cero
                     if ($amount > 0 || ($concept['monto_cero'] == 1 )) {
                         $insertConceptQuery = "
                             INSERT INTO planilla_detalle (
-                                planilla_cabecera_id, 
-                                employee_id, 
-                                concepto_id, 
-                                monto, 
+                                planilla_cabecera_id,
+                                employee_id,
+                                concepto_id,
+                                monto,
                                 tipo,
                                 firstname,
                                 lastname,
                                 position_id,
                                 schedule_id,
+                                referencia_valor,
                                 fecha_transaccion
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                         ";
                         
                         $conceptType = $concept['tipo'] ?? 'A';
@@ -1472,14 +1476,15 @@ class PayrollController extends Controller
                             $stmt = $db->prepare($insertConceptQuery);
                             $result = $stmt->execute([
                                 $payrollId,
-                                $employeeId, 
+                                $employeeId,
                                 $concept['id'],
                                 $amount,
                                 $conceptType,
                                 $employee['firstname'],
                                 $employee['lastname'],
                                 $employee['position_id'],
-                                $employee['schedule_id']
+                                $employee['schedule_id'],
+                                $referenciaValor
                             ]);
                             
                             if ($result) {
@@ -2270,6 +2275,38 @@ class PayrollController extends Controller
         } catch (\Exception $e) {
             error_log("Error en deleteAllPayrollRecords para planilla $payrollId: " . $e->getMessage());
             throw new \Exception('Error al eliminar registros de la planilla: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Calcular valor de referencia según la unidad del concepto
+     */
+    private function calculateReferenceValue($concept, $employee)
+    {
+        $unidad = $concept['unidad'] ?? 'monto';
+
+        switch (strtolower($unidad)) {
+            case 'dias':
+            case 'día':
+            case 'días':
+                // Para conceptos en días, usar días del período (típicamente 15 o 30)
+                return 15; // Valor por defecto para quincena
+
+            case 'horas':
+            case 'hora':
+                // Para conceptos en horas, calcular horas laborables estándar
+                return 120; // 8 horas * 15 días para quincena
+
+            case 'porcentaje':
+            case '%':
+                // Para porcentajes, usar 100 como base
+                return 100;
+
+            case 'monto':
+            case 'cantidad':
+            default:
+                // Para montos fijos, usar 1 como multiplicador
+                return 1;
         }
     }
 }

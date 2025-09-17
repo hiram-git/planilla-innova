@@ -39,10 +39,13 @@ class ExcelReportController extends Controller
             $planillaData = $this->getPayrollReportData($payrollId);
             
             if (!$planillaData) {
+                error_log("ExcelReportController: Planilla no encontrada para ID: $payrollId");
                 $_SESSION['error'] = 'Planilla no encontrada';
                 $this->redirect('/panel/reports');
                 return;
             }
+
+            error_log("ExcelReportController: Planilla encontrada, empleados: " . count($planillaData['employees'] ?? []));
 
             // Obtener información de la empresa
             $companyInfo = $this->getCompanyInfo();
@@ -581,8 +584,11 @@ class ExcelReportController extends Controller
             $payroll = $stmt->fetch();
             
             if (!$payroll) {
+                error_log("ExcelReportController: No se encontró planilla con ID: $payrollId en planilla_cabecera");
                 return null;
             }
+
+            error_log("ExcelReportController: Planilla encontrada: " . $payroll['descripcion']);
             
             // Obtener tipo de empresa primero
             $companySQL = "SELECT tipo_institucion FROM companies WHERE id = 1";
@@ -600,9 +606,9 @@ class ExcelReportController extends Controller
                         e.document_id as cedula,
                         e.document_id,
                         e.fecha_ingreso,
-                        " . ($tipoEmpresa === 'publica' 
-                            ? "COALESCE(pos.sueldo, 0) as salary, pos.codigo as puesto_actual, f.nombre as funcion_name" 
-                            : "COALESCE(e.sueldo_individual, 0) as salary, c.nombre as puesto_actual, f.nombre as funcion_name") . ",
+                        " . ($tipoEmpresa === 'publica'
+                            ? "COALESCE(pos.sueldo, 0) as salary, pos.codigo as puesto_actual, f.nombre as funcion_name"
+                            : "COALESCE(e.sueldo_individual, 0) as salary, c2.nombre as puesto_actual, f.nombre as funcion_name") . ",
                         pd.monto AS concepto_monto,
                         pd.referencia_valor as reference_value,
                         c.concepto AS concepto_codigo,
@@ -610,15 +616,15 @@ class ExcelReportController extends Controller
                         c.tipo_concepto,
                         c.categoria_reporte,
                         c.orden_reporte,
-                        pd.tipo 
+                        pd.tipo
                     FROM
                         planilla_detalle pd
                         INNER JOIN employees e ON pd.employee_id = e.id
                         INNER JOIN concepto c ON pd.concepto_id = c.id
-                        LEFT JOIN posiciones pos ON pos.id = e.position_id 
+                        LEFT JOIN posiciones pos ON pos.id = e.position_id
                         LEFT JOIN cargos c2 ON c2.id = e.cargo_id
                         LEFT JOIN funciones f ON f.id = e.funcion_id
-                    WHERE pd.planilla_cabecera_id = ? 
+                    WHERE pd.planilla_cabecera_id = ?
                         AND c.incluir_reporte = 1
                     ORDER BY
                         e.lastname,
@@ -630,7 +636,9 @@ class ExcelReportController extends Controller
             $stmt = $connection->prepare($sql);
             $stmt->execute([$payrollId]);
             $conceptsData = $stmt->fetchAll();
-            
+
+            error_log("ExcelReportController: Conceptos encontrados: " . count($conceptsData));
+
             // Organizar datos por empleado
             $employees = [];
             foreach ($conceptsData as $row) {
@@ -702,6 +710,56 @@ class ExcelReportController extends Controller
                     $employees[$empKey]['totals']['ingresos'] - $employees[$empKey]['totals']['deducciones'];
             }
             
+            // Si no hay empleados con conceptos, intentar obtener empleados básicos sin conceptos
+            if (empty($employees)) {
+                error_log("ExcelReportController: No hay empleados con conceptos, intentando obtener empleados básicos");
+
+                $basicEmployeeSql = "SELECT DISTINCT
+                                        e.id AS employee_id,
+                                        e.firstname,
+                                        e.lastname,
+                                        e.document_id,
+                                        e.fecha_ingreso,
+                                        COALESCE(e.sueldo_individual, 0) as salary
+                                    FROM planilla_detalle pd
+                                    INNER JOIN employees e ON pd.employee_id = e.id
+                                    WHERE pd.planilla_cabecera_id = ?
+                                    ORDER BY e.lastname, e.firstname";
+
+                $basicStmt = $connection->prepare($basicEmployeeSql);
+                $basicStmt->execute([$payrollId]);
+                $basicEmployees = $basicStmt->fetchAll();
+
+                error_log("ExcelReportController: Empleados básicos encontrados: " . count($basicEmployees));
+
+                foreach ($basicEmployees as $emp) {
+                    $employees[$emp['employee_id']] = [
+                        'id' => $emp['employee_id'],
+                        'employee_id' => $emp['employee_id'],
+                        'firstname' => $emp['firstname'],
+                        'lastname' => $emp['lastname'],
+                        'document_id' => $emp['document_id'],
+                        'fecha_ingreso' => $emp['fecha_ingreso'],
+                        'salary' => $emp['salary'],
+                        'puesto_actual' => '',
+                        'funcion_name' => '',
+                        'reference_value' => 15,
+                        'concepts' => [],
+                        'totals' => [
+                            'ingresos' => 0,
+                            'deducciones' => 0,
+                            'seguro_social' => 0,
+                            'seguro_educativo' => 0,
+                            'impuesto_renta' => 0,
+                            'otras_deducciones' => 0,
+                            'neto' => 0
+                        ]
+                    ];
+                }
+            }
+
+            error_log("ExcelReportController: Total empleados a retornar: " . count($employees));
+
             return [
                 'payroll' => $payroll,
                 'employees' => array_values($employees)

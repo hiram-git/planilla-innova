@@ -34,10 +34,9 @@ $scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
                 
                 <div class="card-body">
                     <?php if (!empty($stats['missing_fields']) && $stats['configured']): ?>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Configuración incompleta:</strong> 
-                            Faltan los siguientes campos: <?= implode(', ', $stats['missing_fields']) ?>
+                        <div class="callout callout-warning">
+                            <h5><i class="fas fa-exclamation-triangle"></i> Configuración incompleta</h5>
+                            <p>Faltan los siguientes campos: <?= implode(', ', $stats['missing_fields']) ?></p>
                         </div>
                     <?php endif; ?>
                     
@@ -154,11 +153,10 @@ $scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <strong>Importante:</strong><br>
-                                • <strong>Empresa Privada:</strong> Los sueldos se configuran individualmente por empleado<br>
-                                • <strong>Institución Pública:</strong> Los sueldos se toman de las posiciones organizacionales
+                            <div class="callout callout-info">
+                                <h5><i class="fas fa-info-circle"></i> Importante</h5>
+                                <p>• <strong>Empresa Privada:</strong> Los sueldos se configuran individualmente por empleado<br>
+                                • <strong>Institución Pública:</strong> Los sueldos se toman de las posiciones organizacionales</p>
                             </div>
                         </div>
                     </div>
@@ -271,9 +269,8 @@ $scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
                         </div>
                         
                         <div class="col-12">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <strong>Vista previa de firmas en reportes:</strong><br>
+                            <div class="callout callout-info">
+                                <h5><i class="fas fa-info-circle"></i> Vista previa de firmas en reportes</h5>
                                 <div class="row mt-2">
                                     <div class="col-md-6 text-center">
                                         <div class="border-top pt-2" style="border-top: 1px solid #000 !important; width: 200px; margin: 0 auto;">
@@ -313,10 +310,10 @@ $scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
 <?php if (!$stats['configured']): ?>
 <div class="row mt-3">
     <div class="col-12">
-        <div class="alert alert-info">
+        <div class="callout callout-info">
             <h5><i class="fas fa-lightbulb"></i> Configuración Inicial</h5>
             <p class="mb-0">
-                Esta es la configuración inicial de tu empresa. Los datos ingresados aquí se utilizarán en todos los reportes 
+                Esta es la configuración inicial de tu empresa. Los datos ingresados aquí se utilizarán en todos los reportes
                 y documentos generados por el sistema. Puedes modificar esta información en cualquier momento.
             </p>
         </div>
