@@ -10,7 +10,7 @@ class Employee extends Model
     public $fillable = [
         'employee_id', 'firstname', 'lastname', 'address', 'birthdate',
         'fecha_ingreso', 'contact_info', 'gender', 'position_id', 'schedule_id', 
-        'photo', 'organigrama_path', 'document_id', 'clave_seguro_social', 
+        'photo', 'organigrama_id', 'document_id', 'clave_seguro_social', 
         'situacion_id', 'tipo_planilla_id', 'cargo_id', 'funcion_id', 'partida_id', 
         'sueldo_individual', 'created_on'
     ];

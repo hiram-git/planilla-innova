@@ -44,13 +44,6 @@
          * Initialize the module
          */
         init: function(options = {}) {
-            console.log('=== DEBUG PAYROLL INIT START ===');
-            console.log('Raw options:', options);
-            console.log('options.csrfToken:', options.csrfToken);
-            console.log('options.csrf_token:', options.csrf_token);
-            console.log('APP_CONFIG:', window.APP_CONFIG);
-            console.log('APP_CONFIG.csrfToken:', window.APP_CONFIG?.csrfToken);
-            console.log('APP_CONFIG.csrf_token:', window.APP_CONFIG?.csrf_token);
             
             // Try multiple sources for CSRF token
             let csrfToken = options.csrfToken || 
@@ -65,23 +58,17 @@
                 const metaTag = document.querySelector('meta[name="csrf-token"]');
                 if (metaTag) {
                     csrfToken = metaTag.getAttribute('content');
-                    console.log('CSRF token found in meta tag:', csrfToken);
                 }
             }
             
             this.config.csrfToken = csrfToken;
             this.config.tiposPlanilla = options.tiposPlanilla || [];
             
-            console.log('FINAL this.config.csrfToken:', this.config.csrfToken);
-            console.log('FINAL this.config.csrfToken type:', typeof this.config.csrfToken);
-            console.log('FINAL this.config.csrfToken length:', this.config.csrfToken?.length);
-            console.log('=== DEBUG PAYROLL INIT END ===');
             
             this.initializeDataTable();
             this.initializePayrollFilter();
             this.bindEvents();
             
-            console.log('PayrollModule initialized');
         },
 
         /**
@@ -165,19 +152,9 @@
 
             // Reprocess payroll button
             $(document).on("click", ".reprocess-btn", function() {
-                console.log("=== DEBUG REPROCESS CLICK ===");
-                console.log("Button clicked:", this);
-                console.log("data-id attribute:", $(this).attr("data-id"));
-                console.log("data() id:", $(this).data("id"));
-                console.log("HTML of button:", $(this)[0].outerHTML);
-                
                 self.state.currentPayrollId = $(this).data("id");
                 const description = $(this).data("description");
-                
-                console.log("Assigned currentPayrollId:", self.state.currentPayrollId);
-                console.log("Description:", description);
-                console.log("==========================");
-                
+
                 $("#reprocessPayrollName").text(description);
                 $("#reprocessModal").modal("show");
             });
@@ -333,7 +310,6 @@
                 method: "GET",
                 success: function(progress) {
                     self.state.totalEmployees = progress.total || 0;
-                    console.log("Initial process data loaded:", progress);
                     
                     // Initialize process modal with initial data
                     $("#employeesProgress").text("0 / " + self.state.totalEmployees);
@@ -343,7 +319,6 @@
                     if (callback) callback();
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error loading initial process data:", {xhr, status, error});
                     // Continue with default values
                     $("#employeesProgress").text("0 / 0");
                     $("#conceptsProgress").text("0");
@@ -364,7 +339,6 @@
                 method: "GET",
                 success: function(progress) {
                     self.state.totalEmployees = progress.total || 0;
-                    console.log("Initial data loaded:", progress);
                     
                     // Initialize reprocess modal with initial data
                     $("#reprocessEmployeesProgress").text("0 / " + self.state.totalEmployees);
@@ -374,7 +348,6 @@
                     if (callback) callback();
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error loading initial data:", {xhr, status, error});
                     // Continue with default values
                     $("#reprocessEmployeesProgress").text("0 / 0");
                     $("#reprocessConceptsProgress").text("0");
@@ -388,7 +361,6 @@
          * Start payroll processing with progress tracking
          */
         startPayrollProcessing: function(payrollId) {
-            console.log("=== DEBUG PROCESS SESSION STORAGE ===");
             
             // Get selected payroll type from sessionStorage
             let tipoPlanillaId = null;
@@ -400,7 +372,6 @@
                     payrollTypeData = JSON.parse(selectedPayrollType);
                     tipoPlanillaId = payrollTypeData.id;
                 } else {
-                    console.log("No payroll type in sessionStorage");
                 }
             } catch (e) {
                 console.error("Error parsing selected payroll type from sessionStorage:", e);
@@ -412,9 +383,7 @@
                     payrollTypeData = window.getSelectedPayrollType();
                     if (payrollTypeData && payrollTypeData.id) {
                         tipoPlanillaId = payrollTypeData.id;
-                        console.log("Payroll type obtained from global function:", payrollTypeData);
                     } else {
-                        console.log("Global function returned:", payrollTypeData);
                     }
                 } catch (e) {
                     console.error("Error getting payroll type from global function:", e);
@@ -437,8 +406,6 @@
                     }
                     
                     // If after waiting it still doesn't work, show error
-                    console.log("SessionStorage content after retry:", sessionStorage.getItem("selectedPayrollType"));
-                    console.log("Global function available after retry:", typeof window.getSelectedPayrollType);
                     
                     alert("Error: No se ha seleccionado un tipo de planilla. Por favor:\n\n" +
                           "1. Seleccione un tipo en el dropdown de la barra de navegación (superior derecha)\n" +
@@ -449,7 +416,6 @@
                 return;
             }
             
-            console.log("Processing with payroll type ID:", tipoPlanillaId);
             
             // Switch to processing phase
             $("#confirmationPhase").hide();
@@ -473,18 +439,15 @@
                     csrf_token: this.config.csrfToken
                 },
                 success: function(response) {
-                    console.log("Process started successfully:", response);
                     
                     // Server returns immediately, processing continues in background
                     if (response.success) {
-                        console.log("Background processing initiated for payroll:", response.payroll_id);
                         // Continue with polling - DON'T call handleProcessingComplete yet
                     } else {
                         self.handleProcessingError({responseJSON: response}, "error", response.message || "Error iniciando procesamiento");
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error starting process:", {xhr, status, error});
                     self.handleProcessingError(xhr, status, error);
                 }
             });
@@ -509,7 +472,6 @@
                     },
                     error: function() {
                         // If there's an error in polling, keep trying
-                        console.log("Error getting progress");
                     }
                 });
             }, 3000); // Every 3 seconds
@@ -526,11 +488,9 @@
             if (progress.status !== "completed") {
                 if (percentage === this.state.lastProgressPercentage) {
                     this.state.progressStallCounter++;
-                    console.log("Progress stall counter:", this.state.progressStallCounter, "/", this.state.MAX_STALL_CYCLES);
                     
                     // If progress is stalled for too long, show error
                     if (this.state.progressStallCounter >= this.state.MAX_STALL_CYCLES) {
-                        console.log("Progress appears stalled, stopping polling");
                         clearInterval(this.state.progressInterval);
                         this.handleProcessingError(null, "stalled", "El procesamiento parece haberse estancado. Verifique el estado manualmente.");
                         return;
@@ -554,7 +514,6 @@
             // If completed or status is "completed"
             if (percentage >= 100 || progress.status === "completed") {
                 clearInterval(this.state.progressInterval);
-                console.log("Process completed, stopping polling");
                 
                 // Simulate completion response if no data from server
                 if (!progress.response) {
@@ -669,10 +628,6 @@
          * Start payroll reprocessing with progress tracking
          */
         startPayrollReprocessing: function(payrollId) {
-            console.log("=== DEBUG REPROCESS SESSION STORAGE ===");
-            console.log("All sessionStorage keys:", Object.keys(sessionStorage));
-            console.log("selectedPayrollType raw:", sessionStorage.getItem("selectedPayrollType"));
-            console.log("Global function exists:", typeof window.getSelectedPayrollType);
             
             // Get selected payroll type from sessionStorage
             let tipoPlanillaId = null;
@@ -683,9 +638,7 @@
                 if (selectedPayrollType) {
                     payrollTypeData = JSON.parse(selectedPayrollType);
                     tipoPlanillaId = payrollTypeData.id;
-                    console.log("Payroll type obtained from sessionStorage for reprocess:", payrollTypeData);
                 } else {
-                    console.log("No payroll type in sessionStorage for reprocess");
                 }
             } catch (e) {
                 console.error("Error parsing selected payroll type from sessionStorage for reprocess:", e);
@@ -697,9 +650,7 @@
                     payrollTypeData = window.getSelectedPayrollType();
                     if (payrollTypeData && payrollTypeData.id) {
                         tipoPlanillaId = payrollTypeData.id;
-                        console.log("Payroll type obtained from global function for reprocess:", payrollTypeData);
                     } else {
-                        console.log("Global function returned for reprocess:", payrollTypeData);
                     }
                 } catch (e) {
                     console.error("Error getting payroll type from global function for reprocess:", e);
@@ -708,7 +659,6 @@
             
             // If still no payroll type, show error
             if (!tipoPlanillaId) {
-                console.log("No payroll type found for reprocess");
                 alert("Error: No se ha seleccionado un tipo de planilla. Por favor:\n\n" +
                       "1. Seleccione un tipo en el dropdown de la barra de navegación (superior derecha)\n" +
                       "2. Espere a que se cargue completamente\n" +
@@ -717,7 +667,6 @@
                 return;
             }
             
-            console.log("Reprocessing with payroll type ID:", tipoPlanillaId);
             
             // Switch to processing phase
             $("#reprocessConfirmationPhase").hide();
@@ -735,59 +684,35 @@
             // Start asynchronous reprocessing with payroll type
             const self = this;
             const reprocessUrl = `${this.config.urls.payrolls}/${payrollId}/reprocess/${tipoPlanillaId}`;
-            console.log("=== DEBUG REPROCESS AJAX ===");
-            console.log("Full URL:", reprocessUrl);
-            console.log("payrollId parameter:", payrollId);
-            console.log("tipoPlanillaId parameter:", tipoPlanillaId);
-            console.log("config.urls.payrolls:", this.config.urls.payrolls);
-            console.log("CSRF Token:", this.config.csrfToken);
-            console.log("CSRF Token length:", this.config.csrfToken?.length);
-            console.log("============================");
             
-            console.log("=== DEBUG AJAX DATA ===");
-            console.log("this.config.csrfToken:", this.config.csrfToken);
-            console.log("typeof this.config.csrfToken:", typeof this.config.csrfToken);
-            console.log("this.config.csrfToken length:", this.config.csrfToken?.length);
             
-            console.log("=== FINAL DEBUG BEFORE AJAX ===");
-            console.log("this.config.csrfToken VALUE:", this.config.csrfToken);
-            console.log("this.config.csrfToken === '':", this.config.csrfToken === '');
-            console.log("this.config.csrfToken === null:", this.config.csrfToken === null);
-            console.log("this.config.csrfToken === undefined:", this.config.csrfToken === undefined);
             
             // Last resort: try to get token from meta tag with jQuery
             if (!this.config.csrfToken || this.config.csrfToken === '') {
                 const metaToken = $('meta[name="csrf-token"]').attr('content');
                 if (metaToken) {
                     this.config.csrfToken = metaToken;
-                    console.log("CSRF token obtained from meta tag as last resort:", metaToken);
                 }
             }
             
             const ajaxData = {
                 csrf_token: this.config.csrfToken
             };
-            console.log("Final AJAX data:", ajaxData);
-            console.log("JSON.stringify ajaxData:", JSON.stringify(ajaxData));
-            console.log("===============================");
             
             $.ajax({
                 url: reprocessUrl,
                 method: "POST",
                 data: ajaxData,
                 success: function(response) {
-                    console.log("Reprocess started successfully:", response);
                     
                     // Server returns immediately, processing continues in background
                     if (response.success) {
-                        console.log("Background reprocessing initiated for payroll:", response.payroll_id);
                         // Continue with polling - DON'T call handleReprocessingComplete yet
                     } else {
                         self.handleReprocessingError({responseJSON: response}, "error", response.message || "Error iniciando reprocesamiento");
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.log("Error starting reprocess:", {xhr, status, error});
                     self.handleReprocessingError(xhr, status, error);
                 }
             });
@@ -802,7 +727,6 @@
          * Start reprocess progress polling
          */
         startReprocessProgressPolling: function(payrollId) {
-            console.log("Starting reprocess progress polling for payroll:", payrollId);
             const self = this;
             this.state.reprocessProgressInterval = setInterval(function() {
                 $.ajax({
@@ -815,17 +739,13 @@
                         "Pragma": "no-cache"
                     },
                     success: function(progress) {
-                        console.log("Progress polling success:", progress);
                         self.updateReprocessProgressDisplay(progress);
                     },
                     error: function(xhr, status, error) {
                         // If there's an error in polling, keep trying
-                        console.log("Error getting reprocess progress:", {xhr, status, error, readyState: xhr.readyState});
-                        console.log("Response text:", xhr.responseText);
                         
                         // If timeout or error is due to server busy, keep trying
                         if (status === "timeout" || xhr.readyState === 0) {
-                            console.log("Server busy or timeout, will retry...");
                         }
                     }
                 });
@@ -839,17 +759,14 @@
             // Use percentage from backend, don't calculate it again
             const percentage = progress.percentage || 0;
             
-            console.log("Reprocess progress update:", progress);
             
             // Validate if progress is stalled (only for active reprocessing)
             if (progress.status !== "completed") {
                 if (percentage === this.state.lastReprocessProgressPercentage) {
                     this.state.reprocessProgressStallCounter++;
-                    console.log("Reprocess progress stall counter:", this.state.reprocessProgressStallCounter, "/", this.state.MAX_STALL_CYCLES);
                     
                     // If progress is stalled for too long, show error
                     if (this.state.reprocessProgressStallCounter >= this.state.MAX_STALL_CYCLES) {
-                        console.log("Reprocess progress appears stalled, stopping polling");
                         clearInterval(this.state.reprocessProgressInterval);
                         this.handleReprocessingError(null, "stalled", "El reprocesamiento parece haberse estancado. Verifique el estado manualmente.");
                         return;
@@ -873,7 +790,6 @@
             // If completed or status is "completed"
             if (percentage >= 100 || progress.status === "completed") {
                 clearInterval(this.state.reprocessProgressInterval);
-                console.log("Reprocess completed, stopping polling");
                 
                 // Simulate completion response if no data from server
                 if (!progress.response) {
@@ -985,17 +901,9 @@
 
     // Initialize when DOM is ready
     $(document).ready(function() {
-        console.log('=== DEBUG PAYROLL MODULE INIT ===');
-        console.log('typeof APP_CONFIG:', typeof APP_CONFIG);
-        console.log('APP_CONFIG:', window.APP_CONFIG);
         
         // Wait for APP_CONFIG to be available
         if (typeof APP_CONFIG !== 'undefined') {
-            console.log('PayrollModule: Using APP_CONFIG configuration', APP_CONFIG);
-            console.log('APP_CONFIG.csrfToken:', APP_CONFIG.csrfToken);
-            console.log('APP_CONFIG.csrf_token:', APP_CONFIG.csrf_token);
-            console.log('APP_CONFIG.csrfToken type:', typeof APP_CONFIG.csrfToken);
-            console.log('APP_CONFIG.csrfToken length:', APP_CONFIG.csrfToken?.length);
             
             PayrollModule.init({
                 csrfToken: APP_CONFIG.csrfToken || APP_CONFIG.csrf_token || '',
@@ -1007,7 +915,6 @@
             console.warn('APP_CONFIG not available, using fallback initialization');
             PayrollModule.init();
         }
-        console.log('================================');
     });
 
     // Export module to global scope

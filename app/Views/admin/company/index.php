@@ -420,5 +420,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php
-include __DIR__ . '/../../layouts/admin.php';
+//include __DIR__ . '/../../layouts/admin.php';
 ?>

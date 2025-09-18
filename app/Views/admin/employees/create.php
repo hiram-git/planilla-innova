@@ -119,7 +119,7 @@ $content .= '                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="alert alert-info">
+                                <div class="callout callout-info">
                                     <i class="fas fa-info-circle"></i>
                                     <strong>Institución Pública:</strong><br>
                                     La posición determina el sueldo según el presupuesto aprobado.
@@ -222,7 +222,7 @@ $content .= '                </select>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="alert alert-info">
+                            <div class="callout callout-info">
                                 <i class="fas fa-info-circle"></i>
                                 <strong>Empresa Privada:</strong><br>
                                 El sueldo se asigna individualmente a cada empleado.

@@ -16,12 +16,16 @@ $csrf_token = $data['csrf_token'] ?? '';
             <form method="POST" action="<?= \App\Core\UrlHelper::payroll('store') ?>" id="payrollForm">
                 <div class="card-body">
                     <input type="hidden" name="csrf_token" value="<?= $csrf_token?>">
+                    <input type="hidden" id="tipo_planilla_id" name="tipo_planilla_id" value="">
                     
                     <div class="form-group">
                         <label for="descripcion">Descripción de la Planilla *</label>
-                        <input type="text" class="form-control" id="descripcion" name="descripcion" required 
-                               placeholder="Ej: Planilla Quincena 1 - Enero 2024">
-                        <small class="form-text text-muted">Descripción clara e identificable para la planilla</small>
+                        <input type="text" class="form-control" id="descripcion" name="descripcion" required
+                               value="PLANILLA" placeholder="Se generará automáticamente...">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-magic text-primary"></i>
+                            Se genera automáticamente: <strong>PLANILLA [TIPO] [FRECUENCIA] DESDE [FECHA_INICIO] HASTA [FECHA_FIN]</strong>
+                        </small>
                     </div>
                     
                     <div class="alert alert-info">
@@ -100,164 +104,44 @@ $csrf_token = $data['csrf_token'] ?? '';
     </div>
 </div>
 
-<?php
-$scripts = '
+<!-- Scripts para la vista de creación de planillas -->
+<script src="<?= \App\Core\UrlHelper::url('/assets/javascript/modules/payroll/create.js') ?>"></script>
+
 <script>
+// Validación del formulario antes de enviar
 $(document).ready(function() {
-    // Obtener el tipo de planilla seleccionado en el navbar y establecerlo como campo oculto
-    function setPayrollTypeFromNavbar() {
-        const selectedType = window.getSelectedPayrollType ? window.getSelectedPayrollType() : null;
-        if (selectedType) {
-            // Crear campo oculto si no existe
-            if (!$(\'#hidden_tipo_planilla_id\').length) {
-                $(\'<input>\').attr({
-                    type: \'hidden\',
-                    id: \'hidden_tipo_planilla_id\',
-                    name: \'tipo_planilla_id\',
-                    value: selectedType.id
-                }).appendTo(\'#payrollForm\');
-            } else {
-                $(\'#hidden_tipo_planilla_id\').val(selectedType.id);
-            }
-        }
-    }
-    
-    // Establecer tipo de planilla al cargar la página
-    setPayrollTypeFromNavbar();
-    
-    // Escuchar cambios en el tipo de planilla del navbar
-    window.addEventListener(\'payrollTypeChanged\', function(e) {
-        setPayrollTypeFromNavbar();
-    });
-    
-    // Configurar períodos automáticos
-    $(\'#frecuencia_id\').change(function() {
-        const selectedOption = $(this).find(\'option:selected\');
-        const tipo = selectedOption.data(\'codigo\');
-        const fechaHoy = new Date();
-        let fechaInicio, fechaFin;
-        
-        switch(tipo) {
-            case \'quincenal\':
-                // Primera o segunda quincena
-                const dia = fechaHoy.getDate();
-                if (dia <= 15) {
-                    // Primera quincena
-                    fechaInicio = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), 1);
-                    fechaFin = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), 15);
-                } else {
-                    // Segunda quincena
-                    fechaInicio = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), 16);
-                    fechaFin = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth() + 1, 0);
-                }
-                break;
-                
-            case \'mensual\':
-                fechaInicio = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), 1);
-                fechaFin = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth() + 1, 0);
-                break;
-                
-            case \'semanal\':
-                // Lunes a domingo de la semana actual
-                const diaActual = fechaHoy.getDay();
-                const diasAlLunes = diaActual === 0 ? 6 : diaActual - 1;
-                fechaInicio = new Date(fechaHoy);
-                fechaInicio.setDate(fechaHoy.getDate() - diasAlLunes);
-                fechaFin = new Date(fechaInicio);
-                fechaFin.setDate(fechaInicio.getDate() + 6);
-                break;
-                
-            default:
-                return; // Otras frecuencias, fechas manuales
-        }
-        
-        if (fechaInicio && fechaFin) {
-            $(\'#periodo_inicio\').val(fechaInicio.toISOString().split(\'T\')[0]);
-            $(\'#periodo_fin\').val(fechaFin.toISOString().split(\'T\')[0]);
-            
-            // Generar descripción automática
-            generarDescripcionAutomatica(tipo, fechaInicio, fechaFin);
-        }
-    });
-    
-    function generarDescripcionAutomatica(tipo, inicio, fin) {
-        const meses = [\'Enero\', \'Febrero\', \'Marzo\', \'Abril\', \'Mayo\', \'Junio\',
-                      \'Julio\', \'Agosto\', \'Septiembre\', \'Octubre\', \'Noviembre\', \'Diciembre\'];
-        const mes = meses[inicio.getMonth()];
-        const año = inicio.getFullYear();
-        
-        let descripcion = \'\';
-        
-        switch(tipo) {
-            case \'quincenal\':
-                const esSegundaQuincena = inicio.getDate() > 15;
-                descripcion = `Planilla ${esSegundaQuincena ? \'Segunda\' : \'Primera\'} Quincena - ${mes} ${año}`;
-                break;
-            case \'mensual\':
-                descripcion = `Planilla Mensual - ${mes} ${año}`;
-                break;
-            case \'semanal\':
-                const semana = Math.ceil(inicio.getDate() / 7);
-                descripcion = `Planilla Semanal ${semana} - ${mes} ${año}`;
-                break;
-        }
-        
-        if (descripcion) {
-            $(\'#descripcion\').val(descripcion);
-        }
-    }
-    
-    // Inicializar con primera frecuencia disponible
-    const firstFrequency = $(\'#frecuencia_id option[data-codigo="quincenal"]\').first();
-    if (firstFrequency.length) {
-        $(\'#frecuencia_id\').val(firstFrequency.val()).trigger(\'change\');
-    }
-    
-    // Validación del formulario
-    $(\'#payrollForm\').on(\'submit\', function(e) {
-        const inicio = new Date($(\'#periodo_inicio\').val());
-        const fin = new Date($(\'#periodo_fin\').val());
-        
-        if (inicio >= fin) {
+    $('#payrollForm').on('submit', function(e) {
+        const tipoPlanillaId = $('#tipo_planilla_id').val();
+        const frecuenciaId = $('#frecuencia_id').val();
+        const fecha = $('#fecha').val();
+        const periodoInicio = $('#periodo_inicio').val();
+        const periodoFin = $('#periodo_fin').val();
+        const descripcion = $('#descripcion').val();
+
+        if (!tipoPlanillaId) {
             e.preventDefault();
-            alert(\'La fecha de inicio debe ser anterior a la fecha de fin del período.\');
+            alert('Por favor, selecciona un tipo de planilla desde el menú superior.');
             return false;
         }
-        
-        // Verificar que el período no sea muy extenso (más de 2 meses)
-        const diffMeses = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth());
-        if (diffMeses > 2) {
+
+        if (!frecuenciaId || !fecha || !periodoInicio || !periodoFin || !descripcion) {
             e.preventDefault();
-            if (!confirm(\'El período seleccionado es muy extenso (más de 2 meses). ¿Desea continuar?\')) {
-                return false;
-            }
+            alert('Por favor, completa todos los campos obligatorios.');
+            return false;
         }
+
+        console.log('Formulario válido, enviando...', {
+            tipoPlanillaId: tipoPlanillaId,
+            frecuenciaId: frecuenciaId,
+            fecha: fecha,
+            periodoInicio: periodoInicio,
+            periodoFin: periodoFin,
+            descripcion: descripcion
+        });
     });
-    
-    // Validación en tiempo real de fechas
-    $(\'#periodo_inicio, #periodo_fin\').on(\'change\', function() {
-        const inicio = $(\'#periodo_inicio\').val();
-        const fin = $(\'#periodo_fin\').val();
-        
-        if (inicio && fin) {
-            const fechaInicio = new Date(inicio);
-            const fechaFin = new Date(fin);
-            
-            if (fechaInicio >= fechaFin) {
-                $(this).addClass(\'is-invalid\');
-                if (!$(this).next(\'.invalid-feedback\').length) {
-                    $(this).after(\'<div class="invalid-feedback">La fecha de inicio debe ser anterior a la fecha fin</div>\');
-                }
-            } else {
-                $(\'#periodo_inicio, #periodo_fin\').removeClass(\'is-invalid\');
-                $(\'.invalid-feedback\').remove();
-            }
-        }
-    });
-    
 });
-</script>';
-?>
+</script>
+
 
 <style>
 .form-group label {

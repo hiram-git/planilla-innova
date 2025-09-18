@@ -140,7 +140,7 @@ class Employee extends Controller
                 'funcion_id' => !empty($data['funcion_id']) ? $data['funcion_id'] : null,
                 'partida_id' => !empty($data['partida_id']) ? $data['partida_id'] : null,
                 'photo' => $photoFilename,
-                'organigrama_path' => $data['organigrama_level'] ?? null,
+                'organigrama_id' => !empty($data['organigrama_id']) ? $data['organigrama_id'] : null,
                 'created_on' => date('Y-m-d')
             ];
 
@@ -260,7 +260,7 @@ class Employee extends Controller
                 'funcion_id' => !empty($data['edit_funcion_id']) ? $data['edit_funcion_id'] : null,
                 'partida_id' => !empty($data['edit_partida_id']) ? $data['edit_partida_id'] : null,
                 'photo' => $photoFilename,
-                'organigrama_path' => $data['edit_organigrama_level'] ?? null
+                'organigrama_id' => !empty($data['edit_organigrama_id']) ? $data['edit_organigrama_id'] : null
             ];
 
             $employee->update($id, $updateData);

@@ -167,7 +167,7 @@ class Payroll extends Model
 
             // Obtener empleados con todas sus relaciones (posición, cargo, función, partida, horario)
             // Filtrar por empleados activos, con situación activa y que correspondan al tipo de planilla
-            $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_path,
+            $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
                            e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
                            e.cargo_id, e.funcion_id, e.partida_id,
                            p.description as position_nombre, p.rate as position_sueldo,
@@ -260,7 +260,7 @@ class Payroll extends Model
                     if ($monto > 0 || ($concepto['monto_cero'] == 1 && $monto == 0)) {
                         $sql = "INSERT INTO planilla_detalle (
                             planilla_cabecera_id, employee_id, concepto_id, monto, tipo, 
-                            organigrama_path, position_id, schedule_id, cargo_id, funcion_id, partida_id,
+                            organigrama_id, position_id, schedule_id, cargo_id, funcion_id, partida_id,
                             firstname, lastname
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                         
@@ -271,7 +271,7 @@ class Payroll extends Model
                             $concepto['id'],
                             $monto,
                             $concepto['tipo'],
-                            $employee['organigrama_path'],
+                            $employee['organigrama_id'],
                             $employee['position_id'],
                             $employee['schedule_id'],
                             $employee['cargo_id'],
@@ -425,7 +425,7 @@ class Payroll extends Model
                         pd.cargo_id,
                         pd.funcion_id,
                         pd.partida_id,
-                        pd.organigrama_path,
+                        pd.organigrama_id,
                         -- Obtener employee_code del empleado
                         e.employee_id as employee_code,
                         -- Obtener datos de la posición

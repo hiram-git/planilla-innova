@@ -18,7 +18,7 @@ class PayrollDetail extends Model
         'concepto_id',
         'monto',
         'tipo',
-        'organigrama_path',
+        'organigrama_id',
         'position_id',
         'schedule_id',
         'firstname',

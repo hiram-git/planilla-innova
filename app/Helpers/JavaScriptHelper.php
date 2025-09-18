@@ -193,4 +193,48 @@ class JavaScriptHelper
     {
         self::$jsModules = [];
     }
+
+    /**
+     * Carga un módulo JavaScript específico
+     * @param string $modulePath Ruta del módulo (ej: 'payroll/create')
+     * @param array $config Configuración opcional para el módulo
+     * @return string HTML con el script tag del módulo
+     */
+    public static function loadModule(string $modulePath, array $config = []): string
+    {
+        // Agregar configuración CSRF por defecto
+        $defaultConfig = [
+            'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'base_url' => \App\Core\UrlHelper::url('/'),
+            'panel_url' => \App\Core\UrlHelper::url('/panel')
+        ];
+
+        $finalConfig = array_merge($defaultConfig, $config);
+
+        // Generar path completo del archivo
+        $fullPath = "/assets/javascript/modules/{$modulePath}.js";
+
+        // Verificar si el archivo existe
+        $filePath = $_SERVER['DOCUMENT_ROOT'] . $fullPath;
+        if (!file_exists($filePath)) {
+            error_log("JavaScriptHelper: Archivo no encontrado: {$filePath}");
+            return "<!-- Error: Módulo JavaScript no encontrado: {$modulePath} -->";
+        }
+
+        $html = "";
+
+        // Si hay configuración, hacerla disponible globalmente antes de cargar el módulo
+        if (!empty($finalConfig)) {
+            $html .= "\n<script type=\"text/javascript\">\n";
+            $html .= "    // Configuración del módulo {$modulePath}\n";
+            $html .= "    window.moduleConfig = window.moduleConfig || {};\n";
+            $html .= "    window.moduleConfig['{$modulePath}'] = " . json_encode($finalConfig, JSON_UNESCAPED_SLASHES) . ";\n";
+            $html .= "</script>\n";
+        }
+
+        // Cargar el archivo JavaScript como script normal
+        $html .= '<script src="' . \App\Core\UrlHelper::url($fullPath) . '"></script>' . "\n";
+
+        return $html;
+    }
 }

@@ -282,6 +282,57 @@ $content .= '            </div>
                                 <label for="edit_organigrama_id">Elemento del Organigrama</label>
                                 <select class="form-control" id="edit_organigrama_id" name="edit_organigrama_id">
                                     <option value="">Seleccionar elemento del organigrama...</option>';
+
+foreach ($organigrama_elementos as $elemento) {
+    $selected = ($_SESSION['old_data']['edit_organigrama_id'] ?? ($employee['organigrama_id'] ?? '')) == $elemento['id'] ? ' selected' : '';
+    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', substr_count($elemento['path'] ?? '', '/'));
+    $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . $indent . htmlspecialchars($elemento['descripcion']) . '</option>';
+}
+
+$content .= '                        </select>
+                                    <small class="form-text text-muted">Opcional. Elemento del organigrama al que pertenece el empleado</small>
+                                    ' . (isset($_SESSION['errors']['edit_organigrama_id']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_organigrama_id'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Actualizar Empleado
+                    </button>
+                    <a href="' . url('/panel/employees') . '" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>';
+
+$content .= '<script>
+// Verificar si jQuery está disponible
+if (typeof $ === "undefined") {
+    console.error("jQuery no está disponible en employees/edit. Esperando...");
+    var checkJQuery = setInterval(function() {
+        if (typeof $ !== "undefined") {
+            console.log("jQuery disponible en employees/edit, inicializando...");
+            clearInterval(checkJQuery);
+            initializeEmployeeEdit();
+        }
+    }, 100);
+} else {
+    $(document).ready(function() {
+        initializeEmployeeEdit();
+    });
+}
+
+function initializeEmployeeEdit() {
+    // Función para alternar campos según el tipo de empresa
+    function toggleFieldsByCompanyType() {
+        const companyType = $("#edit_company_type").val();
+
+        if (companyType === "empresa_privada") {
             // Empresa privada: mostrar cargos, funciones, partidas y sueldo individual (SIN posición)
             $("#edit-private-company-fields").show();
             $("#edit-salary-section").show();
@@ -329,7 +380,7 @@ $content .= '            </div>
             reader.readAsDataURL(file);
         }
     });
-});
+}
 </script>';
 
 $styles = '';
