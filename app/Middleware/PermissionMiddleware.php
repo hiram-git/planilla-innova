@@ -39,15 +39,23 @@ class PermissionMiddleware
         
         if (!self::checkRoutePermission($route, $permissionType)) {
             // ✅ CORREGIDO: Cerrar sesión y redirigir a login para evitar bucles
-            self::logoutAndRedirect('No tienes permisos para acceder a esta sección');
+            self::logoutAndRedirect();
         }
     }
 
     /**
      * Cerrar sesión y redirigir a login
      */
-    private static function logoutAndRedirect($message = 'Sesión cerrada por falta de permisos')
+    private static function logoutAndRedirect($message = null)
     {
+        // Determinar mensaje apropiado según el tipo de error
+        if ($message === null) {
+            if (isset($_SESSION['auth_error_type']) && $_SESSION['auth_error_type'] === 'session_expired') {
+                $message = 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.';
+            } else {
+                $message = 'No tienes permisos para acceder a esta sección';
+            }
+        }
         // Si es una petición AJAX, devolver JSON en lugar de redirect
         if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
             strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
@@ -62,10 +70,13 @@ class PermissionMiddleware
             exit();
         }
         
+        // Limpiar variables de error antes de destruir sesión
+        unset($_SESSION['auth_error_type']);
+
         // Limpiar sesión
         session_unset();
         session_destroy();
-        
+
         // Iniciar nueva sesión para el mensaje de error
         session_start();
         $_SESSION['error'] = $message;
@@ -81,8 +92,10 @@ class PermissionMiddleware
      */
     private function hasPermission($route, $permissionType = 'read')
     {
-        // Si no hay sesión, denegar
+        // Si no hay sesión, es un problema de autenticación, no de permisos
         if (!isset($_SESSION['admin']) || !isset($_SESSION['admin_role_id'])) {
+            // Marcar que es problema de sesión expirada
+            $_SESSION['auth_error_type'] = 'session_expired';
             return false;
         }
 
@@ -313,7 +326,7 @@ class PermissionMiddleware
 
         // Verificar permiso normal
         if (!self::checkRoutePermission($route, $permissionType)) {
-            self::logoutAndRedirect('No tienes permisos para acceder a esta sección');
+            self::logoutAndRedirect();
         }
         
         return true;

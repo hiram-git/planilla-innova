@@ -7,6 +7,9 @@ class AuthMiddleware
     public static function requireAuth()
     {
         if (!isset($_SESSION['admin'])) {
+            // Establecer mensaje apropiado para sesión expirada
+            session_start();
+            $_SESSION['error'] = 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.';
             header('Location: ' . url('admin'));
             exit();
         }

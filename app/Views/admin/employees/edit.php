@@ -310,6 +310,9 @@ $content .= '                        </select>
     </div>
 </div>';
 
+// Script de configuración de empresa
+$content .= '<script>window.COMPANY_TYPE="' . ($company_config['tipo_institucion'] ?? 'privada') . '";</script>';
+
 $content .= '<script>
 // Verificar si jQuery está disponible
 if (typeof $ === "undefined") {
@@ -330,9 +333,10 @@ if (typeof $ === "undefined") {
 function initializeEmployeeEdit() {
     // Función para alternar campos según el tipo de empresa
     function toggleFieldsByCompanyType() {
-        const companyType = $("#edit_company_type").val();
+        const tipoInstitucion = window.COMPANY_TYPE || "privada";
+        console.log("Tipo de institución:", tipoInstitucion);
 
-        if (companyType === "empresa_privada") {
+        if (tipoInstitucion === "privada") {
             // Empresa privada: mostrar cargos, funciones, partidas y sueldo individual (SIN posición)
             $("#edit-private-company-fields").show();
             $("#edit-salary-section").show();

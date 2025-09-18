@@ -146,6 +146,25 @@
 
 ## 🎯 **COMPLETED TASKS** *(Recent Achievements)*
 
+### ✅ **Módulo Organizacional + Logos** *(Sept 16, 2025)*
+- [x] OrganizationalController con CRUD completo
+- [x] Vistas organizational: index.php, create.php, edit.php
+- [x] JavaScript modular: organizational/index.js, create.js, edit.js
+- [x] Sistema logos empresariales con Dropzone.js
+- [x] Triple logo system: principal + izquierdo reportes + derecho reportes
+- [x] company/logos.js con dynamic URLs + CSRF security
+- [x] PDFReportController para reportes con logos
+- [x] Campo organigrama_id en empleados + foreign key
+- [x] Migraciones BD estructura organizacional
+
+### ✅ **Motor Fórmulas Conceptos** *(Sept 18, 2025)*
+- [x] fechasActuales property en PlanillaConceptCalculator
+- [x] establecerFechasPlanilla() method para fechas dinámicas
+- [x] INIPERIODO/FINPERIODO con fechas reales de planilla_cabecera
+- [x] Función ACUMULADOS preserva strings con comillas
+- [x] Campo tipo_acumulado en acumulados_por_empleado
+- [x] Integración PayrollController con fechas planilla
+
 ### ✅ **JavaScript Modular Architecture**
 - [x] BaseModule implementation
 - [x] JavaScriptHelper system

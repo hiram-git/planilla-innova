@@ -1,5 +1,74 @@
 # 📋 CHANGELOG - Sistema de Planillas MVC
 
+## [3.2.1] - 2025-09-18
+
+### ✅ **MOTOR FÓRMULAS CONCEPTOS OPTIMIZADO**
+
+#### 🧮 **Nuevas Características**
+- **Sistema Fechas Dinámicas**: Variables INIPERIODO/FINPERIODO ahora usan fechas reales de planilla_cabecera
+- **Función ACUMULADOS Mejorada**: Manejo correcto de parámetros fecha + preservación strings con comillas
+- **Categorización Acumulados**: Campo `tipo_acumulado` para clasificar XIII_MES, VACACIONES, etc.
+- **Integración Automática**: PayrollController pasa fechas planilla al calculador automáticamente
+
+#### 🔧 **Mejoras Técnicas**
+- **PlanillaConceptCalculator**:
+  - Propiedad `fechasActuales` para almacenar fechas de planilla
+  - Método `establecerFechasPlanilla()` para configuración dinámica
+  - Lógica de reemplazo inteligente que preserva quoted strings
+- **PayrollAccumulationsProcessor**:
+  - Campo `tipo_acumulado` en INSERT statements
+  - Categorización automática conceptos XIII_MES (IDs 1,2,3)
+- **Database Migration**:
+  - Campo `tipo_acumulado VARCHAR(50)` en tabla `acumulados_por_empleado`
+
+#### 🛠️ **Correcciones Críticas**
+- **Variable Replacement**: Variables INIPERIODO/FINPERIODO ya no corrompen concept names en quoted strings
+- **Date Parameter Handling**: Fechas de planilla se pasan correctamente a función `calcularAcumulados()`
+- **Regex Pattern ACUMULADOS**: Mejorado para manejar conceptos múltiples con commas dentro de comillas
+- **Formula Processing**: Preservación de integridad de fórmulas complejas multi-concepto
+
+#### 📊 **Archivos Modificados**
+```
+app/Services/PlanillaConceptCalculator.php        ← Core formula engine
+app/Controllers/PayrollController.php             ← Date integration
+app/Models/PayrollAccumulationsProcessor.php     ← tipo_acumulado field
+database/migrations/*.sql                         ← DB structure
+```
+
+---
+
+## [3.2.0] - 2025-09-16
+
+### ✅ **MÓDULO ORGANIZACIONAL + LOGOS EMPRESARIALES**
+
+#### 🏢 **Módulo Organizacional Completo**
+- **CRUD Organigrama**: Controlador OrganizationalController con create/edit/delete
+- **Vistas Completas**: Index con organigrama visual + formularios create/edit
+- **JavaScript Modular**: Módulos organizational/index.js, create.js, edit.js
+- **Jerarquías Dinámicas**: Paths automáticos + validación ciclos organizacionales
+- **Integración Empleados**: Campo organigrama_id en empleados + foreign key
+
+#### 🎨 **Sistema Logos Empresariales**
+- **Dropzone.js Integration**: Upload arrastrando archivos + preview dinámico
+- **Triple Logo System**: Logo principal + logo izquierdo reportes + logo derecho reportes
+- **Dynamic URLs**: Detección automática paths para upload/delete/preview
+- **Módulo company/logos.js**: Sistema completo gestión logos con CSRF
+- **Preview en Tiempo Real**: Visualización inmediata logos subidos
+
+#### 📊 **Reportes PDF Mejorados**
+- **PDFReportController**: Controlador específico para generación reportes
+- **Logos en Reportes**: Integración logos empresa en planillas PDF
+- **Layout Profesional**: Mejoras visuales + firmas empresariales
+- **Comprobantes Individuales**: PDF por empleado con logos
+
+#### 🔧 **Mejoras Técnicas**
+- **Database Migrations**: Múltiples migraciones estructura organizacional
+- **Campo organigrama_path → organigrama_id**: Integridad referencial BD
+- **CSS Organizacional**: Estilos específicos organizational.css
+- **Security**: CSRF tokens en todos los uploads + validaciones
+
+---
+
 ## [3.1.0] - 2025-09-15
 
 ### ✅ **SISTEMA ACUMULADOS + JAVASCRIPT MODULAR COMPLETADO**

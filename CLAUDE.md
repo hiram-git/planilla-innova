@@ -1,9 +1,9 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.2 Sistema Empresarial Completo**
-- **Fecha**: 16 de Septiembre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + REPORTES PDF COMPLETOS**
-- **Versión**: 3.2.0 - Core + Acumulados + Reportes + Módulo Organizacional
+## 📝 **Estado Actual - V3.2.1 Motor Fórmulas Optimizado**
+- **Fecha**: 18 de Septiembre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + MOTOR FÓRMULAS OPTIMIZADO**
+- **Versión**: 3.2.1 - Core + Acumulados + Reportes + Fórmulas Avanzadas
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -12,21 +12,31 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Core MVC**: Router + Database + Middleware + CSRF + Roles
 - ✅ **Planillas**: Procesamiento + PDF + Estados + Acumulados automáticos
 - ✅ **XIII Mes Panamá**: (Salario Anual ÷ 3) - Descuentos legislación
-- ✅ **Reportes PDF**: Planillas + Comprobantes + Firmas empresariales
-- ✅ **Estructura Organizacional**: CRUD completo + jerarquías
+- ✅ **Reportes PDF**: Planillas + Comprobantes + Logos empresariales + Firmas
+- ✅ **Módulo Organizacional**: CRUD completo + jerarquías + integración empleados
+- ✅ **Sistema Logos**: Dropzone.js + triple logo + reportes PDF
 - ✅ **JavaScript Modular**: BaseModule + ES6 + JavaScriptHelper
+- ✅ **Motor Fórmulas**: INIPERIODO/FINPERIODO dinámico + tipo_acumulado
 
 ## 📄 **Reportes PDF Empresariales**
-- **Planillas**: Layout horizontal + firmas profesionales (Elaborado/Revisado/Aprobado/Contador)
-- **Comprobantes**: Individuales por empleado + conceptos detallados
+- **Planillas**: Layout horizontal + logos empresariales + firmas profesionales
+- **Comprobantes**: Individuales por empleado + conceptos detallados + logos
+- **Triple Logo System**: Logo principal + logo izquierdo reportes + logo derecho reportes
 - **Firmas**: Configurables desde BD companies (4 niveles de firma)
-- **Campos BD**: `firma_director_planilla`, `cargo_director_planilla`, `firma_contador_planilla`, `cargo_contador_planilla`
+- **PDFReportController**: Controlador específico para generación reportes
 
-## 🏢 **Módulo Organizacional**
-- **CRUD Completo**: Crear/Editar/Eliminar elementos organizacionales
-- **Jerarquías**: Paths automáticos + validación ciclos
-- **AdminLTE**: Integrado con layout + JavaScript modular
-- **Vistas**: Index con organigrama + Create/Edit formularios
+## 🏢 **Módulo Organizacional Completo**
+- **OrganizationalController**: CRUD completo con create/edit/delete
+- **Vistas Completas**: Index con organigrama visual + formularios create/edit
+- **JavaScript Modular**: organizational/index.js, create.js, edit.js
+- **Jerarquías Dinámicas**: Paths automáticos + validación ciclos
+- **Integración Empleados**: Campo organigrama_id + foreign key + formularios
+
+## 🎨 **Sistema Logos Empresariales**
+- **Dropzone.js Integration**: Upload arrastrando archivos + preview dinámico
+- **company/logos.js**: Módulo completo gestión logos con CSRF
+- **Dynamic URLs**: Detección automática paths para upload/delete/preview
+- **Security**: CSRF tokens + validaciones + preview en tiempo real
 
 ## 🔧 **Stack Tecnológico**
 - **Backend**: PHP 8.3 + MVC + MySQL (planilla_innova)
@@ -40,7 +50,13 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 
 ---
 
-**✅ SISTEMA EMPRESARIAL COMPLETO + REPORTES PDF PROFESIONALES**
+**✅ SISTEMA EMPRESARIAL COMPLETO + MOTOR FÓRMULAS OPTIMIZADO**
+
+## 🧮 **Motor Fórmulas Conceptos - V3.2.1**
+- **Fechas Dinámicas**: INIPERIODO/FINPERIODO con fechas reales planilla_cabecera
+- **Función ACUMULADOS**: Manejo correcto conceptos múltiples + preservación quoted strings
+- **Categorización**: Campo tipo_acumulado para XIII_MES, VACACIONES, etc.
+- **Integración**: PayrollController pasa fechas automáticamente al calculador
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.

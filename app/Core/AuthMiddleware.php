@@ -22,7 +22,7 @@ class AuthMiddleware
     public static function requireAuth()
     {
         if (!self::isAuthenticated()) {
-            $_SESSION['error'] = 'Debe iniciar sesión para acceder';
+            $_SESSION['error'] = 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.';
             header('Location: /login');
             exit();
         }
@@ -88,6 +88,14 @@ class AuthMiddleware
      */
     public static function requirePermission($menuId, $permissionType = 'read')
     {
+        // Primero verificar si está autenticado
+        if (!self::isAuthenticated()) {
+            $_SESSION['error'] = 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.';
+            header('Location: /login');
+            exit();
+        }
+
+        // Luego verificar permisos
         if (!self::hasPermission($menuId, $permissionType)) {
             $_SESSION['error'] = 'No tiene permisos para acceder a esta sección';
             header('Location: /panel/dashboard');

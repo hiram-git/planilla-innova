@@ -1,8 +1,8 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 15 de Septiembre, 2025  
-**Versión**: 3.0 - Sistema Empresarial Completo
+**Fecha**: 18 de Septiembre, 2025
+**Versión**: 3.2.1 - Sistema Empresarial + Motor Fórmulas Optimizado
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -25,6 +25,20 @@
 - [x] **Separación Concerns**: JavaScript embebido → modular
 - [x] **DataTables Optimizado**: Server-side + configuración española
 - [x] **Estado Management**: Formularios tradicionales + AJAX híbrido
+
+### ✅ **FASE 3.1: MÓDULO ORGANIZACIONAL + LOGOS (100% COMPLETADO)**
+- [x] **Módulo Organizacional CRUD**: OrganizationalController + vistas + JavaScript modular
+- [x] **Jerarquías Dinámicas**: Paths automáticos + validación ciclos organizacionales
+- [x] **Sistema Logos Empresariales**: Dropzone.js + triple logo system + dynamic URLs
+- [x] **Reportes PDF Mejorados**: PDFReportController + logos en reportes + layout profesional
+- [x] **Integración Empleados**: Campo organigrama_id + foreign key + formularios
+
+### ✅ **FASE 3.2: MOTOR FÓRMULAS CONCEPTOS (100% COMPLETADO)**
+- [x] **Sistema Fechas Dinámicas**: INIPERIODO/FINPERIODO con fechas reales planilla
+- [x] **Función ACUMULADOS Mejorada**: Manejo correcto parámetros fecha + conceptos múltiples
+- [x] **Preservación Strings**: Variables no se reemplazan dentro de comillas
+- [x] **Categorización Acumulados**: Campo tipo_acumulado para XIII_MES, VACACIONES, etc.
+- [x] **Integración PayrollController**: Paso automático fechas planilla al calculador
 
 ---
 
