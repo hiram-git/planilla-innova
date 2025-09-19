@@ -6,7 +6,7 @@ use App\Middleware\PermissionMiddleware;
 
 class App
 {
-    protected $controller = 'Timeclock';
+    protected $controller = 'Admin';
     protected $method = 'index';
     protected $params = [];
 
@@ -52,6 +52,7 @@ class App
                     'funciones' => ['controller' => 'Funcion', 'method' => null],
                     'schedules' => ['controller' => 'Schedule', 'method' => null],
                     'attendance' => ['controller' => 'Attendance', 'method' => null],
+                    'marcaciones' => ['controller' => 'Timeclock', 'method' => 'index'],
                     'payrolls' => ['controller' => 'PayrollController', 'method' => null],
                     'concepts' => ['controller' => 'ConceptController', 'method' => null],
                     'tipos-planilla' => ['controller' => 'TipoPlanillaController', 'method' => null],
@@ -356,9 +357,18 @@ class App
         } else {
             // Manejo estándar para otras rutas
             if (empty($url[0])) {
-                $url[0] = 'timeclock';
+                $url[0] = 'admin';
             }
-            
+
+            // Manejo especial para ruta /marcaciones
+            if ($url[0] === 'marcaciones') {
+                $this->controller = new \App\Controllers\Timeclock();
+                $this->method = 'index';
+                $this->params = [];
+                call_user_func_array([$this->controller, $this->method], $this->params);
+                return;
+            }
+
             $controllerName = 'App\\Controllers\\' . ucfirst($url[0]);
             
             if (class_exists($controllerName)) {
