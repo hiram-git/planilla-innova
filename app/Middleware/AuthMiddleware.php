@@ -26,8 +26,15 @@ class AuthMiddleware
     public static function validateCSRF()
     {
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Invalid CSRF token']);
+            // Manejar error CSRF con mensaje para usuario final y redirección
+            session_start();
+            $_SESSION['error'] = 'Token de seguridad inválido. Por favor, inicie sesión nuevamente.';
+
+            // Limpiar sesión para forzar nuevo login
+            unset($_SESSION['csrf_token']);
+            unset($_SESSION['admin']);
+
+            header('Location: ' . url('admin'));
             exit();
         }
     }

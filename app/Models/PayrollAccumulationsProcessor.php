@@ -125,7 +125,7 @@ class PayrollAccumulationsProcessor
                     pc.fecha, 
                     pc.tipo_planilla_id,
                     tp.descripcion as tipo_planilla,
-                    pc.frecuencia_id as frecuencia,
+                    pc.frecuencia_id,
                     MONTH(pc.fecha) as mes,
                     YEAR(pc.fecha) as ano
                 FROM planilla_cabecera pc
@@ -187,7 +187,7 @@ class PayrollAccumulationsProcessor
                     $detail['monto'],
                     $payroll['mes'],
                     $payroll['ano'],
-                    strtoupper($payroll['frecuencia']),
+                    $payroll['frecuencia_id'],
                     $tipoConcepto,
                     $tipoAcumulado
                 ]);
@@ -324,7 +324,7 @@ class PayrollAccumulationsProcessor
                     $payrollId,
                     $payroll['mes'],
                     $payroll['ano'],
-                    strtoupper($payroll['frecuencia']),
+                    $payroll['frecuencia_id'],
                     $employee['sueldos'],
                     $employee['gastos_representacion'],
                     $employee['otras_asignaciones'],
