@@ -20,7 +20,56 @@ class PayrollAccumulationsProcessor
     {
         $this->db = Database::getInstance()->getConnection();
     }
-    
+
+    /**
+     * Determinar el tipo de acumulado para un concepto basado en la tabla conceptos_acumulados
+     * @param int $conceptoId ID del concepto
+     * @param string $tipoPreferido Tipo preferido de acumulado (opcional)
+     * @return string|null Código del tipo de acumulado o null si no aplica
+     */
+    private function getTipoAcumuladoParaConcepto($conceptoId, $tipoPreferido = 'XIII_MES')
+    {
+        try {
+            // Primero intentar encontrar el tipo preferido
+            $sql = "SELECT ta.codigo
+                    FROM conceptos_acumulados ca
+                    INNER JOIN tipos_acumulados ta ON ca.tipo_acumulado_id = ta.id
+                    WHERE ca.concepto_id = ?
+                    AND ca.incluir_en_acumulado = 1
+                    AND ta.activo = 1
+                    AND ta.codigo = ?
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$conceptoId, $tipoPreferido]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                return $result['codigo'];
+            }
+
+            // Si no encuentra el tipo preferido, devolver cualquier tipo activo
+            $sql = "SELECT ta.codigo
+                    FROM conceptos_acumulados ca
+                    INNER JOIN tipos_acumulados ta ON ca.tipo_acumulado_id = ta.id
+                    WHERE ca.concepto_id = ?
+                    AND ca.incluir_en_acumulado = 1
+                    AND ta.activo = 1
+                    ORDER BY ta.id
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$conceptoId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $result ? $result['codigo'] : null;
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo tipo_acumulado para concepto $conceptoId: " . $e->getMessage());
+            return null;
+        }
+    }
+
     /**
      * Procesar acumulados completos para una planilla
      * @param int $payrollId ID de la planilla a procesar
@@ -117,9 +166,9 @@ class PayrollAccumulationsProcessor
             $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Preparar statement para inserción
-            $insertSql = "INSERT INTO acumulados_por_empleado 
-                         (employee_id, concepto_id, planilla_id, monto, mes, ano, frecuencia, tipo_concepto) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $insertSql = "INSERT INTO acumulados_por_empleado
+                         (employee_id, concepto_id, planilla_id, monto, mes, ano, frecuencia, tipo_concepto, tipo_acumulado)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $insertStmt = $this->db->prepare($insertSql);
             
             $recordsCreated = 0;
@@ -127,7 +176,10 @@ class PayrollAccumulationsProcessor
             foreach ($details as $detail) {
                 // Convertir tipo de concepto
                 $tipoConcepto = ($detail['tipo_concepto'] === 'A') ? 'ASIGNACION' : 'DEDUCCION';
-                
+
+                // Determinar tipo_acumulado basado en la tabla conceptos_acumulados
+                $tipoAcumulado = $this->getTipoAcumuladoParaConcepto($detail['concepto_id']);
+
                 $insertStmt->execute([
                     $detail['employee_id'],
                     $detail['concepto_id'],
@@ -136,7 +188,8 @@ class PayrollAccumulationsProcessor
                     $payroll['mes'],
                     $payroll['ano'],
                     strtoupper($payroll['frecuencia']),
-                    $tipoConcepto
+                    $tipoConcepto,
+                    $tipoAcumulado
                 ]);
                 
                 $recordsCreated++;

@@ -401,17 +401,52 @@ class PayrollController extends Controller
             $result = $this->payrollModel->closePayroll($id);
 
             if ($result) {
-                $_SESSION['success'] = 'Planilla cerrada exitosamente';
+                $message = 'Planilla cerrada exitosamente';
+
+                // Detectar si es petición AJAX
+                $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                         strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => true,
+                        'message' => $message
+                    ]);
+                    exit;
+                } else {
+                    $_SESSION['success'] = $message;
+                }
             } else {
                 throw new \Exception('Error al cerrar la planilla');
             }
 
         } catch (\Exception $e) {
             error_log("Error en PayrollController@close: " . $e->getMessage());
-            $_SESSION['error'] = $e->getMessage();
+
+            // Detectar si es petición AJAX para errores también
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ]);
+                exit;
+            } else {
+                $_SESSION['error'] = $e->getMessage();
+            }
         }
 
-        $this->redirect('/panel/payrolls/' . $id);
+        // Solo redirigir si no es AJAX
+        $redirectUrl = '/panel/payrolls';
+        if (isset($_POST['tipo_planilla_id']) && !empty($_POST['tipo_planilla_id'])) {
+            $redirectUrl .= '?tipo_planilla_id=' . $_POST['tipo_planilla_id'];
+        }
+        $this->redirect($redirectUrl);
     }
 
     /**
@@ -432,17 +467,52 @@ class PayrollController extends Controller
             $result = $this->payrollModel->cancelPayroll($id);
 
             if ($result) {
-                $_SESSION['success'] = 'Planilla anulada exitosamente';
+                $message = 'Planilla anulada exitosamente';
+
+                // Detectar si es petición AJAX
+                $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                         strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => true,
+                        'message' => $message
+                    ]);
+                    exit;
+                } else {
+                    $_SESSION['success'] = $message;
+                }
             } else {
                 throw new \Exception('Error al anular la planilla');
             }
 
         } catch (\Exception $e) {
             error_log("Error en PayrollController@cancel: " . $e->getMessage());
-            $_SESSION['error'] = $e->getMessage();
+
+            // Detectar si es petición AJAX para errores también
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ]);
+                exit;
+            } else {
+                $_SESSION['error'] = $e->getMessage();
+            }
         }
 
-        $this->redirect('/panel/payrolls/' . $id);
+        // Solo redirigir si no es AJAX
+        $redirectUrl = '/panel/payrolls';
+        if (isset($_POST['tipo_planilla_id']) && !empty($_POST['tipo_planilla_id'])) {
+            $redirectUrl .= '?tipo_planilla_id=' . $_POST['tipo_planilla_id'];
+        }
+        $this->redirect($redirectUrl);
     }
 
     /**
@@ -1415,7 +1485,10 @@ class PayrollController extends Controller
                 require_once __DIR__ . '/../Services/PlanillaConceptCalculator.php';
             }
             $calculadora = new \App\Services\PlanillaConceptCalculator();
-            
+
+            // Establecer fechas de la planilla para variables INIPERIODO/FINPERIODO
+            $calculadora->establecerFechasPlanilla($periodo_inicio, $periodo_fin, $fecha);
+
             // Situación del empleado (activo = 1)
             $employeeSituacion = 1;
 
@@ -1830,13 +1903,15 @@ class PayrollController extends Controller
                     error_log("Error en auditoría (no crítico): " . $auditError->getMessage());
                 }
                 
-                // Enviar respuesta JSON para AJAX
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Planilla marcada como PENDIENTE y todos los registros asociados han sido eliminados. La planilla está lista para ser reprocesada.',
-                    'new_status' => 'PENDIENTE'
-                ]);
+                // Configurar mensaje de éxito
+                $_SESSION['success'] = 'Planilla marcada como PENDIENTE y todos los registros asociados han sido eliminados. La planilla está lista para ser reprocesada.';
+
+                // Mantener filtro de tipo_planilla_id si existe
+                $redirectUrl = '/panel/payrolls';
+                if (isset($_POST['tipo_planilla_id']) && !empty($_POST['tipo_planilla_id'])) {
+                    $redirectUrl .= '?tipo_planilla_id=' . $_POST['tipo_planilla_id'];
+                }
+                $this->redirect($redirectUrl);
                 return;
                 
             } catch (\Exception $e) {
@@ -1940,7 +2015,7 @@ class PayrollController extends Controller
                     error_log("Error en auditoría (no crítico): " . $auditError->getMessage());
                 }
                 
-                // Configurar mensaje de éxito y redireccionar (para formularios del listado)
+                // Configurar mensaje de éxito y redireccionar manteniendo filtros
                 $mensaje = "Planilla abierta exitosamente. Estado cambió a PROCESADA";
                 if ($acumuladosAfectados > 0) {
                     $mensaje .= " y se realizó rollback de {$acumuladosAfectados} registros de acumulados.";
@@ -1948,7 +2023,13 @@ class PayrollController extends Controller
                     $mensaje .= ".";
                 }
                 $_SESSION['success'] = $mensaje;
-                $this->redirect('/panel/payrolls/' . $id);
+
+                // Mantener filtro de tipo_planilla_id si existe
+                $redirectUrl = '/panel/payrolls';
+                if (isset($_POST['tipo_planilla_id']) && !empty($_POST['tipo_planilla_id'])) {
+                    $redirectUrl .= '?tipo_planilla_id=' . $_POST['tipo_planilla_id'];
+                }
+                $this->redirect($redirectUrl);
                 
             } catch (\Exception $e) {
                 // Asegurar rollback si estamos en transacción

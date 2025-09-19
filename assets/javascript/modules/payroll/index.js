@@ -179,7 +179,7 @@
             // Confirm close
             $("#confirmClose").click(function() {
                 if (self.state.currentPayrollId) {
-                    self.submitFormAction("close");
+                    self.submitCloseAction(self.state.currentPayrollId);
                 }
             });
 
@@ -195,11 +195,11 @@
             $("#confirmReopen").click(function() {
                 const motivo = $("#reopenMotivo").val().trim();
                 if (!motivo) {
-                    alert("El motivo es obligatorio para reabrir una planilla.");
+                    toastr.warning("El motivo es obligatorio para reabrir una planilla.");
                     return;
                 }
                 if (self.state.currentPayrollId) {
-                    self.submitFormAction("reopen", { motivo: motivo });
+                    self.submitFormAction("reopen", { reason: motivo });
                 }
             });
 
@@ -215,11 +215,11 @@
             $("#confirmMarkPending").click(function() {
                 const motivo = $("#markPendingMotivo").val().trim();
                 if (!motivo) {
-                    alert("El motivo es obligatorio para marcar la planilla como pendiente.");
+                    toastr.warning("El motivo es obligatorio para marcar la planilla como pendiente.");
                     return;
                 }
                 if (self.state.currentPayrollId) {
-                    self.submitFormAction("markPending", { motivo: motivo });
+                    self.submitFormAction("toPending", { motivo: motivo });
                 }
             });
 
@@ -234,7 +234,7 @@
             // Confirm cancel
             $("#confirmCancel").click(function() {
                 if (self.state.currentPayrollId) {
-                    self.submitFormAction("cancel");
+                    self.submitCancelAction(self.state.currentPayrollId);
                 }
             });
 
@@ -272,20 +272,173 @@
         },
 
         /**
-         * Submit form action (close, cancel, delete)
+         * Reload page maintaining tipo_planilla_id filter
+         */
+        reloadWithFilter: function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tipoPlanillaId = urlParams.get("tipo_planilla_id");
+
+            let reloadUrl = window.location.pathname;
+            if (tipoPlanillaId) {
+                reloadUrl += '?tipo_planilla_id=' + tipoPlanillaId;
+            }
+
+            window.location.href = reloadUrl;
+        },
+
+        /**
+         * Reload DataTable instead of entire page
+         */
+        reloadDataTable: function() {
+            // For now, since the current DataTable is static (not AJAX),
+            // we reload the page with filter maintained
+            this.reloadWithFilter();
+        },
+
+        /**
+         * Show success notification and reload DataTable
+         */
+        showSuccessAndReload: function(message, title = 'Éxito') {
+            toastr.success(message, title);
+            setTimeout(() => {
+                this.reloadDataTable();
+            }, 500); // Small delay to let toastr show
+        },
+
+        /**
+         * Submit close action via AJAX
+         */
+        submitCloseAction: function(payrollId) {
+            const self = this;
+
+            // Get tipo_planilla_id from URL to maintain filter
+            const urlParams = new URLSearchParams(window.location.search);
+            const tipoPlanillaId = urlParams.get("tipo_planilla_id");
+
+            const ajaxData = {
+                csrf_token: this.config.csrfToken
+            };
+
+            // Include tipo_planilla_id if exists
+            if (tipoPlanillaId) {
+                ajaxData.tipo_planilla_id = tipoPlanillaId;
+            }
+
+            $.ajax({
+                url: `${this.config.urls.payrolls}/${payrollId}/close`,
+                method: "POST",
+                data: ajaxData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Close modal
+                        $("#closeModal").modal("hide");
+
+                        // Show success notification
+                        toastr.success(response.message, "Planilla Cerrada");
+
+                        // Reload DataTable after a short delay
+                        setTimeout(() => {
+                            self.reloadDataTable();
+                        }, 500);
+                    } else {
+                        toastr.error(response.message || "Error al cerrar la planilla", "Error");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = "Error al cerrar la planilla";
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    toastr.error(errorMessage, "Error");
+                }
+            });
+        },
+
+        /**
+         * Submit cancel action via AJAX
+         */
+        submitCancelAction: function(payrollId) {
+            const self = this;
+
+            // Get tipo_planilla_id from URL to maintain filter
+            const urlParams = new URLSearchParams(window.location.search);
+            const tipoPlanillaId = urlParams.get("tipo_planilla_id");
+
+            const ajaxData = {
+                csrf_token: this.config.csrfToken
+            };
+
+            // Include tipo_planilla_id if exists
+            if (tipoPlanillaId) {
+                ajaxData.tipo_planilla_id = tipoPlanillaId;
+            }
+
+            $.ajax({
+                url: `${this.config.urls.payrolls}/${payrollId}/cancel`,
+                method: "POST",
+                data: ajaxData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Close modal
+                        $("#cancelModal").modal("hide");
+
+                        // Show success notification
+                        toastr.success(response.message, "Planilla Anulada");
+
+                        // Reload DataTable after a short delay
+                        setTimeout(() => {
+                            self.reloadDataTable();
+                        }, 500);
+                    } else {
+                        toastr.error(response.message || "Error al anular la planilla", "Error");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = "Error al anular la planilla";
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    toastr.error(errorMessage, "Error");
+                }
+            });
+        },
+
+        /**
+         * Submit form action (delete, etc.)
          */
         submitFormAction: function(action, data = {}) {
             const form = $("<form>", {
                 method: "POST",
                 action: `${this.config.urls.payrolls}/${this.state.currentPayrollId}/${action}`
             });
-            
+
             form.append($("<input>", {
                 type: "hidden",
                 name: "csrf_token",
                 value: this.config.csrfToken
             }));
-            
+
+            // Mantener filtro de tipo_planilla_id si existe en la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tipoPlanillaId = urlParams.get("tipo_planilla_id");
+            if (tipoPlanillaId) {
+                form.append($("<input>", {
+                    type: "hidden",
+                    name: "tipo_planilla_id",
+                    value: tipoPlanillaId
+                }));
+            }
+
             // Add additional data
             for (const [key, value] of Object.entries(data)) {
                 form.append($("<input>", {
@@ -294,7 +447,7 @@
                     value: value
                 }));
             }
-            
+
             $("body").append(form);
             form.submit();
         },
@@ -406,12 +559,7 @@
                     }
                     
                     // If after waiting it still doesn't work, show error
-                    
-                    alert("Error: No se ha seleccionado un tipo de planilla. Por favor:\n\n" +
-                          "1. Seleccione un tipo en el dropdown de la barra de navegación (superior derecha)\n" +
-                          "2. Espere a que se cargue completamente\n" +
-                          "3. Intente procesar la planilla nuevamente\n\n" +
-                          "Debug: Revise la consola del navegador para más detalles");
+                    toastr.error("No se ha seleccionado un tipo de planilla. Por favor seleccione un tipo en el dropdown de la barra de navegación y vuelva a intentar.", "Error de Configuración");
                 }, 2000);
                 return;
             }
@@ -550,28 +698,31 @@
          */
         handleProcessingComplete: function(response) {
             clearInterval(this.state.progressInterval);
-            
+
             // Calculate total generation time
             const totalTime = this.state.startTime ? Date.now() - this.state.startTime : 0;
             const minutes = Math.floor(totalTime / 60000);
             const seconds = Math.floor((totalTime % 60000) / 1000);
             const timeDisplay = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
-            
+
+            const employeesProcessed = response && response.stats ? response.stats.employees : this.state.totalEmployees;
+            const conceptsCalculated = response && response.stats ? response.stats.concepts : $("#conceptsProgress").text();
+
             // Show completion phase
             $("#processingPhase").hide();
             $("#processingButtons").hide();
             $("#completedPhase").show();
             $("#completedButtons").show();
-            
+
             // Show final statistics with generation time
             const statsHtml = `
                 <div class="row text-center">
                     <div class="col-md-4">
-                        <strong>${response && response.stats ? response.stats.employees : this.state.totalEmployees}</strong><br>
+                        <strong>${employeesProcessed}</strong><br>
                         <small>Empleados Procesados</small>
                     </div>
                     <div class="col-md-4">
-                        <strong>${response && response.stats ? response.stats.concepts : $("#conceptsProgress").text()}</strong><br>
+                        <strong>${conceptsCalculated}</strong><br>
                         <small>Conceptos Calculados</small>
                     </div>
                     <div class="col-md-4">
@@ -581,7 +732,10 @@
                 </div>
             `;
             $("#completionStats").html(statsHtml);
-            
+
+            // Show success notification
+            toastr.success(`Planilla procesada exitosamente. ${employeesProcessed} empleados procesados en ${timeDisplay}.`, "Procesamiento Completado");
+
             // Re-enable modal close
             $("#modalCloseBtn").prop("disabled", false);
         },
@@ -659,11 +813,7 @@
             
             // If still no payroll type, show error
             if (!tipoPlanillaId) {
-                alert("Error: No se ha seleccionado un tipo de planilla. Por favor:\n\n" +
-                      "1. Seleccione un tipo en el dropdown de la barra de navegación (superior derecha)\n" +
-                      "2. Espere a que se cargue completamente\n" +
-                      "3. Intente reprocesar la planilla nuevamente\n\n" +
-                      "Debug: Revise la consola del navegador para más detalles");
+                toastr.error("No se ha seleccionado un tipo de planilla. Por favor seleccione un tipo en el dropdown de la barra de navegación y vuelva a intentar.", "Error de Configuración");
                 return;
             }
             
@@ -826,28 +976,31 @@
          */
         handleReprocessingComplete: function(response) {
             clearInterval(this.state.reprocessProgressInterval);
-            
+
             // Calculate total generation time
             const totalTime = this.state.reprocessStartTime ? Date.now() - this.state.reprocessStartTime : 0;
             const minutes = Math.floor(totalTime / 60000);
             const seconds = Math.floor((totalTime % 60000) / 1000);
             const timeDisplay = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
-            
+
+            const employeesProcessed = response && response.stats ? response.stats.employees : this.state.totalEmployees;
+            const conceptsCalculated = response && response.stats ? response.stats.concepts : $("#reprocessConceptsProgress").text();
+
             // Show completion phase
             $("#reprocessProcessingPhase").hide();
             $("#reprocessProcessingButtons").hide();
             $("#reprocessCompletedPhase").show();
             $("#reprocessCompletedButtons").show();
-            
+
             // Show final statistics with generation time
             const statsHtml = `
                 <div class="row text-center">
                     <div class="col-md-4">
-                        <strong>${response && response.stats ? response.stats.employees : this.state.totalEmployees}</strong><br>
+                        <strong>${employeesProcessed}</strong><br>
                         <small>Empleados Reprocesados</small>
                     </div>
                     <div class="col-md-4">
-                        <strong>${response && response.stats ? response.stats.concepts : $("#reprocessConceptsProgress").text()}</strong><br>
+                        <strong>${conceptsCalculated}</strong><br>
                         <small>Conceptos Recalculados</small>
                     </div>
                     <div class="col-md-4">
@@ -857,7 +1010,10 @@
                 </div>
             `;
             $("#reprocessCompletionStats").html(statsHtml);
-            
+
+            // Show success notification
+            toastr.success(`Planilla reprocesada exitosamente. ${employeesProcessed} empleados reprocesados en ${timeDisplay}.`, "Reprocesamiento Completado");
+
             // Re-enable modal close
             $("#reprocessModalCloseBtn").prop("disabled", false);
         },
@@ -919,5 +1075,10 @@
 
     // Export module to global scope
     global.PayrollModule = PayrollModule;
+
+    // Export specific functions globally for HTML onclick handlers
+    global.PayrollModule.reloadWithFilter = PayrollModule.reloadWithFilter.bind(PayrollModule);
+    global.PayrollModule.reloadDataTable = PayrollModule.reloadDataTable.bind(PayrollModule);
+    global.PayrollModule.showSuccessAndReload = PayrollModule.showSuccessAndReload.bind(PayrollModule);
 
 })(window);

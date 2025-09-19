@@ -156,6 +156,10 @@ class Payroll extends Model
 
             // Verificar que la planilla esté en estado PENDIENTE y obtener sus datos
             $payroll = $this->findWithType($payrollId);
+            $fecha = $payroll['fecha'] ?? date('Y-m-d');
+            $periodo_inicio = $payroll['fecha_desde'] ?? null;
+            $periodo_fin = $payroll['fecha_hasta'] ?? null;
+
             if (!$payroll || $payroll['estado'] !== 'PENDIENTE') {
                 throw new \Exception('La planilla no está en estado PENDIENTE');
             }
@@ -216,6 +220,9 @@ class Payroll extends Model
             }
             $calculadora = new \App\Services\PlanillaConceptCalculator();
 
+
+            // Establecer fechas de la planilla para variables INIPERIODO/FINPERIODO
+            $calculadora->establecerFechasPlanilla($periodo_inicio, $periodo_fin, $fecha);
             $processedCount = 0;
             $employeeCount = 0;
 

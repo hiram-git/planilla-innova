@@ -486,8 +486,8 @@ class Concept extends Model
      */
     private function validateFormulaSyntax($formula)
     {
-        // Verificar caracteres permitidos
-        if (!preg_match('/^[A-Z0-9_.(),\s\+\-\*\/\>\<\=\!]+$/i', $formula)) {
+        // Verificar caracteres permitidos - agregadas comillas simples y dobles para las nuevas funciones
+        if (!preg_match('/^[A-Z0-9_.(),\s\+\-\*\/\>\<\=\!\'\"]+$/i', $formula)) {
             return [
                 'valid' => false,
                 'message' => 'La fórmula contiene caracteres no permitidos'
@@ -529,8 +529,8 @@ class Concept extends Model
     private function extractVariables($formula)
     {
         $variables = [];
-        $knownVars = ['SALARIO', 'HORAS', 'ANTIGUEDAD', 'FICHA'];
-        
+        $knownVars = ['SALARIO', 'HORAS', 'ANTIGUEDAD', 'FICHA', 'INIPERIODO', 'FINPERIODO'];
+
         foreach ($knownVars as $var) {
             if (strpos($formula, $var) !== false) {
                 $variables[] = $var;
@@ -543,6 +543,12 @@ class Concept extends Model
         }
         if (preg_match('/SI\s*\([^)]+\)/', $formula)) {
             $variables[] = 'SI()';
+        }
+        if (preg_match('/ANTIGUEDAD\s*\([^)]+\)/', $formula)) {
+            $variables[] = 'ANTIGUEDAD()';
+        }
+        if (preg_match('/ACUMULADOS\s*\([^)]+\)/', $formula)) {
+            $variables[] = 'ACUMULADOS()';
         }
 
         return array_unique($variables);

@@ -389,7 +389,17 @@ $title = 'Nuevo Concepto';
 
 
 <script>
-$(document).ready(function() {
+// Función para inicializar cuando jQuery esté disponible
+function initializeConceptForm() {
+    // Verificar si jQuery está disponible
+    if (typeof $ === 'undefined') {
+        // Reintentar en 100ms
+        setTimeout(initializeConceptForm, 100);
+        return;
+    }
+
+    // Inicializar cuando jQuery esté disponible
+    $(document).ready(function() {
     // Form validation
     $('#conceptForm').on('submit', function(e) {
         // Validar que haya al menos descripción y tipo
@@ -642,5 +652,9 @@ $(document).ready(function() {
     $(document).ready(function() {
         loadTiposAcumulados();
     });
-});
+    }); // Fin de $(document).ready
+} // Fin de initializeConceptForm
+
+// Llamar la función para inicializar
+initializeConceptForm();
 </script>

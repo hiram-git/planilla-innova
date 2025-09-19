@@ -260,8 +260,8 @@ $csrf_token = $data['csrf_token'] ?? '';
                     </button>
                 </div>
                 <div id="completedButtons" style="display: none;">
-                    <button type="button" class="btn btn-primary" onclick="location.reload()">
-                        <i class="fas fa-sync"></i> Actualizar Página
+                    <button type="button" class="btn btn-primary" onclick="PayrollModule.reloadDataTable()">
+                        <i class="fas fa-sync"></i> Actualizar Lista
                     </button>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         Cerrar
@@ -368,8 +368,8 @@ $csrf_token = $data['csrf_token'] ?? '';
                     </button>
                 </div>
                 <div id="reprocessCompletedButtons" style="display: none;">
-                    <button type="button" class="btn btn-primary" onclick="location.reload()">
-                        <i class="fas fa-sync"></i> Actualizar Página
+                    <button type="button" class="btn btn-primary" onclick="PayrollModule.reloadDataTable()">
+                        <i class="fas fa-sync"></i> Actualizar Lista
                     </button>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         Cerrar
