@@ -26,13 +26,13 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Sistema de Planilla y Control de Asistencia">
-    <meta name="author" content="Planilla Simple">
+    <meta name="author" content="Innova Planilla">
     <meta name="robots" content="noindex, nofollow">
     <?php if (isset($_SESSION['csrf_token'])): ?>
     <meta name="csrf-token" content="<?= $_SESSION['csrf_token'] ?>">
     <?php endif; ?>
     
-    <title><?= htmlspecialchars($title ?? 'Administración - Planilla Simple') ?></title>
+    <title><?= htmlspecialchars($title ?? 'Administración - Innova Planilla') ?></title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="<?= url('dist/img/favicon.ico') ?>">
@@ -324,11 +324,18 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
         <!-- Footer -->
         <footer class="main-footer">
             <div class="float-right d-none d-sm-block">
-                <b>Versión</b> 2.0.0
-                <span class="badge badge-primary ml-1">MVC</span>
+                <?php
+                use App\Helpers\VersionHelper;
+                $versionInfo = VersionHelper::getFullVersionInfo();
+                ?>
+                <b>Versión</b> <?= VersionHelper::getCurrentVersion() ?>
+                <span class="badge badge-primary ml-1">Innova Planilla</span>
+                <?php if (!empty($versionInfo['codename'])): ?>
+                <small class="text-muted ml-1"><?= htmlspecialchars($versionInfo['codename']) ?></small>
+                <?php endif; ?>
             </div>
-            <strong>&copy; <?= date('Y') ?> 
-                <a href="#" class="text-decoration-none">Planilla Simple</a>.
+            <strong>&copy; <?= date('Y') ?>
+                <a href="#" class="text-decoration-none">Innova Planilla</a>.
             </strong> 
             Todos los derechos reservados.
         </footer>

@@ -635,7 +635,7 @@ class SidebarComponent
             <!-- Brand Logo -->
             <a href="' . \App\Core\UrlHelper::panel('dashboard') . '" class="brand-link">
                 <img src="' . url('dist/img/AdminLTELogo.png') . '" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-                <span class="brand-text font-weight-light">Planilla Simple</span>
+                <span class="brand-text font-weight-light">Innova Planilla</span>
             </a>
 
             <!-- Sidebar -->
@@ -667,7 +667,10 @@ class SidebarComponent
                             <a href="#" class="nav-link disabled">
                                 <i class="nav-icon fas fa-info-circle"></i>
                                 <p>
-                                    Versión 2.0
+                                    <?php
+                                    use App\Helpers\VersionHelper;
+                                    ?>
+                                    Versión <?= VersionHelper::getCurrentVersion() ?>
                                     <span class="right badge badge-success">MVC</span>
                                 </p>
                             </a>
