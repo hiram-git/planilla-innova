@@ -127,31 +127,31 @@ class PDFReportController extends Controller
     }
 
     /**
-     * Agregar header del PDF
+     * Agregar header del PDF con logos alineados al título
      */
     private function addPDFHeader($pdf, $companyInfo, $payroll)
     {
-        // Insertar logos si existen
+        // Insertar logos si existen - alineados con márgenes
         $this->insertLogosInPDF($pdf, $companyInfo);
 
-        // Título de la empresa
-        $pdf->SetFont('helvetica', 'B', 16);
+        // Título de la empresa - centrado y alineado verticalmente con logos
+        $pdf->SetFont('helvetica', 'B', 18); // Aumentado para mejor proporción
         $pdf->Cell(0, 10, $companyInfo['company_name'], 0, 1, 'C');
-        
+
         // Título del reporte
         $pdf->SetFont('helvetica', 'B', 14);
         $pdf->Cell(0, 8, 'PLANILLA DE SUELDOS', 0, 1, 'C');
-        
+
         // Descripción y período
         $pdf->SetFont('helvetica', 'B', 12);
         $pdf->Cell(0, 6, strtoupper($payroll['descripcion']), 0, 1, 'C');
-        
+
         $pdf->SetFont('helvetica', '', 10);
         $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_desde']));
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_hasta']));
         $pdf->Cell(0, 6, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
-        
-        $pdf->Ln(5);
+
+        $pdf->Ln(8); // Espacio adicional antes de la tabla
         
         // Headers de la tabla
         $pdf->SetFont('helvetica', 'B', 8);
@@ -350,22 +350,22 @@ class PDFReportController extends Controller
         $employee = $data['employee'];
         $payroll = $data['payroll'];
 
-        // Insertar logos si existen
+        // Insertar logos si existen - alineados con márgenes
         $this->insertLogosInPDF($pdf, $companyInfo);
 
-        // Header del comprobante
-        $pdf->SetFont('helvetica', 'B', 16);
+        // Header del comprobante - alineado con logos
+        $pdf->SetFont('helvetica', 'B', 18); // Aumentado para mejor proporción
         $pdf->Cell(0, 10, 'COMPROBANTE DE PAGO', 0, 1, 'C');
-        
+
         $pdf->SetFont('helvetica', 'B', 12);
         $pdf->Cell(0, 8, $payroll['descripcion'], 0, 1, 'C');
-        
+
         $pdf->SetFont('helvetica', '', 10);
         $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_inicio']));
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
         $pdf->Cell(0, 6, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
-        
-        $pdf->Ln(10);
+
+        $pdf->Ln(12); // Espacio adicional para mejor separación
         
         // Información del empleado
         $pdf->SetFont('helvetica', 'B', 12);
@@ -697,51 +697,63 @@ class PDFReportController extends Controller
     }
 
     /**
-     * Insertar logos en el PDF
+     * Insertar logos en el PDF alineados con el título y triple ancho
      */
     private function insertLogosInPDF($pdf, $companyInfo)
     {
         $logoPath = __DIR__ . '/../../images/logos/';
-        $logoHeight = 20; // Altura de los logos
+        $logoHeight = 30; // Altura aumentada para mejor proporción
         $pageWidth = $pdf->getPageWidth();
-        $margin = 10;
+        $margin = 20; // Margen desde los bordes
 
         // Guardar posición actual
         $currentY = $pdf->GetY();
 
-        // Logo izquierdo
+        // Logo izquierdo - alineado con el margen izquierdo
         if (!empty($companyInfo['logo_izquierdo_reportes'])) {
             $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
             if (file_exists($leftLogoPath)) {
-                $pdf->Image($leftLogoPath, $margin, $currentY, 0, $logoHeight, '', '', '', false, 300, '', false, false, 0);
+                // Ancho triplicado (era ~10, ahora 30)
+                $leftLogoWidth = 30;
+                try {
+                    $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (Exception $e) {
+                    error_log("Error cargando logo izquierdo: " . $e->getMessage());
+                    // Continuar sin el logo en caso de error
+                }
             }
         }
 
-        // Logo derecho
+        // Logo derecho - alineado con el margen derecho
         if (!empty($companyInfo['logo_derecho_reportes'])) {
             $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
             if (file_exists($rightLogoPath)) {
-                // Calcular posición X para alinear a la derecha
-                $logoWidth = 30; // Ancho estimado del logo
-                $rightX = $pageWidth - $margin - $logoWidth;
-                $pdf->Image($rightLogoPath, $rightX, $currentY, 0, $logoHeight, '', '', '', false, 300, '', false, false, 0);
+                // Ancho triplicado (era ~10, ahora 30)
+                $rightLogoWidth = 30;
+                $rightX = $pageWidth - $margin - $rightLogoWidth;
+                try {
+                    $pdf->Image($rightLogoPath, $rightX, $currentY, $rightLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (Exception $e) {
+                    error_log("Error cargando logo derecho: " . $e->getMessage());
+                    // Continuar sin el logo en caso de error
+                }
             }
         }
 
-        // Logo principal (centro) - solo si no hay logos laterales o como alternativa
+        // Logo principal (centro) - solo si no hay logos laterales
         if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
             $mainLogoPath = $logoPath . $companyInfo['logo_empresa'];
             if (file_exists($mainLogoPath)) {
-                // Centrar el logo
-                $logoWidth = 40;
-                $centerX = ($pageWidth - $logoWidth) / 2;
-                $pdf->Image($mainLogoPath, $centerX, $currentY, 0, $logoHeight, '', '', '', false, 300, '', false, false, 0);
+                // Ancho triplicado (era ~13, ahora 40)
+                $mainLogoWidth = 40;
+                $centerX = ($pageWidth - $mainLogoWidth) / 2;
+                $pdf->Image($mainLogoPath, $centerX, $currentY, $mainLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
             }
         }
 
-        // Mover posición Y después de los logos
+        // Reservar espacio después de los logos para que el título esté alineado
         if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
-            $pdf->SetY($currentY + $logoHeight + 5);
+            $pdf->SetY($currentY + $logoHeight + 8); // Espacio adicional para mejor separación
         }
     }
 

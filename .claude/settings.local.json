@@ -46,7 +46,8 @@
       "Bash(C:/xampp82/php/php.exe --ini)",
       "Bash(C:/xampp82/php/php.exe:*)",
       "Bash(C:/xampp82/mysql/bin/mysql.exe:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": [],
