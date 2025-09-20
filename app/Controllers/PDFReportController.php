@@ -107,8 +107,8 @@ class PDFReportController extends Controller
         $pdf->SetSubject('Reporte de Planilla');
         
         // Configuración de la página
-        $pdf->SetMargins(10, 15, 10);
-        $pdf->SetAutoPageBreak(TRUE, 15);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(TRUE, 10);
         $pdf->AddPage();
         
         // Header de la empresa
@@ -131,27 +131,23 @@ class PDFReportController extends Controller
      */
     private function addPDFHeader($pdf, $companyInfo, $payroll)
     {
-        // Insertar logos si existen - alineados con márgenes
+        // Insertar logos y nombre de empresa centrado
         $this->insertLogosInPDF($pdf, $companyInfo);
 
-        // Título de la empresa - centrado y alineado verticalmente con logos
-        $pdf->SetFont('helvetica', 'B', 18); // Aumentado para mejor proporción
-        $pdf->Cell(0, 10, $companyInfo['company_name'], 0, 1, 'C');
-
-        // Título del reporte
+        // Título del reporte - reducido espaciado
         $pdf->SetFont('helvetica', 'B', 14);
-        $pdf->Cell(0, 8, 'PLANILLA DE SUELDOS', 0, 1, 'C');
+        $pdf->Cell(0, 5, 'PLANILLA DE SUELDOS', 0, 1, 'C');
 
-        // Descripción y período
-        $pdf->SetFont('helvetica', 'B', 12);
-        $pdf->Cell(0, 6, strtoupper($payroll['descripcion']), 0, 1, 'C');
+        // Descripción y período - compactado
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, 4, strtoupper($payroll['descripcion']), 0, 1, 'C');
 
-        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetFont('helvetica', '', 9);
         $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_desde']));
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_hasta']));
-        $pdf->Cell(0, 6, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
+        $pdf->Cell(0, 4, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
 
-        $pdf->Ln(8); // Espacio adicional antes de la tabla
+        $pdf->Ln(3); // Espacio reducido antes de la tabla
         
         // Headers de la tabla
         $pdf->SetFont('helvetica', 'B', 8);
@@ -246,7 +242,7 @@ class PDFReportController extends Controller
      */
     private function addSignatures($pdf, $companyInfo)
     {
-        $pdf->Ln(15);
+        $pdf->Ln(8); // Espacio reducido antes de firmas
 
         // Determinar qué firmas mostrar basado en si tienen contenido
         $firmas = [];
@@ -272,7 +268,7 @@ class PDFReportController extends Controller
 
         $numFirmas = count($firmas);
         $colWidth = $numFirmas > 0 ? (270 / $numFirmas) : 90; // Ancho dinámico
-        $sigHeight = 25; // Altura del área de firma
+        $sigHeight = 15; // Altura del área de firma
 
         // Primera fila de firmas
         $pdf->SetFont('helvetica', '', 9);
@@ -303,7 +299,7 @@ class PDFReportController extends Controller
             }
         }
 
-        $pdf->Ln(8);
+        $pdf->Ln(5); // Espacio reducido entre filas de firmas
 
         // Segunda fila para firma del contador si existe
         if (!empty($companyInfo['firma_contador_planilla']) && trim($companyInfo['firma_contador_planilla']) !== '') {
@@ -325,7 +321,7 @@ class PDFReportController extends Controller
         }
 
         // Información adicional al final
-        $pdf->Ln(5);
+        $pdf->Ln(3); // Espacio reducido
         $pdf->SetFont('helvetica', '', 7);
         $pdf->Cell(0, 4, 'Fecha de Generación: ' . date('d/m/Y H:i:s'), 0, 1, 'R');
         //$pdf->Cell(0, 4, 'Generado por: Sistema de Planillas MVC', 0, 1, 'R');
@@ -702,9 +698,9 @@ class PDFReportController extends Controller
     private function insertLogosInPDF($pdf, $companyInfo)
     {
         $logoPath = __DIR__ . '/../../images/logos/';
-        $logoHeight = 30; // Altura aumentada para mejor proporción
+        $logoHeight = 10; // Altura aumentada para mejor proporción
         $pageWidth = $pdf->getPageWidth();
-        $margin = 20; // Margen desde los bordes
+        $margin = 10; // Margen desde los bordes
 
         // Guardar posición actual
         $currentY = $pdf->GetY();
@@ -751,9 +747,33 @@ class PDFReportController extends Controller
             }
         }
 
-        // Reservar espacio después de los logos para que el título esté alineado
+        // NOMBRE DE LA EMPRESA centrado a la misma altura de los logos
+        if (!empty($companyInfo['company_name'])) {
+            // Guardar la fuente actual
+            $currentFont = $pdf->getFontFamily();
+            $currentSize = $pdf->getFontSizePt();
+
+            // Configurar fuente para el nombre de la empresa
+            $pdf->SetFont('helvetica', 'B', 16);
+
+            // Calcular posición centrada
+            $companyNameWidth = $pdf->GetStringWidth($companyInfo['company_name']);
+            $centerX = ($pageWidth - $companyNameWidth) / 2;
+
+            // Posicionar el texto a la misma altura de los logos (centrado verticalmente)
+            $textY = $currentY + ($logoHeight / 2) - 3; // Centrado vertical con pequeño ajuste
+
+            // Escribir el nombre de la empresa
+            $pdf->SetXY($centerX, $textY);
+            $pdf->Cell($companyNameWidth, 0, $companyInfo['company_name'], 0, 0, 'C');
+
+            // Restaurar fuente anterior
+            $pdf->SetFont($currentFont, '', $currentSize);
+        }
+
+        // Reservar espacio después de los logos para que el contenido esté alineado
         if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
-            $pdf->SetY($currentY + $logoHeight + 8); // Espacio adicional para mejor separación
+            $pdf->SetY( 20 ); // Espacio reducido para más altura en tabla
         }
     }
 
