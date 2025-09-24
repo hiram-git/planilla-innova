@@ -8,6 +8,7 @@ $(document).ready(function() {
 
     // Obtener tipo de institución de la empresa
     var companyType = window.APP_CONFIG?.company?.tipo_institucion || 'privada';
+    console.log('Company type detected:', companyType);
 
     // Mostrar/ocultar campos según tipo de institución
     function toggleFieldsByCompanyType() {
