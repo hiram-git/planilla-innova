@@ -167,8 +167,8 @@ class Employee extends Controller
                 'document_id' => $data['document_id'],
                 'clave_seguro_social' => $data['clave_seguro_social'] ?? null,
                 'address' => $data['address'] ?? '',
-                'birthdate' => $data['birthdate'],
-                'fecha_ingreso' => $data['fecha_ingreso'] ?? date('Y-m-d'),
+                'birthdate' => !empty(trim($data['birthdate'] ?? '')) ? trim($data['birthdate']) : null,
+                'fecha_ingreso' => !empty(trim($data['fecha_ingreso'] ?? '')) ? trim($data['fecha_ingreso']) : date('Y-m-d'),
                 'contact_info' => $data['contact'] ?? '',
                 'gender' => $data['gender'],
                 'position_id' => !empty($data['position']) ? $data['position'] : null,
@@ -288,8 +288,8 @@ class Employee extends Controller
                 'document_id' => $data['edit_document_id'],
                 'clave_seguro_social' => $data['edit_clave_seguro_social'] ?? null,
                 'address' => $data['edit_address'] ?? '',
-                'birthdate' => $data['edit_birthdate'],
-                'fecha_ingreso' => $data['edit_fecha_ingreso'] ?? $employeeData['fecha_ingreso'],
+                'birthdate' => !empty(trim($data['edit_birthdate'] ?? '')) ? trim($data['edit_birthdate']) : null,
+                'fecha_ingreso' => !empty(trim($data['edit_fecha_ingreso'] ?? '')) ? trim($data['edit_fecha_ingreso']) : $employeeData['fecha_ingreso'],
                 'contact_info' => $data['edit_contact'] ?? '',
                 'gender' => $data['edit_gender'],
                 'position_id' => !empty($data['edit_position']) ? $data['edit_position'] : null,
@@ -310,9 +310,9 @@ class Employee extends Controller
                 'tipo_cuenta' => $data['edit_tipo_cuenta'] ?? null,
                 // Campos de contrato
                 'tipo_contrato' => $data['edit_tipo_contrato'] ?? 'INDEFINIDO',
-                'fecha_inicio_contrato' => $data['edit_fecha_inicio_contrato'] ?? null,
-                'fecha_vencimiento_contrato' => $data['edit_fecha_vencimiento_contrato'] ?? null,
-                'numero_contrato' => $data['edit_numero_contrato'] ?? null
+                'fecha_inicio_contrato' => !empty(trim($data['edit_fecha_inicio_contrato'] ?? '')) ? trim($data['edit_fecha_inicio_contrato']) : null,
+                'fecha_vencimiento_contrato' => !empty(trim($data['edit_fecha_vencimiento_contrato'] ?? '')) ? trim($data['edit_fecha_vencimiento_contrato']) : null,
+                'numero_contrato' => !empty($data['edit_numero_contrato']) ? $data['edit_numero_contrato'] : null
             ];
 
             $employee->update($id, $updateData);

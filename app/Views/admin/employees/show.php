@@ -151,26 +151,115 @@ $content .= '
                                 </table>
                             </div>
                         </div>
-                        
-                        <!-- Sección adicional si hay más información -->
-                        ' . ((!empty($employee['observaciones']) || !empty($employee['fecha_salida'])) ? '
+
+                        <!-- Sección de Información de Terminación -->';
+
+if (!empty($employee['termination_date'])) {
+    $content .= '
                         <div class="row mt-3">
                             <div class="col-md-12">
-                                <h5><i class="fas fa-sticky-note text-info"></i> Información Adicional</h5>
-                                <table class="table table-sm">
-                                    ' . (!empty($employee['fecha_salida']) ? '
-                                    <tr>
-                                        <td><strong>Fecha Salida:</strong></td>
-                                        <td>' . date('d/m/Y', strtotime($employee['fecha_salida'])) . '</td>
-                                    </tr>
-                                    ' : '') . '
-                                    ' . (!empty($employee['observaciones']) ? '
-                                    <tr>
-                                        <td><strong>Observaciones:</strong></td>
-                                        <td>' . nl2br(htmlspecialchars($employee['observaciones'])) . '</td>
-                                    </tr>
-                                    ' : '') . '
-                                </table>
+                                <h5><i class="fas fa-sign-out-alt text-warning"></i> Información de Terminación</h5>
+                                <div class="callout callout-warning">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <table class="table table-sm mb-0">
+                                                <tr>
+                                                    <td><strong>Fecha de Terminación:</strong></td>
+                                                    <td><span class="badge badge-danger">' . date('d/m/Y', strtotime($employee['termination_date'])) . '</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Tipo de Terminación:</strong></td>
+                                                    <td>';
+
+    // Formatear el tipo de terminación
+    $terminationType = '';
+    switch($employee['termination_type']) {
+        case 'DESPIDO_CON_CAUSA':
+            $terminationType = '<span class="badge badge-danger">Despido con Causa</span>';
+            break;
+        case 'DESPIDO_SIN_CAUSA':
+            $terminationType = '<span class="badge badge-warning">Despido sin Causa</span>';
+            break;
+        case 'RENUNCIA':
+            $terminationType = '<span class="badge badge-info">Renuncia</span>';
+            break;
+        case 'MUTUO_ACUERDO':
+            $terminationType = '<span class="badge badge-secondary">Mutuo Acuerdo</span>';
+            break;
+        default:
+            $terminationType = '<span class="badge badge-secondary">No especificado</span>';
+    }
+
+    $content .= $terminationType . '</td>
+                                                </tr>';
+
+    if (!empty($employee['termination_status'])) {
+        $content .= '
+                                                <tr>
+                                                    <td><strong>Estado de Liquidación:</strong></td>
+                                                    <td>';
+
+        // Formatear el estado de liquidación
+        $terminationStatus = '';
+        switch($employee['termination_status']) {
+            case 'PENDIENTE':
+                $terminationStatus = '<span class="badge badge-warning">Pendiente</span>';
+                break;
+            case 'CALCULADA':
+                $terminationStatus = '<span class="badge badge-info">Calculada</span>';
+                break;
+            case 'PROCESADA':
+                $terminationStatus = '<span class="badge badge-primary">Procesada</span>';
+                break;
+            case 'PAGADA':
+                $terminationStatus = '<span class="badge badge-success">Pagada</span>';
+                break;
+            case 'CANCELADA':
+                $terminationStatus = '<span class="badge badge-secondary">Cancelada</span>';
+                break;
+            default:
+                $terminationStatus = '<span class="badge badge-secondary">No especificado</span>';
+        }
+
+        $content .= $terminationStatus . '</td>
+                                                </tr>';
+    }
+
+    $content .= '
+                                            </table>
+                                        </div>
+                                        <div class="col-md-6">';
+
+    if (!empty($employee['termination_reason'])) {
+        $content .= '
+                                            <strong>Motivo de Terminación:</strong><br>
+                                            <div class="mt-2 p-2 termination-reason">
+                                                ' . nl2br(htmlspecialchars($employee['termination_reason'])) . '
+                                            </div>';
+    } else {
+        $content .= '<p class="text-muted">No se especificó motivo</p>';
+    }
+
+    $content .= '
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+}
+
+$content .= '
+                        
+                        <!-- Sección adicional si hay observaciones -->
+                        ' . (!empty($employee['observaciones']) ? '
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h5><i class="fas fa-sticky-note text-info"></i> Observaciones</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        ' . nl2br(htmlspecialchars($employee['observaciones'])) . '
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         ' : '') . '
@@ -224,6 +313,21 @@ $styles = '
 .table td:first-child {
     width: 40%;
     font-weight: 500;
+}
+.callout-warning {
+    border-left: 4px solid #f39c12;
+}
+.callout-warning .table {
+    background-color: transparent;
+}
+.callout-warning .table td {
+    border-top-color: rgba(0,0,0,0.1);
+}
+.termination-reason {
+    background-color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 4px;
+    font-size: 0.95rem;
 }
 </style>';
 

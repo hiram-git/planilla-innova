@@ -199,7 +199,7 @@ class Employee extends Model
 
     public function getEmployeeWithFullDetails($id)
     {
-        $sql = "SELECT e.*, 
+        $sql = "SELECT e.*,
                        pos.codigo as position_name,
                        pos.sueldo as position_salary,
                        s.time_in, s.time_out,
@@ -208,7 +208,11 @@ class Employee extends Model
                        f.descripcion as funcion_name,
                        org.descripcion as organigrama_descripcion,
                        sit.descripcion as situacion_nombre,
-                       comp.currency_symbol as moneda_simbolo
+                       comp.currency_symbol as moneda_simbolo,
+                       et.termination_date,
+                       et.termination_type,
+                       et.reason as termination_reason,
+                       et.status as termination_status
                 FROM employees e
                 LEFT JOIN posiciones pos ON e.position_id = pos.id
                 LEFT JOIN schedules s ON e.schedule_id = s.id
@@ -218,6 +222,7 @@ class Employee extends Model
                 LEFT JOIN organigrama org ON e.organigrama_id = org.id
                 LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                 LEFT JOIN companies comp ON 1=1
+                LEFT JOIN employee_terminations et ON et.employee_id = e.id
                 WHERE e.id = ?";
         
         return $this->db->find($sql, [$id]);
