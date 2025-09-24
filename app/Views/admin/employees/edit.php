@@ -422,57 +422,48 @@ $content .= '                        </select>
     </div>
 </div>';
 
-// Script de configuración de empresa
-$content .= '<script>window.COMPANY_TYPE="' . ($company_config['tipo_institucion'] ?? 'privada') . '";</script>';
+// Configuración JavaScript para el módulo
+$scripts = '
+<script>
+// Configuración global para el módulo de empleados
+window.APP_CONFIG = window.APP_CONFIG || {};
+window.APP_CONFIG.company = {
+    tipo_institucion: "' . ($company_config['tipo_institucion'] ?? 'privada') . '"
+};
+window.APP_CONFIG.config = window.APP_CONFIG.config || {};
+window.APP_CONFIG.config.csrf_token = "' . ($csrf_token ?? '') . '";
 
-$content .= '<script>
-// Verificar si jQuery está disponible
-if (typeof $ === "undefined") {
-    console.error("jQuery no está disponible en employees/edit. Esperando...");
-    var checkJQuery = setInterval(function() {
-        if (typeof $ !== "undefined") {
-            console.log("jQuery disponible en employees/edit, inicializando...");
-            clearInterval(checkJQuery);
-            initializeEmployeeEdit();
-        }
-    }, 100);
-} else {
-    $(document).ready(function() {
-        initializeEmployeeEdit();
-    });
-}
-
-function initializeEmployeeEdit() {
-    // Función para alternar campos según el tipo de empresa
+// Función para alternar campos según el tipo de empresa (fallback si el módulo falla)
+function initializeEmployeeEditFallback() {
     function toggleFieldsByCompanyType() {
-        const tipoInstitucion = window.COMPANY_TYPE || "privada";
-        console.log("Tipo de institución:", tipoInstitucion);
+        const tipoInstitucion = window.APP_CONFIG?.company?.tipo_institucion || "privada";
+        console.log("Tipo de institución (fallback):", tipoInstitucion);
 
         if (tipoInstitucion === "privada") {
             // Empresa privada: mostrar cargos, funciones, partidas y sueldo individual (SIN posición)
             $("#edit-private-company-fields").show();
             $("#edit-salary-section").show();
             $("#edit-public-institution-fields").hide();
-            
+
             // Hacer obligatorios los campos de empresa privada
             $("#edit_cargo_id, #edit_funcion_id, #edit_partida_id, #edit_sueldo_individual").prop("required", true);
             $("#edit_position").prop("required", false);
-            
+
         } else {
             // Institución pública: mostrar solo posición
             $("#edit-public-institution-fields").show();
             $("#edit-private-company-fields").hide();
             $("#edit-salary-section").hide();
-            
+
             // Hacer obligatorio solo el campo de posición
             $("#edit_position").prop("required", true);
             $("#edit_cargo_id, #edit_funcion_id, #edit_partida_id, #edit_sueldo_individual").prop("required", false);
         }
     }
-    
+
     // Ejecutar al cargar la página
     toggleFieldsByCompanyType();
-    
+
     // Validación del formulario
     $("#edit_position").change(function() {
         var positionId = $(this).val();
@@ -480,7 +471,7 @@ function initializeEmployeeEdit() {
             console.log("Posición seleccionada: " + positionId);
         }
     });
-    
+
     // Previsualización de imagen
     $("#edit_photo").change(function() {
         var file = this.files[0];
@@ -497,10 +488,15 @@ function initializeEmployeeEdit() {
         }
     });
 }
-</script>';
 
-// Agregar JavaScript modular para edición
-$content .= '<script src="' . asset('javascript/modules/employees/edit.js') . '"></script>';
+// Inicializar fallback si existe jQuery
+if (typeof $ !== "undefined") {
+    $(document).ready(function() {
+        initializeEmployeeEditFallback();
+    });
+}
+</script>
+<script src="' . asset('javascript/modules/employees/edit.js') . '"></script>';
 
 $styles = '';
 
