@@ -327,7 +327,7 @@ class Position extends Controller
         $this->json($data);
     }
 
-    private function requireAuth()
+    protected function requireAuth()
     {
         AuthMiddleware::requireAuth();
     }

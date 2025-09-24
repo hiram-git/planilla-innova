@@ -72,10 +72,29 @@ class SidebarComponent
                         'route' => 'panel/employees'
                     ],
                     [
+                        'type' => 'divider'
+                    ],
+                    [
+                        'title' => 'Empleados Dados de Baja',
+                        'icon' => 'fas fa-user-times',
+                        'url' => \App\Core\UrlHelper::route('panel/employees/terminated'),
+                        'route' => 'panel/employees/terminated',
+                        'description' => 'Ver empleados terminados o inactivos'
+                    ],
+                    [
+                        'type' => 'divider'
+                    ],
+                    [
                         'title' => 'Nuevo Empleado',
                         'icon' => 'fas fa-user-plus',
                         'url' => \App\Core\UrlHelper::employee('create'),
                         'route' => 'panel/employees/create'
+                    ],
+                    [
+                        'title' => 'Importar desde Excel',
+                        'icon' => 'fas fa-file-excel',
+                        'url' => \App\Core\UrlHelper::employee('import'),
+                        'route' => 'panel/employees/import'
                     ]
                 ]
             ]
@@ -315,11 +334,11 @@ class SidebarComponent
                         'description' => 'Acumulados por empleado específico'
                     ],
                     [
-                        'title' => 'Por Tipo de Acumulado',
+                        'title' => 'Por Concepto',
                         'icon' => 'fas fa-tags',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byType'),
-                        'route' => 'panel/acumulados/byType',
-                        'description' => 'XIII Mes, Prima de Antigüedad, etc.'
+                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto'),
+                        'route' => 'panel/acumulados/byConcepto',
+                        'description' => 'Acumulados por concepto específico'
                     ],
                     [
                         'title' => 'Por Planilla',
@@ -334,22 +353,22 @@ class SidebarComponent
                     [
                         'title' => 'XIII Mes',
                         'icon' => 'fas fa-gift',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byType?tipo=XIII_MES'),
-                        'route' => 'panel/acumulados/byType',
+                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto?tipo_acumulado=XIII_MES'),
+                        'route' => 'panel/acumulados/byConcepto',
                         'description' => 'Décimo Tercer Mes (Aguinaldo)'
                     ],
                     [
                         'title' => 'Prima de Antigüedad',
                         'icon' => 'fas fa-award',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byType?tipo=PRIMA_ANTIGUEDAD'),
-                        'route' => 'panel/acumulados/byType',
+                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto?tipo_acumulado=PRIMA_ANTIGUEDAD'),
+                        'route' => 'panel/acumulados/byConcepto',
                         'description' => 'Prima por años de servicio'
                     ],
                     [
                         'title' => 'Vacaciones',
                         'icon' => 'fas fa-umbrella-beach',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byType?tipo=VACACIONES'),
-                        'route' => 'panel/acumulados/byType',
+                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto?tipo_acumulado=VACACIONES'),
+                        'route' => 'panel/acumulados/byConcepto',
                         'description' => 'Acumulado de vacaciones'
                     ],
                     [
@@ -367,9 +386,119 @@ class SidebarComponent
             ],
             [
                 'type' => 'dropdown',
+                'title' => 'Liquidaciones',
+                'icon' => 'fas fa-handshake',
+                'route' => 'panel/liquidation',
+                'permissions' => ['panel/liquidation'],
+                'children' => [
+                    [
+                        'title' => 'Gestionar Liquidaciones',
+                        'icon' => 'fas fa-list',
+                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
+                        'route' => 'panel/liquidation',
+                        'description' => 'Lista de empleados y liquidaciones'
+                    ],
+                    [
+                        'type' => 'divider'
+                    ],
+                    [
+                        'title' => 'Planillas de Liquidación',
+                        'icon' => 'fas fa-file-invoice',
+                        'url' => \App\Core\UrlHelper::route('panel/liquidation/payrolls'),
+                        'route' => 'panel/liquidation/payrolls',
+                        'description' => 'Planillas generadas con frecuencia de liquidación'
+                    ],
+                    [
+                        'type' => 'divider'
+                    ],
+                    [
+                        'title' => 'Nueva Liquidación',
+                        'icon' => 'fas fa-user-times',
+                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
+                        'route' => 'panel/liquidation',
+                        'description' => 'Iniciar proceso de liquidación'
+                    ],
+                    [
+                        'title' => 'Liquidaciones Pendientes',
+                        'icon' => 'fas fa-clock',
+                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
+                        'route' => 'panel/liquidation',
+                        'description' => 'Revisar liquidaciones en proceso'
+                    ],
+                    [
+                        'type' => 'divider'
+                    ],
+                    [
+                        'title' => 'Marco Legal Panamá',
+                        'icon' => 'fas fa-balance-scale',
+                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
+                        'route' => 'panel/liquidation',
+                        'description' => 'Información sobre legislación laboral'
+                    ]
+                ]
+            ],
+            [
+                'type' => 'dropdown',
+                'title' => 'Vacaciones',
+                'icon' => 'fas fa-umbrella-beach',
+                'route' => 'panel/vacation',
+                'permissions' => ['panel/vacation'],
+                'children' => [
+                    [
+                        'title' => 'Gestión de Vacaciones',
+                        'icon' => 'fas fa-list',
+                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
+                        'route' => 'panel/vacation',
+                        'description' => 'Lista de empleados y balances'
+                    ],
+                    [
+                        'title' => 'Calendario de Vacaciones',
+                        'icon' => 'fas fa-calendar-alt',
+                        'url' => \App\Core\UrlHelper::route('panel/vacation/calendar'),
+                        'route' => 'panel/vacation/calendar',
+                        'description' => 'Vista calendario empresarial'
+                    ],
+                    [
+                        'type' => 'divider'
+                    ],
+                    [
+                        'title' => 'Solicitudes Pendientes',
+                        'icon' => 'fas fa-clock',
+                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
+                        'route' => 'panel/vacation',
+                        'description' => 'Aprobar/rechazar solicitudes'
+                    ],
+                    [
+                        'title' => 'Nueva Solicitud',
+                        'icon' => 'fas fa-plus',
+                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
+                        'route' => 'panel/vacation',
+                        'description' => 'Solicitar vacaciones para empleado'
+                    ],
+                    [
+                        'type' => 'divider'
+                    ],
+                    [
+                        'title' => 'Reportes de Vacaciones',
+                        'icon' => 'fas fa-chart-bar',
+                        'url' => \App\Core\UrlHelper::route('panel/vacation/reports'),
+                        'route' => 'panel/vacation/reports',
+                        'description' => 'Balance por empleado y estadísticas'
+                    ],
+                    [
+                        'title' => 'Marco Legal Panamá',
+                        'icon' => 'fas fa-gavel',
+                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
+                        'route' => 'panel/vacation',
+                        'description' => '30 días por 11 meses trabajados'
+                    ]
+                ]
+            ],
+            [
+                'type' => 'dropdown',
                 'title' => 'Acreedores y Deducciones',
                 'icon' => 'fas fa-hand-holding-usd',
-                'route' => 'panel/creditors', 
+                'route' => 'panel/creditors',
                 'permissions' => ['panel/creditors'],
                 'children' => [
                     [

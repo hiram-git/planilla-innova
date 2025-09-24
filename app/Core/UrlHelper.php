@@ -188,9 +188,9 @@ class UrlHelper
     public static function timeclock($path = '')
     {
         if (empty($path)) {
-            return self::route('');
+            return self::route('marcaciones');
         }
-        return self::route('timeclock/' . ltrim($path, '/'));
+        return self::route('marcaciones/' . ltrim($path, '/'));
     }
 
     /**

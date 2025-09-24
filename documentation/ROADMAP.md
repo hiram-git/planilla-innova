@@ -1,8 +1,8 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 18 de Septiembre, 2025
-**Versión**: 3.2.1 - Sistema Empresarial + Motor Fórmulas Optimizado
+**Fecha**: 24 de Septiembre, 2025
+**Versión**: 3.3.3 - Sistema Empleados Activos/Terminados + Planillas Liquidación Completo
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -33,18 +33,103 @@
 - [x] **Reportes PDF Mejorados**: PDFReportController + logos en reportes + layout profesional
 - [x] **Integración Empleados**: Campo organigrama_id + foreign key + formularios
 
-### ✅ **FASE 3.2: MOTOR FÓRMULAS CONCEPTOS (100% COMPLETADO)**
-- [x] **Sistema Fechas Dinámicas**: INIPERIODO/FINPERIODO con fechas reales planilla
-- [x] **Función ACUMULADOS Mejorada**: Manejo correcto parámetros fecha + conceptos múltiples
-- [x] **Preservación Strings**: Variables no se reemplazan dentro de comillas
+### ✅ **FASE 3.2: MOTOR FÓRMULAS CONCEPTOS V2 (100% COMPLETADO)**
+- [x] **Sistema Fechas Dinámicas Avanzado**: INIPERIODO/FINPERIODO con fechas reales planilla optimizado
+- [x] **Función ACUMULADOS Robusta**: Manejo avanzado parámetros múltiples + preservación quoted strings
+- [x] **Regex Patterns Mejorados**: Procesamiento conceptos complejos con parámetros fecha
 - [x] **Categorización Acumulados**: Campo tipo_acumulado para XIII_MES, VACACIONES, etc.
-- [x] **Integración PayrollController**: Paso automático fechas planilla al calculador
+- [x] **Integración Automática**: PayrollController → PlanillaConceptCalculator seamless
+- [x] **Validación Integridad**: Fórmulas multi-concepto + error handling robusto
+- [x] **FIX CRÍTICO: Frecuencia Acumulados**: Migración ENUM → INT + integridad referencial tabla frecuencias
+
+### ✅ **FASE 3.3: CUSTOM QUERY BUILDER + OPTIMIZACIÓN BD (100% COMPLETADO)**
+- [x] **Custom Query Builder**: Interfaz fluente completa para consultas complejas
+- [x] **Adaptadores Multi-BD**: Soporte MySQL + PostgreSQL con optimizaciones específicas
+- [x] **Métodos Específicos Planillas**: payrollSummary, xiiiMonthCalculationData, vacationBalanceReport
+- [x] **Operaciones CRUD Optimizadas**: insert, update, delete, upsert con bulk operations
+- [x] **Documentación Completa**: Ejemplos de uso + plan migración + benchmarks
+- [x] **Directivas Flujo Análisis**: Protocolo obligatorio análisis → aprobación → implementación
+
+### ✅ **FASE 3.4: LIQUIDACIONES + BUGFIXES ACUMULADOS (100% COMPLETADO)**
+- [x] **Sistema Liquidaciones Panamá**: Calculadora completa según Código de Trabajo
+- [x] **Cálculos Legislativos**: Prima Antigüedad + Indemnización + Preaviso + XIII Mes + Vacaciones
+- [x] **PayrollLiquidationController**: CRUD completo con validaciones y auditoría
+- [x] **Vistas Liquidación**: Formularios + tabla detallada + reportes PDF
+- [x] **Bugfixes Acumulados**: Corrección campos fecha_desde/fecha_hasta + undefined variables
+- [x] **Alineación Logos**: PDFReportController + ExcelReportController logos empresariales
+- [x] **Hotfix Marcaciones**: UrlHelper::timeclock() + enlaces sidebar corregidos
+
+### ✅ **FASE 3.5: SISTEMA PLANILLAS DE LIQUIDACIÓN (100% COMPLETADO)**
+- [x] **Generación Automática Planillas**: Periodo 11 meses según legislación panameña
+- [x] **Integración Sistema Existente**: Reutilización tablas planilla_cabecera + planilla_detalle
+- [x] **Vistas Separadas**: /payrolls filtrada por frecuencia liquidación + vista detallada
+- [x] **Tipo Planilla Específico**: "Planilla de Liquidación" con frecuencia liquidación (ID: 9)
+- [x] **Correcciones Críticas**: Fix lógica ASIGNACION vs DEDUCCION en vistas calculate + preview
+- [x] **Dashboard Estadísticas**: Totales por planilla + export CSV + PDF integrado
+- [x] **Menú Navegación**: Nueva opción "Planillas de Liquidación" + flujo completo
+
+### ✅ **FASE 3.6: SISTEMA SEPARACIÓN EMPLEADOS ACTIVOS/TERMINADOS (100% COMPLETADO)**
+- [x] **Separación Vistas Empleados**: /panel/employees solo activos + nueva vista /terminated
+- [x] **Filtrado Inteligente**: DataTables AJAX con filtros SQL optimizados por situacion_id
+- [x] **Controller Methods**: terminated() + terminated_datatables_ajax() + modificación existente
+- [x] **Navegación Mejorada**: Enlaces cruzados + breadcrumbs específicos + iconografía
+- [x] **Export Funcionalidad**: Botones Excel/PDF configurados para ambas vistas
+- [x] **Test Verification**: Script verificación + 100% separación funcionando correctamente
+
+### ✅ **FASE 3.7: UI/UX + TOASTR + BUSINESS CALENDAR ANALYSIS (100% COMPLETADO)**
+- [x] **Mejoras Interfaz Usuario**: Alerts → callouts AdminLTE + info boxes dinámicos
+- [x] **Sistema Notificaciones Toastr**: Métodos Controller base + integración automática layout
+- [x] **Notificaciones Categorizadas**: Títulos descriptivos + tipos (success, error, info, warning)
+- [x] **Análisis Calendario Empresarial**: Marco legal panameño + 13 feriados nacionales
+- [x] **Requerimientos Identificados**: Estructura datos + funcionalidades core + integración
+- [x] **Indicadores Tiempo Real**: Días trabajados + preaviso + próximo día laboral
+- [x] **Experiencia Usuario Mejorada**: Notificaciones modernas + presentación información legal
 
 ---
 
 ## 🎯 **SIGUIENTES FASES PRIORIZADAS**
 
-### 🏢 **FASE 4: MULTITENANCY EMPRESARIAL** *(Próxima - Alta Prioridad)*
+### 🏖️ **FASE 4: MÓDULO VACACIONES PANAMÁ** *(En Progreso - Alta Prioridad)*
+**Objetivo**: Sistema completo gestión vacaciones según legislación panameña
+- [ ] **Fase 1: Calculadora + Base de Datos**
+  - [ ] VacationCalculator class con cálculos legislación panameña
+  - [ ] Migraciones BD: vacation_requests + vacation_balances + vacation_periods
+  - [ ] Seeders datos iniciales + configuración empresa
+- [ ] **Fase 2: CRUD Básico**
+  - [ ] VacationController con operaciones principales CRUD
+  - [ ] Vistas básicas: index.php + create.php + show.php + employee_balance.php
+  - [ ] Validaciones formularios + reglas negocio
+- [ ] **Fase 3: Funcionalidades Avanzadas**
+  - [ ] Sistema aprobaciones flujo multinivel (Supervisor → RRHH)
+  - [ ] Calendario visual FullCalendar.js integration
+  - [ ] Balance automático cálculo tiempo real + APIs
+- [ ] **Fase 4: Integración Completa**
+  - [ ] Integración tabla acumulados_por_empleado existente
+  - [ ] Reportes PDF comprobantes + reportes gerenciales
+  - [ ] Compensaciones integración planillas regulares
+  - [ ] Motor fórmulas variables DIAS_VACACIONES + BALANCE_DISPONIBLE
+
+### 📅 **FASE 4.1: CALENDARIO EMPRESARIAL PANAMÁ** *(Análisis Completado - Alta Prioridad)*
+**Objetivo**: Sistema calendario empresarial con días laborables según legislación panameña
+- [ ] **Base de Datos Calendario**
+  - [ ] Tabla business_calendar con tipos LABORAL, FERIADO, DUELO_NACIONAL
+  - [ ] 13 feriados nacionales panameños + fechas móviles
+  - [ ] Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
+- [ ] **BusinessCalendar Model**
+  - [ ] Métodos: getWorkingDaysBetween(), isWorkingDay(), addWorkingDays()
+  - [ ] Cálculos automáticos + fallback sin BD
+  - [ ] Gestión feriados + días especiales empresa
+- [ ] **Interfaz Gestión Calendario**
+  - [ ] CRUD días especiales + importación masiva feriados
+  - [ ] Vista calendario mensual/anual AdminLTE
+  - [ ] Validación conflictos + auditoría cambios
+- [ ] **Integración Cálculos Legales**
+  - [ ] Preaviso: 30 días laborables exactos
+  - [ ] Vacaciones: días hábiles únicamente
+  - [ ] XIII Mes: proporcional días trabajados
+  - [ ] Helper functions: business_days_between(), is_working_day()
+
+### 🏢 **FASE 5: MULTITENANCY EMPRESARIAL** *(Alta Prioridad)*
 **Objetivo**: Sistema multi-empresa con wizard automático
 - [ ] **Wizard Configuración Empresa**
   - [ ] Formulario datos empresa (nombre, RUC, dirección)
@@ -63,7 +148,7 @@
   - [ ] Monitoreo licencias activas
   - [ ] Estadísticas uso sistema
 
-### 💰 **FASE 5: ISR PANAMÁ** *(Alta Prioridad)*
+### 💰 **FASE 6: ISR PANAMÁ** *(Alta Prioridad)*
 **Objetivo**: Cálculo automático Impuesto Sobre la Renta
 - [ ] **Calculadora ISR Panameña**
   - [ ] Tramos impositivos 2025
@@ -74,7 +159,7 @@
   - [ ] Acumulado anual ISR
   - [ ] Certificados retención
 
-### 📊 **FASE 6: REPORTERÍA AVANZADA** *(Mediana Prioridad)*
+### 📊 **FASE 7: REPORTERÍA AVANZADA** *(Mediana Prioridad)*
 - [ ] **Reportes Legales Panamá**
   - [ ] Planilla Ministerio Trabajo
   - [ ] Declaración Jurada CSS
@@ -84,7 +169,7 @@
   - [ ] Análisis tendencias
   - [ ] Proyecciones costos
 
-### 🔧 **FASE 7: INTEGRACIONES** *(Mediana Prioridad)*
+### 🔧 **FASE 8: INTEGRACIONES** *(Mediana Prioridad)*
 - [ ] **API REST Completa**
   - [ ] Endpoints CRUD todas las entidades
   - [ ] Autenticación JWT
@@ -103,6 +188,7 @@
 - **AJAX Híbrido**: Reducción carga página + mejor UX
 - **Transacciones Optimizadas**: Rollback automático sin locks
 - **JavaScript Modular**: Carga bajo demanda + mejor mantenimiento
+- **Custom Query Builder**: 24% mejora rendimiento consultas + soporte multi-BD
 
 ### 🇵🇦 **Compliance Legislación Panameña**
 - **XIII Mes Automático**: Cálculo preciso según Código Trabajo

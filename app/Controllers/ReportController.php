@@ -3209,7 +3209,7 @@ class ReportController extends Controller
         $pdf->Cell(90, 4, $signatures['cargo_jefe_rrhh'], 0, 1, 'C');
     }
     
-    private function requireAuth()
+    protected function requireAuth()
     {
         if (!isset($_SESSION['admin'])) {
             $this->redirect('/admin');

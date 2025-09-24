@@ -2,6 +2,112 @@
 
 ## 🎯 **TAREAS PRIORITARIAS**
 
+### ✅ **TAREAS COMPLETADAS HOY** *(24 Sept 2025)*
+- [x] **Sistema Separación Empleados Activos/Terminados**
+  - [x] Modificación /panel/employees para mostrar solo empleados activos (situacion_id = 1)
+  - [x] Nueva vista /panel/employees/terminated para empleados dados de baja
+  - [x] Controller methods: terminated() y terminated_datatables_ajax()
+  - [x] DataTables separadas con configuraciones específicas
+  - [x] Columnas diferenciadas: fecha terminación + motivo
+  - [x] Menú navegación actualizado con "Empleados Dados de Baja"
+  - [x] Export buttons Excel/PDF para ambas vistas
+  - [x] Test script verificación separación funcionando correctamente
+- [x] **Sistema Planillas de Liquidación Completo**
+  - [x] Generación automática planillas con periodo 11 meses
+  - [x] Vista separada /panel/liquidation/payrolls filtrada por frecuencia liquidación
+  - [x] Integración con sistema planillas existente reutilizando módulos
+  - [x] Fecha terminación como fin periodo + 11 meses atrás como inicio
+  - [x] Tipo planilla específico "Planilla de Liquidación"
+  - [x] Vista detallada planilla con conceptos por empleado + totales
+  - [x] Menú navegación actualizado con nueva opción
+  - [x] Export CSV + integración PDF existente
+- [x] **Corrección Cálculos Liquidación**
+  - [x] Fix lógica ASIGNACION vs DEDUCCION en vista preview
+  - [x] Fix lógica ASIGNACION vs DEDUCCION en vista calculate
+  - [x] Soporte tipos 'A'/'D' y 'ASIGNACION'/'DEDUCCION'
+  - [x] Totales corregidos: Asignaciones - Deducciones (no suma)
+
+### ✅ **TAREAS COMPLETADAS ANTERIORES** *(22 Sept 2025)*
+- [x] **Mejoras UI/UX Sistema**
+  - [x] Conversión alerts → callouts AdminLTE en liquidación
+  - [x] Info boxes dinámicos con cálculos tiempo real
+  - [x] Indicadores visuales días trabajados + preaviso
+- [x] **Sistema Notificaciones Toastr**
+  - [x] Métodos Controller base: setToastrMessage(), getToastrMessages()
+  - [x] Integración automática layout admin
+  - [x] Migración completa LiquidationController a toastr
+  - [x] Categorización notificaciones con títulos descriptivos
+- [x] **Análisis Calendario Empresarial**
+  - [x] Marco legal panameño: 13 feriados nacionales
+  - [x] Requerimientos identificados: cálculos precisos preaviso/vacaciones
+  - [x] Estructura datos diseñada: business_calendar + tipos
+  - [x] Funcionalidades core definidas: getWorkingDaysBetween(), isWorkingDay()
+
+### ✅ **TAREAS COMPLETADAS ANTERIORES** *(20 Sept 2025)*
+- [x] **Quitar campos innecesarios en ACUMULADOS**
+  - [x] Eliminar campos: Periodicidad, Fecha Inicio Período, Fecha Fin Período, Configuración
+- [x] **Implementar opción DUPLICAR CONCEPTOS**
+  - [x] Botón duplicar en lista conceptos
+  - [x] Lógica clonación con sufijo (copy)
+- [x] **Terminar vistas de acumulados**
+  - [x] Vista acumulados por concepto
+  - [x] Vista acumulados por empleado
+  - [x] Vista acumulados por planilla
+- [x] **Agregar campo GASTOS DE REPRESENTACIÓN**
+  - [x] Migration tabla empleados
+  - [x] Formularios create/edit empleados
+  - [x] Integración reportes PDF
+- [x] **Agregar PLANILLA DE LIQUIDACIÓN**
+  - [x] Nuevo tipo planilla liquidación
+  - [x] Cálculos específicos liquidación
+  - [x] Reportes PDF liquidación
+- [x] **Bugfixes críticos acumulados**
+  - [x] Corrección campos BD fecha_desde/fecha_hasta
+  - [x] Eliminación undefined variables warnings
+  - [x] Enlaces menú lateral corregidos
+- [x] **Mejoras reportería**
+  - [x] Alineación logos en PDF/Excel reports
+  - [x] Hotfix enlaces marcaciones
+  - [x] Optimización layout visual
+
+## 📅 **PRÓXIMAS TAREAS PRIORIZADAS**
+
+### 📅 **CALENDARIO EMPRESARIAL PANAMÁ** *(Inmediato - Análisis Completado)*
+- [ ] **Base de Datos Calendario**
+  - [ ] Crear migración business_calendar con tipos LABORAL, FERIADO, DUELO_NACIONAL
+  - [ ] Insertar 13 feriados nacionales panameños 2024-2025
+  - [ ] Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
+- [ ] **BusinessCalendar Model + Helper Functions**
+  - [ ] Métodos: getWorkingDaysBetween(), isWorkingDay(), addWorkingDays()
+  - [ ] Helper functions: business_days_between(), is_working_day()
+  - [ ] Cálculos automáticos + fallback sin BD
+- [ ] **Interfaz Gestión Calendario**
+  - [ ] BusinessCalendarController CRUD días especiales
+  - [ ] Vista calendario mensual/anual AdminLTE
+  - [ ] Importación masiva feriados + validación conflictos
+- [ ] **Integración Cálculos Legales**
+  - [ ] Actualizar liquidaciones: preaviso 30 días laborables exactos
+  - [ ] Integrar vacaciones: días hábiles únicamente
+  - [ ] XIII Mes: proporcional días trabajados reales
+
+### 🏖️ **MÓDULO VACACIONES PANAMÁ** *(Inmediato - En Progreso)*
+- [ ] **Fase 1: Calculadora + Base de Datos**
+  - [ ] VacationCalculator class con cálculos legislación panameña
+  - [ ] Migraciones BD: vacation_requests + vacation_balances + vacation_periods
+  - [ ] Seeders datos iniciales + configuración
+- [ ] **Fase 2: CRUD Básico**
+  - [ ] VacationController con operaciones principales
+  - [ ] Vistas básicas: index.php + create.php + show.php
+  - [ ] Validaciones formularios + reglas negocio
+- [ ] **Fase 3: Funcionalidades Avanzadas**
+  - [ ] Sistema aprobaciones flujo multinivel
+  - [ ] Calendario visual FullCalendar.js integration
+  - [ ] Balance automático cálculo tiempo real
+- [ ] **Fase 4: Integración Completa**
+  - [ ] Integración tabla acumulados existente
+  - [ ] Reportes PDF comprobantes + reportes
+  - [ ] Compensaciones integración planillas regulares
+
 ### 🏢 **MULTITENANCY EMPRESARIAL** *(Next Sprint)*
 - [ ] **Wizard Setup Empresa**
   - [ ] Crear formulario datos empresa (nombre, RUC, contacto)
@@ -146,6 +252,26 @@
 
 ## 🎯 **COMPLETED TASKS** *(Recent Achievements)*
 
+### ✅ **PDF Report Layout Optimization** *(Sept 20, 2025)*
+- [x] Alineación logos del reporte con el título
+- [x] Aumento altura de tabla para mejor legibilidad
+- [x] Optimización márgenes y espaciado reportes PDF
+- [x] Mejora diseño layout reportes empresariales
+
+### ✅ **Motor Fórmulas Conceptos V3.2.1** *(Sept 19, 2025)*
+- [x] Sistema fechas dinámicas INIPERIODO/FINPERIODO optimizado
+- [x] Función ACUMULADOS con manejo avanzado parámetros múltiples
+- [x] Preservación strings quoted en reemplazo variables
+- [x] Campo tipo_acumulado para categorización XIII_MES, VACACIONES
+- [x] Integración automática PayrollController → PlanillaConceptCalculator
+- [x] Mejoras regex patterns para conceptos complejos
+- [x] Validación integridad fórmulas multi-concepto
+- [x] Database migration tipo_acumulado field
+- [x] **FIX: Frecuencia acumulados - Migración ENUM to INT**
+- [x] PayrollAccumulationsProcessor actualizado para frecuencia_id
+- [x] Integridad referencial con tabla frecuencias
+- [x] Eliminación hardcode strtoupper() frecuencias
+
 ### ✅ **Módulo Organizacional + Logos** *(Sept 16, 2025)*
 - [x] OrganizationalController con CRUD completo
 - [x] Vistas organizational: index.php, create.php, edit.php
@@ -156,14 +282,6 @@
 - [x] PDFReportController para reportes con logos
 - [x] Campo organigrama_id en empleados + foreign key
 - [x] Migraciones BD estructura organizacional
-
-### ✅ **Motor Fórmulas Conceptos** *(Sept 18, 2025)*
-- [x] fechasActuales property en PlanillaConceptCalculator
-- [x] establecerFechasPlanilla() method para fechas dinámicas
-- [x] INIPERIODO/FINPERIODO con fechas reales de planilla_cabecera
-- [x] Función ACUMULADOS preserva strings con comillas
-- [x] Campo tipo_acumulado en acumulados_por_empleado
-- [x] Integración PayrollController con fechas planilla
 
 ### ✅ **JavaScript Modular Architecture**
 - [x] BaseModule implementation

@@ -121,7 +121,6 @@ $pageTitle = "Acumulados - {$tipo['descripcion']}";
                             <tr>
                                 <th>Empleado</th>
                                 <th>Cédula</th>
-                                <th class="text-center">Período</th>
                                 <th class="text-right">Total Acumulado</th>
                                 <th class="text-center">Conceptos</th>
                                 <th class="text-center">Última Planilla</th>
@@ -134,10 +133,6 @@ $pageTitle = "Acumulados - {$tipo['descripcion']}";
                                 <tr>
                                     <td><?= htmlspecialchars($acumulado['nombre_empleado']) ?></td>
                                     <td><?= htmlspecialchars($acumulado['document_id']) ?></td>
-                                    <td class="text-center">
-                                        <?= date('d/m/Y', strtotime($acumulado['periodo_inicio'])) ?> - 
-                                        <?= date('d/m/Y', strtotime($acumulado['periodo_fin'])) ?>
-                                    </td>
                                     <td class="text-right font-weight-bold">
                                         $<?= number_format($acumulado['total_acumulado'], 2) ?>
                                     </td>

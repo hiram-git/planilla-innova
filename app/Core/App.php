@@ -66,6 +66,8 @@ class App
                     'company' => ['controller' => 'CompanyController', 'method' => null],
                     'tipos-acumulados' => ['controller' => 'TipoAcumuladoController', 'method' => null],
                     'acumulados' => ['controller' => 'AcumuladoController', 'method' => null],
+                    'liquidation' => ['controller' => 'LiquidationController', 'method' => null],
+                    'vacation' => ['controller' => 'VacationController', 'method' => null],
                     'organizational' => ['controller' => 'OrganizationalController', 'method' => null],
                     'users' => ['controller' => 'UserController', 'method' => null],
                     'roles' => ['controller' => 'RoleController', 'method' => null],
@@ -265,6 +267,12 @@ class App
                                         $this->params = array_slice($url, 3);
                                     } elseif ($url[2] === 'datatables-ajax' && method_exists($this->controller, 'datatablesAjax')) {
                                         $this->method = 'datatablesAjax';
+                                        $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'terminated' && method_exists($this->controller, 'terminated')) {
+                                        $this->method = 'terminated';
+                                        $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'terminated-datatables-ajax' && method_exists($this->controller, 'terminated_datatables_ajax')) {
+                                        $this->method = 'terminated_datatables_ajax';
                                         $this->params = array_slice($url, 3);
                                     } elseif ($url[2] === 'planilla-pdf' && isset($url[3]) && method_exists($this->controller, 'planillaPdf')) {
                                         $this->method = 'planillaPdf';

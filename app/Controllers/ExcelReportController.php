@@ -854,12 +854,6 @@ class ExcelReportController extends Controller
 
         $row = 1;
 
-        // Insertar logos si están disponibles
-        if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes'])) {
-            $this->insertLogosInExcel($sheet, $row, $companyInfo);
-            $row += 3; // Espacio para logos
-        }
-
         // Header de la empresa
         $sheet->setCellValue('A' . $row, $companyInfo['company_name']);
         $sheet->mergeCells('A' . $row . ':O' . $row);
@@ -868,6 +862,12 @@ class ExcelReportController extends Controller
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']]
         ]);
+
+        // Insertar logos alineados con el título de la empresa
+        if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes'])) {
+            $this->insertLogosInExcel($sheet, $row, $companyInfo);
+        }
+
         $row++;
 
         // Subtítulo
@@ -1050,13 +1050,13 @@ class ExcelReportController extends Controller
     }
 
     /**
-     * Insertar logos en el Excel
+     * Insertar logos en el Excel alineados con el título
      */
     private function insertLogosInExcel($sheet, $row, $companyInfo)
     {
         $logoPath = __DIR__ . '/../../images/logos/';
 
-        // Logo izquierdo
+        // Logo izquierdo - alineado con la primera columna
         if (!empty($companyInfo['logo_izquierdo_reportes'])) {
             $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
             if (file_exists($leftLogoPath)) {
@@ -1066,8 +1066,10 @@ class ExcelReportController extends Controller
                     $drawing->setName('Logo Izquierdo');
                     $drawing->setDescription('Logo Izquierdo para Reportes');
                     $drawing->setPath($leftLogoPath);
-                    $drawing->setHeight(60); // Altura en pixels
-                    $drawing->setCoordinates('A' . $row); // Posición
+                    $drawing->setHeight(50); // Altura ajustada para mejor proporción con título
+                    $drawing->setCoordinates('A' . $row); // Alineado con el título
+                    $drawing->setOffsetX(10); // Pequeño margen desde el borde
+                    $drawing->setOffsetY(5);  // Centrado verticalmente con el título
                     $drawing->setWorksheet($sheet);
 
                     error_log("ExcelReportController: Logo izquierdo insertado desde: " . $leftLogoPath);
@@ -1079,7 +1081,7 @@ class ExcelReportController extends Controller
             }
         }
 
-        // Logo derecho
+        // Logo derecho - alineado con las últimas columnas
         if (!empty($companyInfo['logo_derecho_reportes'])) {
             $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
             if (file_exists($rightLogoPath)) {
@@ -1089,8 +1091,10 @@ class ExcelReportController extends Controller
                     $drawing->setName('Logo Derecho');
                     $drawing->setDescription('Logo Derecho para Reportes');
                     $drawing->setPath($rightLogoPath);
-                    $drawing->setHeight(60); // Altura en pixels
-                    $drawing->setCoordinates('M' . $row); // Posición hacia la derecha
+                    $drawing->setHeight(50); // Altura ajustada para mejor proporción con título
+                    $drawing->setCoordinates('N' . $row); // Posición más hacia la derecha
+                    $drawing->setOffsetX(10); // Pequeño margen desde el borde
+                    $drawing->setOffsetY(5);  // Centrado verticalmente con el título
                     $drawing->setWorksheet($sheet);
 
                     error_log("ExcelReportController: Logo derecho insertado desde: " . $rightLogoPath);
@@ -1102,15 +1106,14 @@ class ExcelReportController extends Controller
             }
         }
 
-        // Ajustar altura de las filas para los logos
-        $sheet->getRowDimension($row)->setRowHeight(45);
-        $sheet->getRowDimension($row + 1)->setRowHeight(15);
+        // Ajustar altura de la fila para acomodar los logos con el título
+        $sheet->getRowDimension($row)->setRowHeight(60); // Altura aumentada para logos y título
     }
 
     /**
      * Verificar autenticación
      */
-    private function requireAuth()
+    protected function requireAuth()
     {
         if (!isset($_SESSION['admin'])) {
             $this->redirect('/admin');

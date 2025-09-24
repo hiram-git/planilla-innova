@@ -9,10 +9,12 @@ class Employee extends Model
     public $table = 'employees';
     public $fillable = [
         'employee_id', 'firstname', 'lastname', 'address', 'birthdate',
-        'fecha_ingreso', 'contact_info', 'gender', 'position_id', 'schedule_id', 
-        'photo', 'organigrama_id', 'document_id', 'clave_seguro_social', 
-        'situacion_id', 'tipo_planilla_id', 'cargo_id', 'funcion_id', 'partida_id', 
-        'sueldo_individual', 'created_on'
+        'fecha_ingreso', 'contact_info', 'gender', 'position_id', 'schedule_id',
+        'photo', 'organigrama_id', 'document_id', 'clave_seguro_social',
+        'situacion_id', 'tipo_planilla_id', 'cargo_id', 'funcion_id', 'partida_id',
+        'sueldo_individual', 'gastos_representacion', 'created_on',
+        'tipo_contrato', 'fecha_inicio_contrato', 'fecha_vencimiento_contrato', 'numero_contrato',
+        'forma_pago', 'banco', 'numero_cuenta', 'tipo_cuenta', 'fecha_terminacion', 'motivo_terminacion'
     ];
 
     public function findByEmployeeId($employeeId)
@@ -76,7 +78,9 @@ class Employee extends Model
             'gender' => 'required',
             'schedule' => 'required',
             'situacion' => 'required',
-            'tipo_planilla' => 'required'
+            'tipo_planilla' => 'required',
+            'tipo_contrato' => 'required',
+            'forma_pago' => 'required'
         ];
         
         // Validación condicional según tipo de empresa
@@ -89,6 +93,18 @@ class Employee extends Model
             $rules['funcion_id'] = 'required';
             $rules['partida_id'] = 'required';
             $rules['sueldo_individual'] = 'required|numeric|min:0';
+        }
+
+        // Validación condicional para campos bancarios
+        if (isset($data['forma_pago']) && in_array($data['forma_pago'], ['CHEQUE', 'ACH'])) {
+            $rules['banco'] = 'required|min:3|max:100';
+            $rules['numero_cuenta'] = 'required|min:5|max:50';
+            $rules['tipo_cuenta'] = 'required';
+        }
+
+        // Validación fecha vencimiento para contratos definidos
+        if (isset($data['tipo_contrato']) && in_array($data['tipo_contrato'], ['DEFINIDO', 'PROYECTO', 'TEMPORAL'])) {
+            $rules['fecha_vencimiento_contrato'] = 'required|date';
         }
 
         return $this->validate($data, $rules);
@@ -109,7 +125,9 @@ class Employee extends Model
             'edit_gender' => 'required',
             'edit_schedule' => 'required',
             'edit_situacion' => 'required',
-            'edit_tipo_planilla' => 'required'
+            'edit_tipo_planilla' => 'required',
+            'edit_tipo_contrato' => 'required',
+            'edit_forma_pago' => 'required'
         ];
         
         // Validación condicional según tipo de empresa
@@ -122,6 +140,18 @@ class Employee extends Model
             $rules['edit_funcion_id'] = 'required';
             $rules['edit_partida_id'] = 'required';
             $rules['edit_sueldo_individual'] = 'required|numeric|min:0';
+        }
+
+        // Validación condicional para campos bancarios
+        if (isset($data['edit_forma_pago']) && in_array($data['edit_forma_pago'], ['CHEQUE', 'ACH'])) {
+            $rules['edit_banco'] = 'required|min:3|max:100';
+            $rules['edit_numero_cuenta'] = 'required|min:5|max:50';
+            $rules['edit_tipo_cuenta'] = 'required';
+        }
+
+        // Validación fecha vencimiento para contratos definidos
+        if (isset($data['edit_tipo_contrato']) && in_array($data['edit_tipo_contrato'], ['DEFINIDO', 'PROYECTO', 'TEMPORAL'])) {
+            $rules['edit_fecha_vencimiento_contrato'] = 'required|date';
         }
 
         return $this->validate($data, $rules);

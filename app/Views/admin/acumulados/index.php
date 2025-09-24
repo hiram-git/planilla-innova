@@ -192,9 +192,7 @@ function generateTipoPdf(tipoId) {
                                                 <?= currency_symbol() ?><?= number_format($acumulado['total_acumulado'] ?? 0, 2) ?>
                                             </p>
                                             <small class="text-light">
-                                                Conceptos: <?= $acumulado['total_conceptos_incluidos'] ?? 0 ?><br>
-                                                Período: <?= ($acumulado['periodo_inicio'] ?? '') ? date('d/m/Y', strtotime($acumulado['periodo_inicio'])) : 'N/A' ?> - 
-                                                <?= ($acumulado['periodo_fin'] ?? '') ? date('d/m/Y', strtotime($acumulado['periodo_fin'])) : 'N/A' ?>
+                                                Conceptos: <?= $acumulado['total_conceptos_incluidos'] ?? 0 ?>
                                             </small>
                                         </div>
                                     </div>
@@ -255,7 +253,7 @@ function generateTipoPdf(tipoId) {
                                             <h6><i class="fas fa-check-circle text-success"></i> Tipos Activos</h6>
                                             <ul>
                                                 <?php foreach ($tiposAcumulados as $tipo): ?>
-                                                    <li><?= htmlspecialchars($tipo['descripcion'] ?? 'N/A') ?> (<?= htmlspecialchars($tipo['periodicidad'] ?? 'N/A') ?>)</li>
+                                                    <li><?= htmlspecialchars($tipo['descripcion'] ?? 'N/A') ?></li>
                                                 <?php endforeach; ?>
                                             </ul>
                                         </div>

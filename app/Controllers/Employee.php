@@ -26,6 +26,46 @@ class Employee extends Controller
         $this->view('admin/employees/index', $data);
     }
 
+    /**
+     * Vista de empleados terminados/dados de baja
+     */
+    public function terminated()
+    {
+        $data = [
+            'title' => 'Empleados Dados de Baja',
+            'page_title' => 'Empleados Terminados',
+            'csrf_token' => AuthMiddleware::generateCSRF()
+        ];
+
+        $this->view('admin/employees/terminated', $data);
+    }
+
+    public function import()
+    {
+        // Redirigir al controlador de importación
+        $importController = new \App\Controllers\Admin\EmployeeImportController();
+
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+        if ($method === 'POST') {
+            return $importController->import();
+        } else {
+            return $importController->index();
+        }
+    }
+
+    public function importTemplate()
+    {
+        $importController = new \App\Controllers\Admin\EmployeeImportController();
+        return $importController->downloadTemplate();
+    }
+
+    // Método con guiones convertidos a camelCase para el router
+    public function import_template()
+    {
+        return $this->importTemplate();
+    }
+
     public function create()
     {
         $position = $this->model('Posicion');
@@ -136,6 +176,7 @@ class Employee extends Controller
                 'situacion_id' => $data['situacion'] ?? null,
                 'tipo_planilla_id' => $data['tipo_planilla'] ?? null,
                 'sueldo_individual' => !empty($data['sueldo_individual']) ? (float)$data['sueldo_individual'] : null,
+                'gastos_representacion' => !empty($data['gastos_representacion']) ? (float)$data['gastos_representacion'] : 0.00,
                 'cargo_id' => !empty($data['cargo_id']) ? $data['cargo_id'] : null,
                 'funcion_id' => !empty($data['funcion_id']) ? $data['funcion_id'] : null,
                 'partida_id' => !empty($data['partida_id']) ? $data['partida_id'] : null,
@@ -256,11 +297,22 @@ class Employee extends Controller
                 'situacion_id' => $data['edit_situacion'] ?? null,
                 'tipo_planilla_id' => $data['edit_tipo_planilla'] ?? null,
                 'sueldo_individual' => !empty($data['edit_sueldo_individual']) ? (float)$data['edit_sueldo_individual'] : null,
+                'gastos_representacion' => !empty($data['edit_gastos_representacion']) ? (float)$data['edit_gastos_representacion'] : 0.00,
                 'cargo_id' => !empty($data['edit_cargo_id']) ? $data['edit_cargo_id'] : null,
                 'funcion_id' => !empty($data['edit_funcion_id']) ? $data['edit_funcion_id'] : null,
                 'partida_id' => !empty($data['edit_partida_id']) ? $data['edit_partida_id'] : null,
                 'photo' => $photoFilename,
-                'organigrama_id' => !empty($data['edit_organigrama_id']) ? $data['edit_organigrama_id'] : null
+                'organigrama_id' => !empty($data['edit_organigrama_id']) ? $data['edit_organigrama_id'] : null,
+                // Campos de forma de pago
+                'forma_pago' => $data['edit_forma_pago'] ?? 'EFECTIVO',
+                'banco' => $data['edit_banco'] ?? null,
+                'numero_cuenta' => $data['edit_numero_cuenta'] ?? null,
+                'tipo_cuenta' => $data['edit_tipo_cuenta'] ?? null,
+                // Campos de contrato
+                'tipo_contrato' => $data['edit_tipo_contrato'] ?? 'INDEFINIDO',
+                'fecha_inicio_contrato' => $data['edit_fecha_inicio_contrato'] ?? null,
+                'fecha_vencimiento_contrato' => $data['edit_fecha_vencimiento_contrato'] ?? null,
+                'numero_contrato' => $data['edit_numero_contrato'] ?? null
             ];
 
             $employee->update($id, $updateData);
@@ -402,7 +454,7 @@ class Employee extends Controller
         return $fileName;
     }
 
-    private function requireAuth()
+    protected function requireAuth()
     {
         AuthMiddleware::requireAuth();
     }
@@ -446,8 +498,9 @@ class Employee extends Controller
             $whereConditions = [];
             $params = [];
             
-            // Filtrar solo empleados con situación válida (no nulos)
-            $whereConditions[] = "employees.situacion_id IS NOT NULL";
+            // Filtrar solo empleados activos (situacion_id = 1)
+            $whereConditions[] = "employees.situacion_id = ?";
+            $params[] = 1;
             
             // Filtrar por tipo de planilla si se proporciona desde el navbar
             $tipoPlanillaId = intval($_GET['tipo_planilla_id'] ?? 0);
@@ -559,7 +612,134 @@ class Employee extends Controller
         }
         exit;
     }
-    
+
+    /**
+     * API: Endpoint para DataTables - Empleados terminados/dados de baja
+     * Ruta: /panel/employees/terminated-datatables-ajax
+     */
+    public function terminatedDatatablesAjax()
+    {
+        return $this->terminated_datatables_ajax();
+    }
+
+    /**
+     * Método con guiones convertidos para el router
+     */
+    public function terminated_datatables_ajax()
+    {
+        header('Content-Type: application/json');
+
+        try {
+            // Parámetros de DataTables
+            $draw = intval($_GET['draw'] ?? 1);
+            $start = intval($_GET['start'] ?? 0);
+            $length = intval($_GET['length'] ?? 10);
+            $searchValue = $_GET['search']['value'] ?? '';
+
+            // Parámetros de ordenamiento
+            $orderColumn = intval($_GET['order'][0]['column'] ?? 1);
+            $orderDir = $_GET['order'][0]['dir'] ?? 'asc';
+
+            // Mapeo de columnas para ordenamiento
+            $columns = [
+                0 => null, // Foto - no ordenable
+                1 => 'employee_id',
+                2 => 'firstname',
+                3 => 'document_id',
+                4 => 'position_name',
+                5 => 'termination_date', // Fecha terminación
+                6 => 'termination_reason', // Motivo terminación
+                7 => null  // Acciones - no ordenable
+            ];
+
+            $employee = $this->model('Employee');
+
+            // Construir consulta para empleados terminados (situacion_id != 1)
+            $whereConditions = [];
+            $params = [];
+
+            // Filtrar solo empleados terminados/inactivos (situacion_id != 1)
+            $whereConditions[] = "employees.situacion_id != ?";
+            $params[] = 1;
+
+            if (!empty($searchValue)) {
+                $whereConditions[] = "(employees.firstname LIKE ? OR employees.lastname LIKE ? OR employees.document_id LIKE ? OR employees.employee_id LIKE ? OR posiciones.codigo LIKE ? OR cargos.descripcion LIKE ?)";
+                $searchParam = "%{$searchValue}%";
+                $params = array_merge($params, array_fill(0, 6, $searchParam));
+            }
+
+            // Obtener datos paginados
+            $employees = $this->getTerminatedEmployeesWithPagination($start, $length, $whereConditions, $params, $columns[$orderColumn], $orderDir);
+
+            // Contar registros filtrados
+            $filteredRecords = $this->getFilteredEmployeesCount($whereConditions, $params);
+
+            // Contar total de empleados terminados
+            $totalRecords = $this->getTerminatedEmployeesCount();
+
+            // Obtener tipo de empresa para mostrar columna condicional
+            $companyModel = $this->model('Company');
+            $companyConfig = $companyModel->getCompanyConfig();
+            $isPublicInstitution = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
+
+            $data = [];
+            foreach ($employees as $emp) {
+                $photo = $emp['photo'] ? \App\Core\UrlHelper::url('images/' . $emp['photo']) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iIzZCN0I4NCIvPgo8cGF0aCBkPSJNMzAgMzJDMzAgMjYuNDc3MSAyNS41MjI5IDIyIDIwIDIyUzEwIDI2LjQ3NzEgMTAgMzJIMzBaIiBmaWxsPSIjNkI3Qjg0Ii8+Cjwvc3ZnPgo=';
+
+                $photoHtml = '<img src="' . $photo . '" alt="Foto" class="img-circle" style="width: 40px; height: 40px; object-fit: cover;">';
+
+                // Información de terminación
+                $terminationDate = $emp['termination_date'] ? date('d/m/Y', strtotime($emp['termination_date'])) : 'N/A';
+                $terminationReason = $emp['termination_reason'] ?: 'No especificado';
+
+                // Nombre de posición según tipo de institución
+                $positionName = $isPublicInstitution ?
+                    ($emp['position_name'] ?: 'Sin posición') :
+                    ($emp['cargo_name'] ?: 'Sin cargo');
+
+                // Acciones limitadas para empleados terminados
+                $employeeName = htmlspecialchars($emp['firstname'] . ' ' . $emp['lastname']);
+                $actionsHtml = '';
+
+                // Solo botón Ver
+                if (PermissionHelper::canRead('employees')) {
+                    $actionsHtml .= '<a href="' . \App\Core\UrlHelper::employee($emp['id']) . '" class="btn btn-info btn-sm" title="Ver">
+                        <i class="fas fa-eye"></i>
+                    </a>';
+                }
+
+                $data[] = [
+                    $photoHtml,
+                    $emp['employee_id'],
+                    $employeeName,
+                    $emp['document_id'] ?: 'Sin cédula',
+                    $positionName,
+                    $terminationDate,
+                    '<small>' . htmlspecialchars($terminationReason) . '</small>',
+                    $actionsHtml
+                ];
+            }
+
+            $response = [
+                "draw" => $draw,
+                "recordsTotal" => $totalRecords,
+                "recordsFiltered" => $filteredRecords,
+                "data" => $data
+            ];
+
+            echo json_encode($response);
+
+        } catch (\Exception $e) {
+            error_log("Error en Employee@terminatedDatatablesAjax: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Error al cargar empleados terminados: ' . $e->getMessage()
+            ]);
+        }
+        exit;
+    }
+
     /**
      * Método auxiliar para obtener empleados con paginación y filtros
      */
@@ -759,5 +939,60 @@ class Employee extends Controller
             ]);
         }
         exit;
+    }
+
+    /**
+     * Método auxiliar para obtener empleados terminados con paginación
+     */
+    private function getTerminatedEmployeesWithPagination($start, $length, $whereConditions, $params, $orderColumn, $orderDir)
+    {
+        $employee = $this->model('Employee');
+        $db = $employee->getDatabase();
+        $connection = $db->getConnection();
+
+        $sql = "SELECT employees.*,
+                       employees.id AS id,
+                       posiciones.codigo AS position_name,
+                       cargos.descripcion AS cargo_name,
+                       et.termination_date,
+                       et.reason as termination_reason
+                FROM employees
+                LEFT JOIN posiciones ON posiciones.id = employees.position_id
+                LEFT JOIN cargos ON cargos.id = employees.cargo_id
+                LEFT JOIN employee_terminations et ON et.employee_id = employees.id";
+
+        if (!empty($whereConditions)) {
+            $sql .= " WHERE " . implode(" AND ", $whereConditions);
+        }
+
+        if ($orderColumn && in_array($orderColumn, ['employee_id', 'firstname', 'document_id', 'position_name', 'termination_date'])) {
+            $sql .= " ORDER BY " . $orderColumn . " " . $orderDir;
+        } else {
+            $sql .= " ORDER BY employees.firstname ASC";
+        }
+
+        $sql .= " LIMIT " . intval($start) . ", " . intval($length);
+
+        $stmt = $connection->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Contar empleados terminados
+     */
+    private function getTerminatedEmployeesCount()
+    {
+        $employee = $this->model('Employee');
+        $db = $employee->getDatabase();
+        $connection = $db->getConnection();
+
+        $sql = "SELECT COUNT(*) as count FROM employees WHERE situacion_id != 1";
+        $stmt = $connection->prepare($sql);
+        $stmt->execute();
+
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return intval($result['count']);
     }
 }

@@ -388,6 +388,22 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
             showMethod: "fadeIn",
             hideMethod: "fadeOut"
         };
+
+        // === NOTIFICACIONES TOASTR DESDE PHP ===
+        <?php
+        $toastrMessages = \App\Core\Controller::getToastrMessages();
+        if (!empty($toastrMessages)):
+            foreach ($toastrMessages as $message):
+        ?>
+        toastr.<?= $message['type'] ?>(
+            "<?= addslashes($message['message']) ?>"
+            <?= $message['title'] ? ', "' . addslashes($message['title']) . '"' : '' ?>
+        );
+        <?php
+            endforeach;
+        endif;
+        ?>
+
         // === PERSISTENCIA DEL ESTADO DEL SIDEBAR ===
         
         // Función para guardar el estado del sidebar

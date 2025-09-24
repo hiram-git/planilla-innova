@@ -291,7 +291,7 @@ class AcumuladoController extends Controller
     }
 
     /**
-     * Vista de acumulados por planilla específica
+     * Vista de acumulados por planilla específica desde acumulados_por_planilla
      */
     public function byPayroll($payrollId = null)
     {
@@ -300,63 +300,36 @@ class AcumuladoController extends Controller
             $payrollId = $payrollId[0] ?? null;
         } elseif (func_num_args() > 0 && func_get_arg(0) && is_array(func_get_args())) {
             $args = func_get_args();
-            $payrollId = $args[0] ?? null;
+            $payrollId = $payrollId[0] ?? null;
         }
-        
-        if (!$payrollId) {
-            $_SESSION['error'] = 'ID de planilla requerido';
-            header('Location: /panel/payrolls');
-            exit;
-        }
+
+        // También permitir obtener planilla_id desde GET
+        $payrollId = $payrollId ?? $_GET['planilla_id'] ?? null;
 
         try {
-            // Obtener información de la planilla
-            $payroll = $this->payrollModel->find($payrollId);
-            if (!$payroll) {
-                $_SESSION['error'] = 'Planilla no encontrada';
-                header('Location: /panel/payrolls');
-                exit;
-            }
+            // Obtener lista de planillas para el selector
+            $planillas = $this->getAvailablePayrolls();
 
-            // Obtener acumulados específicos de esta planilla
-            $acumulados = $this->getAcumuladosByPayroll($payrollId);
+            $payroll = null;
+            $acumulados = [];
+            $totales = null;
 
-            // Agrupar por empleado y tipo de concepto
-            $acumuladosAgrupados = [];
-            foreach ($acumulados as $acumulado) {
-                $empleadoId = $acumulado['empleado_id'];
-                $tipoConcepto = $acumulado['tipo_concepto']; // ASIGNACION o DEDUCCION
-                
-                if (!isset($acumuladosAgrupados[$empleadoId])) {
-                    $acumuladosAgrupados[$empleadoId] = [
-                        'empleado' => $acumulado['nombre_empleado'],
-                        'document_id' => $acumulado['document_id'],
-                        'acumulados' => []
-                    ];
+            if ($payrollId) {
+                // Obtener información de la planilla
+                $payroll = $this->payrollModel->find($payrollId);
+                if ($payroll) {
+                    // Obtener acumulados desde acumulados_por_planilla
+                    $acumulados = $this->getAcumuladosFromPlanillaTable($payrollId);
+                    $totales = $this->getTotalesFromPlanillaTable($payrollId);
                 }
-                
-                if (!isset($acumuladosAgrupados[$empleadoId]['acumulados'][$tipoConcepto])) {
-                    $acumuladosAgrupados[$empleadoId]['acumulados'][$tipoConcepto] = [
-                        'tipo_descripcion' => $tipoConcepto,
-                        'tipo_codigo' => $tipoConcepto,
-                        'total_acumulado' => 0,
-                        'conceptos' => []
-                    ];
-                }
-                
-                $acumuladosAgrupados[$empleadoId]['acumulados'][$tipoConcepto]['total_acumulado'] += $acumulado['monto_acumulado'];
-                $acumuladosAgrupados[$empleadoId]['acumulados'][$tipoConcepto]['conceptos'][] = [
-                    'concepto_descripcion' => $acumulado['concepto_descripcion'],
-                    'monto_concepto' => $acumulado['monto_acumulado'],
-                    'factor_acumulacion' => 1.0000, // Ya está calculado en monto_acumulado
-                    'monto_acumulado' => $acumulado['monto_acumulado']
-                ];
             }
 
             $this->render('admin/acumulados/by_payroll', [
+                'planillas' => $planillas,
                 'payroll' => $payroll,
-                'acumulados' => $acumuladosAgrupados,
-                'totalEmpleados' => count($acumuladosAgrupados)
+                'acumulados' => $acumulados,
+                'totales' => $totales,
+                'selectedPayrollId' => $payrollId
             ]);
 
         } catch (\Exception $e) {
@@ -407,46 +380,49 @@ class AcumuladoController extends Controller
     }
 
     /**
-     * Vista de acumulados por tipo específico
+     * Vista de acumulados por concepto específico
      */
     public function byType()
     {
         $year = $_GET['year'] ?? date('Y');
-        $tipoAcumulado = $_GET['tipo'] ?? null;
-        
+        $conceptoId = $_GET['concepto_id'] ?? null;
+        $month = $_GET['month'] ?? null;
+
         try {
-            // Obtener tipos de acumulados disponibles
-            $tiposAcumulados = $this->tipoAcumuladoModel->getActivos();
-            
-            // Si se especifica un tipo, filtrar por ese tipo
+            // Obtener conceptos disponibles
+            $conceptos = $this->getConceptosForFilter();
+
+            // Si se especifica un concepto, filtrar por concepto_id
             $acumulados = [];
-            $selectedTipo = null;
-            
-            if ($tipoAcumulado) {
-                // Buscar el tipo seleccionado
-                foreach ($tiposAcumulados as $tipo) {
-                    if ($tipo['codigo'] === $tipoAcumulado) {
-                        $selectedTipo = $tipo;
+            $selectedConcepto = null;
+
+            if ($conceptoId) {
+                // Buscar el concepto seleccionado
+                foreach ($conceptos as $concepto) {
+                    if ($concepto['id'] == $conceptoId) {
+                        $selectedConcepto = $concepto;
                         break;
                     }
                 }
-                
-                if ($selectedTipo) {
-                    $acumulados = $this->getAcumuladosByType($selectedTipo['id'], $year);
+
+                if ($selectedConcepto) {
+                    $acumulados = $this->getAcumuladosByConcepto($conceptoId, $year, $month);
                 }
             }
-            
-            $this->render('admin/acumulados/by_type', [
+
+            $this->render('admin/acumulados/by_concept', [
                 'year' => $year,
-                'tiposAcumulados' => $tiposAcumulados,
-                'selectedTipo' => $selectedTipo,
+                'month' => $month,
+                'conceptos' => $conceptos,
+                'selectedConcepto' => $selectedConcepto,
                 'acumulados' => $acumulados,
-                'availableYears' => $this->getAvailableYears()
+                'availableYears' => $this->getAvailableYears(),
+                'availableMonths' => $this->getAvailableMonths()
             ]);
-            
+
         } catch (\Exception $e) {
             error_log("Error en AcumuladoController@byType: " . $e->getMessage());
-            $_SESSION['error'] = 'Error obteniendo acumulados por tipo';
+            $_SESSION['error'] = 'Error obteniendo acumulados por concepto';
             header('Location: /panel/acumulados');
             exit;
         }
@@ -459,30 +435,36 @@ class AcumuladoController extends Controller
     {
         $year = $_GET['year'] ?? date('Y');
         $empleadoId = $_GET['empleado_id'] ?? null;
-        
+        $month = $_GET['month'] ?? null;
+
         try {
             // Obtener lista de empleados activos
             $employees = $this->employeeModel->getActiveEmployees();
-            
+
             // Si se especifica un empleado, obtener sus acumulados
             $acumulados = [];
             $selectedEmployee = null;
-            
+            $totales = null;
+
             if ($empleadoId) {
                 $selectedEmployee = $this->employeeModel->getEmployeeWithFullDetails($empleadoId);
                 if ($selectedEmployee) {
-                    $acumulados = $this->getAcumuladosByEmployee($empleadoId, $year);
+                    $acumulados = $this->getAcumuladosDetalleByEmployee($empleadoId, $year, $month);
+                    $totales = $this->getTotalesAcumuladosByEmployee($empleadoId, $year, $month);
                 }
             }
-            
+
             $this->render('admin/acumulados/by_employee', [
                 'year' => $year,
+                'month' => $month,
                 'employees' => $employees,
                 'selectedEmployee' => $selectedEmployee,
                 'acumulados' => $acumulados,
-                'availableYears' => $this->getAvailableYears()
+                'totales' => $totales,
+                'availableYears' => $this->getAvailableYears(),
+                'availableMonths' => $this->getAvailableMonths()
             ]);
-            
+
         } catch (\Exception $e) {
             error_log("Error en AcumuladoController@byEmployee: " . $e->getMessage());
             $_SESSION['error'] = 'Error obteniendo acumulados por empleado';
@@ -530,20 +512,180 @@ class AcumuladoController extends Controller
     private function getConceptosForFilter()
     {
         try {
-            $sql = "SELECT DISTINCT 
-                        c.id, 
+            $sql = "SELECT DISTINCT
+                        c.id,
                         c.descripcion,
                         c.tipo_concepto
                     FROM concepto c
                     INNER JOIN acumulados_por_empleado ape ON c.id = ape.concepto_id
                     WHERE c.activo = 1
                     ORDER BY c.tipo_concepto, c.descripcion";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log("Error obteniendo conceptos para filtro: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener acumulados por concepto específico desde acumulados_por_empleado
+     */
+    private function getAcumuladosByConcepto($conceptoId, $year, $month = null)
+    {
+        try {
+            $whereConditions = ["ape.concepto_id = ?", "ape.ano = ?"];
+            $params = [$conceptoId, $year];
+
+            if ($month) {
+                $whereConditions[] = "ape.mes = ?";
+                $params[] = $month;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            $sql = "SELECT
+                        ape.id,
+                        ape.employee_id,
+                        ape.concepto_id,
+                        ape.planilla_id,
+                        ape.monto,
+                        ape.mes,
+                        ape.ano,
+                        ape.frecuencia,
+                        ape.tipo_concepto,
+                        ape.created_at,
+                        e.document_id,
+                        CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
+                        c.descripcion as concepto_descripcion,
+                        pc.descripcion as planilla_descripcion,
+                        pc.fecha_inicio,
+                        pc.fecha_fin
+                    FROM acumulados_por_empleado ape
+                    INNER JOIN employees e ON ape.employee_id = e.id
+                    INNER JOIN concepto c ON ape.concepto_id = c.id
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    WHERE {$whereClause}
+                    ORDER BY ape.mes DESC, e.lastname, e.firstname";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo acumulados por concepto: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener meses disponibles
+     */
+    private function getAvailableMonths()
+    {
+        return [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+        ];
+    }
+
+    /**
+     * Obtener detalle de acumulados por empleado desde acumulados_por_empleado
+     */
+    private function getAcumuladosDetalleByEmployee($empleadoId, $year, $month = null)
+    {
+        try {
+            $whereConditions = ["ape.employee_id = ?", "ape.ano = ?"];
+            $params = [$empleadoId, $year];
+
+            if ($month) {
+                $whereConditions[] = "ape.mes = ?";
+                $params[] = $month;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            $sql = "SELECT
+                        ape.id,
+                        ape.employee_id,
+                        ape.concepto_id,
+                        ape.planilla_id,
+                        ape.monto,
+                        ape.mes,
+                        ape.ano,
+                        ape.frecuencia,
+                        ape.tipo_concepto,
+                        ape.created_at,
+                        c.descripcion as concepto_descripcion,
+                        pc.descripcion as planilla_descripcion,
+                        pc.fecha_desde,
+                        pc.fecha_hasta
+                    FROM acumulados_por_empleado ape
+                    INNER JOIN concepto c ON ape.concepto_id = c.id
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    WHERE {$whereClause}
+                    ORDER BY ape.mes DESC, ape.tipo_concepto, c.descripcion";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo detalle acumulados por empleado: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener totales de acumulados por empleado agrupados por tipo
+     */
+    private function getTotalesAcumuladosByEmployee($empleadoId, $year, $month = null)
+    {
+        try {
+            $whereConditions = ["ape.employee_id = ?", "ape.ano = ?"];
+            $params = [$empleadoId, $year];
+
+            if ($month) {
+                $whereConditions[] = "ape.mes = ?";
+                $params[] = $month;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            $sql = "SELECT
+                        ape.tipo_concepto,
+                        SUM(ape.monto) as total_monto,
+                        COUNT(*) as total_registros,
+                        COUNT(DISTINCT ape.concepto_id) as total_conceptos
+                    FROM acumulados_por_empleado ape
+                    WHERE {$whereClause}
+                    GROUP BY ape.tipo_concepto
+                    ORDER BY ape.tipo_concepto";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Formatear resultado para fácil acceso
+            $totales = [
+                'ASIGNACION' => ['total_monto' => 0, 'total_registros' => 0, 'total_conceptos' => 0],
+                'DEDUCCION' => ['total_monto' => 0, 'total_registros' => 0, 'total_conceptos' => 0]
+            ];
+
+            foreach ($result as $row) {
+                $totales[$row['tipo_concepto']] = $row;
+            }
+
+            // Calcular neto
+            $totales['NETO'] = $totales['ASIGNACION']['total_monto'] - $totales['DEDUCCION']['total_monto'];
+
+            return $totales;
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo totales acumulados por empleado: " . $e->getMessage());
             return [];
         }
     }
@@ -627,6 +769,111 @@ class AcumuladoController extends Controller
             
         } catch (\PDOException $e) {
             error_log("Error obteniendo acumulados de todos los empleados: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener planillas disponibles para el selector
+     */
+    private function getAvailablePayrolls()
+    {
+        try {
+            $sql = "SELECT DISTINCT
+                        pc.id,
+                        pc.descripcion,
+                        pc.fecha_inicio,
+                        pc.fecha_fin,
+                        pc.mes,
+                        pc.ano,
+                        pc.estado
+                    FROM planilla_cabecera pc
+                    INNER JOIN acumulados_por_planilla app ON pc.id = app.planilla_id
+                    ORDER BY pc.ano DESC, pc.mes DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo planillas disponibles: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener acumulados desde acumulados_por_planilla
+     */
+    private function getAcumuladosFromPlanillaTable($payrollId)
+    {
+        try {
+            $sql = "SELECT
+                        app.id,
+                        app.employee_id,
+                        app.planilla_id,
+                        app.mes,
+                        app.ano,
+                        app.frecuencia,
+                        app.sueldos,
+                        app.gastos_representacion,
+                        app.otras_asignaciones,
+                        app.total_asignaciones,
+                        app.seguro_social,
+                        app.seguro_educativo,
+                        app.impuesto_renta,
+                        app.desc_gastos_ss,
+                        app.desc_gastos_se,
+                        app.desc_gastos_isr,
+                        app.otras_deducciones,
+                        app.total_deducciones,
+                        app.total_neto,
+                        app.created_at,
+                        e.document_id,
+                        CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
+                        p.description as position_name
+                    FROM acumulados_por_planilla app
+                    INNER JOIN employees e ON app.employee_id = e.id
+                    LEFT JOIN positions p ON e.position_id = p.id
+                    WHERE app.planilla_id = ?
+                    ORDER BY e.lastname, e.firstname";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payrollId]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo acumulados de planilla: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener totales de acumulados_por_planilla
+     */
+    private function getTotalesFromPlanillaTable($payrollId)
+    {
+        try {
+            $sql = "SELECT
+                        COUNT(*) as total_empleados,
+                        SUM(total_asignaciones) as total_asignaciones,
+                        SUM(total_deducciones) as total_deducciones,
+                        SUM(total_neto) as total_neto,
+                        SUM(sueldos) as total_sueldos,
+                        SUM(gastos_representacion) as total_gastos_representacion,
+                        SUM(otras_asignaciones) as total_otras_asignaciones,
+                        SUM(seguro_social) as total_seguro_social,
+                        SUM(seguro_educativo) as total_seguro_educativo,
+                        SUM(impuesto_renta) as total_impuesto_renta,
+                        SUM(otras_deducciones) as total_otras_deducciones
+                    FROM acumulados_por_planilla
+                    WHERE planilla_id = ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payrollId]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo totales de planilla: " . $e->getMessage());
             return [];
         }
     }

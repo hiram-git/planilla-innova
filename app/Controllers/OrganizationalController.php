@@ -332,7 +332,7 @@ class OrganizationalController extends Controller
     /**
      * Verificar autenticación
      */
-    private function requireAuth()
+    protected function requireAuth()
     {
         if (!isset($_SESSION['admin'])) {
             $this->redirect('/admin');

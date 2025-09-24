@@ -132,13 +132,19 @@ $title = 'Conceptos de Nómina';
                                            data-toggle="tooltip" title="Ver Detalle">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="<?= url('/panel/concepts/edit/' . $concept['id']) ?>" 
+                                        <a href="<?= url('/panel/concepts/edit/' . $concept['id']) ?>"
                                            class="btn btn-warning btn-sm"
                                            data-toggle="tooltip" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <button type="button" class="btn btn-danger btn-sm delete-concept" 
-                                                data-id="<?= $concept['id'] ?>" 
+                                        <button type="button" class="btn btn-info btn-sm duplicate-concept"
+                                                data-id="<?= $concept['id'] ?>"
+                                                data-description="<?= htmlspecialchars($concept['descripcion']) ?>"
+                                                data-toggle="tooltip" title="Duplicar">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm delete-concept"
+                                                data-id="<?= $concept['id'] ?>"
                                                 data-description="<?= htmlspecialchars($concept['descripcion']) ?>"
                                                 data-toggle="tooltip" title="Eliminar">
                                             <i class="fas fa-trash"></i>
@@ -231,6 +237,35 @@ $title = 'Conceptos de Nómina';
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="confirmDelete">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Duplicar Concepto -->
+<div class="modal fade" id="duplicateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Duplicar Concepto</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Se va a duplicar el concepto: <strong id="duplicateConceptName"></strong></p>
+                <div class="form-group">
+                    <label for="newDescription">Nueva Descripción *</label>
+                    <input type="text" class="form-control" id="newDescription"
+                           placeholder="Ingrese la descripción para el nuevo concepto" required>
+                    <small class="form-text text-muted">
+                        El nuevo concepto se creará inactivo y podrá editarlo después.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-info" id="confirmDuplicate">
+                    <i class="fas fa-copy"></i> Duplicar
+                </button>
             </div>
         </div>
     </div>
@@ -335,12 +370,32 @@ $title = 'Conceptos de Nómina';
     $(document).on('click', '.delete-concept', function() {
         var conceptId = $(this).data('id');
         var description = $(this).data('description');
-        
+
         $('#deleteConceptName').text(description);
         $('#deleteModal').modal('show');
-        
+
         $('#confirmDelete').off('click').on('click', function() {
             deleteConcept(conceptId);
+        });
+    });
+
+    // Duplicar concepto
+    $(document).on('click', '.duplicate-concept', function() {
+        var conceptId = $(this).data('id');
+        var description = $(this).data('description');
+
+        $('#duplicateConceptName').text(description);
+        $('#newDescription').val(description + ' (Copia)');
+        $('#duplicateModal').modal('show');
+
+        $('#confirmDuplicate').off('click').on('click', function() {
+            var newDescription = $('#newDescription').val().trim();
+            if (newDescription === '') {
+                alert('Debe ingresar una nueva descripción para el concepto.');
+                $('#newDescription').focus();
+                return;
+            }
+            duplicateConcept(conceptId, newDescription);
         });
     });
 
@@ -454,6 +509,53 @@ $title = 'Conceptos de Nómina';
                 
                 // Error real de conexión
                 alert('Error de conexión. No se pudo eliminar el concepto.');
+            }
+        });
+    }
+
+    function duplicateConcept(conceptId, newDescription) {
+        $('#confirmDuplicate').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Duplicando...');
+
+        $.ajax({
+            url: '<?= url('/panel/concepts/duplicate/') ?>' + conceptId,
+            method: 'POST',
+            data: {
+                csrf_token: '<?= \App\Core\Security::generateToken() ?>',
+                new_description: newDescription
+            },
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            dataType: 'json',
+            success: function(response) {
+                console.log('Duplicate response:', response);
+                if (response.success) {
+                    $('#duplicateModal').modal('hide');
+                    // Redirigir al concepto duplicado para editarlo
+                    if (response.redirect) {
+                        window.location.href = response.redirect;
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    // Si hay un redirect, redirigir al login
+                    if (response.redirect) {
+                        alert(response.message || 'Sesión expirada. Redirigiendo al login...');
+                        window.location.href = response.redirect;
+                        return;
+                    }
+                    alert('Error: ' + (response.message || 'No se pudo duplicar el concepto'));
+                }
+            },
+            error: function(xhr, status, error) {
+                console.log('Duplicate error:', xhr.responseText);
+                console.log('Status:', status, 'Error:', error);
+
+                // Error real de conexión
+                alert('Error de conexión. No se pudo duplicar el concepto.');
+            },
+            complete: function() {
+                $('#confirmDuplicate').prop('disabled', false).html('<i class="fas fa-copy"></i> Duplicar');
             }
         });
     }

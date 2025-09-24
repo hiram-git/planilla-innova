@@ -297,7 +297,7 @@ class Admin extends Controller
         $this->redirect('/panel');
     }
 
-    private function requireAuth()
+    protected function requireAuth()
     {
         AuthMiddleware::requireAuth();
     }

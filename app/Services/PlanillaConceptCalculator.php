@@ -918,4 +918,690 @@ class PlanillaConceptCalculator
             return 'privada'; // Default fallback
         }
     }
+
+    // ===============================================================
+    // FUNCIONES ESPECÍFICAS PARA LIQUIDACIONES - LEGISLACIÓN PANAMÁ
+    // ===============================================================
+
+    /**
+     * Calcular indemnización por despido según legislación panameña
+     * Primeros 10 años: 3.4 semanas × año
+     * Después de 10 años: 1 semana × año
+     *
+     * @param float $anosTrabjados Años trabajados
+     * @param float $sueldoSemanal Sueldo semanal base
+     * @return float Monto de indemnización
+     */
+    public function LIQUIDACION_INDEMNIZACION(float $anosTrabjados, float $sueldoSemanal): float
+    {
+        try {
+            if ($anosTrabjados <= 0 || $sueldoSemanal <= 0) {
+                return 0;
+            }
+
+            $indemnizacion = 0;
+
+            if ($anosTrabjados <= 10) {
+                // Primeros 10 años: 3.4 semanas por año
+                $indemnizacion = $anosTrabjados * 3.4 * $sueldoSemanal;
+            } else {
+                // Primeros 10 años: 3.4 semanas por año
+                $indemnizacion = 10 * 3.4 * $sueldoSemanal;
+                // Años adicionales: 1 semana por año
+                $anosAdicionales = $anosTrabjados - 10;
+                $indemnizacion += $anosAdicionales * 1 * $sueldoSemanal;
+            }
+
+            return round($indemnizacion, 2);
+
+        } catch (\Exception $e) {
+            error_log("Error calculando indemnización: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular vacaciones proporcionales no disfrutadas
+     * 30 días de vacaciones por año × proporción del año trabajado
+     *
+     * @return float Monto de vacaciones proporcionales
+     */
+    public function VACACIONES_PROPORCIONALES(): float
+    {
+        try {
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return 0;
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+            // Obtener datos del empleado y fechas
+            $sql = "SELECT fecha_ingreso FROM employees WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                return 0;
+            }
+
+            $fechaIngreso = new \DateTime($employee['fecha_ingreso']);
+            $fechaActual = new \DateTime(); // Fecha de liquidación
+
+            // Calcular días desde última fecha de corte de vacaciones (ej: enero 1)
+            $inicioAnoActual = new \DateTime(date('Y-01-01'));
+
+            // Usar la fecha más tardía entre ingreso y inicio del año
+            $fechaInicioCalculo = $fechaIngreso > $inicioAnoActual ? $fechaIngreso : $inicioAnoActual;
+
+            // Calcular días trabajados en el año actual
+            $diasTrabajados = $fechaInicioCalculo->diff($fechaActual)->days + 1;
+
+            // Calcular proporción de vacaciones (30 días por año / 365 días)
+            $proporcionVacaciones = ($diasTrabajados / 365) * 30;
+
+            // Obtener salario diario
+            $salarioDiario = $this->calcularSalarioDiario($employeeId);
+
+            // Calcular monto de vacaciones proporcionales
+            $montoVacaciones = $proporcionVacaciones * $salarioDiario;
+
+            return round($montoVacaciones, 2);
+
+        } catch (\Exception $e) {
+            error_log("Error calculando vacaciones proporcionales: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular XIII mes proporcional para liquidación
+     * Basado en meses trabajados en el año actual
+     *
+     * @return float Monto XIII mes proporcional
+     */
+    public function XIII_MES_PROPORCIONAL(): float
+    {
+        try {
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return 0;
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+            // Obtener datos del empleado
+            $sql = "SELECT fecha_ingreso FROM employees WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                return 0;
+            }
+
+            $fechaIngreso = new \DateTime($employee['fecha_ingreso']);
+            $fechaActual = new \DateTime(); // Fecha de liquidación
+            $inicioAno = new \DateTime(date('Y-01-01'));
+
+            // Usar la fecha más tardía entre ingreso y inicio del año
+            $fechaInicioCalculo = $fechaIngreso > $inicioAno ? $fechaIngreso : $inicioAno;
+
+            // Calcular meses trabajados en el año actual
+            $diferencia = $fechaInicioCalculo->diff($fechaActual);
+            $mesesTrabajados = ($diferencia->y * 12) + $diferencia->m;
+
+            // Si trabajó días adicionales, contar como mes parcial
+            if ($diferencia->d > 15) {
+                $mesesTrabajados += 1;
+            }
+
+            // Obtener salario mensual
+            $salarioMensual = $this->calcularSalarioMensual($employeeId);
+
+            // Calcular XIII mes proporcional: (salario × meses trabajados) / 12
+            $xiiiMesProporcional = ($salarioMensual * $mesesTrabajados) / 12;
+
+            return round($xiiiMesProporcional, 2);
+
+        } catch (\Exception $e) {
+            error_log("Error calculando XIII mes proporcional: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular salario pendiente (últimos días trabajados)
+     *
+     * @return float Monto de salario pendiente
+     */
+    public function SALARIO_PENDIENTE(): float
+    {
+        try {
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return 0;
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+            // Por ahora retornar 0, ya que esto se calcula típicamente
+            // en base a días trabajados desde última planilla procesada
+            // TODO: Implementar lógica específica basada en última planilla
+
+            return 0;
+
+        } catch (\Exception $e) {
+            error_log("Error calculando salario pendiente: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular descuentos por préstamos pendientes
+     *
+     * @return float Monto de descuentos por préstamos
+     */
+    public function DESCUENTO_PRESTAMOS(): float
+    {
+        try {
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return 0;
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+            // TODO: Implementar cuando se tenga módulo de préstamos
+            // Por ahora retornar 0
+
+            return 0;
+
+        } catch (\Exception $e) {
+            error_log("Error calculando descuento préstamos: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular descuentos por anticipos pendientes
+     *
+     * @return float Monto de descuentos por anticipos
+     */
+    public function DESCUENTO_ANTICIPOS(): float
+    {
+        try {
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return 0;
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+            // Buscar anticipos pendientes en tabla cashadvance
+            $sql = "SELECT COALESCE(SUM(amount), 0) as total_anticipos
+                    FROM cashadvance
+                    WHERE employee_id = (SELECT employee_id FROM employees WHERE id = ?)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return (float)($result['total_anticipos'] ?? 0);
+
+        } catch (\Exception $e) {
+            error_log("Error calculando descuento anticipos: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Agregar variable ANOS_TRABAJADOS para fórmulas de liquidación
+     * Calcula años trabajados desde fecha de ingreso hasta fecha de liquidación
+     *
+     * @return float Años trabajados
+     */
+    public function getAnosTrabajados(): float
+    {
+        try {
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return 0;
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+            $sql = "SELECT fecha_ingreso FROM employees WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                return 0;
+            }
+
+            $fechaIngreso = new \DateTime($employee['fecha_ingreso']);
+            $fechaActual = new \DateTime(); // Fecha de liquidación
+
+            $diferencia = $fechaIngreso->diff($fechaActual);
+
+            // Calcular años con decimales (incluir meses como fracción)
+            $anos = $diferencia->y + ($diferencia->m / 12);
+
+            return round($anos, 2);
+
+        } catch (\Exception $e) {
+            error_log("Error calculando años trabajados: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular salario semanal base
+     *
+     * @param int $employeeId ID del empleado
+     * @return float Salario semanal
+     */
+    private function calcularSalarioSemanal(int $employeeId): float
+    {
+        $salarioMensual = $this->calcularSalarioMensual($employeeId);
+        return $salarioMensual / 4.33; // 4.33 semanas promedio por mes
+    }
+
+    /**
+     * Calcular salario mensual base
+     *
+     * @param int $employeeId ID del empleado
+     * @return float Salario mensual
+     */
+    private function calcularSalarioMensual(int $employeeId): float
+    {
+        try {
+            $companyType = $this->getCompanyType();
+
+            $sql = "SELECT e.sueldo_individual, p.sueldo as sueldo_posicion, e.gastos_representacion
+                    FROM employees e
+                    LEFT JOIN posiciones p ON p.id = e.position_id
+                    WHERE e.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                return 0;
+            }
+
+            $salarioBase = 0;
+            if ($companyType === 'publica') {
+                $salarioBase = (float)($employee['sueldo_posicion'] ?? 0);
+            } else {
+                $sueldo_individual = (float)($employee['sueldo_individual'] ?? 0);
+                $salarioBase = $sueldo_individual > 0 ? $sueldo_individual : (float)($employee['sueldo_posicion'] ?? 0);
+            }
+
+            // Agregar gastos de representación al salario base
+            $gastosRepresentacion = (float)($employee['gastos_representacion'] ?? 0);
+
+            return $salarioBase + $gastosRepresentacion;
+
+        } catch (\Exception $e) {
+            error_log("Error calculando salario mensual: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular salario diario base
+     *
+     * @param int $employeeId ID del empleado
+     * @return float Salario diario
+     */
+    private function calcularSalarioDiario(int $employeeId): float
+    {
+        $salarioMensual = $this->calcularSalarioMensual($employeeId);
+        return $salarioMensual / 30; // 30 días promedio por mes
+    }
+
+    /**
+     * Agregar variables específicas para liquidación
+     */
+    public function setVariablesLiquidacion(int $employeeId): void
+    {
+        $this->setVariablesColaborador($employeeId);
+
+        // Agregar variables específicas de liquidación
+        $this->variablesColaborador['ANOS_TRABAJADOS'] = $this->getAnosTrabajados();
+        $this->variablesColaborador['SUELDO_SEMANAL'] = $this->calcularSalarioSemanal($employeeId);
+        $this->variablesColaborador['SUELDO_MENSUAL'] = $this->calcularSalarioMensual($employeeId);
+        $this->variablesColaborador['SUELDO_DIARIO'] = $this->calcularSalarioDiario($employeeId);
+    }
+
+    // ========================================
+    // FUNCIONES ESPECÍFICAS PARA VACACIONES
+    // ========================================
+
+    /**
+     * Calcular días de vacaciones ganados por un empleado según legislación panameña
+     * Base: 30 días por cada 11 meses trabajados
+     *
+     * @param int $employeeId ID del empleado
+     * @param string|null $fechaReferencia Fecha de referencia para el cálculo (default: hoy)
+     * @return float Días de vacaciones ganados
+     */
+    public function VACATION_DAYS_EARNED(int $employeeId, string $fechaReferencia = null): float
+    {
+        try {
+            if (!$fechaReferencia) {
+                $fechaReferencia = date('Y-m-d');
+            }
+
+            // Obtener fecha de ingreso
+            $sql = "SELECT fecha_ingreso FROM employees WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                return 0;
+            }
+
+            $fechaIngreso = $employee['fecha_ingreso'];
+
+            // Calcular meses trabajados
+            $mesesTrabajados = $this->calcularMesesTrabajados($fechaIngreso, $fechaReferencia);
+
+            // Legislación panameña: 30 días por cada 11 meses
+            $diasPorAno = 30;
+            $mesesMinimos = 11;
+
+            if ($mesesTrabajados >= $mesesMinimos) {
+                // Calcular años completos trabajados
+                $anosCompletos = floor($mesesTrabajados / 12);
+                $mesesRestantes = $mesesTrabajados % 12;
+
+                // Días por años completos
+                $diasPorAnosCompletos = $anosCompletos * $diasPorAno;
+
+                // Días proporcionales por meses restantes (si >= 11 meses)
+                $diasProporcionales = 0;
+                if ($mesesRestantes >= $mesesMinimos) {
+                    $diasProporcionales = $diasPorAno;
+                }
+
+                return $diasPorAnosCompletos + $diasProporcionales;
+            } else {
+                // No ha cumplido 11 meses, no tiene derecho a vacaciones completas
+                return 0;
+            }
+
+        } catch (PDOException $e) {
+            error_log("Error calculando días de vacaciones ganados: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular balance actual de vacaciones para un empleado
+     *
+     * @param int $employeeId ID del empleado
+     * @param int|null $year Año para el cálculo (default: año actual)
+     * @return float Balance de días de vacaciones
+     */
+    public function VACATION_BALANCE(int $employeeId, int $year = null): float
+    {
+        try {
+            if (!$year) {
+                $year = (int)date('Y');
+            }
+
+            // Intentar obtener balance de la tabla vacation_balances
+            $sql = "SELECT current_balance FROM vacation_balances
+                    WHERE employee_id = ? AND year = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $year]);
+            $balance = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($balance) {
+                return (float)$balance['current_balance'];
+            }
+
+            // Si no existe balance calculado, calcular manualmente
+            $diasGanados = $this->VACATION_DAYS_EARNED($employeeId, "$year-12-31");
+            $diasTomados = $this->calcularDiasTomadosEnAno($employeeId, $year);
+            $diasCompensados = $this->calcularDiasCompensadosEnAno($employeeId, $year);
+            $diasAcumuladosAnteriores = $this->obtenerDiasAcumuladosAnteriores($employeeId, $year);
+
+            return $diasGanados + $diasAcumuladosAnteriores - $diasTomados - $diasCompensados;
+
+        } catch (PDOException $e) {
+            error_log("Error calculando balance de vacaciones: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular monto de compensación por días de vacaciones
+     *
+     * @param int $employeeId ID del empleado
+     * @param int $dias Número de días a compensar
+     * @return float Monto de compensación
+     */
+    public function VACATION_COMPENSATION_AMOUNT(int $employeeId, int $dias): float
+    {
+        try {
+            // Obtener salario base + gastos de representación
+            $sql = "SELECT e.sueldo_individual, e.gastos_representacion, p.sueldo as sueldo_posicion
+                    FROM employees e
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    WHERE e.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                return 0;
+            }
+
+            // Determinar salario base (priorizar sueldo individual)
+            $salarioBase = (float)($employee['sueldo_individual'] ?: $employee['sueldo_posicion'] ?: 0);
+            $gastosRep = (float)($employee['gastos_representacion'] ?: 0);
+
+            // Salario mensual para vacaciones incluye gastos de representación
+            $salarioMensual = $salarioBase + $gastosRep;
+
+            // Salario diario (30 días por mes según legislación)
+            $salarioDiario = $salarioMensual / 30;
+
+            return $salarioDiario * $dias;
+
+        } catch (PDOException $e) {
+            error_log("Error calculando compensación de vacaciones: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular tasa de acumulación de vacaciones por mes
+     *
+     * @param int $employeeId ID del empleado
+     * @return float Días de vacaciones que se acumulan por mes
+     */
+    public function VACATION_ACCRUAL_RATE(int $employeeId): float
+    {
+        // Legislación panameña: 30 días / 11 meses = 2.727 días por mes
+        return 30.0 / 11.0;
+    }
+
+    /**
+     * Verificar si un empleado tiene derecho a vacaciones
+     *
+     * @param int $employeeId ID del empleado
+     * @param string|null $fechaReferencia Fecha de referencia
+     * @return bool True si tiene derecho a vacaciones
+     */
+    public function VACATION_ELIGIBLE(int $employeeId, string $fechaReferencia = null): bool
+    {
+        try {
+            if (!$fechaReferencia) {
+                $fechaReferencia = date('Y-m-d');
+            }
+
+            $sql = "SELECT fecha_ingreso FROM employees WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                return false;
+            }
+
+            $mesesTrabajados = $this->calcularMesesTrabajados($employee['fecha_ingreso'], $fechaReferencia);
+
+            // Debe tener al menos 11 meses trabajados
+            return $mesesTrabajados >= 11;
+
+        } catch (PDOException $e) {
+            error_log("Error verificando elegibilidad vacaciones: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Calcular días hábiles entre dos fechas (excluyendo feriados)
+     *
+     * @param string $fechaInicio Fecha inicio (Y-m-d)
+     * @param string $fechaFin Fecha fin (Y-m-d)
+     * @return int Número de días hábiles
+     */
+    public function VACATION_BUSINESS_DAYS(string $fechaInicio, string $fechaFin): int
+    {
+        try {
+            $inicio = new \DateTime($fechaInicio);
+            $fin = new \DateTime($fechaFin);
+            $diasHabiles = 0;
+
+            // Obtener feriados del período
+            $sql = "SELECT date FROM vacation_calendar
+                    WHERE date BETWEEN ? AND ? AND day_type IN ('HOLIDAY', 'NON_WORKING')";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$fechaInicio, $fechaFin]);
+            $feriados = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            while ($inicio <= $fin) {
+                $diaSemana = (int)$inicio->format('w'); // 0=domingo, 6=sábado
+                $fechaActual = $inicio->format('Y-m-d');
+
+                // Contar solo días laborables (lunes a viernes) que no sean feriados
+                if ($diaSemana >= 1 && $diaSemana <= 5 && !in_array($fechaActual, $feriados)) {
+                    $diasHabiles++;
+                }
+
+                $inicio->add(new \DateInterval('P1D'));
+            }
+
+            return $diasHabiles;
+
+        } catch (\Exception $e) {
+            error_log("Error calculando días hábiles: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // ========================================
+    // MÉTODOS AUXILIARES PARA VACACIONES
+    // ========================================
+
+    /**
+     * Calcular meses trabajados entre dos fechas
+     */
+    private function calcularMesesTrabajados(string $fechaIngreso, string $fechaReferencia): float
+    {
+        $ingreso = new \DateTime($fechaIngreso);
+        $referencia = new \DateTime($fechaReferencia);
+
+        $interval = $ingreso->diff($referencia);
+
+        return ($interval->y * 12) + $interval->m + ($interval->d / 30);
+    }
+
+    /**
+     * Calcular días tomados en un año específico
+     */
+    private function calcularDiasTomadosEnAno(int $employeeId, int $year): float
+    {
+        try {
+            $sql = "SELECT COALESCE(SUM(business_days), 0) as total_days
+                    FROM vacation_requests
+                    WHERE employee_id = ?
+                    AND YEAR(start_date) = ?
+                    AND status = 'TAKEN'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $year]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return (float)($result['total_days'] ?? 0);
+
+        } catch (PDOException $e) {
+            error_log("Error calculando días tomados: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular días compensados monetariamente en un año
+     */
+    private function calcularDiasCompensadosEnAno(int $employeeId, int $year): float
+    {
+        try {
+            $sql = "SELECT COALESCE(SUM(business_days), 0) as total_days
+                    FROM vacation_requests
+                    WHERE employee_id = ?
+                    AND YEAR(request_date) = ?
+                    AND vacation_type = 'COMPENSATION'
+                    AND status = 'APPROVED'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $year]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return (float)($result['total_days'] ?? 0);
+
+        } catch (PDOException $e) {
+            error_log("Error calculando días compensados: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Obtener días acumulados de años anteriores
+     */
+    private function obtenerDiasAcumuladosAnteriores(int $employeeId, int $year): float
+    {
+        try {
+            $sql = "SELECT COALESCE(SUM(current_balance), 0) as total_accumulated
+                    FROM vacation_balances
+                    WHERE employee_id = ? AND year < ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $year]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return (float)($result['total_accumulated'] ?? 0);
+
+        } catch (PDOException $e) {
+            error_log("Error obteniendo días acumulados: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Agregar variables específicas para vacaciones
+     */
+    public function setVariablesVacaciones(int $employeeId, int $year = null): void
+    {
+        $this->setVariablesColaborador($employeeId);
+
+        if (!$year) {
+            $year = (int)date('Y');
+        }
+
+        // Agregar variables específicas de vacaciones
+        $this->variablesColaborador['VACATION_DAYS_EARNED'] = $this->VACATION_DAYS_EARNED($employeeId);
+        $this->variablesColaborador['VACATION_BALANCE'] = $this->VACATION_BALANCE($employeeId, $year);
+        $this->variablesColaborador['VACATION_ACCRUAL_RATE'] = $this->VACATION_ACCRUAL_RATE($employeeId);
+        $this->variablesColaborador['VACATION_ELIGIBLE'] = $this->VACATION_ELIGIBLE($employeeId) ? 1 : 0;
+        $this->variablesColaborador['VACATION_DAILY_SALARY'] = $this->VACATION_COMPENSATION_AMOUNT($employeeId, 1);
+    }
 }

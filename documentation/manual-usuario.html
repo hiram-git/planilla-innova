@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual de Usuario - Sistema de Planillas MVC</title>
+    <title>Manual de Usuario - Sistema de Planillas INNOVA</title>
     <style>
         * {
             margin: 0;
@@ -220,8 +220,8 @@
     <div class="container">
         <div class="header">
             <h1>📋 Manual de Usuario</h1>
-            <p>Sistema de Planillas MVC - Guía Completa de Funcionalidades</p>
-            <p><small>Versión 1.0 - Agosto 2025</small></p>
+            <p>Sistema de Planillas INNOVA - Guía Completa de Funcionalidades</p>
+            <p><small>Versión 3.3.0 - Septiembre 2025</small></p>
         </div>
 
         <div class="toc">
@@ -234,29 +234,33 @@
                 <li><a href="#conceptos">5. Gestión de Conceptos</a></li>
                 <li><a href="#acreedores">6. Gestión de Acreedores</a></li>
                 <li><a href="#planillas">7. Gestión de Planillas</a></li>
-                <li><a href="#reportes">8. Reportes y Consultas</a></li>
-                <li><a href="#configuracion">9. Configuración del Sistema</a></li>
-                <li><a href="#usuarios">10. Gestión de Usuarios</a></li>
-                <li><a href="#soporte">11. Soporte y Solución de Problemas</a></li>
+                <li><a href="#liquidaciones">8. Sistema de Liquidaciones Panamá</a></li>
+                <li><a href="#acumulados">9. Gestión de Acumulados</a></li>
+                <li><a href="#reportes">10. Reportes y Consultas</a></li>
+                <li><a href="#configuracion">11. Configuración del Sistema</a></li>
+                <li><a href="#usuarios">12. Gestión de Usuarios</a></li>
+                <li><a href="#caracteristicas-nuevas">13. Nuevas Características v3.3.0</a></li>
+                <li><a href="#soporte">14. Soporte y Solución de Problemas</a></li>
             </ul>
         </div>
 
         <div class="section" id="introduccion">
             <h2>1. 🎯 Introducción al Sistema</h2>
             
-            <p>El Sistema de Planillas MVC es una solución integral para la gestión de nóminas empresariales, diseñado para automatizar y simplificar todos los procesos relacionados con el cálculo de sueldos, deducciones y beneficios de los empleados.</p>
+            <p>El Sistema de Planillas INNOVA es una solución integral para la gestión de nóminas empresariales, diseñado para automatizar y simplificar todos los procesos relacionados con el cálculo de sueldos, deducciones y beneficios de los empleados.</p>
 
             <div class="feature-card">
-                <h4>🚀 Características Principales</h4>
+                <h4>🚀 Características Principales v3.3.0</h4>
                 <ul>
-                    <li><strong>Gestión Completa de Empleados:</strong> Registro, edición y organización del personal</li>
-                    <li><strong>Sistema de Conceptos Avanzado:</strong> Configuración flexible de ingresos y deducciones</li>
-                    <li><strong>Fórmulas Dinámicas:</strong> Cálculos automáticos basados en variables del empleado</li>
-                    <li><strong>Validaciones Inteligentes:</strong> Control de condiciones por tipo de planilla y situación</li>
-                    <li><strong>Procesamiento Transaccional:</strong> Garantía de integridad en los cálculos</li>
-                    <li><strong>Interfaz Intuitiva:</strong> Diseño responsivo y fácil navegación</li>
-                    <li><strong>Multi-usuario:</strong> Diferentes roles y permisos de acceso</li>
-                    <li><strong>Reportes Detallados:</strong> Exportación en múltiples formatos</li>
+                    <li><strong>Gestión Completa de Empleados:</strong> Registro con contratos, forma de pago y datos bancarios</li>
+                    <li><strong>Sistema de Conceptos Avanzado:</strong> Motor de fórmulas optimizado con variables dinámicas</li>
+                    <li><strong>Liquidaciones Panamá:</strong> Cálculos automáticos según Código de Trabajo</li>
+                    <li><strong>Acumulados XIII Mes:</strong> Procesamiento automático legislación panameña</li>
+                    <li><strong>Motor Fórmulas V2:</strong> INIPERIODO/FINPERIODO + función ACUMULADOS robusta</li>
+                    <li><strong>Query Builder:</strong> Optimización BD con 24% mejora rendimiento</li>
+                    <li><strong>Reportes PDF Empresariales:</strong> Logos + firmas + layout profesional</li>
+                    <li><strong>Multi-usuario:</strong> Roles granulares + auditoría completa</li>
+                    <li><strong>Exportaciones Avanzadas:</strong> CSV + Excel + PDF optimizados</li>
                 </ul>
             </div>
 
@@ -382,24 +386,53 @@
             <div class="step-list">
                 <ol>
                     <li>Hacer clic en el botón "Nuevo Empleado"</li>
-                    <li>Completar los campos obligatorios:
+                    <li>Completar los <strong>campos básicos obligatorios</strong>:
                         <ul>
-                            <li>Código de empleado (único)</li>
+                            <li>Código de empleado (único, autogenerado)</li>
                             <li>Nombres y apellidos</li>
+                            <li>Cédula de identidad</li>
                             <li>Fecha de nacimiento</li>
                             <li>Fecha de ingreso</li>
+                            <li>Género</li>
                         </ul>
                     </li>
-                    <li>Asignar información organizacional:
+                    <li>Configurar <strong>información organizacional</strong>:
                         <ul>
-                            <li>Posición</li>
-                            <li>Departamento</li>
+                            <li>Posición (para instituciones públicas)</li>
+                            <li>Cargo, Función, Partida (para empresas privadas)</li>
                             <li>Horario de trabajo</li>
+                            <li>Situación laboral (Activo, Inactivo, etc.)</li>
+                            <li>Tipo de planilla</li>
+                        </ul>
+                    </li>
+                    <li>Definir <strong>información de contrato</strong> (NUEVO v3.3.0):
+                        <ul>
+                            <li>Tipo de contrato: Indefinido, Definido, Proyecto, Temporal</li>
+                            <li>Número de contrato (opcional)</li>
+                            <li>Fecha inicio contrato</li>
+                            <li>Fecha vencimiento (obligatorio para contratos no indefinidos)</li>
+                        </ul>
+                    </li>
+                    <li>Configurar <strong>forma de pago</strong> (NUEVO v3.3.0):
+                        <ul>
+                            <li>Forma de pago: Efectivo, Cheque, ACH</li>
+                            <li>Datos bancarios (si aplica): Banco, número cuenta, tipo cuenta</li>
+                        </ul>
+                    </li>
+                    <li>Establecer salario y gastos:
+                        <ul>
+                            <li>Sueldo individual (empresas privadas)</li>
+                            <li>Gastos de representación</li>
                         </ul>
                     </li>
                     <li>Cargar fotografía (opcional)</li>
+                    <li>Asignar elemento del organigrama (opcional)</li>
                     <li>Guardar el registro</li>
                 </ol>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✅ Validaciones Automáticas v3.3.0:</strong> El sistema muestra/oculta campos automáticamente según las selecciones (datos bancarios para Cheque/ACH, fecha vencimiento para contratos definidos).
             </div>
 
             <div class="screenshot-placeholder">
@@ -465,6 +498,60 @@
                         <td><span class="badge badge-danger">Sí</span></td>
                         <td>Horario de trabajo asignado</td>
                     </tr>
+                    <tr>
+                        <td><strong>Tipo Contrato</strong></td>
+                        <td>Selección</td>
+                        <td><span class="badge badge-warning">No</span></td>
+                        <td>INDEFINIDO, DEFINIDO, PROYECTO, TEMPORAL</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Número Contrato</strong></td>
+                        <td>Texto</td>
+                        <td><span class="badge badge-warning">No</span></td>
+                        <td>Identificador del contrato laboral</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha Inicio Contrato</strong></td>
+                        <td>Fecha</td>
+                        <td><span class="badge badge-warning">No</span></td>
+                        <td>Fecha de inicio del contrato</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha Vencimiento Contrato</strong></td>
+                        <td>Fecha</td>
+                        <td><span class="badge badge-success">Condicional</span></td>
+                        <td>Obligatorio para contratos DEFINIDO, PROYECTO, TEMPORAL</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Forma de Pago</strong></td>
+                        <td>Selección</td>
+                        <td><span class="badge badge-warning">No</span></td>
+                        <td>EFECTIVO, CHEQUE, ACH</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Banco</strong></td>
+                        <td>Texto</td>
+                        <td><span class="badge badge-success">Condicional</span></td>
+                        <td>Obligatorio para forma de pago CHEQUE/ACH</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Número Cuenta</strong></td>
+                        <td>Texto</td>
+                        <td><span class="badge badge-success">Condicional</span></td>
+                        <td>Obligatorio para forma de pago CHEQUE/ACH</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tipo Cuenta</strong></td>
+                        <td>Selección</td>
+                        <td><span class="badge badge-success">Condicional</span></td>
+                        <td>AHORROS, CORRIENTE (obligatorio para CHEQUE/ACH)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha Terminación</strong></td>
+                        <td>Fecha</td>
+                        <td><span class="badge badge-warning">No</span></td>
+                        <td>Para empleados que han terminado relación laboral</td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -481,6 +568,36 @@
 
             <div class="alert alert-warning">
                 <strong>⚠️ Importante:</strong> Los cambios en la información del empleado se reflejarán en las próximas planillas. Las planillas ya procesadas no se modifican automáticamente.
+            </div>
+
+            <h3>4.5 Manejo de Re-entradas de Empleados</h3>
+            <p>Cuando un empleado regresa a la empresa después de haber terminado su relación laboral, el sistema maneja esta situación de forma controlada:</p>
+
+            <div class="feature-card">
+                <h4>🔄 Proceso de Re-entrada</h4>
+                <ol>
+                    <li><strong>Empleado con Fecha Terminación:</strong> Si un empleado tiene fecha_terminacion registrada, se considera "terminado"</li>
+                    <li><strong>Reactivación:</strong> Para reactivar:
+                        <ul>
+                            <li>Cambiar situacion_id a "Activo" (situación 1)</li>
+                            <li>Limpiar fecha_terminacion (dejar NULL)</li>
+                            <li>Actualizar fecha de ingreso si corresponde al nuevo período</li>
+                            <li>Renovar información de contrato y forma de pago si ha cambiado</li>
+                        </ul>
+                    </li>
+                    <li><strong>Historial Preservado:</strong> Se mantiene el historial de planillas anteriores</li>
+                    <li><strong>Nuevos Acumulados:</strong> Los acumulados reinician desde la nueva fecha de ingreso</li>
+                </ol>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>💡 Buena Práctica:</strong> Para empleados que regresan, considere:
+                <ul>
+                    <li>Actualizar todos los datos de contacto</li>
+                    <li>Revisar y actualizar información de contrato</li>
+                    <li>Verificar datos bancarios si usa CHEQUE/ACH</li>
+                    <li>Confirmar situación laboral actual</li>
+                </ul>
             </div>
         </div>
 
@@ -556,8 +673,8 @@
                     </tr>
                     <tr>
                         <td><strong>Fórmula</strong></td>
-                        <td>Expresión matemática para cálculo</td>
-                        <td>SALARIO * 0.15</td>
+                        <td>Expresión matemática para cálculo (Motor V2 avanzado)</td>
+                        <td>SALARIO * 0.15, ACUMULADOS(['BAINCO'], INIPERIODO, FINPERIODO)</td>
                     </tr>
                     <tr>
                         <td><strong>Valor Fijo</strong></td>
@@ -613,7 +730,7 @@
             </table>
 
             <div class="alert alert-success">
-                <strong>✅ Tip:</strong> La opción "Monto Cálculo" debe estar activada para que el sistema evalúe fórmulas dinámicas como ACREEDOR(EMPLEADO, id).
+                <strong>✅ Motor Fórmulas V2:</strong> Sistema avanzado con fechas dinámicas (INIPERIODO/FINPERIODO), función ACUMULADOS multi-concepto, y validación segura sin eval(). Requiere "Monto Cálculo" activado.
             </div>
 
             <h3>5.5 Fórmulas y Variables</h3>
@@ -631,20 +748,23 @@
             </div>
 
             <div class="feature-card">
-                <h4>🔧 Funciones Especiales</h4>
+                <h4>🔧 Funciones Especiales (Motor V2)</h4>
                 <ul>
                     <li><strong>ACREEDOR(EMPLEADO, id):</strong> Obtiene monto de deducción por acreedor</li>
+                    <li><strong>ACUMULADOS(['conceptos'], fecha_ini, fecha_fin):</strong> Suma acumulada multi-concepto con rangos de fecha</li>
+                    <li><strong>INIPERIODO / FINPERIODO:</strong> Fechas dinámicas del período actual</li>
                     <li><strong>SI(condicion, valor_si, valor_no):</strong> Condiciones lógicas</li>
                     <li><strong>Operadores:</strong> +, -, *, /, (), >, <, >=, <=</li>
                 </ul>
             </div>
 
             <div class="code-block">
-Ejemplos de Fórmulas:
+Ejemplos de Fórmulas (Motor V2):
 • SALARIO * 0.0833    (Bonificación incentivo 8.33%)
 • ACREEDOR(EMPLEADO, 11)    (Deducción banco industrial)
+• ACUMULADOS(['BAINCO', 'BONOA'], INIPERIODO, FINPERIODO)    (Suma acumulados XIII Mes)
 • SI(ANTIGUEDAD > 5, SALARIO * 0.10, 0)    (Bono antigüedad)
-• HORAS * 125.50    (Pago por horas trabajadas)
+• (ACUMULADOS(['SALARIO'], '2025-01-01', '2025-12-31') / 3) - ACUMULADOS(['DESC_SS'], '2025-01-01', '2025-12-31')    (XIII Mes Panamá)
             </div>
 
             <h3>5.6 Condiciones de Aplicación</h3>
@@ -918,18 +1038,20 @@ Ejemplo:
             <p>El procesamiento es donde ocurre la "magia" del cálculo automático:</p>
 
             <div class="feature-card">
-                <h4>🔄 Proceso de Cálculo Mejorado</h4>
+                <h4>🔄 Proceso de Cálculo Avanzado (Motor V2)</h4>
                 <ol>
                     <li><strong>Validación Previa:</strong> Antes de iniciar, el sistema verifica que existan empleados para el tipo de planilla seleccionado</li>
                     <li><strong>Filtrado por Tipo:</strong> Solo procesa empleados que coincidan con el tipo de planilla especificado en el dropdown</li>
-                    <li><strong>Evaluación de Conceptos:</strong> Para cada empleado, evalúa cada concepto:
+                    <li><strong>Evaluación de Conceptos (Motor V2):</strong> Para cada empleado, evalúa cada concepto:
                         <ul>
                             <li>Verifica condiciones (tipo planilla, situación, frecuencia)</li>
-                            <li>Evalúa fórmulas con variables del empleado</li>
-                            <li>Calcula montos finales</li>
+                            <li><strong>Motor Fórmulas V2:</strong> Evaluación segura con nxp/math-executor (sin eval)</li>
+                            <li><strong>Variables Dinámicas:</strong> INIPERIODO/FINPERIODO con fechas reales del período</li>
+                            <li><strong>Función ACUMULADOS:</strong> Suma multi-concepto con rangos de fecha</li>
+                            <li>Calcula montos finales con precisión decimal</li>
                         </ul>
                     </li>
-                    <li><strong>Aplicación de Deducciones:</strong> Procesa conceptos con función ACREEDOR()</li>
+                    <li><strong>Aplicación de Deducciones:</strong> Procesa conceptos con función ACREEDOR() y acumulados</li>
                     <li><strong>Validación de Montos:</strong> Verifica reglas de monto_cero</li>
                     <li><strong>Inserción Transaccional:</strong> Guarda todos los cálculos de forma segura</li>
                     <li><strong>Actualización de Estado:</strong> Marca la planilla como PROCESADA</li>
@@ -1141,13 +1263,14 @@ Ejemplo:
 
             <h3>8.4 Características de los Archivos</h3>
             <div class="info-box">
-                <h4>📄 Reportes PDF:</h4>
+                <h4>📄 Reportes PDF Empresariales:</h4>
                 <ul>
-                    <li>Formato profesional listo para imprimir</li>
-                    <li>Headers y footers con información de la empresa</li>
-                    <li>Datos organizados por categorías</li>
-                    <li>Totales y subtotales automáticos</li>
-                    <li>Información de empleado y período</li>
+                    <li><strong>Formato profesional</strong> listo para imprimir con triple sistema de logos</li>
+                    <li><strong>Triple Logo System:</strong> Logo principal + logo izquierdo reportes + logo derecho reportes</li>
+                    <li><strong>Firmas configurables:</strong> 4 niveles de firma desde configuración empresarial</li>
+                    <li><strong>Headers y footers</strong> con información completa de la empresa</li>
+                    <li><strong>Layout horizontal optimizado</strong> para planillas y comprobantes individuales</li>
+                    <li>Datos organizados por categorías con totales automáticos</li>
                 </ul>
             </div>
 
@@ -1187,7 +1310,28 @@ Ejemplo:
                             <li>Decimales a mostrar</li>
                         </ul>
                     </li>
-                    <li>Subir logo de la empresa</li>
+                    <li><strong>Configurar Sistema de Logos (Triple Logo System):</strong>
+                        <ul>
+                            <li><strong>Logo Principal:</strong> Imagen principal de la empresa</li>
+                            <li><strong>Logo Izquierdo Reportes:</strong> Logo para lado izquierdo de reportes PDF</li>
+                            <li><strong>Logo Derecho Reportes:</strong> Logo para lado derecho de reportes PDF</li>
+                            <li><strong>Upload con Dropzone.js:</strong> Arrastra y suelta archivos con preview dinámico</li>
+                        </ul>
+                    </li>
+                    <li><strong>Configurar Firmas para Reportes (4 niveles):</strong>
+                        <ul>
+                            <li>Firma 1: Elaborado por</li>
+                            <li>Firma 2: Revisado por</li>
+                            <li>Firma 3: Aprobado por</li>
+                            <li>Firma 4: Autorizado por</li>
+                        </ul>
+                    </li>
+                    <li><strong>Configurar Tipo de Institución:</strong>
+                        <ul>
+                            <li><strong>Empresa Privada:</strong> Requiere cargo, función, partida y sueldo individual</li>
+                            <li><strong>Institución Pública:</strong> Solo requiere posición organizacional</li>
+                        </ul>
+                    </li>
                     <li>Guardar configuración</li>
                 </ol>
             </div>
@@ -1233,6 +1377,11 @@ Ejemplo:
                         <td>Pago de vacaciones</td>
                         <td>Según política</td>
                     </tr>
+                    <tr>
+                        <td>Liquidaciones</td>
+                        <td>Liquidación de empleados</td>
+                        <td>Según terminación laboral</td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -1272,9 +1421,14 @@ Ejemplo:
             </ol>
 
             <div class="feature-card">
-                <h4>🏗️ Configuración Organizacional</h4>
-                <p>Cada módulo de la estructura organizacional puede ser activado/desactivado según las necesidades:</p>
+                <h4>🏗️ Configuración Organizacional Completa</h4>
+                <p>Sistema organizacional completo con CRUD, organigramas visuales y jerarquías dinámicas:</p>
                 <ul>
+                    <li><strong>CRUD Completo:</strong> Crear, editar, eliminar elementos organizacionales</li>
+                    <li><strong>Organigramas Visuales:</strong> Representación gráfica de la estructura</li>
+                    <li><strong>Jerarquías Dinámicas:</strong> Paths automáticos con validación de ciclos</li>
+                    <li><strong>Integración Empleados:</strong> Campo organigrama_id con foreign key</li>
+                    <li><strong>JavaScript Modular:</strong> organizational/index.js, create.js, edit.js</li>
                     <li>Activar solo los módulos que la empresa utiliza</li>
                     <li>Definir jerarquías entre niveles</li>
                     <li>Asignar empleados a múltiples niveles</li>
@@ -1375,8 +1529,11 @@ Ejemplo:
                 <h4>🔐 Control de Acceso por Módulo</h4>
                 <ul>
                     <li><strong>Dashboard:</strong> Ver/ocultar métricas específicas</li>
-                    <li><strong>Empleados:</strong> Crear, editar, eliminar, consultar</li>
-                    <li><strong>Conceptos:</strong> Gestionar conceptos de nómina</li>
+                    <li><strong>Empleados:</strong> Crear, editar, eliminar, consultar (con campos de contrato, pago y banco)</li>
+                    <li><strong>Conceptos:</strong> Gestionar conceptos de nómina con Motor Fórmulas V2</li>
+                    <li><strong>Liquidaciones:</strong> Crear y procesar liquidaciones de empleados</li>
+                    <li><strong>Acumulados:</strong> Consultar datos acumulados y XIII Mes</li>
+                    <li><strong>Organizacional:</strong> Gestionar estructura organizacional completa</li>
                     <li><strong>Planillas:</strong> Crear, procesar, reprocesar</li>
                     <li><strong>Acreedores:</strong> Gestionar instituciones externas</li>
                     <li><strong>Reportes:</strong> Acceso a diferentes tipos de reportes</li>
@@ -1408,12 +1565,204 @@ Ejemplo:
             </div>
         </div>
 
+        <div class="section" id="liquidaciones">
+            <h2>8. 🏛️ Sistema de Liquidaciones Panamá</h2>
+
+            <h3>8.1 Introducción a Liquidaciones</h3>
+            <p>El sistema de liquidaciones permite calcular automáticamente todos los valores adeudados a los empleados según la legislación laboral panameña, incluyendo prima de antigüedad, indemnización, preaviso, XIII mes proporcional y vacaciones.</p>
+
+            <div class="alert alert-info">
+                <strong>💡 Legislación Base:</strong> Los cálculos se basan en el Código de Trabajo de Panamá vigente.
+            </div>
+
+            <h3>8.2 Crear Nueva Liquidación</h3>
+            <div class="step-guide">
+                <h4>Pasos para crear una liquidación:</h4>
+                <ol>
+                    <li>Ir a <strong>Planillas → Liquidaciones</strong> en el menú principal</li>
+                    <li>Hacer clic en <span class="btn-example">Crear Nueva Liquidación</span></li>
+                    <li>Seleccionar el empleado de la lista desplegable</li>
+                    <li>Establecer la fecha de terminación</li>
+                    <li>Seleccionar el motivo de terminación:
+                        <ul>
+                            <li><strong>Renuncia:</strong> El empleado renuncia voluntariamente</li>
+                            <li><strong>Despido Justificado:</strong> Despido por causa justificada</li>
+                            <li><strong>Despido Injustificado:</strong> Despido sin causa justificada</li>
+                            <li><strong>Jubilación:</strong> Retiro por jubilación</li>
+                            <li><strong>Mutuo Acuerdo:</strong> Terminación por mutuo acuerdo</li>
+                        </ul>
+                    </li>
+                    <li>El sistema calculará automáticamente todos los valores</li>
+                    <li>Revisar los cálculos y hacer clic en <span class="btn-example">Procesar Liquidación</span></li>
+                </ol>
+            </div>
+
+            <h3>8.3 Conceptos de Liquidación</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th>Descripción</th>
+                        <th>Cálculo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Prima de Antigüedad</strong></td>
+                        <td>Compensación por años de servicio</td>
+                        <td>1-3 semanas según años trabajados</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Indemnización</strong></td>
+                        <td>Pago por despido injustificado</td>
+                        <td>Varía según causa de terminación</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Preaviso</strong></td>
+                        <td>Aviso previo no otorgado</td>
+                        <td>1-8 semanas según tiempo servicio</td>
+                    </tr>
+                    <tr>
+                        <td><strong>XIII Mes Proporcional</strong></td>
+                        <td>Décimo tercer mes proporcional</td>
+                        <td>Proporcional a días trabajados</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Vacaciones Proporcionales</strong></td>
+                        <td>Vacaciones no disfrutadas</td>
+                        <td>Balance + proporcional año actual</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>8.4 Reportes de Liquidación</h3>
+            <p>Una vez procesada la liquidación, puede generar:</p>
+            <ul>
+                <li><strong>Certificado de Liquidación PDF:</strong> Documento oficial con cálculos detallados</li>
+                <li><strong>Comprobante de Pago:</strong> Para entrega al empleado</li>
+                <li><strong>Reporte Contable:</strong> Para registros contables</li>
+            </ul>
+        </div>
+
+        <div class="section" id="acumulados">
+            <h2>9. 📊 Gestión de Acumulados</h2>
+
+            <h3>9.1 ¿Qué son los Acumulados?</h3>
+            <p>Los acumulados son valores que se van acumulando período tras período, como el XIII mes, vacaciones y prima de antigüedad. El sistema los calcula automáticamente al procesar cada planilla.</p>
+
+            <h3>9.2 Tipos de Acumulados</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>📅 XIII Mes</h4>
+                    <p>Décimo tercer mes calculado automáticamente según legislación panameña (Salario Anual ÷ 3)</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🏖️ Vacaciones</h4>
+                    <p>Balance de vacaciones (30 días por 11 meses trabajados)</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🏆 Prima de Antigüedad</h4>
+                    <p>Acumulado por años de servicio según tabla legal</p>
+                </div>
+            </div>
+
+            <h3>9.3 Consultar Acumulados</h3>
+            <div class="step-guide">
+                <h4>Opciones de consulta:</h4>
+                <ul>
+                    <li><strong>Por Empleado:</strong> Ver todos los acumulados de un empleado específico</li>
+                    <li><strong>Por Concepto:</strong> Ver un tipo de acumulado para todos los empleados</li>
+                    <li><strong>Por Planilla:</strong> Ver acumulados generados en una planilla específica</li>
+                </ul>
+            </div>
+
+            <h3>9.4 Exportar Datos de Acumulados</h3>
+            <p>Todas las vistas de acumulados permiten exportar los datos en formato CSV para análisis adicional en Excel.</p>
+        </div>
+
+        <div class="section" id="caracteristicas-nuevas">
+            <h2>13. 🆕 Nuevas Características v3.3.0</h2>
+
+            <h3>13.1 Gestión de Empleados Mejorada</h3>
+            <div class="alert alert-success">
+                <strong>✅ Nuevos Campos Disponibles:</strong>
+            </div>
+
+            <h4>13.1.1 Información de Contrato</h4>
+            <ul>
+                <li><strong>Tipo de Contrato:</strong> Indefinido, Definido, Por Proyecto, Temporal</li>
+                <li><strong>Número de Contrato:</strong> Identificador único del contrato</li>
+                <li><strong>Fechas de Contrato:</strong> Inicio y vencimiento (obligatorio para contratos definidos)</li>
+            </ul>
+
+            <h4>13.1.2 Forma de Pago</h4>
+            <ul>
+                <li><strong>Efectivo:</strong> Pago en efectivo</li>
+                <li><strong>Cheque:</strong> Requiere datos bancarios</li>
+                <li><strong>ACH:</strong> Transferencia bancaria automática</li>
+            </ul>
+
+            <h4>13.1.3 Datos Bancarios</h4>
+            <p>Para empleados con forma de pago Cheque o ACH:</p>
+            <ul>
+                <li><strong>Banco:</strong> Nombre de la institución financiera</li>
+                <li><strong>Número de Cuenta:</strong> Cuenta del empleado</li>
+                <li><strong>Tipo de Cuenta:</strong> Ahorros o Corriente</li>
+            </ul>
+
+            <div class="alert alert-info">
+                <strong>💡 Validaciones Automáticas:</strong> El sistema muestra/oculta los campos bancarios automáticamente según la forma de pago seleccionada.
+            </div>
+
+            <h3>13.2 Motor de Fórmulas Optimizado</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🧮 Variables Dinámicas</h4>
+                    <p>INIPERIODO y FINPERIODO ahora usan fechas reales de la planilla</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔄 Función ACUMULADOS</h4>
+                    <p>Manejo robusto de conceptos múltiples con mejor rendimiento</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🛡️ Seguridad Mejorada</h4>
+                    <p>Migración de eval() a nxp/math-executor para mayor seguridad</p>
+                </div>
+            </div>
+
+            <h3>13.3 Sistema de Liquidaciones</h3>
+            <p>Completamente nuevo sistema de liquidaciones que cumple con la legislación laboral panameña:</p>
+            <ul>
+                <li>Cálculos automáticos según Código de Trabajo</li>
+                <li>Prima de Antigüedad, Indemnización, Preaviso</li>
+                <li>XIII Mes y Vacaciones proporcionales</li>
+                <li>Reportes PDF oficiales</li>
+                <li>Auditoría completa de liquidaciones</li>
+            </ul>
+
+            <h3>13.4 Mejoras en Reportería</h3>
+            <div class="step-guide">
+                <h4>Optimizaciones implementadas:</h4>
+                <ul>
+                    <li><strong>Logos Empresariales:</strong> Mejor alineación en reportes PDF y Excel</li>
+                    <li><strong>Layout Mejorado:</strong> Márgenes optimizados para mejor legibilidad</li>
+                    <li><strong>Certificados de Liquidación:</strong> Nuevos reportes oficiales</li>
+                    <li><strong>Exportación CSV:</strong> Mejorada para acumulados</li>
+                </ul>
+            </div>
+
+            <h3>13.5 Análisis ISR Panamá</h3>
+            <div class="alert alert-info">
+                <strong>📋 Documentación Disponible:</strong> Se ha incluido análisis completo para implementar ISR como concepto en el motor de fórmulas, listo para futura implementación.
+            </div>
+        </div>
+
         <div class="section" id="soporte">
-            <h2>11. 🆘 Soporte y Solución de Problemas</h2>
+            <h2>14. 🆘 Soporte y Solución de Problemas</h2>
 
-            <h3>11.1 Problemas Comunes y Soluciones</h3>
+            <h3>14.1 Problemas Comunes y Soluciones</h3>
 
-            <h4>11.1.1 Error al Procesar Planilla</h4>
+            <h4>14.1.1 Error al Procesar Planilla</h4>
             <div class="alert alert-warning">
                 <strong>Problema:</strong> La planilla no se procesa o muestra errores de cálculo.
             </div>
@@ -1543,10 +1892,10 @@ Ejemplo:
         </div>
 
         <div class="footer">
-            <p><strong>Sistema de Planillas MVC</strong></p>
-            <p>Manual de Usuario v1.0 - Agosto 2025</p>
+            <p><strong>Sistema de Planillas INNOVA</strong></p>
+            <p>Manual de Usuario v3.3.0 - Septiembre 2025</p>
             <p>© 2025 - Todos los derechos reservados</p>
-            <p><em>Desarrollado con tecnología PHP 8.3 + MySQL + AdminLTE</em></p>
+            <p><em>Desarrollado con tecnología PHP 8.3 + MySQL + AdminLTE + Motor Fórmulas V2</em></p>
         </div>
     </div>
 

@@ -100,7 +100,17 @@ $content .= '
                                     <tr>
                                         <td><strong>Salario Base:</strong></td>
                                         <td>' . ($employee['moneda_simbolo'] ?? 'Q.') . ' ' . number_format($employee['position_salary'] ?? 0, 2) . '</td>
-                                    </tr>
+                                    </tr>';
+
+if (!empty($employee['gastos_representacion']) && $employee['gastos_representacion'] > 0) {
+    $content .= '
+                                    <tr>
+                                        <td><strong>Gastos Representación:</strong></td>
+                                        <td>' . ($employee['moneda_simbolo'] ?? 'Q.') . ' ' . number_format($employee['gastos_representacion'], 2) . '</td>
+                                    </tr>';
+}
+
+$content .= '
                                     <tr>
                                         <td><strong>Fecha Ingreso:</strong></td>
                                         <td>' . ($employee['fecha_ingreso'] ? date('d/m/Y', strtotime($employee['fecha_ingreso'])) : 'No especificada') . '</td>

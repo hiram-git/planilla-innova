@@ -706,6 +706,19 @@ class ConceptController extends Controller
 
             if ($newId) {
                 $_SESSION['success'] = 'Concepto duplicado exitosamente';
+
+                // Si es una petición AJAX, devolver JSON
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Concepto duplicado exitosamente',
+                        'redirect' => '/panel/concepts/' . $newId . '/edit'
+                    ]);
+                    exit;
+                }
+
                 $this->redirect('/panel/concepts/' . $newId . '/edit');
             } else {
                 throw new \Exception('Error al duplicar el concepto');
@@ -713,6 +726,18 @@ class ConceptController extends Controller
 
         } catch (\Exception $e) {
             error_log("Error en ConceptController@duplicate: " . $e->getMessage());
+
+            // Si es una petición AJAX, devolver JSON
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ]);
+                exit;
+            }
+
             $_SESSION['error'] = $e->getMessage();
             $this->redirect('/panel/concepts/' . $id);
         }

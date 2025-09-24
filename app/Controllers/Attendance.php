@@ -245,7 +245,7 @@ class Attendance extends Controller
         return ($timeInHour <= $schedule['time_in']) ? 1 : 0;
     }
 
-    private function requireAuth()
+    protected function requireAuth()
     {
         AuthMiddleware::requireAuth();
     }

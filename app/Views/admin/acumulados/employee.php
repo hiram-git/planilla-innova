@@ -138,21 +138,10 @@ $scripts = '
                                 </div>
                                 
                                 <div class="row">
-                                    <div class="col-6">
+                                    <div class="col-12">
                                         <small class="text-muted">Conceptos Incluidos</small>
                                         <div class="font-weight-bold"><?= $acumulado['total_conceptos_incluidos'] ?></div>
                                     </div>
-                                    <div class="col-6">
-                                        <small class="text-muted">Periodicidad</small>
-                                        <div class="font-weight-bold"><?= htmlspecialchars($acumulado['periodicidad']) ?></div>
-                                    </div>
-                                </div>
-                                
-                                <hr>
-                                
-                                <div class="mb-2">
-                                    <small class="text-muted">Período</small>
-                                    <div><?= date('d/m/Y', strtotime($acumulado['periodo_inicio'])) ?> - <?= date('d/m/Y', strtotime($acumulado['periodo_fin'])) ?></div>
                                 </div>
                                 
                                 <?php if ($acumulado['ultima_planilla']): ?>

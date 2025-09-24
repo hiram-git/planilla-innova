@@ -105,6 +105,64 @@ $(document).ready(function() {
         }
     });
     
+    // Manejo de forma de pago y campos bancarios
+    $('#forma_pago').change(function() {
+        var formaPago = $(this).val();
+        var bankDetails = $('#bank-details');
+        var bancoField = $('#banco');
+        var numeroCuentaField = $('#numero_cuenta');
+        var tipoCuentaField = $('#tipo_cuenta');
+
+        if (formaPago === 'CHEQUE' || formaPago === 'ACH') {
+            // Mostrar campos bancarios y hacerlos obligatorios
+            bankDetails.show();
+            bancoField.prop('required', true);
+            numeroCuentaField.prop('required', true);
+            tipoCuentaField.prop('required', true);
+        } else {
+            // Ocultar campos bancarios y quitarles la obligatoriedad
+            bankDetails.hide();
+            bancoField.prop('required', false).val('');
+            numeroCuentaField.prop('required', false).val('');
+            tipoCuentaField.prop('required', false).val('');
+        }
+    });
+
+    // Manejo de tipo de contrato y campos relacionados
+    $('#tipo_contrato').change(function() {
+        var tipoContrato = $(this).val();
+        var contractNumberSection = $('#contract-number-section');
+        var contractDatesSection = $('#contract-dates-section');
+        var numeroContratoField = $('#numero_contrato');
+        var fechaInicioField = $('#fecha_inicio_contrato');
+        var fechaVencimientoField = $('#fecha_vencimiento_contrato');
+
+        if (tipoContrato === 'INDEFINIDO') {
+            // Ocultar todos los campos de contrato específico y quitar obligatoriedad
+            contractNumberSection.hide();
+            contractDatesSection.hide();
+            numeroContratoField.prop('required', false);
+            fechaInicioField.prop('required', false);
+            fechaVencimientoField.prop('required', false);
+        } else {
+            // Mostrar campos de contrato específico
+            contractNumberSection.show();
+            contractDatesSection.show();
+
+            if (tipoContrato === 'DEFINIDO' || tipoContrato === 'PROYECTO' || tipoContrato === 'TEMPORAL') {
+                // Hacer obligatorios los campos para contratos específicos
+                numeroContratoField.prop('required', true);
+                fechaInicioField.prop('required', true);
+                fechaVencimientoField.prop('required', true);
+                fechaVencimientoField.parent().find('small').html('Requerido para contratos definidos, por proyecto o temporales <span class="text-danger">*</span>');
+            }
+        }
+    });
+
+    // Ejecutar al cargar para mostrar campos si ya hay valores seleccionados
+    $('#forma_pago').trigger('change');
+    $('#tipo_contrato').trigger('change');
+
     // Previsualización de imagen
     $('#photo').change(function() {
         var file = this.files[0];

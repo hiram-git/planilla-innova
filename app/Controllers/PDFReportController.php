@@ -333,18 +333,21 @@ class PDFReportController extends Controller
     private function generatePaySlipPDFDocument($data)
     {
         $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-        
+
         // Configuración del documento
         $pdf->SetCreator('Sistema de Planillas MVC');
         $pdf->SetAuthor('Sistema de Planillas');
         $pdf->SetTitle('Comprobante de Pago - ' . $data['employee']['firstname'] . ' ' . $data['employee']['lastname']);
-        
+
         $pdf->SetMargins(20, 30, 20);
         $pdf->SetAutoPageBreak(TRUE, 25);
         $pdf->AddPage();
-        
+
         $employee = $data['employee'];
         $payroll = $data['payroll'];
+
+        // Obtener información de la empresa para los logos
+        $companyInfo = $this->getCompanyInfo();
 
         // Insertar logos si existen - alineados con márgenes
         $this->insertLogosInPDF($pdf, $companyInfo);
@@ -685,7 +688,7 @@ class PDFReportController extends Controller
     /**
      * Verificar autenticación
      */
-    private function requireAuth()
+    protected function requireAuth()
     {
         if (!isset($_SESSION['admin'])) {
             $this->redirect('/admin');

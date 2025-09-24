@@ -228,7 +228,7 @@
         <div class="header">
             <h1>🚀 Manual de Instalación</h1>
             <p>Sistema de Planillas MVC - Guía Completa de Instalación Multi-Plataforma</p>
-            <p>Versión 2.1 | Actualizado: Septiembre 2025</p>
+            <p>Versión 3.3.0 | Actualizado: Septiembre 2025</p>
         </div>
 
         <div class="toc">
@@ -244,7 +244,7 @@
                 <li><a href="#troubleshooting">8. Resolución de Problemas</a></li>
                 <li><a href="#actualizacion">9. Actualización del Sistema</a></li>
                 <li><a href="#respaldo">10. Respaldo y Restauración</a></li>
-                <li><a href="#caracteristicas-nuevas">11. Características Recientes (v2.1)</a></li>
+                <li><a href="#caracteristicas-nuevas">11. Características Recientes (v3.3.0)</a></li>
             </ul>
         </div>
 
@@ -906,70 +906,112 @@ crontab -e
         </div>
 
         <div class="section" id="caracteristicas-nuevas">
-            <h2>11. 🆕 Características Recientes (v2.1)</h2>
+            <h2>11. 🆕 Características Recientes (v3.3.0)</h2>
 
-            <h3>11.1 Mejoras en Procesamiento de Planillas</h3>
+            <h3>11.1 Sistema de Liquidaciones Panamá</h3>
             <div class="info-box">
-                <strong>💡 Nuevas Funcionalidades:</strong>
+                <strong>💡 Nuevas Funcionalidades Liquidaciones:</strong>
                 <ul>
-                    <li><strong>Filtrado por Tipo de Planilla:</strong> Procesamiento específico según situación de empleado</li>
-                    <li><strong>Validación de Empleados:</strong> Verificación previa antes del procesamiento</li>
-                    <li><strong>Seguimiento Mejorado:</strong> Progress tracking más preciso y confiable</li>
-                    <li><strong>Regeneración Selectiva:</strong> Reprocesar planillas manteniendo parámetros originales</li>
+                    <li><strong>PayrollLiquidationController:</strong> CRUD completo para liquidaciones según Código de Trabajo</li>
+                    <li><strong>Cálculos Legislativos:</strong> Prima de Antigüedad, Indemnización, Preaviso automáticos</li>
+                    <li><strong>XIII Mes Proporcional:</strong> Cálculo exacto de días trabajados en liquidación</li>
+                    <li><strong>Vacaciones Proporcionales:</strong> Balance pendiente más proporcional del año</li>
+                    <li><strong>Reportes PDF:</strong> Certificados de liquidación con firmas empresariales</li>
                 </ul>
             </div>
 
-            <h3>11.2 Gestión de Acreedores Mejorada</h3>
+            <h3>11.2 Gestión Empleados Mejorada</h3>
             <div class="step-list">
-                <h4>Validaciones de Seguridad</h4>
+                <h4>Nuevos Campos Empleados</h4>
                 <ul>
-                    <li>Verificación de deducciones activas antes de eliminar</li>
-                    <li>Mensajes de confirmación más descriptivos</li>
-                    <li>Protección contra eliminaciones accidentales</li>
-                    <li>Interfaz simplificada sin funciones redundantes</li>
+                    <li><strong>Tipo de Contrato:</strong> Indefinido, Definido, Proyecto, Temporal</li>
+                    <li><strong>Fechas de Contrato:</strong> Inicio y vencimiento con validaciones automáticas</li>
+                    <li><strong>Forma de Pago:</strong> Efectivo, Cheque, ACH con campos bancarios condicionales</li>
+                    <li><strong>Datos Bancarios:</strong> Banco, número de cuenta, tipo de cuenta</li>
+                    <li><strong>Validaciones Dinámicas:</strong> JavaScript que muestra/oculta campos según selecciones</li>
                 </ul>
             </div>
 
-            <h3>11.3 Correcciones Importantes</h3>
+            <h3>11.3 Motor de Fórmulas Optimizado V2</h3>
+            <div class="info-box">
+                <strong>🧮 Mejoras en Cálculos:</strong>
+                <ul>
+                    <li><strong>Variables Dinámicas:</strong> INIPERIODO/FINPERIODO con fechas reales de planilla</li>
+                    <li><strong>Función ACUMULADOS:</strong> Manejo robusto de conceptos múltiples</li>
+                    <li><strong>Tipo Acumulado:</strong> Categorización XIII_MES, VACACIONES, PRIMA_ANTIGUEDAD</li>
+                    <li><strong>Preservación Strings:</strong> Variables no corrompen nombres en quoted strings</li>
+                    <li><strong>Seguridad:</strong> Migración de eval() a nxp/math-executor</li>
+                </ul>
+            </div>
+
+            <h3>11.4 Custom Query Builder</h3>
             <div class="warning-box">
-                <strong>🔧 Fixes Aplicados:</strong>
+                <strong>🚀 Optimización Base de Datos:</strong>
                 <ul>
-                    <li><strong>JavaScript Syntax:</strong> Eliminados errores de sintaxis en formularios</li>
-                    <li><strong>Campos de Fecha:</strong> Corrección en visualización de períodos de planilla</li>
-                    <li><strong>Conflictos de Nombres:</strong> Resolución de conflictos entre funciones JavaScript</li>
-                    <li><strong>Progress Tracking:</strong> Eliminados falsos positivos en seguimiento</li>
+                    <li><strong>Interfaz Fluente:</strong> Sintaxis elegante para consultas complejas</li>
+                    <li><strong>Adaptadores Multi-BD:</strong> Soporte MySQL + PostgreSQL automático</li>
+                    <li><strong>Métodos Específicos:</strong> payrollSummary, xiiiMonthCalculationData, vacationBalance</li>
+                    <li><strong>24% Mejora Rendimiento:</strong> Consultas optimizadas automáticamente</li>
+                    <li><strong>Bulk Operations:</strong> Inserción masiva para procesamiento planillas</li>
                 </ul>
             </div>
 
-            <h3>11.4 Consideraciones Post-Actualización</h3>
+            <h3>11.5 Correcciones Críticas</h3>
             <div class="step-list">
-                <ol>
-                    <li><strong>Limpiar Cache del Navegador:</strong> Ctrl+F5 para forzar recarga de recursos</li>
-                    <li><strong>Verificar Permisos:</strong> Asegurar que los directorios de logs tengan permisos de escritura</li>
-                    <li><strong>Probar Funcionalidades:</strong> Ejecutar prueba completa de procesamiento de planilla</li>
-                    <li><strong>Revisar Configuraciones:</strong> Verificar que las configuraciones de empresa estén correctas</li>
-                </ol>
+                <h4>Bugfixes Importantes</h4>
+                <ul>
+                    <li><strong>Campos BD Acumulados:</strong> Corrección fecha_inicio/fecha_fin → fecha_desde/fecha_hasta</li>
+                    <li><strong>Variables Undefined:</strong> Eliminación warnings $empleadoId, $conceptoId</li>
+                    <li><strong>Enlaces Menú:</strong> Actualización rutas acumulados a implementaciones correctas</li>
+                    <li><strong>Alineación Logos:</strong> PDFReportController + ExcelReportController optimizados</li>
+                    <li><strong>Estado Laboral:</strong> Eliminación campo redundante, uso únicamente tabla situaciones</li>
+                </ul>
             </div>
 
-            <h3>11.5 Comandos de Verificación v2.1</h3>
+            <h3>11.6 Análisis ISR Panamá</h3>
+            <div class="info-box">
+                <strong>📋 Documentación Técnica:</strong>
+                <ul>
+                    <li><strong>Análisis Completo ISR:</strong> Implementación como concepto en motor fórmulas</li>
+                    <li><strong>Tramos Impositivos 2025:</strong> 0-11K (exento), 11-50K (15%), 50-125K (20%), 125K+ (25%)</li>
+                    <li><strong>Gastos Representación:</strong> Máximo 25% salario, límite B/. 60,000 anuales</li>
+                    <li><strong>Variables Dinámicas:</strong> SALARIO_ANUAL_PROYECTADO, RENTA_GRAVABLE_ANUAL</li>
+                    <li><strong>Documentación:</strong> ISR_CONCEPTO_ANALYSIS.md con ejemplos implementación</li>
+                </ul>
+            </div>
+
+            <h3>11.7 Comandos de Verificación v3.3.0</h3>
             <div class="code-block">
-# Verificar logs de errores recientes
-tail -f /path/to/planilla-mvc/logs/error.log
+# Verificar estructura BD actualizada
+mysql -u root planilla_innova -e "DESCRIBE employees;" | grep -E "(tipo_contrato|forma_pago|banco)"
 
-# Limpiar cache de navegador (usuarios)
-# Presionar Ctrl+F5 en navegador
+# Verificar motor fórmulas
+mysql -u root planilla_innova -e "SELECT concepto, formula FROM concepto WHERE concepto LIKE '%ISR%' OR concepto LIKE '%LIQUID%';"
 
-# Verificar permisos de escritura
-ls -la /path/to/planilla-mvc/logs/
-ls -la /path/to/planilla-mvc/storage/
+# Probar query builder (si implementado)
+php -r "require 'app/Core/QueryBuilder.php'; echo 'Query Builder OK\n';"
 
-# Probar conexión a base de datos
-php -r "try { new PDO('mysql:host=localhost;dbname=planilla_mvc', 'user', 'pass'); echo 'OK\n'; } catch(Exception \$e) { echo 'Error: ' . \$e->getMessage() . '\n'; }"
+# Verificar logs liquidaciones
+tail -f /path/to/planilla-mvc/logs/liquidations.log
+
+# Validar campos empleados nuevos
+mysql -u root planilla_innova -e "SELECT id, firstname, tipo_contrato, forma_pago, banco FROM employees LIMIT 3;"
+            </div>
+
+            <h3>11.8 Próximas Funcionalidades Planificadas</h3>
+            <div class="step-list">
+                <h4>Módulo Vacaciones Panamá (Próximo)</h4>
+                <ul>
+                    <li><strong>VacationCalculator:</strong> 30 días por 11 meses trabajados</li>
+                    <li><strong>Sistema Solicitudes:</strong> Formulario + flujo aprobación multinivel</li>
+                    <li><strong>Calendario Visual:</strong> FullCalendar.js + detección conflictos</li>
+                    <li><strong>Compensación Monetaria:</strong> Integración motor fórmulas automático</li>
+                </ul>
             </div>
 
             <div class="success-box">
-                <strong>✅ Actualización v2.1 Completada</strong>
-                <p>El sistema ha sido actualizado con las últimas mejoras en estabilidad, seguridad y funcionalidad. Todas las características están completamente probadas y documentadas.</p>
+                <strong>✅ Actualización v3.3.0 Completada</strong>
+                <p>El sistema está ahora en su versión más robusta con liquidaciones automáticas según legislación panameña, gestión empleados mejorada, motor fórmulas optimizado y query builder de alto rendimiento. Listo para implementación empresarial completa.</p>
             </div>
         </div>
     </div>

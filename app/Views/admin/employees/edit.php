@@ -213,12 +213,27 @@ $content .= '                </select>
                                     <div class="input-group-prepend">
                                         <span class="input-group-text">' . currency_symbol() . '</span>
                                     </div>
-                                    <input type="number" class="form-control" id="edit_sueldo_individual" name="edit_sueldo_individual" 
+                                    <input type="number" class="form-control" id="edit_sueldo_individual" name="edit_sueldo_individual"
                                            step="0.01" min="0" placeholder="0.00"
                                            value="' . ($_SESSION['old_data']['edit_sueldo_individual'] ?? ($employee['sueldo_individual'] ?? '')) . '">
                                 </div>
                                 <small class="form-text text-muted">Sueldo específico para este empleado en empresa privada</small>
                                 ' . (isset($_SESSION['errors']['edit_sueldo_individual']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_sueldo_individual'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_gastos_representacion">Gastos de Representación</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">' . currency_symbol() . '</span>
+                                    </div>
+                                    <input type="number" class="form-control" id="edit_gastos_representacion" name="edit_gastos_representacion"
+                                           step="0.01" min="0" placeholder="0.00"
+                                           value="' . ($_SESSION['old_data']['edit_gastos_representacion'] ?? ($employee['gastos_representacion'] ?? '')) . '">
+                                </div>
+                                <small class="form-text text-muted">Gastos de representación asignados al empleado</small>
+                                ' . (isset($_SESSION['errors']['edit_gastos_representacion']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_gastos_representacion'] . '</small>' : '') . '
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -258,7 +273,104 @@ $content .= '                </select>
                             </div>
                         </div>
                     </div>
-                    
+
+                    <!-- Campos de Contrato -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_tipo_contrato">Tipo de Contrato *</label>
+                                <select class="form-control" id="edit_tipo_contrato" name="edit_tipo_contrato" required>
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="INDEFINIDO"' . (($_SESSION['old_data']['edit_tipo_contrato'] ?? ($employee['tipo_contrato'] ?? 'INDEFINIDO')) == 'INDEFINIDO' ? ' selected' : '') . '>Indefinido</option>
+                                    <option value="DEFINIDO"' . (($_SESSION['old_data']['edit_tipo_contrato'] ?? ($employee['tipo_contrato'] ?? '')) == 'DEFINIDO' ? ' selected' : '') . '>Definido</option>
+                                    <option value="PROYECTO"' . (($_SESSION['old_data']['edit_tipo_contrato'] ?? ($employee['tipo_contrato'] ?? '')) == 'PROYECTO' ? ' selected' : '') . '>Por Proyecto</option>
+                                    <option value="TEMPORAL"' . (($_SESSION['old_data']['edit_tipo_contrato'] ?? ($employee['tipo_contrato'] ?? '')) == 'TEMPORAL' ? ' selected' : '') . '>Temporal</option>
+                                </select>
+                                ' . (isset($_SESSION['errors']['edit_tipo_contrato']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_tipo_contrato'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="edit-contract-number-section">
+                            <div class="form-group">
+                                <label for="edit_numero_contrato">Número de Contrato</label>
+                                <input type="text" class="form-control" id="edit_numero_contrato" name="edit_numero_contrato"
+                                       placeholder="Ej: CT-2025-001" maxlength="50"
+                                       value="' . ($_SESSION['old_data']['edit_numero_contrato'] ?? ($employee['numero_contrato'] ?? '')) . '">
+                                <small class="form-text text-muted">Número identificador del contrato</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="edit-contract-dates-section">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_fecha_inicio_contrato">Fecha Inicio Contrato</label>
+                                <input type="date" class="form-control" id="edit_fecha_inicio_contrato" name="edit_fecha_inicio_contrato"
+                                       value="' . ($_SESSION['old_data']['edit_fecha_inicio_contrato'] ?? ($employee['fecha_inicio_contrato'] ?? '')) . '">
+                                <small class="form-text text-muted">Fecha de inicio del contrato actual</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_fecha_vencimiento_contrato">Fecha Vencimiento Contrato</label>
+                                <input type="date" class="form-control" id="edit_fecha_vencimiento_contrato" name="edit_fecha_vencimiento_contrato"
+                                       value="' . ($_SESSION['old_data']['edit_fecha_vencimiento_contrato'] ?? ($employee['fecha_vencimiento_contrato'] ?? '')) . '">
+                                <small class="form-text text-muted">Requerido para contratos definidos, por proyecto o temporales</small>
+                                ' . (isset($_SESSION['errors']['edit_fecha_vencimiento_contrato']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_fecha_vencimiento_contrato'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos de Forma de Pago -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_forma_pago">Forma de Pago *</label>
+                                <select class="form-control" id="edit_forma_pago" name="edit_forma_pago" required>
+                                    <option value="">Seleccionar forma...</option>
+                                    <option value="EFECTIVO"' . (($_SESSION['old_data']['edit_forma_pago'] ?? ($employee['forma_pago'] ?? 'EFECTIVO')) == 'EFECTIVO' ? ' selected' : '') . '>Efectivo</option>
+                                    <option value="CHEQUE"' . (($_SESSION['old_data']['edit_forma_pago'] ?? ($employee['forma_pago'] ?? '')) == 'CHEQUE' ? ' selected' : '') . '>Cheque</option>
+                                    <option value="ACH"' . (($_SESSION['old_data']['edit_forma_pago'] ?? ($employee['forma_pago'] ?? '')) == 'ACH' ? ' selected' : '') . '>ACH (Transferencia)</option>
+                                </select>
+                                ' . (isset($_SESSION['errors']['edit_forma_pago']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_forma_pago'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_tipo_cuenta">Tipo de Cuenta</label>
+                                <select class="form-control" id="edit_tipo_cuenta" name="edit_tipo_cuenta">
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="AHORROS"' . (($_SESSION['old_data']['edit_tipo_cuenta'] ?? ($employee['tipo_cuenta'] ?? '')) == 'AHORROS' ? ' selected' : '') . '>Ahorros</option>
+                                    <option value="CORRIENTE"' . (($_SESSION['old_data']['edit_tipo_cuenta'] ?? ($employee['tipo_cuenta'] ?? '')) == 'CORRIENTE' ? ' selected' : '') . '>Corriente</option>
+                                </select>
+                                <small class="form-text text-muted">Requerido para cheque y ACH</small>
+                                ' . (isset($_SESSION['errors']['edit_tipo_cuenta']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_tipo_cuenta'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="edit-bank-details" style="display: none;">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_banco">Banco *</label>
+                                <input type="text" class="form-control" id="edit_banco" name="edit_banco"
+                                       placeholder="Ej: Banco General" maxlength="100"
+                                       value="' . ($_SESSION['old_data']['edit_banco'] ?? ($employee['banco'] ?? '')) . '">
+                                <small class="form-text text-muted">Nombre del banco para cheque o ACH</small>
+                                ' . (isset($_SESSION['errors']['edit_banco']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_banco'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_numero_cuenta">Número de Cuenta *</label>
+                                <input type="text" class="form-control" id="edit_numero_cuenta" name="edit_numero_cuenta"
+                                       placeholder="Ej: 03-01-01-123456789" maxlength="50"
+                                       value="' . ($_SESSION['old_data']['edit_numero_cuenta'] ?? ($employee['numero_cuenta'] ?? '')) . '">
+                                <small class="form-text text-muted">Número de cuenta bancaria</small>
+                                ' . (isset($_SESSION['errors']['edit_numero_cuenta']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_numero_cuenta'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -386,6 +498,9 @@ function initializeEmployeeEdit() {
     });
 }
 </script>';
+
+// Agregar JavaScript modular para edición
+$content .= '<script src="' . asset('javascript/modules/employees/edit.js') . '"></script>';
 
 $styles = '';
 
