@@ -788,21 +788,40 @@ class Employee extends Controller
         $employee = $this->model('Employee');
         $db = $employee->getDatabase();
         $connection = $db->getConnection();
-        
-        $sql = "SELECT COUNT(*) as total
-                FROM employees 
-                LEFT JOIN posiciones ON posiciones.id = employees.position_id 
-                LEFT JOIN cargos ON cargos.id = employees.cargo_id
-                LEFT JOIN schedules ON schedules.id = employees.schedule_id";
-        
+
+        // Para empleados terminados, incluir el mismo JOIN que en getTerminatedEmployeesWithPagination
+        $isTerminatedQuery = false;
+        foreach ($whereConditions as $condition) {
+            if (strpos($condition, 'situacion_id != ?') !== false) {
+                $isTerminatedQuery = true;
+                break;
+            }
+        }
+
+        if ($isTerminatedQuery) {
+            // Query para empleados terminados (incluye employee_terminations)
+            $sql = "SELECT COUNT(*) as total
+                    FROM employees
+                    LEFT JOIN posiciones ON posiciones.id = employees.position_id
+                    LEFT JOIN cargos ON cargos.id = employees.cargo_id
+                    LEFT JOIN employee_terminations et ON et.employee_id = employees.id";
+        } else {
+            // Query para empleados activos (incluye schedules)
+            $sql = "SELECT COUNT(*) as total
+                    FROM employees
+                    LEFT JOIN posiciones ON posiciones.id = employees.position_id
+                    LEFT JOIN cargos ON cargos.id = employees.cargo_id
+                    LEFT JOIN schedules ON schedules.id = employees.schedule_id";
+        }
+
         if (!empty($whereConditions)) {
             $sql .= " WHERE " . implode(' AND ', $whereConditions);
         }
-        
+
         $stmt = $connection->prepare($sql);
         $stmt->execute($params);
         $result = $stmt->fetch();
-        
+
         return intval($result['total'] ?? 0);
     }
 
