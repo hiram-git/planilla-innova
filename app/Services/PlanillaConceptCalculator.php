@@ -74,10 +74,10 @@ class PlanillaConceptCalculator
             // Obtener tipo de empresa de la configuración
             $companyType = $this->getCompanyType();
             
-            $sql = "SELECT e.fecha_ingreso, e.employee_id, e.sueldo_individual, p.sueldo as sueldo_posicion, s.time_in, s.time_out
-                    FROM employees e 
-                    LEFT JOIN posiciones p ON p.id = e.position_id 
-                    LEFT JOIN schedules s ON s.id = e.schedule_id 
+            $sql = "SELECT e.fecha_ingreso, e.employee_id, e.sueldo_individual, e.gastos_representacion, p.sueldo as sueldo_posicion, s.time_in, s.time_out
+                    FROM employees e
+                    LEFT JOIN posiciones p ON p.id = e.position_id
+                    LEFT JOIN schedules s ON s.id = e.schedule_id
                     WHERE e.id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employee_id]);
@@ -116,9 +116,13 @@ class PlanillaConceptCalculator
                 $antiguedad_mes = $fecha_ingreso->diff($now)->m;
                 $antiguedad = $fecha_ingreso->diff($now)->days;
 
+                // Obtener gastos de representación
+                $gastos_representacion = (float)($employee['gastos_representacion'] ?: 0);
+
                 $this->variablesColaborador = [
                     'SALARIO' => $salario,
                     'SUELDO' => $salario,
+                    'GASTOS_REPRESENTACION' => $gastos_representacion,
                     'FICHA' => $ficha,
                     'EMPLEADO' => $ficha, // Usar employee_id (código) en lugar del ID numérico
                     'EMPLOYEE_ID' => $employee_id, // ID numérico para cálculos internos

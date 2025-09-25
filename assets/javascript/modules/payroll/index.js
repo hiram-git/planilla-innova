@@ -205,12 +205,17 @@
                 self.state.currentPayrollId = $(this).data("id");
                 self.state.currentPayrollDescription = $(this).data("description");
                 $("#processPayrollName").text(self.state.currentPayrollDescription);
+                // Clean modal before showing
+                self.cleanProcessModal();
                 $("#processModal").modal("show");
             });
 
             // Confirm process
             $("#confirmProcess").click(function() {
                 if (self.state.currentPayrollId) {
+                    // Block user actions immediately
+                    self.blockUserActions('Iniciando procesamiento...');
+
                     self.loadInitialProcessData(self.state.currentPayrollId, function() {
                         self.startPayrollProcessing(self.state.currentPayrollId);
                     });
@@ -223,12 +228,17 @@
                 self.state.currentPayrollDescription = $(this).data("description");
 
                 $("#reprocessPayrollName").text(self.state.currentPayrollDescription);
+                // Clean modal before showing
+                self.cleanReprocessModal();
                 $("#reprocessModal").modal("show");
             });
 
             // Confirm reprocess
             $("#confirmReprocess").click(function() {
                 if (self.state.currentPayrollId) {
+                    // Block user actions immediately
+                    self.blockUserActions('Iniciando reprocesamiento...');
+
                     self.loadInitialProgressData(self.state.currentPayrollId, function() {
                         self.startPayrollReprocessing(self.state.currentPayrollId);
                     });
@@ -266,6 +276,8 @@
                     return;
                 }
                 if (self.state.currentPayrollId) {
+                    // Block user actions
+                    self.blockUserActions('Reabriendo planilla...');
                     self.submitFormAction("reopen", { reason: motivo });
                 }
             });
@@ -286,6 +298,8 @@
                     return;
                 }
                 if (self.state.currentPayrollId) {
+                    // Block user actions
+                    self.blockUserActions('Marcando planilla como pendiente...');
                     self.submitFormAction("toPending", { motivo: motivo });
                 }
             });
@@ -316,6 +330,8 @@
             // Confirm delete
             $("#confirmDelete").click(function() {
                 if (self.state.currentPayrollId) {
+                    // Block user actions
+                    self.blockUserActions('Eliminando planilla...');
                     self.submitFormAction("delete");
                 }
             });
@@ -336,6 +352,18 @@
                 currentUrl.searchParams.delete("tipo_planilla_id");
                 window.location.href = currentUrl.toString();
             };
+
+            // Clean modals when they are hidden/closed
+            $("#processModal").on("hidden.bs.modal", function() {
+                self.cleanProcessModal();
+            });
+
+            $("#reprocessModal").on("hidden.bs.modal", function() {
+                self.cleanReprocessModal();
+            });
+
+            // Enable Enter key support for all modals
+            this.enableEnterKeySupport();
         },
 
         /**
@@ -377,10 +405,276 @@
         },
 
         /**
+         * Clean process modal to reset all states
+         */
+        cleanProcessModal: function() {
+            // Reset phases visibility
+            $("#confirmationPhase").show();
+            $("#processingPhase").hide();
+            $("#completedPhase").hide();
+
+            // Reset buttons visibility
+            $("#confirmationButtons").show();
+            $("#processingButtons").hide();
+            $("#completedButtons").hide();
+
+            // Reset progress bar
+            $("#progressBar").css("width", "0%");
+            $("#progressText").text("0%");
+
+            // Reset progress information
+            $("#employeesProgress").text("0 / 0");
+            $("#conceptsProgress").text("0");
+            $("#timeProgress").text("00:00");
+            $("#currentPhase").text("Iniciando procesamiento...");
+
+            // Reset completed phase information
+            $("#completedPayrollInfo").text("-");
+            $("#completionStats").html("");
+
+            // Reset styles for completed phase (in case of previous error)
+            $("#completedPhase .text-danger").removeClass("text-danger").addClass("text-success");
+            $("#completedPhase h5").text("¡Procesamiento Completado!");
+            $("#completedPhase i").removeClass("fa-exclamation-triangle").addClass("fa-check-circle");
+
+            // Re-enable modal close button
+            $("#modalCloseBtn").prop("disabled", false);
+
+            // Clear any active intervals
+            if (this.state.progressInterval) {
+                clearInterval(this.state.progressInterval);
+                this.state.progressInterval = null;
+            }
+
+            // Reset state variables
+            this.state.startTime = null;
+            this.state.lastProgressPercentage = -1;
+            this.state.progressStallCounter = 0;
+
+            // Ensure user actions are unblocked when cleaning modal
+            this.unblockUserActions();
+        },
+
+        /**
+         * Clean reprocess modal to reset all states
+         */
+        cleanReprocessModal: function() {
+            // Reset phases visibility
+            $("#reprocessConfirmationPhase").show();
+            $("#reprocessProcessingPhase").hide();
+            $("#reprocessCompletedPhase").hide();
+
+            // Reset buttons visibility
+            $("#reprocessConfirmationButtons").show();
+            $("#reprocessProcessingButtons").hide();
+            $("#reprocessCompletedButtons").hide();
+
+            // Reset progress bar
+            $("#reprocessProgressBar").css("width", "0%");
+            $("#reprocessProgressText").text("0%");
+
+            // Reset progress information
+            $("#reprocessEmployeesProgress").text("0 / 0");
+            $("#reprocessConceptsProgress").text("0");
+            $("#reprocessTimeProgress").text("00:00");
+            $("#reprocessCurrentPhase").text("Iniciando reprocesamiento...");
+
+            // Reset completed phase information
+            $("#reprocessCompletedPayrollInfo").text("-");
+            $("#reprocessCompletionStats").html("");
+
+            // Reset styles for completed phase (in case of previous error)
+            $("#reprocessCompletedPhase .text-danger").removeClass("text-danger").addClass("text-success");
+            $("#reprocessCompletedPhase h5").text("¡Reprocesamiento Completado!");
+            $("#reprocessCompletedPhase i").removeClass("fa-exclamation-triangle").addClass("fa-check-circle");
+
+            // Re-enable modal close button
+            $("#reprocessModalCloseBtn").prop("disabled", false);
+
+            // Clear any active intervals
+            if (this.state.reprocessProgressInterval) {
+                clearInterval(this.state.reprocessProgressInterval);
+                this.state.reprocessProgressInterval = null;
+            }
+
+            // Reset state variables
+            this.state.reprocessStartTime = null;
+            this.state.lastReprocessProgressPercentage = -1;
+            this.state.reprocessProgressStallCounter = 0;
+
+            // Ensure user actions are unblocked when cleaning modal
+            this.unblockUserActions();
+        },
+
+        /**
+         * Enable Enter key support for all modals with intelligent validation
+         */
+        enableEnterKeySupport: function() {
+            const self = this;
+
+            // Modal configurations with their respective action buttons and validation rules
+            const modalConfigs = {
+                '#processModal': {
+                    actionButton: '#confirmProcess',
+                    phases: ['#confirmationPhase'], // Only allow Enter in confirmation phase
+                    validate: false,
+                    completedPhase: '#completedPhase',
+                    completedButton: '#completedButtons .btn[data-dismiss="modal"]'
+                },
+                '#reprocessModal': {
+                    actionButton: '#confirmReprocess',
+                    phases: ['#reprocessConfirmationPhase'], // Only allow Enter in confirmation phase
+                    validate: false,
+                    completedPhase: '#reprocessCompletedPhase',
+                    completedButton: '#reprocessCompletedButtons .btn[data-dismiss="modal"]'
+                },
+                '#closeModal': {
+                    actionButton: '#confirmClose',
+                    validate: false
+                },
+                '#cancelModal': {
+                    actionButton: '#confirmCancel',
+                    validate: false
+                },
+                '#deleteModal': {
+                    actionButton: '#confirmDelete',
+                    validate: false
+                },
+                '#reopenModal': {
+                    actionButton: '#confirmReopen',
+                    validate: true,
+                    validationField: '#reopenMotivo',
+                    validationMessage: 'El motivo es obligatorio para reabrir una planilla.'
+                },
+                '#markPendingModal': {
+                    actionButton: '#confirmMarkPending',
+                    validate: true,
+                    validationField: '#markPendingMotivo',
+                    validationMessage: 'El motivo es obligatorio para marcar la planilla como pendiente.'
+                }
+            };
+
+            // Add keydown event listener to each modal
+            Object.keys(modalConfigs).forEach(modalId => {
+                const config = modalConfigs[modalId];
+
+                $(modalId).on('keydown', function(e) {
+                    // Only trigger on Enter key
+                    if (e.which === 13 && !e.shiftKey) {
+                        e.preventDefault();
+
+                        // Check if we're in the completed phase (process/reprocess modals)
+                        if (config.completedPhase && $(config.completedPhase).is(':visible')) {
+                            const $completedButton = $(config.completedButton);
+                            if ($completedButton.is(':visible') && !$completedButton.prop('disabled')) {
+                                // Don't block actions when closing completed modal
+                                $completedButton.trigger('click');
+                                return;
+                            }
+                        }
+
+                        // Check if modal is in the correct phase (for process/reprocess modals)
+                        if (config.phases) {
+                            let inCorrectPhase = false;
+                            config.phases.forEach(phase => {
+                                if ($(phase).is(':visible')) {
+                                    inCorrectPhase = true;
+                                }
+                            });
+
+                            if (!inCorrectPhase) {
+                                return; // Don't allow Enter if not in correct phase
+                            }
+                        }
+
+                        // Check if action button is visible and enabled
+                        const $actionButton = $(config.actionButton);
+                        if (!$actionButton.is(':visible') || $actionButton.prop('disabled')) {
+                            return;
+                        }
+
+                        // Perform validation if required
+                        if (config.validate) {
+                            const fieldValue = $(config.validationField).val().trim();
+                            if (!fieldValue) {
+                                toastr.warning(config.validationMessage, 'Validación');
+                                $(config.validationField).focus();
+                                return;
+                            }
+                        }
+
+                        // Block further actions and trigger the button click
+                        self.blockUserActions('Procesando acción...');
+                        $actionButton.trigger('click');
+                    }
+                });
+            });
+        },
+
+        /**
+         * Block user actions to prevent accidental clicks
+         */
+        blockUserActions: function(message = 'Procesando...') {
+            // Block DataTable interactions
+            if (this.dataTable) {
+                $('.dataTables_wrapper').addClass('processing-blocked').css({
+                    'pointer-events': 'none',
+                    'opacity': '0.6'
+                });
+            }
+
+            // Block all action buttons in the table
+            $('.process-btn, .reprocess-btn, .close-btn, .reopen-btn, .mark-pending-btn, .cancel-btn, .delete-btn').prop('disabled', true);
+
+            // Show loading indicator
+            if (!$('#globalLoadingIndicator').length) {
+                $('body').append(`
+                    <div id="globalLoadingIndicator" style="
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        z-index: 9999;
+                        background: #17a2b8;
+                        color: white;
+                        padding: 10px 15px;
+                        border-radius: 5px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                        font-size: 14px;
+                    ">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        ${message}
+                    </div>
+                `);
+            }
+        },
+
+        /**
+         * Unblock user actions after process completion
+         */
+        unblockUserActions: function() {
+            // Unblock DataTable interactions
+            if (this.dataTable) {
+                $('.dataTables_wrapper').removeClass('processing-blocked').css({
+                    'pointer-events': 'auto',
+                    'opacity': '1'
+                });
+            }
+
+            // Re-enable action buttons
+            $('.process-btn, .reprocess-btn, .close-btn, .reopen-btn, .mark-pending-btn, .cancel-btn, .delete-btn').prop('disabled', false);
+
+            // Remove loading indicator
+            $('#globalLoadingIndicator').remove();
+        },
+
+        /**
          * Submit close action via AJAX
          */
         submitCloseAction: function(payrollId) {
             const self = this;
+
+            // Block user actions during close operation
+            this.blockUserActions('Cerrando planilla...');
 
             // Get tipo_planilla_id from URL to maintain filter
             const urlParams = new URLSearchParams(window.location.search);
@@ -413,9 +707,13 @@
                         // Reload DataTable after a short delay
                         setTimeout(() => {
                             self.reloadDataTable();
+                            // Unblock user actions after reload
+                            self.unblockUserActions();
                         }, 500);
                     } else {
                         toastr.error(response.message || "Error al cerrar la planilla", "Error");
+                        // Unblock on error
+                        self.unblockUserActions();
                     }
                 },
                 error: function(xhr, status, error) {
@@ -426,6 +724,8 @@
                     }
 
                     toastr.error(errorMessage, "Error");
+                    // Unblock on error
+                    self.unblockUserActions();
                 }
             });
         },
@@ -435,6 +735,9 @@
          */
         submitCancelAction: function(payrollId) {
             const self = this;
+
+            // Block user actions during cancel operation
+            this.blockUserActions('Anulando planilla...');
 
             // Get tipo_planilla_id from URL to maintain filter
             const urlParams = new URLSearchParams(window.location.search);
@@ -467,9 +770,13 @@
                         // Reload DataTable after a short delay
                         setTimeout(() => {
                             self.reloadDataTable();
+                            // Unblock user actions after reload
+                            self.unblockUserActions();
                         }, 500);
                     } else {
                         toastr.error(response.message || "Error al anular la planilla", "Error");
+                        // Unblock on error
+                        self.unblockUserActions();
                     }
                 },
                 error: function(xhr, status, error) {
@@ -480,6 +787,8 @@
                     }
 
                     toastr.error(errorMessage, "Error");
+                    // Unblock on error
+                    self.unblockUserActions();
                 }
             });
         },
@@ -817,6 +1126,8 @@
             // Auto-reload DataTable after 2 seconds
             setTimeout(() => {
                 this.reloadDataTable();
+                // Unblock user actions after reload
+                this.unblockUserActions();
             }, 2000);
         },
 
@@ -854,6 +1165,9 @@
             
             // Re-enable modal close
             $("#modalCloseBtn").prop("disabled", false);
+
+            // Unblock user actions on error
+            this.unblockUserActions();
         },
 
         // ============= REPROCESSING FUNCTIONS =============
@@ -1104,6 +1418,8 @@
             // Auto-reload DataTable after 2 seconds
             setTimeout(() => {
                 this.reloadDataTable();
+                // Unblock user actions after reload
+                this.unblockUserActions();
             }, 2000);
         },
 
@@ -1141,6 +1457,9 @@
             
             // Re-enable modal close
             $("#reprocessModalCloseBtn").prop("disabled", false);
+
+            // Unblock user actions on error
+            this.unblockUserActions();
         }
     };
 

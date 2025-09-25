@@ -483,4 +483,53 @@ $scripts = $jsConfig . "\n" . $payrollConfigScript . "\n" . JavaScriptHelper::re
 .btn-group .btn:last-child {
     margin-right: 0;
 }
+
+/* Enhanced styles for action blocking */
+.processing-blocked {
+    transition: opacity 0.3s ease;
+    position: relative;
+}
+
+.processing-blocked::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    cursor: not-allowed;
+}
+
+/* Enhanced visual feedback for blocked buttons */
+.btn[disabled] {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Smooth transitions for all action buttons */
+.process-btn, .reprocess-btn, .close-btn, .reopen-btn,
+.mark-pending-btn, .cancel-btn, .delete-btn {
+    transition: all 0.2s ease;
+}
+
+/* Global loading indicator improvements */
+#globalLoadingIndicator {
+    animation: slideInFromRight 0.3s ease;
+    border-left: 4px solid #17a2b8;
+}
+
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
 </style>

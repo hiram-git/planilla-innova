@@ -146,7 +146,7 @@ class PayrollController extends Controller
 
             if ($payrollId) {
                 $_SESSION['success'] = 'Planilla creada exitosamente';
-                $this->redirect('/panel/payrolls/' . $payrollId);
+                $this->redirect('/panel/payrolls/');
             } else {
                 throw new \Exception('Error al crear la planilla');
             }
