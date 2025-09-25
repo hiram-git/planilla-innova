@@ -2360,6 +2360,189 @@ class PayrollController extends Controller
     }
 
     /**
+     * AJAX endpoint for DataTables
+     */
+    public function datatablesAjax()
+    {
+        try {
+            // Debug logging
+            error_log("DataTables AJAX request received");
+            error_log("POST data: " . json_encode($_POST));
+            error_log("GET data: " . json_encode($_GET));
+
+            // Obtener filtro de tipo de planilla si existe
+            $tipoPlanillaId = $_GET['tipo_planilla_id'] ?? $_POST['tipo_planilla_id'] ?? null;
+            error_log("tipoPlanillaId: " . ($tipoPlanillaId ?? 'null'));
+
+            // Obtener parámetros de DataTables
+            $draw = intval($_POST['draw'] ?? $_GET['draw'] ?? 1);
+            $start = intval($_POST['start'] ?? $_GET['start'] ?? 0);
+            $length = intval($_POST['length'] ?? $_GET['length'] ?? 25);
+            $search = $_POST['search']['value'] ?? $_GET['search']['value'] ?? '';
+
+            // Obtener ordenamiento
+            $orderColumn = intval($_POST['order'][0]['column'] ?? $_GET['order'][0]['column'] ?? 0);
+            $orderDir = $_POST['order'][0]['dir'] ?? $_GET['order'][0]['dir'] ?? 'desc';
+
+            // Mapear columnas para ordenamiento
+            $columns = ['id', 'descripcion', 'tipo_planilla_nombre', 'fecha', 'estado', 'total_empleados'];
+            $orderBy = $columns[$orderColumn] ?? 'id';
+
+            // Obtener datos usando el modelo existente
+            $payrolls = $this->payrollModel->getAllWithStats($tipoPlanillaId, $search, $orderBy, $orderDir, $length, $start);
+            $totalRecords = $this->payrollModel->getTotalCount($tipoPlanillaId);
+            $filteredRecords = $this->payrollModel->getFilteredCount($tipoPlanillaId, $search);
+
+            // Formatear datos para DataTables
+            $data = [];
+            foreach ($payrolls as $payroll) {
+                $statusClass = [
+                    'PENDIENTE' => 'badge-warning',
+                    'PROCESADA' => 'badge-success',
+                    'CERRADA' => 'badge-info',
+                    'ANULADA' => 'badge-danger'
+                ];
+                $badgeClass = $statusClass[$payroll['estado']] ?? 'badge-secondary';
+                $fechaPlanilla = !empty($payroll['fecha']) ? date('d/m/Y', strtotime($payroll['fecha'])) : 'N/A';
+
+                // Generar botones de acciones
+                $actions = $this->generateActionButtons($payroll);
+
+                $data[] = [
+                    'id' => '<strong>' . $payroll['id'] . '</strong>',
+                    'descripcion' => htmlspecialchars($payroll['descripcion'] ?? 'Sin descripción'),
+                    'tipo_planilla' => '<span class="badge badge-secondary">' .
+                                      htmlspecialchars($payroll['tipo_planilla_nombre'] ?? 'N/A') . '</span>',
+                    'fecha' => $fechaPlanilla,
+                    'estado' => '<span class="badge ' . $badgeClass . '">' . ($payroll['estado'] ?? 'PENDIENTE') . '</span>',
+                    'total_empleados' => '<span class="badge badge-info">' . ($payroll['total_empleados'] ?? 0) . '</span>',
+                    'acciones' => $actions
+                ];
+            }
+
+            // Respuesta para DataTables
+            $response = [
+                'draw' => $draw,
+                'recordsTotal' => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data' => $data
+            ];
+
+            error_log("DataTables response: " . json_encode([
+                'draw' => $draw,
+                'recordsTotal' => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'dataCount' => count($data)
+            ]));
+
+            header('Content-Type: application/json');
+            echo json_encode($response);
+
+        } catch (\Exception $e) {
+            error_log("Error en PayrollController@datatablesAjax: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Error interno del servidor']);
+        }
+    }
+
+    /**
+     * Generar botones de acciones para cada planilla
+     */
+    private function generateActionButtons($payroll)
+    {
+        $actions = '<div class="btn-group" role="group">';
+
+        // Ver detalles
+        $actions .= '<a href="' . \App\Core\UrlHelper::payroll($payroll['id']) . '"
+                       class="btn btn-info btn-sm" title="Ver detalles">
+                        <i class="fas fa-eye"></i>
+                     </a>';
+
+        // Procesar (si está PENDIENTE)
+        if ($payroll['estado'] == 'PENDIENTE') {
+            $actions .= '<button type="button" class="btn btn-success btn-sm process-btn"
+                            data-id="' . $payroll['id'] . '"
+                            data-description="' . htmlspecialchars($payroll['descripcion']) . '"
+                            title="Procesar planilla">
+                            <i class="fas fa-play"></i>
+                         </button>';
+        }
+
+        // Reprocesar (si está PROCESADA)
+        if ($payroll['estado'] == 'PROCESADA') {
+            $actions .= '<button type="button" class="btn btn-warning btn-sm reprocess-btn"
+                            data-id="' . $payroll['id'] . '"
+                            data-description="' . htmlspecialchars($payroll['descripcion']) . '"
+                            title="Reprocesar planilla">
+                            <i class="fas fa-redo"></i>
+                         </button>';
+
+            $actions .= '<button type="button" class="btn btn-primary btn-sm close-btn"
+                            data-id="' . $payroll['id'] . '"
+                            data-description="' . htmlspecialchars($payroll['descripcion']) . '"
+                            title="Cerrar planilla">
+                            <i class="fas fa-lock"></i>
+                         </button>';
+        }
+
+        // Reabrir (si está CERRADA)
+        if ($payroll['estado'] == 'CERRADA') {
+            $actions .= '<button type="button" class="btn btn-warning btn-sm reopen-btn"
+                            data-id="' . $payroll['id'] . '"
+                            data-description="' . htmlspecialchars($payroll['descripcion']) . '"
+                            title="Abrir planilla cerrada">
+                            <i class="fas fa-unlock"></i> Abrir
+                         </button>';
+        }
+
+        // Marcar como pendiente (si está PROCESADA)
+        if ($payroll['estado'] == 'PROCESADA') {
+            $actions .= '<button type="button" class="btn btn-secondary btn-sm mark-pending-btn"
+                            data-id="' . $payroll['id'] . '"
+                            data-description="' . htmlspecialchars($payroll['descripcion']) . '"
+                            title="Marcar como pendiente">
+                            <i class="fas fa-clock"></i> Pendiente
+                         </button>';
+        }
+
+        // Anular (si está PENDIENTE o PROCESADA)
+        if (in_array($payroll['estado'], ['PENDIENTE', 'PROCESADA'])) {
+            $actions .= '<button type="button" class="btn btn-danger btn-sm cancel-btn"
+                            data-id="' . $payroll['id'] . '"
+                            data-description="' . htmlspecialchars($payroll['descripcion']) . '"
+                            title="Anular planilla">
+                            <i class="fas fa-ban"></i>
+                         </button>';
+        }
+
+        // Editar
+        $actions .= '<a href="' . \App\Core\UrlHelper::payroll($payroll['id'] . '/edit') . '"
+                       class="btn btn-warning btn-sm" title="Editar">
+                        <i class="fas fa-edit"></i>
+                     </a>';
+
+        // Ver acumulados (si está PROCESADA o CERRADA)
+        if (in_array($payroll['estado'], ['PROCESADA', 'CERRADA'])) {
+            $actions .= '<a href="' . \App\Core\UrlHelper::route('panel/acumulados/byPayroll/' . $payroll['id']) . '"
+                           class="btn btn-info btn-sm" title="Ver acumulados de esta planilla">
+                            <i class="fas fa-calculator"></i>
+                         </a>';
+        }
+
+        // Eliminar
+        $actions .= '<button type="button" class="btn btn-danger btn-sm delete-btn"
+                        data-id="' . $payroll['id'] . '"
+                        data-description="' . htmlspecialchars($payroll['descripcion']) . '"
+                        title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                     </button>';
+
+        $actions .= '</div>';
+
+        return $actions;
+    }
+
+    /**
      * Calcular valor de referencia según la unidad del concepto
      */
     private function calculateReferenceValue($concept, $employee)

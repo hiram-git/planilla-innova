@@ -182,6 +182,38 @@ if (!function_exists('csrf_field')) {
     }
 }
 
+if (!function_exists('csrf_token')) {
+    /**
+     * Devuelve la cadena 'csrf_token' para usar como nombre de campo
+     *
+     * @return string
+     */
+    function csrf_token()
+    {
+        return 'csrf_token';
+    }
+}
+
+if (!function_exists('csrf_hash')) {
+    /**
+     * Obtiene el valor actual del token CSRF
+     *
+     * @return string
+     */
+    function csrf_hash()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['csrf_token'];
+    }
+}
+
 if (!function_exists('old')) {
     /**
      * Obtiene el valor anterior de un campo de formulario después de validación

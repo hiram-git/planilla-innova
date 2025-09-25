@@ -105,14 +105,28 @@ class LiquidationController extends Controller
                 return;
             }
 
-            // Calcular años trabajados
+            // Calcular período trabajado hasta hoy
             $fecha_ingreso = new \DateTime($employee['fecha_ingreso']);
             $fecha_actual = new \DateTime();
-            $anos_trabajados = $fecha_ingreso->diff($fecha_actual)->y;
+            $intervalo = $fecha_ingreso->diff($fecha_actual);
+
+            // Calcular días trabajados (aproximación sin feriados por ahora)
+            $dias_trabajados = $this->calculateBusinessDays($fecha_ingreso->format('Y-m-d'), $fecha_actual->format('Y-m-d'));
+
+            // Crear objeto con información detallada del período
+            $periodo_trabajado = [
+                'anos' => $intervalo->y,
+                'meses' => $intervalo->m,
+                'dias' => $intervalo->d,
+                'total_dias_calendario' => $fecha_ingreso->diff($fecha_actual)->days,
+                'total_dias_laborables' => $dias_trabajados,
+                'anos_completos' => $intervalo->y // Para cálculos legales
+            ];
 
             $this->render('admin/liquidation/create', [
                 'employee' => $employee,
-                'anos_trabajados' => $anos_trabajados,
+                'periodo_trabajado' => $periodo_trabajado,
+                'anos_trabajados' => $periodo_trabajado['anos_completos'], // Para retrocompatibilidad
                 'pageTitle' => 'Nueva Liquidación - ' . $employee['firstname'] . ' ' . $employee['lastname']
             ]);
 
@@ -955,5 +969,99 @@ class LiquidationController extends Controller
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$employee_id]);
+    }
+
+    /**
+     * Calcular días laborables entre dos fechas
+     * Excluye sábados y domingos (aproximación básica)
+     */
+    private function calculateBusinessDays($start_date, $end_date)
+    {
+        $start = new \DateTime($start_date);
+        $end = new \DateTime($end_date);
+        $working_days = 0;
+
+        $current = clone $start;
+        while ($current <= $end) {
+            $dayOfWeek = (int) $current->format('w'); // 0=domingo, 6=sábado
+            if ($dayOfWeek >= 1 && $dayOfWeek <= 5) { // Lunes a Viernes
+                $working_days++;
+            }
+            $current->add(new \DateInterval('P1D'));
+        }
+
+        return $working_days;
+    }
+
+    /**
+     * Calcular período detallado entre dos fechas
+     * Retorna array con años, meses, días y totales
+     */
+    private function calculateDetailedPeriod($start_date, $end_date)
+    {
+        $start = new \DateTime($start_date);
+        $end = new \DateTime($end_date);
+        $interval = $start->diff($end);
+
+        $working_days = $this->calculateBusinessDays($start_date, $end_date);
+
+        return [
+            'anos' => $interval->y,
+            'meses' => $interval->m,
+            'dias' => $interval->d,
+            'total_dias_calendario' => $interval->days,
+            'total_dias_laborables' => $working_days,
+            'anos_completos' => $interval->y,
+            'start_date' => $start_date,
+            'end_date' => $end_date
+        ];
+    }
+
+    /**
+     * AJAX - Calcular período trabajado dinámicamente
+     */
+    public function calculatePeriod()
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $start_date = $_POST['start_date'] ?? $_GET['start_date'] ?? null;
+            $end_date = $_POST['end_date'] ?? $_GET['end_date'] ?? null;
+
+            if (!$start_date || !$end_date) {
+                echo json_encode(['error' => 'Faltan fechas requeridas']);
+                return;
+            }
+
+            // Validar formato de fechas
+            $start = \DateTime::createFromFormat('Y-m-d', $start_date);
+            $end = \DateTime::createFromFormat('Y-m-d', $end_date);
+
+            if (!$start || !$end) {
+                echo json_encode(['error' => 'Formato de fecha inválido']);
+                return;
+            }
+
+            if ($start > $end) {
+                echo json_encode(['error' => 'Fecha de inicio no puede ser posterior a fecha fin']);
+                return;
+            }
+
+            $period = $this->calculateDetailedPeriod($start_date, $end_date);
+
+            echo json_encode([
+                'success' => true,
+                'period' => $period,
+                'formatted' => [
+                    'periodo_completo' => $period['anos'] . ' años, ' . $period['meses'] . ' meses, ' . $period['dias'] . ' días',
+                    'dias_calendario' => number_format($period['total_dias_calendario']),
+                    'dias_laborables' => number_format($period['total_dias_laborables']),
+                    'anos_completos' => $period['anos_completos']
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode(['error' => 'Error en cálculo: ' . $e->getMessage()]);
+        }
     }
 }

@@ -24,10 +24,11 @@
         // State variables
         state: {
             currentPayrollId: null,
+            currentPayrollDescription: null,
             totalEmployees: 0,
             startTime: null,
             reprocessStartTime: null,
-            
+
             // Progress tracking
             progressInterval: null,
             reprocessProgressInterval: null,
@@ -35,10 +36,13 @@
             progressStallCounter: 0,
             lastReprocessProgressPercentage: -1,
             reprocessProgressStallCounter: 0,
-            
+
             // Constants
             MAX_STALL_CYCLES: 20 // 20 cycles of 3 seconds = 60 seconds without change
         },
+
+        // DataTable instance
+        dataTable: null,
 
         /**
          * Initialize the module
@@ -72,21 +76,74 @@
         },
 
         /**
-         * Initialize DataTable
+         * Initialize DataTable with AJAX
          */
         initializeDataTable: function() {
-            $("#payrollsTable").DataTable({
+            const self = this;
+
+            // Get tipo_planilla_id from URL for filter
+            const urlParams = new URLSearchParams(window.location.search);
+            const tipoPlanillaId = urlParams.get("tipo_planilla_id");
+
+            // Build AJAX URL
+            const ajaxUrl = `${this.config.urls.payrolls}/datatables-ajax`;
+
+            console.log('Initializing DataTable with URL:', ajaxUrl);
+            console.log('tipoPlanillaId:', tipoPlanillaId);
+
+            this.dataTable = $("#payrollsTable").DataTable({
+                "processing": true,
+                "serverSide": true,
                 "responsive": true,
                 "lengthChange": false,
                 "autoWidth": false,
                 "pageLength": 25,
+                "ajax": {
+                    "url": ajaxUrl,
+                    "type": "POST",
+                    "headers": {
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
+                    "data": function(d) {
+                        // Add filter parameter if exists
+                        if (tipoPlanillaId) {
+                            d.tipo_planilla_id = tipoPlanillaId;
+                        }
+                        console.log('DataTables request data:', d);
+                        return d;
+                    },
+                    "error": function(xhr, error, code) {
+                        console.error('DataTables AJAX Error:', {
+                            xhr: xhr,
+                            error: error,
+                            code: code,
+                            response: xhr.responseText
+                        });
+
+                        // If session expired, reload page
+                        if (xhr.status === 200 && xhr.responseJSON && xhr.responseJSON.redirect) {
+                            window.location.href = xhr.responseJSON.redirect;
+                        }
+                    }
+                },
+                "columns": [
+                    { "data": "id", "name": "id" },
+                    { "data": "descripcion", "name": "descripcion" },
+                    { "data": "tipo_planilla", "name": "tipo_planilla_nombre" },
+                    { "data": "fecha", "name": "fecha" },
+                    { "data": "estado", "name": "estado" },
+                    { "data": "total_empleados", "name": "total_empleados", "className": "text-center" },
+                    { "data": "acciones", "name": "acciones", "orderable": false, "searchable": false }
+                ],
                 "language": {
+                    "processing": "Procesando...",
                     "search": "Buscar:",
                     "lengthMenu": "Mostrar _MENU_ registros por página",
                     "zeroRecords": "No se encontraron planillas",
-                    "info": "Mostrando página _PAGE_ de _PAGES_",
+                    "info": "Mostrando página _PAGE_ de _PAGES_ (_TOTAL_ registros en total)",
                     "infoEmpty": "No hay registros disponibles",
                     "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                    "loadingRecords": "Cargando...",
                     "paginate": {
                         "first": "Primero",
                         "last": "Último",
@@ -97,7 +154,17 @@
                 "order": [[0, "desc"]],
                 "columnDefs": [
                     { "orderable": false, "targets": [6] }
-                ]
+                ],
+                "drawCallback": function(settings) {
+                    // Update footer count information
+                    const info = this.api().page.info();
+                    $("#payrollCount").html(`Total: <strong>${info.recordsTotal}</strong> planillas`);
+
+                    // Update last update timestamp
+                    const now = new Date();
+                    const timestamp = now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES');
+                    $("#lastUpdate").text(timestamp);
+                }
             });
         },
 
@@ -136,8 +203,8 @@
             // Process payroll button
             $(document).on("click", ".process-btn", function() {
                 self.state.currentPayrollId = $(this).data("id");
-                const description = $(this).data("description");
-                $("#processPayrollName").text(description);
+                self.state.currentPayrollDescription = $(this).data("description");
+                $("#processPayrollName").text(self.state.currentPayrollDescription);
                 $("#processModal").modal("show");
             });
 
@@ -153,9 +220,9 @@
             // Reprocess payroll button
             $(document).on("click", ".reprocess-btn", function() {
                 self.state.currentPayrollId = $(this).data("id");
-                const description = $(this).data("description");
+                self.state.currentPayrollDescription = $(this).data("description");
 
-                $("#reprocessPayrollName").text(description);
+                $("#reprocessPayrollName").text(self.state.currentPayrollDescription);
                 $("#reprocessModal").modal("show");
             });
 
@@ -287,12 +354,16 @@
         },
 
         /**
-         * Reload DataTable instead of entire page
+         * Reload DataTable without page refresh
          */
         reloadDataTable: function() {
-            // For now, since the current DataTable is static (not AJAX),
-            // we reload the page with filter maintained
-            this.reloadWithFilter();
+            if (this.dataTable && $.fn.DataTable.isDataTable('#payrollsTable')) {
+                // Refresh AJAX DataTable
+                this.dataTable.ajax.reload(null, false); // false = keep current page
+            } else {
+                // Fallback to page reload if DataTable is not initialized
+                this.reloadWithFilter();
+            }
         },
 
         /**
@@ -714,6 +785,10 @@
             $("#completedPhase").show();
             $("#completedButtons").show();
 
+            // Update payroll info in completed phase
+            const payrollInfo = `ID #${this.state.currentPayrollId} - ${this.state.currentPayrollDescription}`;
+            $("#completedPayrollInfo").text(payrollInfo);
+
             // Show final statistics with generation time
             const statsHtml = `
                 <div class="row text-center">
@@ -738,6 +813,11 @@
 
             // Re-enable modal close
             $("#modalCloseBtn").prop("disabled", false);
+
+            // Auto-reload DataTable after 2 seconds
+            setTimeout(() => {
+                this.reloadDataTable();
+            }, 2000);
         },
 
         /**
@@ -992,6 +1072,10 @@
             $("#reprocessCompletedPhase").show();
             $("#reprocessCompletedButtons").show();
 
+            // Show payroll information
+            const payrollInfo = `ID #${this.state.currentPayrollId} - ${this.state.currentPayrollDescription}`;
+            $("#reprocessCompletedPayrollInfo").text(payrollInfo);
+
             // Show final statistics with generation time
             const statsHtml = `
                 <div class="row text-center">
@@ -1016,6 +1100,11 @@
 
             // Re-enable modal close
             $("#reprocessModalCloseBtn").prop("disabled", false);
+
+            // Auto-reload DataTable after 2 seconds
+            setTimeout(() => {
+                this.reloadDataTable();
+            }, 2000);
         },
 
         /**

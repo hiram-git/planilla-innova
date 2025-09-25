@@ -47,67 +47,6 @@ class Payroll extends Model
     }
 
     /**
-     * Obtener todas las planillas con información completa incluyendo tipo
-     */
-    public function getAllWithStats($tipoPlanillaId = null)
-    {
-        try {
-            // Construir consulta con filtro opcional por tipo de planilla
-            $whereClause = "";
-            $params = [];
-            
-            if ($tipoPlanillaId) {
-                $whereClause = "WHERE pc.tipo_planilla_id = ?";
-                $params[] = $tipoPlanillaId;
-            }
-            
-            $sql = "SELECT pc.*, 
-                           tp.descripcion as tipo_planilla_nombre, 
-                           tp.codigo as tipo_planilla_codigo
-                    FROM {$this->table} pc 
-                    LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id 
-                    $whereClause
-                    ORDER BY pc.fecha DESC";
-            
-            if (!empty($params)) {
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute($params);
-            } else {
-                $stmt = $this->db->query($sql);
-            }
-            $payrolls = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Agregar estadísticas básicas para cada planilla
-            foreach ($payrolls as &$payroll) {
-                try {
-                    // Contar empleados únicos
-                    $statsSql = "SELECT COUNT(DISTINCT employee_id) as total_empleados
-                                 FROM planilla_detalle 
-                                 WHERE planilla_cabecera_id = ?";
-                    
-                    $statsStmt = $this->db->prepare($statsSql);
-                    $statsStmt->execute([$payroll['id']]);
-                    $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    $payroll['total_empleados'] = $stats['total_empleados'] ?? 0;
-                    $payroll['total_neto'] = 0; // Por ahora 0, mejoraremos después
-                } catch (PDOException $e) {
-                    // Si hay error en estadísticas, usar valores por defecto
-                    $payroll['total_empleados'] = 0;
-                    $payroll['total_neto'] = 0;
-                    error_log("Error calculando estadísticas básicas para planilla {$payroll['id']}: " . $e->getMessage());
-                }
-            }
-            
-            return $payrolls;
-            
-        } catch (PDOException $e) {
-            error_log("Error en getAllWithStats: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
      * Crear nueva planilla
      */
     public function create($data)
@@ -175,7 +114,7 @@ class Payroll extends Model
             $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
                            e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
                            e.cargo_id, e.funcion_id, e.partida_id,
-                           e.fecha_ingreso, e.fecha_terminacion,
+                           e.fecha_ingreso,
                            p.description as position_nombre, p.rate as position_sueldo,
                            c.descripcion as cargo_nombre,
                            f.descripcion as funcion_nombre,
@@ -1200,6 +1139,148 @@ class Payroll extends Model
         }
     }
     
+    /**
+     * Obtener total de registros para DataTables
+     */
+    public function getTotalCount($tipoPlanillaId = null)
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM planilla_cabecera pc
+                    LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id";
+
+            $params = [];
+            if ($tipoPlanillaId) {
+                $sql .= " WHERE pc.tipo_planilla_id = ?";
+                $params[] = $tipoPlanillaId;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchColumn();
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo total count: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Obtener total de registros filtrados para DataTables
+     */
+    public function getFilteredCount($tipoPlanillaId = null, $search = '')
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM planilla_cabecera pc
+                    LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id";
+
+            $params = [];
+            $conditions = [];
+
+            if ($tipoPlanillaId) {
+                $conditions[] = "pc.tipo_planilla_id = ?";
+                $params[] = $tipoPlanillaId;
+            }
+
+            if (!empty($search)) {
+                $conditions[] = "(pc.descripcion LIKE ? OR pc.estado LIKE ? OR tp.descripcion LIKE ?)";
+                $searchParam = "%$search%";
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+            }
+
+            if (!empty($conditions)) {
+                $sql .= " WHERE " . implode(" AND ", $conditions);
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchColumn();
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo filtered count: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Obtener todas las planillas con información completa incluyendo tipo
+     * Soporta paginación y búsqueda para DataTables AJAX
+     */
+    public function getAllWithStats($tipoPlanillaId = null, $search = '', $orderBy = 'id', $orderDir = 'desc', $limit = 0, $offset = 0)
+    {
+        try {
+            $sql = "SELECT
+                        pc.*,
+                        tp.descripcion as tipo_planilla_nombre,
+                        tp.codigo as tipo_planilla_codigo,
+                        COALESCE(pd.total_empleados, 0) as total_empleados
+                    FROM planilla_cabecera pc
+                    LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
+                    LEFT JOIN (
+                        SELECT
+                            planilla_cabecera_id,
+                            COUNT(DISTINCT employee_id) as total_empleados
+                        FROM planilla_detalle
+                        GROUP BY planilla_cabecera_id
+                    ) pd ON pc.id = pd.planilla_cabecera_id";
+
+            $params = [];
+            $conditions = [];
+
+            // Filtro por tipo de planilla
+            if ($tipoPlanillaId) {
+                $conditions[] = "pc.tipo_planilla_id = ?";
+                $params[] = $tipoPlanillaId;
+            }
+
+            // Búsqueda
+            if (!empty($search)) {
+                $conditions[] = "(pc.descripcion LIKE ? OR pc.estado LIKE ? OR tp.descripcion LIKE ?)";
+                $searchParam = "%$search%";
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+            }
+
+            if (!empty($conditions)) {
+                $sql .= " WHERE " . implode(" AND ", $conditions);
+            }
+
+            // Ordenamiento
+            $validColumns = ['id', 'descripcion', 'tipo_planilla_nombre', 'fecha', 'estado', 'total_empleados'];
+            if (in_array($orderBy, $validColumns)) {
+                if ($orderBy === 'tipo_planilla_nombre') {
+                    $sql .= " ORDER BY tp.descripcion " . ($orderDir === 'asc' ? 'ASC' : 'DESC');
+                } else {
+                    $sql .= " ORDER BY pc.$orderBy " . ($orderDir === 'asc' ? 'ASC' : 'DESC');
+                }
+            } else {
+                // Mantener compatibilidad: si no hay parámetros de paginación, usar orden original
+                if ($limit == 0 && $offset == 0 && $search === '' && $orderBy === 'id') {
+                    $sql .= " ORDER BY pc.fecha DESC";
+                } else {
+                    $sql .= " ORDER BY pc.id DESC";
+                }
+            }
+
+            // Paginación
+            if ($limit > 0) {
+                $sql .= " LIMIT ? OFFSET ?";
+                $params[] = $limit;
+                $params[] = $offset;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo planillas con stats paginadas: " . $e->getMessage());
+            return [];
+        }
+    }
+
     /**
      * Obtener días descontados total considerando días y horas
      * Campo referencia ejemplos:

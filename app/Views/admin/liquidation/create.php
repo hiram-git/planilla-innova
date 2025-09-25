@@ -1,4 +1,7 @@
 <?php
+// Incluir helpers para funciones CSRF
+require_once __DIR__ . '/../../../Core/helpers.php';
+
 $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']);
 ?>
 
@@ -55,8 +58,11 @@ $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] .
                             <dt class="col-sm-4">Fecha Ingreso:</dt>
                             <dd class="col-sm-8"><?= date('d/m/Y', strtotime($employee['fecha_ingreso'])) ?></dd>
 
-                            <dt class="col-sm-4">Años Trabajados:</dt>
-                            <dd class="col-sm-8"><strong><?= $anos_trabajados ?> años</strong></dd>
+                            <dt class="col-sm-4">Período Trabajado:</dt>
+                            <dd class="col-sm-8" id="periodo-trabajado">
+                                <strong><?= $periodo_trabajado['anos'] ?> años, <?= $periodo_trabajado['meses'] ?> meses, <?= $periodo_trabajado['dias'] ?> días</strong>
+                                <br><small class="text-muted">Hasta hoy: <?= number_format($periodo_trabajado['total_dias_laborables']) ?> días laborables</small>
+                            </dd>
 
                             <dt class="col-sm-4">Salario:</dt>
                             <dd class="col-sm-8">
@@ -225,7 +231,7 @@ $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] .
                                         <div class="info-box-content">
                                             <span class="info-box-text">Días Trabajados</span>
                                             <span class="info-box-number" id="dias-trabajados">
-                                                <?= business_days_between($employee['fecha_ingreso'], date('Y-m-d')) ?>
+                                                <?= $periodo_trabajado['total_dias_laborables'] ?>
                                             </span>
                                         </div>
                                     </div>
@@ -246,12 +252,8 @@ $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] .
                                             <span class="info-box-text">Próximo Laboral</span>
                                             <span class="info-box-number small" id="proximo-laboral">
                                                 <?php
-                                                try {
-                                                    $calendar = new \App\Models\BusinessCalendar();
-                                                    echo date('d/m', strtotime($calendar->getNextWorkingDay(date('Y-m-d'))));
-                                                } catch (Exception $e) {
-                                                    echo 'N/A';
-                                                }
+                                                // Temporal: BusinessCalendar no implementado aún
+                                                echo 'N/A';
                                                 ?>
                                             </span>
                                         </div>
@@ -283,8 +285,8 @@ $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] .
 </section>
 
 <!-- SweetAlert2 -->
-<link rel="stylesheet" href="<?= url('plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css') ?>">
-<script src="<?= url('plugins/sweetalert2/sweetalert2.min.js') ?>"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.0/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.0/dist/sweetalert2.all.min.js"></script>
 
 <script>
 // Asegurar que jQuery esté cargado
@@ -323,60 +325,87 @@ document.addEventListener('DOMContentLoaded', function() {
         updateBusinessDaysCalculation();
     });
 
-    // Función para actualizar cálculos de días laborables
+    // Función para actualizar cálculos de días laborables con AJAX
     function updateBusinessDaysCalculation() {
         const terminationDate = $('#termination_date').val();
         const startDate = '<?= $employee['fecha_ingreso'] ?>';
 
         if (terminationDate) {
-            // Calcular días trabajados hasta la fecha de terminación
-            calculateBusinessDays(startDate, terminationDate, function(workingDays) {
-                $('#dias-trabajados').text(workingDays);
-            });
+            // Mostrar loading
+            $('#dias-trabajados').html('<i class="fas fa-spinner fa-spin"></i>');
+            $('#periodo-trabajado').html('<i class="fas fa-spinner fa-spin text-muted"></i> Calculando...');
 
-            // Verificar si la fecha de terminación es día laboral
-            checkWorkingDay(terminationDate, function(isWorking) {
-                const badge = isWorking ?
-                    '<span class="badge badge-success">Laboral</span>' :
-                    '<span class="badge badge-warning">No Laboral</span>';
+            // Calcular período con AJAX
+            $.ajax({
+                url: '<?= \App\Core\UrlHelper::route('panel/liquidation/calculate-period') ?>',
+                method: 'POST',
+                data: {
+                    start_date: startDate,
+                    end_date: terminationDate,
+                    '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Actualizar días trabajados
+                        $('#dias-trabajados').text(response.formatted.dias_laborables);
 
-                // Actualizar indicador visual en el formulario
-                let indicator = $('#working-day-indicator');
-                if (indicator.length === 0) {
-                    $('#termination_date').after('<div id="working-day-indicator" class="mt-1"></div>');
-                    indicator = $('#working-day-indicator');
+                        // Actualizar período completo
+                        $('#periodo-trabajado').html(
+                            '<strong>' + response.formatted.periodo_completo + '</strong>' +
+                            '<br><small class="text-muted">Total: ' + response.formatted.dias_laborables + ' días laborables</small>'
+                        );
+
+                        // Actualizar cálculos legales basados en años completos
+                        updateLegalCalculations(response.period.anos_completos);
+
+                        // Verificar si es día laboral
+                        const terminationDay = new Date(terminationDate).getDay();
+                        const isWorking = terminationDay >= 1 && terminationDay <= 5;
+                        const badge = isWorking ?
+                            '<span class="badge badge-success">Laboral</span>' :
+                            '<span class="badge badge-warning">No Laboral</span>';
+
+                        // Actualizar indicador
+                        let indicator = $('#working-day-indicator');
+                        if (indicator.length === 0) {
+                            $('#termination_date').after('<div id="working-day-indicator" class="mt-1"></div>');
+                            indicator = $('#working-day-indicator');
+                        }
+                        indicator.html('<small>Tipo de día: ' + badge + '</small>');
+
+                    } else {
+                        console.error('Error:', response.error);
+                        $('#dias-trabajados').text('Error');
+                        $('#periodo-trabajado').html('<span class="text-danger">Error en cálculo</span>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    $('#dias-trabajados').text('Error');
+                    $('#periodo-trabajado').html('<span class="text-danger">Error de conexión</span>');
                 }
-                indicator.html('<small>Tipo de día: ' + badge + '</small>');
             });
         }
     }
 
-    // Función AJAX para calcular días laborables
-    function calculateBusinessDays(startDate, endDate, callback) {
-        // Por ahora, usar cálculo simple del lado cliente
-        // En el futuro se puede implementar endpoint AJAX
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        let workingDays = 0;
+    // Función para actualizar cálculos legales
+    function updateLegalCalculations(anos) {
+        // Actualizar prima de antigüedad
+        $('.callout-warning ul li').first().html('<strong>Prima de Antigüedad:</strong> ' + anos + ' semanas de salario');
 
-        const current = new Date(start);
-        while (current <= end) {
-            const dayOfWeek = current.getDay();
-            if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Lunes a Viernes
-                workingDays++;
-            }
-            current.setDate(current.getDate() + 1);
+        // Actualizar indemnización
+        let indemnizacion;
+        if (anos <= 10) {
+            indemnizacion = (anos * 3.4).toFixed(1);
+        } else {
+            indemnizacion = ((10 * 3.4) + ((anos - 10) * 1)).toFixed(1);
         }
-
-        callback(workingDays);
+        $('.callout-warning ul li').eq(1).html('<strong>Indemnización:</strong> ' + indemnizacion + ' semanas de salario');
     }
 
-    // Función para verificar si es día laboral
-    function checkWorkingDay(date, callback) {
-        const dayOfWeek = new Date(date).getDay();
-        const isWorking = dayOfWeek >= 1 && dayOfWeek <= 5;
-        callback(isWorking);
-    }
+    // Ejecutar cálculo inicial al cargar la página
+    updateBusinessDaysCalculation();
 
     // Confirmación antes de enviar
     $('#submitBtn').on('click', function(e) {

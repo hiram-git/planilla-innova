@@ -34,112 +34,7 @@ $csrf_token = $data['csrf_token'] ?? '';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($payrolls as $payroll): ?>
-                                <?php
-                                $statusClass = [
-                                    'PENDIENTE' => 'badge-warning',
-                                    'PROCESADA' => 'badge-success', 
-                                    'CERRADA' => 'badge-info',
-                                    'ANULADA' => 'badge-danger'
-                                ];
-                                $badgeClass = $statusClass[$payroll['estado']] ?? 'badge-secondary';
-                                $fechaPlanilla = !empty($payroll['fecha']) ? date('d/m/Y', strtotime($payroll['fecha'])) : 'N/A';
-                                ?>
-                                <tr>
-                                    <td><strong><?= $payroll['id'] ?></strong></td>
-                                    <td><?= htmlspecialchars($payroll['descripcion'] ?? 'Sin descripción') ?></td>
-                                    <td>
-                                        <span class="badge badge-secondary">
-                                            <?= htmlspecialchars($payroll['tipo_planilla_nombre'] ?? 'N/A') ?>
-                                        </span>
-                                    </td>
-                                    <td><?= $fechaPlanilla ?></td>
-                                    <td>
-                                        <span class="badge <?= $badgeClass ?>"><?= $payroll['estado'] ?? 'PENDIENTE' ?></span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge badge-info"><?= $payroll['total_empleados'] ?? 0 ?></span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <a href="<?= \App\Core\UrlHelper::payroll($payroll['id']) ?>" 
-                                               class="btn btn-info btn-sm" title="Ver detalles">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            
-                                            <?php if ($payroll['estado'] == 'PENDIENTE'): ?>
-                                                <button type="button" class="btn btn-success btn-sm process-btn" 
-                                                        data-id="<?= $payroll['id'] ?>" 
-                                                        data-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
-                                                        title="Procesar planilla">
-                                                    <i class="fas fa-play"></i>
-                                                </button>
-                                            <?php endif; ?>
-                                            
-                                            <?php if ($payroll['estado'] == 'PROCESADA'): ?>
-                                                <button type="button" class="btn btn-warning btn-sm reprocess-btn" 
-                                                        data-id="<?= $payroll['id'] ?>" 
-                                                        data-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
-                                                        title="Reprocesar planilla">
-                                                    <i class="fas fa-redo"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-primary btn-sm close-btn" 
-                                                        data-id="<?= $payroll['id'] ?>" 
-                                                        data-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
-                                                        title="Cerrar planilla">
-                                                    <i class="fas fa-lock"></i>
-                                                </button>
-                                            <?php endif; ?>
-                                            
-                                            <?php if ($payroll['estado'] == 'CERRADA'): ?>
-                                                <button type="button" class="btn btn-warning btn-sm reopen-btn" 
-                                                        data-id="<?= $payroll['id'] ?>" 
-                                                        data-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
-                                                        title="Abrir planilla cerrada">
-                                                    <i class="fas fa-unlock"></i> Abrir
-                                                </button>
-                                            <?php endif; ?>
-                                            
-                                            <?php if ($payroll['estado'] == 'PROCESADA'): ?>
-                                                <button type="button" class="btn btn-secondary btn-sm mark-pending-btn" 
-                                                        data-id="<?= $payroll['id'] ?>" 
-                                                        data-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
-                                                        title="Marcar como pendiente">
-                                                    <i class="fas fa-clock"></i> Pendiente
-                                                </button>
-                                            <?php endif; ?>
-                                            
-                                            <?php if (in_array($payroll['estado'], ['PENDIENTE', 'PROCESADA'])): ?>
-                                                <button type="button" class="btn btn-danger btn-sm cancel-btn" 
-                                                        data-id="<?= $payroll['id'] ?>" 
-                                                        data-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
-                                                        title="Anular planilla">
-                                                    <i class="fas fa-ban"></i>
-                                                </button>
-                                            <?php endif; ?>
-                                            
-                                            <a href="<?= \App\Core\UrlHelper::payroll($payroll['id'] . '/edit') ?>" 
-                                               class="btn btn-warning btn-sm" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            
-                                            <?php if (in_array($payroll['estado'], ['PROCESADA', 'CERRADA'])): ?>
-                                                <a href="<?= \App\Core\UrlHelper::route('panel/acumulados/byPayroll/' . $payroll['id']) ?>" 
-                                                   class="btn btn-info btn-sm" title="Ver acumulados de esta planilla">
-                                                    <i class="fas fa-calculator"></i>
-                                                </a>
-                                            <?php endif; ?>
-                                            
-                                            <button type="button" class="btn btn-danger btn-sm delete-btn" 
-                                                    data-id="<?= $payroll['id'] ?>" 
-                                                    data-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
-                                                    title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+                            <!-- Data will be loaded via AJAX -->
                         </tbody>
                     </table>
                 </div>
@@ -148,13 +43,13 @@ $csrf_token = $data['csrf_token'] ?? '';
                 <div class="row">
                     <div class="col-sm-6">
                         <p class="text-muted mb-0">
-                            Total: <strong><?= count($payrolls) ?></strong> planillas
+                            <span id="payrollCount">Cargando...</span>
                         </p>
                     </div>
                     <div class="col-sm-6">
                         <div class="float-right">
                             <small class="text-muted">
-                                Última actualización: <?= date('d/m/Y H:i:s') ?>
+                                Última actualización: <span id="lastUpdate"><?= date('d/m/Y H:i:s') ?></span>
                             </small>
                         </div>
                     </div>
@@ -243,6 +138,12 @@ $csrf_token = $data['csrf_token'] ?? '';
                             <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
                         </div>
                         <h5 class="text-success">¡Procesamiento Completado!</h5>
+
+                        <!-- Información de la planilla -->
+                        <div class="alert alert-info mt-3">
+                            <strong>Planilla:</strong> <span id="completedPayrollInfo">-</span>
+                        </div>
+
                         <div id="completionStats" class="mt-3"></div>
                     </div>
                 </div>
@@ -260,11 +161,8 @@ $csrf_token = $data['csrf_token'] ?? '';
                     </button>
                 </div>
                 <div id="completedButtons" style="display: none;">
-                    <button type="button" class="btn btn-primary" onclick="PayrollModule.reloadDataTable()">
-                        <i class="fas fa-sync"></i> Actualizar Lista
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                        Cerrar
+                    <button type="button" class="btn btn-success" data-dismiss="modal">
+                        <i class="fas fa-check"></i> Finalizar
                     </button>
                 </div>
             </div>
@@ -351,6 +249,12 @@ $csrf_token = $data['csrf_token'] ?? '';
                             <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
                         </div>
                         <h5 class="text-success">¡Reprocesamiento Completado!</h5>
+
+                        <!-- Información de la planilla -->
+                        <div class="alert alert-info mt-3">
+                            <strong>Planilla:</strong> <span id="reprocessCompletedPayrollInfo">-</span>
+                        </div>
+
                         <div id="reprocessCompletionStats" class="mt-3"></div>
                     </div>
                 </div>
@@ -368,11 +272,8 @@ $csrf_token = $data['csrf_token'] ?? '';
                     </button>
                 </div>
                 <div id="reprocessCompletedButtons" style="display: none;">
-                    <button type="button" class="btn btn-primary" onclick="PayrollModule.reloadDataTable()">
-                        <i class="fas fa-sync"></i> Actualizar Lista
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                        Cerrar
+                    <button type="button" class="btn btn-success" data-dismiss="modal">
+                        <i class="fas fa-check"></i> Finalizar
                     </button>
                 </div>
             </div>
@@ -538,10 +439,11 @@ $csrf_token = $data['csrf_token'] ?? '';
 $styles = '<link rel="stylesheet" href="' . url('plugins/datatables-bs4/css/dataTables.bootstrap4.min.css', false) . '">';
 
 // Scripts para el módulo usando sistema modular
+$timestamp = date('siH'); // SS II HH format for cache busting
 $scriptFiles = [
     '/plugins/datatables/jquery.dataTables.min.js',
     '/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js',
-    '/assets/javascript/modules/payroll/index.js'
+    '/assets/javascript/modules/payroll/index.js?' . $timestamp
 ];
 
 use App\Helpers\JavaScriptHelper;
