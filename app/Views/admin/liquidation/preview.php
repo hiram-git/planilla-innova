@@ -93,7 +93,6 @@ $pageTitle = "Vista Previa de Liquidación - " . htmlspecialchars($termination['
                                         ?>
                                         <?= $periodo_interval->y ?> años, <?= $periodo_interval->m ?> meses, <?= $periodo_interval->d ?> días
                                     </strong>
-                                    <br><small class="text-muted"><?= number_format($termination['years_worked'], 2) ?> años totales</small>
                                 </td>
                             </tr>
                             <tr>

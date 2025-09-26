@@ -62,7 +62,6 @@ $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] .
                             <dd class="col-sm-8" id="periodo-trabajado">
                                 <strong><?= $periodo_trabajado['anos'] ?> años, <?= $periodo_trabajado['meses'] ?> meses, <?= $periodo_trabajado['dias'] ?> días</strong>
                                 <br><small class="text-muted">Total: <?= number_format($periodo_trabajado['total_dias_calendario']) ?> días calendario</small>
-                                <br><small class="text-muted">Laborables: <?= number_format($periodo_trabajado['total_dias_laborables']) ?> días laborables</small>
                             </dd>
 
                             <dt class="col-sm-4">Salario:</dt>
@@ -232,7 +231,7 @@ $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] .
                                         <div class="info-box-content">
                                             <span class="info-box-text">Días Trabajados</span>
                                             <span class="info-box-number" id="dias-trabajados">
-                                                <?= $periodo_trabajado['total_dias_laborables'] ?>
+                                                <?= number_format($periodo_trabajado['total_dias_calendario']) ?>
                                             </span>
                                         </div>
                                     </div>
@@ -349,13 +348,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 success: function(response) {
                     if (response.success) {
                         // Actualizar días trabajados
-                        $('#dias-trabajados').text(response.formatted.dias_laborables);
+                        $('#dias-trabajados').text(response.formatted.dias_calendario);
 
                         // Actualizar período completo
                         $('#periodo-trabajado').html(
                             '<strong>' + response.formatted.periodo_completo + '</strong>' +
-                            '<br><small class="text-muted">Total: ' + response.formatted.dias_calendario + ' días calendario</small>' +
-                            '<br><small class="text-muted">Laborables: ' + response.formatted.dias_laborables + ' días laborables</small>'
+                            '<br><small class="text-muted">Total: ' + response.formatted.dias_calendario + ' días calendario</small>' 
                         );
 
                         // Actualizar cálculos legales basados en años completos
