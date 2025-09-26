@@ -34,7 +34,7 @@ class AcumuladoController extends Controller
         $empleadoId = $_GET['empleado_id'] ?? null;
         
         // Obtener lista de empleados para filtro
-        $employees = $this->employeeModel->getActiveEmployees();
+        $employees = $this->employeeModel->getAllEmployees();
         
         // Obtener tipos de acumulados activos
         $tiposAcumulados = $this->tipoAcumuladoModel->getActivos();
@@ -439,7 +439,7 @@ class AcumuladoController extends Controller
 
         try {
             // Obtener lista de empleados activos
-            $employees = $this->employeeModel->getActiveEmployees();
+            $employees = $this->employeeModel->getAllEmployees();
 
             // Si se especifica un empleado, obtener sus acumulados
             $acumulados = [];
@@ -608,7 +608,7 @@ class AcumuladoController extends Controller
 
             $whereClause = implode(" AND ", $whereConditions);
 
-            $sql = "SELECT
+             $sql = "SELECT
                         ape.id,
                         ape.employee_id,
                         ape.concepto_id,
@@ -622,7 +622,8 @@ class AcumuladoController extends Controller
                         c.descripcion as concepto_descripcion,
                         pc.descripcion as planilla_descripcion,
                         pc.fecha_desde,
-                        pc.fecha_hasta
+                        pc.fecha_hasta, 
+                        ape.tipo_acumulado
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id

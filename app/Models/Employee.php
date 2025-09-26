@@ -240,6 +240,17 @@ class Employee extends Model
         return $this->db->findAll($sql);
     }
 
+    public function getAllEmployees()
+    {
+        $sql = "SELECT e.*, pos.codigo as position_name, sit.descripcion as situacion_nombre
+                FROM employees e
+                LEFT JOIN posiciones pos ON e.position_id = pos.id
+                LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                ORDER BY e.lastname, e.firstname";
+        
+        return $this->db->findAll($sql);
+    }
+
     /**
      * Obtener opciones de empleados para selects
      */

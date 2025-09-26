@@ -916,13 +916,11 @@ class PlanillaConceptCalculator
                 FROM
                     acumulados_por_empleado ae
                     INNER JOIN planilla_cabecera pc ON ae.planilla_id = pc.id
-                    INNER JOIN conceptos_acumulados ca ON ca.concepto_id = ae.concepto_id
-                    INNER JOIN tipos_acumulados ta ON ca.tipo_acumulado_id = ta.id 
                 WHERE
                     ae.employee_id = ?
                 AND pc.fecha_desde >= ?
                 AND pc.fecha_hasta <= ?
-                AND ta.codigo = ?
+                AND ae.tipo_acumulado= ?
             ";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId, $fechaInicio, $fechaFin, $concepto]);
@@ -1386,7 +1384,7 @@ class PlanillaConceptCalculator
                 $mesesRestantes = round($mesesTrabajados % 12, 2);
 
                 // Días por años completos
-                $diasPorAnosCompletos = $anosCompletos * $diasPorAno;
+                $diasPorAnosCompletos = (int) round($anosCompletos * $diasPorAno);
 
                 // Días proporcionales por meses restantes (si >= 11 meses)
                 $diasProporcionales = 0;
