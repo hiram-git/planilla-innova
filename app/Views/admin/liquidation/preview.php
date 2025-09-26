@@ -533,169 +533,85 @@ $pageTitle = "Vista Previa de Liquidación - " . htmlspecialchars($termination['
         });
     }; // Cerrar window.recalculateLiquidation
 
-    // Función para actualizar días de preaviso
+    // Función para actualizar días de preaviso con toastr
     window.updateNoticePeriodDays = function(terminationId) {
         const noticeDays = document.getElementById('noticePeriodDays').value;
         const originalValue = '<?= $termination['notice_period_days'] ?>';
 
         // Validar entrada
         if (!noticeDays || noticeDays < 0 || noticeDays > 365) {
-            Swal.fire({
-                title: 'Valor Inválido',
-                text: 'Los días de preaviso deben estar entre 0 y 365.',
-                icon: 'warning',
-                confirmButtonText: 'Entendido'
-            });
+            toastr.warning('Los días de preaviso deben estar entre 0 y 365.', 'Valor Inválido');
             document.getElementById('noticePeriodDays').value = originalValue;
             return;
         }
 
         // Si no hay cambios, no hacer nada
         if (noticeDays == originalValue) {
+            toastr.info('No hay cambios para guardar.', 'Sin Cambios');
             return;
         }
 
-        // Confirmar cambio
-        Swal.fire({
-            title: '¿Actualizar Días de Preaviso?',
-            html: `
-                <div class="text-left">
-                    <p><strong>Cambio solicitado:</strong></p>
-                    <ul>
-                        <li><strong>Valor anterior:</strong> ${originalValue} días</li>
-                        <li><strong>Nuevo valor:</strong> ${noticeDays} días</li>
-                    </ul>
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>Nota:</strong> Este cambio afectará el cálculo del preaviso en la liquidación.
-                        Se recomienda recalcular después de este cambio.
-                    </div>
-                </div>
-            `,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="fas fa-save"></i> Sí, actualizar',
-            cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Mostrar loading
-                Swal.fire({
-                    title: 'Actualizando...',
-                    text: 'Guardando días de preaviso',
-                    icon: 'info',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+        // Mostrar notificación de procesamiento
+        toastr.info(`Actualizando días de preaviso de ${originalValue} a ${noticeDays} días...`, 'Procesando');
 
-                // Enviar petición AJAX
-                $.ajax({
-                    url: window.BASE_URL + `/panel/liquidation/${terminationId}/update-notice-days`,
-                    method: 'POST',
-                    data: {
-                        notice_period_days: noticeDays,
-                        csrf_token: $('meta[name="csrf-token"]').attr('content') || '<?= \App\Core\Security::generateToken() ?>',
-                        _ajax: true
-                    },
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    },
-                    timeout: 30000,
-                    success: function(response) {
-                        Swal.close();
+        // Enviar petición AJAX directamente
+        $.ajax({
+            url: window.BASE_URL + `/panel/liquidation/${terminationId}/update-notice-days`,
+            method: 'POST',
+            data: {
+                notice_period_days: noticeDays,
+                csrf_token: $('meta[name="csrf-token"]').attr('content') || '<?= \App\Core\Security::generateToken() ?>',
+                _ajax: true
+            },
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            timeout: 30000,
+            success: function(response) {
+                if (response.success) {
+                    // Mostrar éxito con toastr
+                    toastr.success(`Días de preaviso actualizados a ${noticeDays} días correctamente.`, 'Guardado Exitoso');
 
-                        if (response.success) {
-                            // Mostrar éxito con opción de recalcular
-                            Swal.fire({
-                                title: '¡Días de Preaviso Actualizados!',
-                                html: `
-                                    <div class="text-left">
-                                        <p><strong>✅ Cambio guardado exitosamente</strong></p>
-                                        <p><strong>Nuevo valor:</strong> ${noticeDays} días</p>
-                                        <hr>
-                                        <div class="alert alert-warning">
-                                            <i class="fas fa-calculator"></i>
-                                            <strong>Recomendación:</strong> Se sugiere recalcular la liquidación
-                                            para aplicar el nuevo valor de preaviso en los cálculos.
-                                        </div>
-                                    </div>
-                                `,
-                                icon: 'success',
-                                showCancelButton: true,
-                                confirmButtonColor: '#ffc107',
-                                cancelButtonColor: '#28a745',
-                                confirmButtonText: '<i class="fas fa-sync-alt"></i> Recalcular Ahora',
-                                cancelButtonText: '<i class="fas fa-check"></i> Solo Guardar',
-                                reverseButtons: true
-                            }).then((recalcResult) => {
-                                if (recalcResult.isConfirmed) {
-                                    // Ejecutar recálculo
-                                    recalculateLiquidation(terminationId);
-                                }
-                            });
-                        } else {
-                            // Error en la respuesta
-                            Swal.fire({
-                                title: 'Error al Actualizar',
-                                html: `
-                                    <div class="text-left">
-                                        <p><strong>❌ No se pudieron actualizar los días</strong></p>
-                                        <div class="alert alert-danger mt-2">
-                                            <strong>Error:</strong> ${response.message || 'Error desconocido'}
-                                        </div>
-                                    </div>
-                                `,
-                                icon: 'error',
-                                confirmButtonText: 'Entendido'
-                            });
-                            // Restaurar valor original
-                            document.getElementById('noticePeriodDays').value = originalValue;
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        Swal.close();
-
-                        console.error('=== Update Notice Days Error ===');
-                        console.error('Status:', status);
-                        console.error('Error:', error);
-                        console.error('Response:', xhr.responseText);
-
-                        let errorMessage = 'Error de conexión';
-                        if (xhr.status === 404) {
-                            errorMessage = 'Endpoint no encontrado';
-                        } else if (xhr.status === 500) {
-                            errorMessage = 'Error interno del servidor';
-                        } else if (status === 'timeout') {
-                            errorMessage = 'Tiempo de espera agotado';
-                        }
-
+                    // Preguntar si quiere recalcular usando SweetAlert simple
+                    setTimeout(() => {
                         Swal.fire({
-                            title: 'Error de Comunicación',
-                            html: `
-                                <div class="text-left">
-                                    <p><strong>❌ ${errorMessage}</strong></p>
-                                    <div class="alert alert-danger mt-2">
-                                        <strong>Código:</strong> ${xhr.status}<br>
-                                        <strong>Mensaje:</strong> ${error}
-                                    </div>
-                                </div>
-                            `,
-                            icon: 'error',
-                            confirmButtonText: 'Entendido'
+                            title: '¿Recalcular Liquidación?',
+                            text: 'Se recomienda recalcular la liquidación para aplicar el nuevo valor de preaviso.',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#ffc107',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: '<i class="fas fa-sync-alt"></i> Recalcular',
+                            cancelButtonText: 'Más Tarde'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                recalculateLiquidation(terminationId);
+                            }
                         });
+                    }, 1500);
+                } else {
+                    // Error en la respuesta
+                    toastr.error(response.message || 'Error desconocido al actualizar los días', 'Error al Actualizar');
+                    document.getElementById('noticePeriodDays').value = originalValue;
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('=== Update Notice Days Error ===');
+                console.error('Status:', status);
+                console.error('Error:', error);
+                console.error('Response:', xhr.responseText);
 
-                        // Restaurar valor original
-                        document.getElementById('noticePeriodDays').value = originalValue;
-                    }
-                });
-            } else {
-                // Cancelado, restaurar valor original
+                let errorMessage = 'Error de conexión';
+                if (xhr.status === 404) {
+                    errorMessage = 'Endpoint no encontrado';
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Error interno del servidor';
+                } else if (status === 'timeout') {
+                    errorMessage = 'Tiempo de espera agotado';
+                }
+
+                toastr.error(`${errorMessage}. Código: ${xhr.status}`, 'Error de Comunicación');
                 document.getElementById('noticePeriodDays').value = originalValue;
             }
         });

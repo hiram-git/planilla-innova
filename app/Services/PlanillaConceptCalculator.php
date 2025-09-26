@@ -1300,7 +1300,7 @@ class PlanillaConceptCalculator
     /**
      * Agregar variables específicas para liquidación
      */
-    public function setVariablesLiquidacion(int $employeeId): void
+    public function setVariablesLiquidacion(int $employeeId, int $terminationId = null): void
     {
         $this->setVariablesColaborador($employeeId);
 
@@ -1309,7 +1309,37 @@ class PlanillaConceptCalculator
         $this->variablesColaborador['SUELDO_SEMANAL'] = $this->calcularSalarioSemanal($employeeId);
         $this->variablesColaborador['SUELDO_MENSUAL'] = $this->calcularSalarioMensual($employeeId);
         $this->variablesColaborador['SUELDO_DIARIO'] = $this->calcularSalarioDiario($employeeId);
-        $this->variablesColaborador['DIAS_PREAVISO'] = 30; // Días de preaviso según legislación panameña (por defecto)
+
+        // Obtener días de preaviso reales de la liquidación si existe termination_id
+        if ($terminationId) {
+            $this->variablesColaborador['DIAS_PREAVISO'] = $this->getDiasPreaviso($terminationId);
+        } else {
+            $this->variablesColaborador['DIAS_PREAVISO'] = 30; // Fallback por defecto
+        }
+    }
+
+    /**
+     * Obtener días de preaviso reales de la liquidación
+     */
+    private function getDiasPreaviso(int $terminationId): int
+    {
+        try {
+            $sql = "SELECT notice_period_days FROM employee_terminations WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$terminationId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result && isset($result['notice_period_days'])) {
+                return (int)$result['notice_period_days'];
+            }
+
+            // Fallback si no se encuentra
+            error_log("ADVERTENCIA: No se pudo obtener notice_period_days para termination_id: $terminationId");
+            return 30; // Valor por defecto según legislación panameña
+        } catch (Exception $e) {
+            error_log("ERROR en getDiasPreaviso: " . $e->getMessage());
+            return 30; // Valor por defecto en caso de error
+        }
     }
 
     // ========================================

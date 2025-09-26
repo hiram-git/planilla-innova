@@ -252,7 +252,7 @@ class LiquidationController extends Controller
             }
 
             // Configurar calculadora con variables del empleado
-            $this->calculator->setVariablesLiquidacion($termination['employee_table_id']);
+            $this->calculator->setVariablesLiquidacion($termination['employee_table_id'], $termination_id);
 
             // Obtener conceptos de liquidación usando frecuencia
             $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
@@ -417,7 +417,7 @@ class LiquidationController extends Controller
             $stmt->execute([$termination_id]);
 
             // Configurar calculadora con variables del empleado
-            $this->calculator->setVariablesLiquidacion($termination['employee_table_id']);
+            $this->calculator->setVariablesLiquidacion($termination['employee_table_id'], $termination_id);
 
             // Obtener conceptos de liquidación usando frecuencia
             $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
@@ -1114,7 +1114,7 @@ class LiquidationController extends Controller
             }
 
             // Verificar que la liquidación existe
-            $sql = "SELECT id, status, firstname, lastname FROM employee_terminations et
+            $sql = "SELECT et.id, et.status, e.firstname, e.lastname FROM employee_terminations et
                     INNER JOIN employees e ON et.employee_id = e.id
                     WHERE et.id = ?";
             $stmt = $this->db->prepare($sql);
