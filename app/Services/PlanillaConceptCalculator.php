@@ -1382,8 +1382,8 @@ class PlanillaConceptCalculator
 
             if ($mesesTrabajados >= $mesesMinimos) {
                 // Calcular años completos trabajados
-                $anosCompletos = floor($mesesTrabajados / 12);
-                $mesesRestantes = $mesesTrabajados % 12;
+                $anosCompletos = round(floor($mesesTrabajados / 12), 2);
+                $mesesRestantes = round($mesesTrabajados % 12, 2);
 
                 // Días por años completos
                 $diasPorAnosCompletos = $anosCompletos * $diasPorAno;
