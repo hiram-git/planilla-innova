@@ -129,10 +129,10 @@
                 "columns": [
                     { "data": "id", "name": "id" },
                     { "data": "descripcion", "name": "descripcion" },
-                    { "data": "tipo_planilla", "name": "tipo_planilla_nombre" },
+                    { "data": "tipo_planilla", "name": "tipo_planilla_nombre", "className": "d-none d-xl-table-cell" },
                     { "data": "fecha", "name": "fecha" },
-                    { "data": "estado", "name": "estado" },
-                    { "data": "total_empleados", "name": "total_empleados", "className": "text-center" },
+                    { "data": "estado", "name": "estado", "className": "text-center" },
+                    { "data": "total_empleados", "name": "total_empleados", "className": "text-center d-none d-xl-table-cell" },
                     { "data": "acciones", "name": "acciones", "orderable": false, "searchable": false }
                 ],
                 "language": {
@@ -151,7 +151,7 @@
                         "previous": "Anterior"
                     }
                 },
-                "order": [[0, "desc"]],
+                "order": [[3, "desc"]],
                 "columnDefs": [
                     { "orderable": false, "targets": [6] }
                 ],

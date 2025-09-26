@@ -687,14 +687,37 @@ class ConceptController extends Controller
      */
     public function duplicate($id)
     {
+        // Clean any existing output buffer to prevent parsererror
+        if (ob_get_level()) {
+            ob_clean();
+        }
+
         try {
+            // Log the start of the duplicate operation
+            error_log("ConceptController@duplicate started for ID: $id");
+            error_log("Request method: " . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
+
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new \Exception('Método no permitido');
+                error_log("GET request to duplicate route - redirecting to concepts list");
+                // Si es una petición GET (acceso directo), redirigir a la lista de conceptos
+                $_SESSION['error'] = 'Acceso directo no permitido. Use la interfaz de duplicación.';
+                $this->redirect('/panel/concepts');
+                return;
             }
 
+
             // Validar token CSRF
-            if (!Security::validateToken($_POST['csrf_token'] ?? '')) {
+            $token = $_POST['csrf_token'] ?? '';
+            $sessionToken = $_SESSION['csrf_token'] ?? 'NOT_SET';
+            error_log("CSRF token received: '$token'");
+            error_log("CSRF token in session: '$sessionToken'");
+            error_log("Session ID: " . session_id());
+
+            if (!Security::validateToken($token)) {
+                error_log("CSRF validation failed for token: '$token'");
                 throw new \Exception('Token de seguridad inválido');
+            } else {
+                error_log("CSRF validation successful");
             }
 
             $newDescription = trim($_POST['new_description'] ?? '');
@@ -702,7 +725,17 @@ class ConceptController extends Controller
                 throw new \Exception('Nueva descripción requerida');
             }
 
+            error_log("Attempting to duplicate concept ID $id with description: $newDescription");
+
+            // Check if conceptModel exists
+            if (!$this->conceptModel) {
+                throw new \Exception('Modelo de concepto no inicializado');
+            }
+
+            // Log the call to duplicate
+            error_log("Calling conceptModel->duplicate($id, '$newDescription')");
             $newId = $this->conceptModel->duplicate($id, $newDescription);
+            error_log("Duplicate operation result: " . ($newId ? "Success (ID: $newId)" : "Failed"));
 
             if ($newId) {
                 $_SESSION['success'] = 'Concepto duplicado exitosamente';
@@ -710,12 +743,25 @@ class ConceptController extends Controller
                 // Si es una petición AJAX, devolver JSON
                 if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
                     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                    header('Content-Type: application/json');
-                    echo json_encode([
+
+                    // Ensure no output has been sent
+                    if (headers_sent($file, $line)) {
+                        error_log("Headers already sent at $file:$line");
+                        throw new \Exception('Headers ya enviados, no se puede devolver JSON');
+                    }
+
+                    header('Content-Type: application/json; charset=utf-8');
+                    http_response_code(200);
+
+                    $response = [
                         'success' => true,
                         'message' => 'Concepto duplicado exitosamente',
-                        'redirect' => '/panel/concepts/' . $newId . '/edit'
-                    ]);
+                        'redirect' => '/panel/concepts/' . $newId . '/edit',
+                        'newId' => $newId
+                    ];
+
+                    error_log("Sending success JSON response: " . json_encode($response));
+                    echo json_encode($response, JSON_UNESCAPED_UNICODE);
                     exit;
                 }
 
@@ -724,17 +770,28 @@ class ConceptController extends Controller
                 throw new \Exception('Error al duplicar el concepto');
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("Error en ConceptController@duplicate: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
 
             // Si es una petición AJAX, devolver JSON
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                header('Content-Type: application/json');
-                echo json_encode([
+
+                // Ensure no output has been sent
+                if (!headers_sent()) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    http_response_code(400);
+                }
+
+                $response = [
                     'success' => false,
-                    'message' => $e->getMessage()
-                ]);
+                    'message' => $e->getMessage(),
+                    'error_type' => get_class($e)
+                ];
+
+                error_log("Sending error JSON response: " . json_encode($response));
+                echo json_encode($response, JSON_UNESCAPED_UNICODE);
                 exit;
             }
 

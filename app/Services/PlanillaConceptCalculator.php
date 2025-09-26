@@ -373,10 +373,22 @@ class PlanillaConceptCalculator
     private function evaluarExpresionMatematica(string $expresion): float
     {
         try {
+            // Log para debug de fórmulas problemáticas
+            if (strpos($expresion, '500 * ') !== false || preg_match('/\d+\s*[*+\-\/]\s*$/', $expresion)) {
+                error_log("DEBUG: Expresión problemática detectada: '$expresion'");
+                error_log("DEBUG: Stack trace: " . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5)));
+            }
+
             // Sanitizar y evaluar expresión básica
             $expresionLimpia = preg_replace('/[^0-9+\-*\/\(\)\.\s]/', '', $expresion);
 
             if (empty($expresionLimpia)) {
+                return 0;
+            }
+
+            // Validar que la expresión no termine con operadores
+            if (preg_match('/[*+\-\/]\s*$/', $expresionLimpia)) {
+                error_log("Error: Expresión termina con operador: '$expresionLimpia'");
                 return 0;
             }
 
@@ -505,6 +517,31 @@ class PlanillaConceptCalculator
             $fichaValue = $this->reemplazarVariables($fichaVariable);
 
             return (string)$this->calcularAntiguedad($fichaValue, $fechaFinal, $tipo);
+        }, $formula);
+
+        // Procesar función CONCEPTO(CODIGO_CONCEPTO) - Retorna monto del cálculo del concepto
+        $formula = preg_replace_callback('/CONCEPTO\(\s*["\']?([^"\')\s]+)["\']?\s*\)/', function($matches) {
+            $codigoConcepto = trim($matches[1]);
+
+            // Buscar concepto por código y evaluar su fórmula
+            if (isset($this->conceptos[$codigoConcepto])) {
+                $formulaConcepto = $this->conceptos[$codigoConcepto]['formula'];
+
+                // Prevenir recursión infinita
+                if (isset($this->evaluando[$codigoConcepto])) {
+                    error_log("ADVERTENCIA: Recursión detectada en concepto '$codigoConcepto'");
+                    return '0';
+                }
+
+                $this->evaluando[$codigoConcepto] = true;
+                $resultado = $this->evaluarFormula($formulaConcepto);
+                unset($this->evaluando[$codigoConcepto]);
+
+                return (string)$resultado;
+            } else {
+                error_log("ADVERTENCIA: Concepto '$codigoConcepto' no encontrado en función CONCEPTO()");
+                return '0';
+            }
         }, $formula);
 
         // Procesar función ACUMULADOS(CONCEPTOS, FICHA, FECHA_INICIO, FECHA_FIN)
@@ -1272,6 +1309,7 @@ class PlanillaConceptCalculator
         $this->variablesColaborador['SUELDO_SEMANAL'] = $this->calcularSalarioSemanal($employeeId);
         $this->variablesColaborador['SUELDO_MENSUAL'] = $this->calcularSalarioMensual($employeeId);
         $this->variablesColaborador['SUELDO_DIARIO'] = $this->calcularSalarioDiario($employeeId);
+        $this->variablesColaborador['DIAS_PREAVISO'] = 30; // Días de preaviso según legislación panameña (por defecto)
     }
 
     // ========================================

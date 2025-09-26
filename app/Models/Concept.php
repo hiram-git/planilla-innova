@@ -820,13 +820,20 @@ class Concept extends Model
     public function duplicate($id, $newDescription)
     {
         try {
+            error_log("Concept->duplicate called: ID=$id, newDescription='$newDescription'");
+
             $original = $this->find($id);
             if (!$original) {
+                error_log("Original concept not found for ID: $id");
                 return false;
             }
 
+            error_log("Original concept found: " . json_encode($original));
+
             // Verificar que la nueva descripción no exista
+            error_log("Checking if description '$newDescription' is duplicate");
             if ($this->isDescriptionDuplicate($newDescription)) {
+                error_log("Description '$newDescription' already exists");
                 throw new \Exception('Ya existe un concepto con la descripción: ' . $newDescription);
             }
 
@@ -835,9 +842,11 @@ class Concept extends Model
             unset($newConcept['created_on']);
             unset($newConcept['updated_on']);
             $newConcept['descripcion'] = $newDescription;
-            $newConcept['activo'] = 0; // Crear inactivo por seguridad
+            // Note: No 'activo' field in concepto table
 
+            error_log("About to create new concept with data: " . json_encode($newConcept));
             $newId = $this->create($newConcept);
+            error_log("Create method returned: " . ($newId ?: 'false'));
             
             if ($newId) {
                 $this->logChange($newId, 'DUPLICATE', null, 'Duplicado desde concepto ID: ' . $id, 'origin');

@@ -33,11 +33,11 @@ $title = 'Conceptos de Nómina';
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>Código</th>
                                 <th>Descripción</th>
                                 <th>Tipo</th>
                                 <th>Fórmula</th>
                                 <th>Uso</th>
-                                <th>Total Aplicado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -66,6 +66,9 @@ $title = 'Conceptos de Nómina';
     ?>
                             <tr>
                                 <td><?= htmlspecialchars($concept['id']) ?></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($concept['concepto']) ?></strong>
+                                </td>
                                 <td>
                                     <div class="concept-info">
                                         <strong><?= htmlspecialchars($concept['descripcion']) ?></strong>
@@ -106,16 +109,6 @@ $title = 'Conceptos de Nómina';
                                         <strong class="usage-count"><?= $vecesUsado ?></strong>
                                         <br><small class="text-muted">veces</small>
                                     </div>
-                                </td>
-                                <td class="text-right">
-                                    <?php if ($totalMonto > 0): ?>
-                                        <strong class="<?= ($concept['tipo_concepto'] ?? '') === 'A' ? 'text-success' : 'text-danger' ?>">
-                                            <?= currency_symbol(); ?> <?= number_format($totalMonto, 2) ?>
-                                        </strong>
-                                        <br><small class="text-muted">Promedio: <?= currency_symbol(); ?> <?= number_format($promedioMonto, 2) ?></small>
-                                    <?php else: ?>
-                                        <span class="text-muted"><?= currency_symbol(); ?> 0.00</span>
-                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
@@ -310,7 +303,7 @@ $title = 'Conceptos de Nómina';
             }
         },
         columnDefs: [
-            { orderable: false, targets: [6] } // Disable ordering on actions column (adjusted for removed column)
+            { orderable: false, targets: [6] } // Disable ordering on actions column
         ]
     });
 
@@ -318,9 +311,9 @@ $title = 'Conceptos de Nómina';
     $('#filterType').on('change', function() {
         var filterValue = $(this).val();
         if (filterValue) {
-            table.column(2).search(filterValue).draw();
+            table.column(3).search(filterValue).draw();
         } else {
-            table.column(2).search('').draw();
+            table.column(3).search('').draw();
         }
     });
 
@@ -380,23 +373,47 @@ $title = 'Conceptos de Nómina';
     });
 
     // Duplicar concepto
-    $(document).on('click', '.duplicate-concept', function() {
+    $(document).on('click', '.duplicate-concept', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
+        console.log('Duplicate button clicked - Event type:', e.type);
+        console.log('Event target:', e.target);
+        console.log('Current target:', e.currentTarget);
+
         var conceptId = $(this).data('id');
         var description = $(this).data('description');
+
+        console.log('Concept ID:', conceptId);
+        console.log('Description:', description);
+
+        if (!conceptId) {
+            alert('Error: No se pudo obtener el ID del concepto');
+            return false;
+        }
 
         $('#duplicateConceptName').text(description);
         $('#newDescription').val(description + ' (Copia)');
         $('#duplicateModal').modal('show');
 
-        $('#confirmDuplicate').off('click').on('click', function() {
+        // Remove any previous handlers and add new one
+        $('#confirmDuplicate').off('click.duplicate').on('click.duplicate', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Confirm duplicate clicked');
+
             var newDescription = $('#newDescription').val().trim();
             if (newDescription === '') {
                 alert('Debe ingresar una nueva descripción para el concepto.');
                 $('#newDescription').focus();
-                return;
+                return false;
             }
             duplicateConcept(conceptId, newDescription);
+            return false;
         });
+
+        return false;
     });
 
     // Initialize Select2 for employees
@@ -514,26 +531,41 @@ $title = 'Conceptos de Nómina';
     }
 
     function duplicateConcept(conceptId, newDescription) {
+        console.log('Duplicating concept ID:', conceptId);
+
         $('#confirmDuplicate').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Duplicando...');
 
-        $.ajax({
-            url: '<?= url('/panel/concepts/duplicate/') ?>' + conceptId,
+        var duplicateUrl = '<?= url('/panel/concepts/duplicate/') ?>' + conceptId;
+
+        // Create a more explicit AJAX configuration
+        var ajaxConfig = {
+            url: duplicateUrl,
+            type: 'POST',
             method: 'POST',
             data: {
                 csrf_token: '<?= \App\Core\Security::generateToken() ?>',
                 new_description: newDescription
             },
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
             },
+            cache: false,
+            processData: true,
             dataType: 'json',
+            timeout: 30000, // 30 seconds timeout
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('Accept', 'application/json');
+            },
             success: function(response) {
                 console.log('Duplicate response:', response);
                 if (response.success) {
                     $('#duplicateModal').modal('hide');
+                    alert('Concepto duplicado exitosamente');
                     // Redirigir al concepto duplicado para editarlo
                     if (response.redirect) {
-                        window.location.href = response.redirect;
+                         var redireccion = '<?= url('/panel/concepts/') ?>';
+                        window.location.href = redireccion;
                     } else {
                         location.reload();
                     }
@@ -548,16 +580,20 @@ $title = 'Conceptos de Nómina';
                 }
             },
             error: function(xhr, status, error) {
-                console.log('Duplicate error:', xhr.responseText);
-                console.log('Status:', status, 'Error:', error);
+                console.error('=== AJAX Error ===');
+                console.error('Status:', status);
+                console.error('Error:', error);
+                console.error('Status Code:', xhr.status);
+                console.error('Response Text:', xhr.responseText);
 
-                // Error real de conexión
-                alert('Error de conexión. No se pudo duplicar el concepto.');
+                alert('Error al duplicar concepto. Ver consola para detalles.');
             },
             complete: function() {
                 $('#confirmDuplicate').prop('disabled', false).html('<i class="fas fa-copy"></i> Duplicar');
             }
-        });
+        };
+
+        $.ajax(ajaxConfig);
     }
 
     // Initialize tooltips

@@ -363,11 +363,24 @@ class LiquidationController extends Controller
     public function recalculate($termination_id)
     {
         try {
+            $start_time = microtime(true); // Para medir tiempo de procesamiento
             $this->validateCsrfToken();
 
             $termination = $this->getTerminationData($termination_id);
 
             if (!$termination) {
+                // Si es una petición AJAX, devolver JSON de error
+                if (isset($_POST['_ajax']) || isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+                    header('Content-Type: application/json');
+                    http_response_code(404);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Liquidación no encontrada',
+                        'error_type' => 'NotFound'
+                    ]);
+                    exit;
+                }
+
                 $this->setToastrMessage('error', 'Liquidación no encontrada', 'Error de Búsqueda');
                 $this->redirect('/panel/liquidation');
                 return;
@@ -375,6 +388,19 @@ class LiquidationController extends Controller
 
             // Solo permitir recálculo en estados específicos
             if (!in_array($termination['status'], ['CALCULADA', 'PROCESADA'])) {
+                // Si es una petición AJAX, devolver JSON de error
+                if (isset($_POST['_ajax']) || isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+                    header('Content-Type: application/json');
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'No se puede recalcular una liquidación en estado ' . $termination['status'],
+                        'error_type' => 'InvalidState',
+                        'current_status' => $termination['status']
+                    ]);
+                    exit;
+                }
+
                 $this->setToastrMessage('error', 'No se puede recalcular una liquidación en estado ' . $termination['status'], 'Estado Inválido');
                 $this->redirect('/panel/liquidation');
                 return;
@@ -435,12 +461,61 @@ class LiquidationController extends Controller
 
             $this->db->commit();
 
+            // Si es una petición AJAX, devolver JSON
+            if (isset($_POST['_ajax']) || isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Liquidación recalculada exitosamente',
+                    'concepts_count' => count($calculations),
+                    'total_asignaciones' => $total_asignaciones,
+                    'total_deducciones' => $total_deducciones,
+                    'termination_id' => $termination_id,
+                    'processing_time' => isset($start_time) ? round((microtime(true) - $start_time) * 1000, 2) : 0
+                ]);
+                exit;
+            }
+
             $this->setToastrMessage('success', 'Liquidación recalculada exitosamente', 'Recálculo Completado');
             $this->redirect('/panel/liquidation/preview/' . $termination_id);
 
         } catch (PDOException $e) {
             $this->db->rollback();
+
+            // Si es una petición AJAX, devolver JSON de error
+            if (isset($_POST['_ajax']) || isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+                header('Content-Type: application/json');
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error al recalcular liquidación: ' . $e->getMessage(),
+                    'error_type' => 'PDOException',
+                    'termination_id' => $termination_id
+                ]);
+                exit;
+            }
+
             $this->setToastrMessage('error', 'Error al recalcular liquidación: ' . $e->getMessage(), 'Error de Recálculo');
+            $this->redirect('/panel/liquidation');
+        } catch (Exception $e) {
+            if (isset($this->db)) {
+                $this->db->rollback();
+            }
+
+            // Si es una petición AJAX, devolver JSON de error
+            if (isset($_POST['_ajax']) || isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+                header('Content-Type: application/json');
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error inesperado: ' . $e->getMessage(),
+                    'error_type' => 'Exception',
+                    'termination_id' => $termination_id
+                ]);
+                exit;
+            }
+
+            $this->setToastrMessage('error', 'Error inesperado: ' . $e->getMessage(), 'Error de Recálculo');
             $this->redirect('/panel/liquidation');
         }
     }
@@ -1015,6 +1090,90 @@ class LiquidationController extends Controller
             'start_date' => $start_date,
             'end_date' => $end_date
         ];
+    }
+
+    /**
+     * AJAX - Actualizar días de preaviso
+     */
+    public function updateNoticeDays($termination_id)
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $this->validateCsrfToken();
+
+            $notice_period_days = (int)($_POST['notice_period_days'] ?? 0);
+
+            // Validaciones
+            if ($notice_period_days < 0 || $notice_period_days > 365) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Los días de preaviso deben estar entre 0 y 365'
+                ]);
+                return;
+            }
+
+            // Verificar que la liquidación existe
+            $sql = "SELECT id, status, firstname, lastname FROM employee_terminations et
+                    INNER JOIN employees e ON et.employee_id = e.id
+                    WHERE et.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$termination_id]);
+            $termination = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$termination) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Liquidación no encontrada'
+                ]);
+                return;
+            }
+
+            // Verificar que se puede modificar (no debe estar PAGADA o CANCELADA)
+            if (in_array($termination['status'], ['PAGADA', 'CANCELADA'])) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No se pueden modificar los días de preaviso de una liquidación ' . strtolower($termination['status'])
+                ]);
+                return;
+            }
+
+            // Actualizar días de preaviso
+            $sql = "UPDATE employee_terminations
+                    SET notice_period_days = ?,
+                        needs_recalculation = 1,
+                        updated_at = NOW()
+                    WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$notice_period_days, $termination_id]);
+
+            // Registrar en historial
+            $this->logLiquidationAction(
+                $termination_id,
+                'MODIFICACION_PREAVISO',
+                "Días de preaviso actualizados a {$notice_period_days} días"
+            );
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Días de preaviso actualizados exitosamente',
+                'new_value' => $notice_period_days,
+                'needs_recalculation' => true
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Error updating notice days: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error de base de datos: ' . $e->getMessage()
+            ]);
+        } catch (Exception $e) {
+            error_log("Error updating notice days: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ]);
+        }
     }
 
     /**

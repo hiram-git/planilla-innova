@@ -2403,6 +2403,15 @@ class PayrollController extends Controller
                     'ANULADA' => 'badge-danger'
                 ];
                 $badgeClass = $statusClass[$payroll['estado']] ?? 'badge-secondary';
+
+                // Definir iconos para cada estado
+                $statusIcons = [
+                    'PENDIENTE' => 'fas fa-clock',
+                    'PROCESADA' => 'fas fa-check-circle',
+                    'CERRADA' => 'fas fa-lock',
+                    'ANULADA' => 'fas fa-times-circle'
+                ];
+                $statusIcon = $statusIcons[$payroll['estado']] ?? 'fas fa-question-circle';
                 $fechaPlanilla = !empty($payroll['fecha']) ? date('d/m/Y', strtotime($payroll['fecha'])) : 'N/A';
 
                 // Generar botones de acciones
@@ -2414,7 +2423,7 @@ class PayrollController extends Controller
                     'tipo_planilla' => '<span class="badge badge-secondary">' .
                                       htmlspecialchars($payroll['tipo_planilla_nombre'] ?? 'N/A') . '</span>',
                     'fecha' => $fechaPlanilla,
-                    'estado' => '<span class="badge ' . $badgeClass . '">' . ($payroll['estado'] ?? 'PENDIENTE') . '</span>',
+                    'estado' => '<span class="badge ' . $badgeClass . '" title="' . ucfirst(strtolower($payroll['estado'] ?? 'PENDIENTE')) . '"><i class="' . $statusIcon . '"></i></span>',
                     'total_empleados' => '<span class="badge badge-info">' . ($payroll['total_empleados'] ?? 0) . '</span>',
                     'acciones' => $actions
                 ];
@@ -2501,7 +2510,7 @@ class PayrollController extends Controller
                             data-id="' . $payroll['id'] . '"
                             data-description="' . htmlspecialchars($payroll['descripcion']) . '"
                             title="Marcar como pendiente">
-                            <i class="fas fa-clock"></i> Pendiente
+                            <i class="fas fa-clock"></i>
                          </button>';
         }
 

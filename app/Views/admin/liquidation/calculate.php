@@ -65,8 +65,19 @@ $pageTitle = "Cálculo de Liquidación - " . htmlspecialchars($termination['firs
                                 </span>
                             </dd>
 
-                            <dt class="col-sm-5">Años Trabajados:</dt>
-                            <dd class="col-sm-7"><strong><?= number_format($termination['years_worked'], 2) ?> años</strong></dd>
+                            <dt class="col-sm-5">Período Trabajado:</dt>
+                            <dd class="col-sm-7">
+                                <strong>
+                                    <?php
+                                    // Calcular período detallado
+                                    $fecha_ingreso = new DateTime($termination['fecha_ingreso']);
+                                    $fecha_termination = new DateTime($termination['termination_date']);
+                                    $periodo_interval = $fecha_ingreso->diff($fecha_termination);
+                                    ?>
+                                    <?= $periodo_interval->y ?> años, <?= $periodo_interval->m ?> meses, <?= $periodo_interval->d ?> días
+                                </strong>
+                                <br><small class="text-muted"><?= number_format($termination['years_worked'], 2) ?> años totales</small>
+                            </dd>
                         </dl>
                     </div>
                 </div>

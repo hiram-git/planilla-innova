@@ -61,7 +61,8 @@ $pageTitle = "Nueva Liquidación - " . htmlspecialchars($employee['firstname'] .
                             <dt class="col-sm-4">Período Trabajado:</dt>
                             <dd class="col-sm-8" id="periodo-trabajado">
                                 <strong><?= $periodo_trabajado['anos'] ?> años, <?= $periodo_trabajado['meses'] ?> meses, <?= $periodo_trabajado['dias'] ?> días</strong>
-                                <br><small class="text-muted">Hasta hoy: <?= number_format($periodo_trabajado['total_dias_laborables']) ?> días laborables</small>
+                                <br><small class="text-muted">Total: <?= number_format($periodo_trabajado['total_dias_calendario']) ?> días calendario</small>
+                                <br><small class="text-muted">Laborables: <?= number_format($periodo_trabajado['total_dias_laborables']) ?> días laborables</small>
                             </dd>
 
                             <dt class="col-sm-4">Salario:</dt>
@@ -353,7 +354,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Actualizar período completo
                         $('#periodo-trabajado').html(
                             '<strong>' + response.formatted.periodo_completo + '</strong>' +
-                            '<br><small class="text-muted">Total: ' + response.formatted.dias_laborables + ' días laborables</small>'
+                            '<br><small class="text-muted">Total: ' + response.formatted.dias_calendario + ' días calendario</small>' +
+                            '<br><small class="text-muted">Laborables: ' + response.formatted.dias_laborables + ' días laborables</small>'
                         );
 
                         // Actualizar cálculos legales basados en años completos
@@ -482,6 +484,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+        // Event listener para actualizar días de preaviso dinámicamente
+        $('#notice_period_days').on('input change', function() {
+            const dias = $(this).val() || '0';
+            $('#dias-preaviso').text(dias);
+        });
 
         // Initialize tooltips
         $('[data-toggle="tooltip"]').tooltip();

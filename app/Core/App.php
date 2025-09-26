@@ -145,6 +145,7 @@ class App
                                                 $this->method = 'toggleActive';
                                                 $this->params = [$url[2]];
                                             } elseif ($url[3] === 'duplicate' && method_exists($this->controller, 'duplicate')) {
+                                                error_log("App.php: Routing to duplicate method for controller " . get_class($this->controller) . " with ID: " . $url[2]);
                                                 $this->method = 'duplicate';
                                                 $this->params = [$url[2]];
                                             } elseif ($url[3] === 'process' && method_exists($this->controller, 'process')) {
@@ -184,6 +185,12 @@ class App
                                             } elseif ($url[3] === 'regenerate-employee' && method_exists($this->controller, 'regenerateEmployee')) {
                                                 $this->method = 'regenerateEmployee';
                                                 $this->params = [$url[2]]; // payrollId
+                                            } elseif ($url[3] === 'recalculate' && method_exists($this->controller, 'recalculate')) {
+                                                $this->method = 'recalculate';
+                                                $this->params = [$url[2]]; // termination_id
+                                            } elseif ($url[3] === 'update-notice-days' && method_exists($this->controller, 'updateNoticeDays')) {
+                                                $this->method = 'updateNoticeDays';
+                                                $this->params = [$url[2]]; // termination_id
                                             }
                                         } else {
                                             // POST con solo ID (sin submétodo) - llamar a update
@@ -252,6 +259,9 @@ class App
                                         $this->params = [$url[3]];
                                     }elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
                                         $this->method = 'edit';
+                                        $this->params = [$url[3]];
+                                    }elseif ($url[2] === 'duplicate' && isset($url[3]) && method_exists($this->controller, 'duplicate')) {
+                                        $this->method = 'duplicate';
                                         $this->params = [$url[3]];
                                     }   
                                 } else {
@@ -322,6 +332,9 @@ class App
                                     } elseif ($url[2] === 'create' && method_exists($this->controller, 'create')) {
                                         $this->method = 'create';
                                         $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
+                                        $this->method = 'edit';
+                                        $this->params = [$url[3]];
                                     } elseif (method_exists($this->controller, $url[2])) {
                                         $this->method = $url[2];
                                         $this->params = array_slice($url, 3);

@@ -22,52 +22,58 @@ class PayrollAccumulationsProcessor
     }
 
     /**
-     * Determinar el tipo de acumulado para un concepto basado en la tabla conceptos_acumulados
+     * Obtener todos los tipos de acumulados configurados para un concepto
      * @param int $conceptoId ID del concepto
-     * @param string $tipoPreferido Tipo preferido de acumulado (opcional)
-     * @return string|null Código del tipo de acumulado o null si no aplica
+     * @return array Array de tipos de acumulados configurados
      */
-    private function getTipoAcumuladoParaConcepto($conceptoId, $tipoPreferido = 'XIII_MES')
+    private function getTiposAcumuladosParaConcepto($conceptoId)
     {
         try {
-            // Primero intentar encontrar el tipo preferido
-            $sql = "SELECT ta.codigo
+            $sql = "SELECT ta.codigo, c.concepto, ca.factor_acumulacion
                     FROM conceptos_acumulados ca
                     INNER JOIN tipos_acumulados ta ON ca.tipo_acumulado_id = ta.id
+                    INNER JOIN concepto c ON ca.concepto_id = c.id
                     WHERE ca.concepto_id = ?
                     AND ca.incluir_en_acumulado = 1
                     AND ta.activo = 1
-                    AND ta.codigo = ?
-                    LIMIT 1";
-
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$conceptoId, $tipoPreferido]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($result) {
-                return $result['codigo'];
-            }
-
-            // Si no encuentra el tipo preferido, devolver cualquier tipo activo
-            $sql = "SELECT ta.codigo
-                    FROM conceptos_acumulados ca
-                    INNER JOIN tipos_acumulados ta ON ca.tipo_acumulado_id = ta.id
-                    WHERE ca.concepto_id = ?
-                    AND ca.incluir_en_acumulado = 1
-                    AND ta.activo = 1
-                    ORDER BY ta.id
-                    LIMIT 1";
+                    ORDER BY ta.id";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$conceptoId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            return $result ? $result['codigo'] : null;
+            $tiposAcumulados = [];
+            foreach ($results as $result) {
+                // Si el tipo de acumulado es CONCEPTO, usar el código del concepto
+                if ($result['codigo'] === 'CONCEPTO') {
+                    $tiposAcumulados[] = [
+                        'tipo_acumulado' => $result['concepto'],
+                        'factor' => $result['factor_acumulacion']
+                    ];
+                } else {
+                    $tiposAcumulados[] = [
+                        'tipo_acumulado' => $result['codigo'],
+                        'factor' => $result['factor_acumulacion']
+                    ];
+                }
+            }
+
+            return $tiposAcumulados;
 
         } catch (\Exception $e) {
-            error_log("Error obteniendo tipo_acumulado para concepto $conceptoId: " . $e->getMessage());
-            return null;
+            error_log("Error obteniendo tipos_acumulado para concepto $conceptoId: " . $e->getMessage());
+            return [];
         }
+    }
+
+    /**
+     * Determinar el tipo de acumulado para un concepto basado en la tabla conceptos_acumulados
+     * @deprecated Usar getTiposAcumuladosParaConcepto() para manejar múltiples tipos
+     */
+    private function getTipoAcumuladoParaConcepto($conceptoId, $tipoPreferido = 'XIII_MES')
+    {
+        $tipos = $this->getTiposAcumuladosParaConcepto($conceptoId);
+        return !empty($tipos) ? $tipos[0]['tipo_acumulado'] : null;
     }
 
     /**
@@ -177,22 +183,47 @@ class PayrollAccumulationsProcessor
                 // Convertir tipo de concepto
                 $tipoConcepto = ($detail['tipo_concepto'] === 'A') ? 'ASIGNACION' : 'DEDUCCION';
 
-                // Determinar tipo_acumulado basado en la tabla conceptos_acumulados
-                $tipoAcumulado = $this->getTipoAcumuladoParaConcepto($detail['concepto_id']);
+                // Obtener TODOS los tipos de acumulados configurados para este concepto
+                $tiposAcumulados = $this->getTiposAcumuladosParaConcepto($detail['concepto_id']);
 
-                $insertStmt->execute([
-                    $detail['employee_id'],
-                    $detail['concepto_id'],
-                    $payrollId,
-                    $detail['monto'],
-                    $payroll['mes'],
-                    $payroll['ano'],
-                    $payroll['frecuencia_id'],
-                    $tipoConcepto,
-                    $tipoAcumulado
-                ]);
-                
-                $recordsCreated++;
+                // Si no tiene configuraciones de acumulado, usar el método anterior (compatibilidad)
+                if (empty($tiposAcumulados)) {
+                    $tipoAcumulado = $this->getTipoAcumuladoParaConcepto($detail['concepto_id']);
+
+                    $insertStmt->execute([
+                        $detail['employee_id'],
+                        $detail['concepto_id'],
+                        $payrollId,
+                        $detail['monto'],
+                        $payroll['mes'],
+                        $payroll['ano'],
+                        $payroll['frecuencia_id'],
+                        $tipoConcepto,
+                        $tipoAcumulado
+                    ]);
+
+                    $recordsCreated++;
+                } else {
+                    // Crear un registro por cada tipo de acumulado configurado
+                    foreach ($tiposAcumulados as $tipoConfig) {
+                        // Calcular monto según el factor configurado
+                        $montoAcumulado = $detail['monto'] * $tipoConfig['factor'];
+
+                        $insertStmt->execute([
+                            $detail['employee_id'],
+                            $detail['concepto_id'],
+                            $payrollId,
+                            $montoAcumulado,
+                            $payroll['mes'],
+                            $payroll['ano'],
+                            $payroll['frecuencia_id'],
+                            $tipoConcepto,
+                            $tipoConfig['tipo_acumulado']
+                        ]);
+
+                        $recordsCreated++;
+                    }
+                }
             }
             
             return [

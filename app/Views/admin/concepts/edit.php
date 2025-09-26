@@ -656,52 +656,13 @@ $(document).ready(function() {
                                        id="acumulado_${tipo.id}" 
                                        value="1"
                                        ${isChecked}
-                                       onchange="toggleAcumuladoConfig(${tipo.id})">
+>
                                 <label class="form-check-label font-weight-bold" for="acumulado_${tipo.id}">
                                     ${tipo.text}
                                 </label>
                             </div>
                             
-                            <div id="config_${tipo.id}" class="acumulado-config mt-3" style="display: ${isChecked ? 'block' : 'none'};">
-                                <div class="row">
-                                    <div class="col-8">
-                                        <label class="form-label text-sm">Referencia de Acumulación (%)</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" 
-                                                   class="form-control" 
-                                                   name="acumulados[${tipo.id}][factor]" 
-                                                   value="${factor}" 
-                                                   min="0" 
-                                                   max="999" 
-                                                   step="0.01"
-                                                   placeholder="100">
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <label class="form-label text-sm">&nbsp;</label>
-                                        <div class="form-check">
-                                            <input class="form-check-input" 
-                                                   type="checkbox" 
-                                                   name="acumulados[${tipo.id}][activo]" 
-                                                   value="1" 
-                                                   ${isActive}>
-                                            <label class="form-check-label text-sm">Activo</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row mt-2">
-                                    <div class="col-12">
-                                        <label class="form-label text-sm">Observaciones</label>
-                                        <textarea class="form-control" 
-                                                  name="acumulados[${tipo.id}][observaciones]" 
-                                                  rows="2" 
-                                                  placeholder="Observaciones opcionales sobre este acumulado...">${observaciones}</textarea>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Configuración simplificada - solo checkbox para incluir -->
                         </div>
                     </div>
                 </div>
@@ -731,16 +692,7 @@ $(document).ready(function() {
     }
     
     // Mostrar/ocultar configuración de acumulado
-    window.toggleAcumuladoConfig = function(tipoId) {
-        const checkbox = document.getElementById(`acumulado_${tipoId}`);
-        const config = document.getElementById(`config_${tipoId}`);
-        
-        if (checkbox.checked) {
-            $(config).slideDown();
-        } else {
-            $(config).slideUp();
-        }
-    };
+    // Función eliminada - ya no se necesita configuración adicional
     
     // Cargar tipos de acumulados al cargar la página
     $(document).ready(function() {

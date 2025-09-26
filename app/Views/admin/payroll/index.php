@@ -26,10 +26,10 @@ $csrf_token = $data['csrf_token'] ?? '';
                             <tr>
                                 <th>ID</th>
                                 <th>Descripción</th>
-                                <th>Tipo Planilla</th>
+                                <th class="d-none d-xl-table-cell">Tipo Planilla</th>
                                 <th>Fecha</th>
                                 <th>Estado</th>
-                                <th>Total Empleados</th>
+                                <th class="d-none d-xl-table-cell">Tot. Empl.</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -530,6 +530,43 @@ $scripts = $jsConfig . "\n" . $payrollConfigScript . "\n" . JavaScriptHelper::re
     to {
         transform: translateX(0);
         opacity: 1;
+    }
+}
+
+/* Responsive table improvements for small screens */
+@media (max-width: 1200px) {
+    /* Ensure table columns are properly sized */
+    #payrollsTable td:first-child {
+        width: 60px; /* ID column */
+    }
+    #payrollsTable td:nth-child(2) {
+        min-width: 150px; /* Description column */
+    }
+    #payrollsTable td:nth-child(4) {
+        width: 80px; /* Date column */
+    }
+    #payrollsTable td:nth-child(5) {
+        width: 60px; /* Status column */
+    }
+    #payrollsTable td:last-child {
+        min-width: 120px; /* Actions column */
+    }
+}
+
+@media (max-width: 768px) {
+    /* Further optimizations for mobile */
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    #payrollsTable .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.4rem;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
     }
 }
 </style>
