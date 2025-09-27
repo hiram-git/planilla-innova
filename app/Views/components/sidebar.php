@@ -225,12 +225,6 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::payroll(),
                         'route' => 'panel/payrolls',
                         'description' => 'Procesamiento de nómina'
-                    ],
-                    [
-                        'title' => 'Reportes de Nómina',
-                        'icon' => 'fas fa-chart-line',
-                        'url' => \App\Core\UrlHelper::payroll('reports'),
-                        'route' => 'panel/payrolls/reports'
                     ]
                 ]
             ],
@@ -262,13 +256,6 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::concept('create'),
                         'route' => 'panel/concepts/create',
                         'description' => 'Crear fórmulas de cálculo'
-                    ],
-                    [
-                        'title' => 'Probar Conceptos',
-                        'icon' => 'fas fa-flask',
-                        'url' => \App\Core\UrlHelper::concept(),
-                        'route' => 'panel/concepts',
-                        'description' => 'Validar fórmulas'
                     ]
                 ]
             ],
@@ -296,16 +283,6 @@ class SidebarComponent
                         'icon' => 'fas fa-user-tag',
                         'url' => \App\Core\UrlHelper::route('panel/situaciones'),
                         'route' => 'panel/situaciones'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Tipos de Acumulados',
-                        'icon' => 'fas fa-piggy-bank',
-                        'url' => \App\Core\UrlHelper::route('panel/tipos-acumulados'),
-                        'route' => 'panel/tipos-acumulados',
-                        'description' => 'Aguinaldo, Bono 14, Vacaciones'
                     ]
                 ]
             ],
@@ -324,6 +301,13 @@ class SidebarComponent
                         'description' => 'Vista general de acumulados'
                     ],
                     [
+                        'title' => 'Tipos de Acumulados',
+                        'icon' => 'fas fa-piggy-bank',
+                        'url' => \App\Core\UrlHelper::route('panel/tipos-acumulados'),
+                        'route' => 'panel/tipos-acumulados',
+                        'description' => 'Aguinaldo, Bono 14, Vacaciones'
+                    ],
+                    [
                         'type' => 'divider'
                     ],
                     [
@@ -340,48 +324,13 @@ class SidebarComponent
                         'route' => 'panel/acumulados/byConcepto',
                         'description' => 'Acumulados por concepto específico'
                     ],
-                    [
+                    /*[
                         'title' => 'Por Planilla',
                         'icon' => 'fas fa-file-invoice',
-                        'url' => \App\Core\UrlHelper::route('panel/payrolls'),
+                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byPayroll'),
                         'route' => 'panel/payrolls',
                         'description' => 'Acumulados específicos por planilla'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'XIII Mes',
-                        'icon' => 'fas fa-gift',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto?tipo_acumulado=XIII_MES'),
-                        'route' => 'panel/acumulados/byConcepto',
-                        'description' => 'Décimo Tercer Mes (Aguinaldo)'
-                    ],
-                    [
-                        'title' => 'Prima de Antigüedad',
-                        'icon' => 'fas fa-award',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto?tipo_acumulado=PRIMA_ANTIGUEDAD'),
-                        'route' => 'panel/acumulados/byConcepto',
-                        'description' => 'Prima por años de servicio'
-                    ],
-                    [
-                        'title' => 'Vacaciones',
-                        'icon' => 'fas fa-umbrella-beach',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto?tipo_acumulado=VACACIONES'),
-                        'route' => 'panel/acumulados/byConcepto',
-                        'description' => 'Acumulado de vacaciones'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Exportar Datos',
-                        'icon' => 'fas fa-download',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/export'),
-                        'route' => 'panel/acumulados/export',
-                        'target' => '_blank',
-                        'description' => 'Descargar reportes en CSV/Excel'
-                    ]
+                    ]*/
                 ]
             ],
             [
@@ -424,16 +373,6 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::route('panel/liquidation'),
                         'route' => 'panel/liquidation',
                         'description' => 'Revisar liquidaciones en proceso'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Marco Legal Panamá',
-                        'icon' => 'fas fa-balance-scale',
-                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
-                        'route' => 'panel/liquidation',
-                        'description' => 'Información sobre legislación laboral'
                     ]
                 ]
             ],
@@ -484,13 +423,6 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::route('panel/vacation/reports'),
                         'route' => 'panel/vacation/reports',
                         'description' => 'Balance por empleado y estadísticas'
-                    ],
-                    [
-                        'title' => 'Marco Legal Panamá',
-                        'icon' => 'fas fa-gavel',
-                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
-                        'route' => 'panel/vacation',
-                        'description' => '30 días por 11 meses trabajados'
                     ]
                 ]
             ],
