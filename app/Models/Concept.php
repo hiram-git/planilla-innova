@@ -428,13 +428,39 @@ class Concept extends Model
     public function canDelete($id)
     {
         try {
-            // Verificar si el concepto ha sido usado en planillas
+            // Verificar todas las tablas que referencian conceptos
+
+            // 1. Verificar si el concepto ha sido usado en planillas
             $sql = "SELECT COUNT(*) as count FROM planilla_detalle WHERE concepto_id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            return $result['count'] == 0;
+            if ($result['count'] > 0) {
+                return false; // Ya usado en planillas
+            }
+
+            // 2. Verificar si está en tabla conceptos_acumulados
+            $sql = "SELECT COUNT(*) as count FROM conceptos_acumulados WHERE concepto_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result['count'] > 0) {
+                return false; // Configurado en acumulados
+            }
+
+            // 3. Verificar si está en acumulados_por_empleado
+            $sql = "SELECT COUNT(*) as count FROM acumulados_por_empleado WHERE concepto_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result['count'] > 0) {
+                return false; // Tiene acumulados generados
+            }
+
+            return true; // Puede eliminarse
         } catch (PDOException $e) {
             error_log("Error verificando si concepto puede eliminarse: " . $e->getMessage());
             return false;
@@ -448,7 +474,7 @@ class Concept extends Model
     {
         try {
             if (!$this->canDelete($id)) {
-                throw new \Exception('No se puede eliminar el concepto porque ya ha sido usado en planillas');
+                throw new \Exception('No se puede eliminar el concepto porque está siendo usado en planillas, acumulados o tiene datos generados');
             }
 
             return parent::delete($id);

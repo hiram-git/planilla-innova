@@ -265,6 +265,8 @@
                 self.state.currentPayrollId = $(this).data("id");
                 const description = $(this).data("description");
                 $("#reopenPayrollName").text(description);
+                // Clear previous motivo text
+                $("#reopenMotivo").val("");
                 $("#reopenModal").modal("show");
             });
 
@@ -360,6 +362,16 @@
 
             $("#reprocessModal").on("hidden.bs.modal", function() {
                 self.cleanReprocessModal();
+            });
+
+            // Auto-focus on motivo field when reopen modal is shown
+            $("#reopenModal").on("shown.bs.modal", function() {
+                $("#reopenMotivo").focus();
+            });
+
+            // Auto-focus on motivo field when mark pending modal is shown
+            $("#markPendingModal").on("shown.bs.modal", function() {
+                $("#markPendingMotivo").focus();
             });
 
             // Enable Enter key support for all modals

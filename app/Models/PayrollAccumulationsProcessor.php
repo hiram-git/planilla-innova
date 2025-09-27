@@ -336,12 +336,12 @@ class PayrollAccumulationsProcessor
             $employeeConsolidated = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Preparar statement para inserción consolidada
-            $insertSql = "INSERT INTO acumulados_por_planilla 
-                         (employee_id, planilla_id, mes, ano, frecuencia,
+            $insertSql = "INSERT INTO acumulados_por_planilla
+                         (employee_id, planilla_id, mes, ano, frecuencia_id,
                           sueldos, gastos_representacion, otras_asignaciones, total_asignaciones,
                           seguro_social, seguro_educativo, impuesto_renta,
                           desc_gastos_ss, desc_gastos_se, desc_gastos_isr,
-                          otras_deducciones, total_deducciones, total_neto) 
+                          otras_deducciones, total_deducciones, total_neto)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                          
             $insertStmt = $this->db->prepare($insertSql);
