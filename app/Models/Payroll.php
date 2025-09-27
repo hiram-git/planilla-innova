@@ -873,8 +873,7 @@ class Payroll extends Model
                     INNER JOIN conceptos_acumulados ca ON pd.concepto_id = ca.concepto_id
                     INNER JOIN tipos_acumulados ta ON ca.tipo_acumulado_id = ta.id
                     INNER JOIN concepto c ON pd.concepto_id = c.id
-                    WHERE pd.planilla_cabecera_id = ? 
-                    AND ca.incluir_en_acumulado = 1
+                    WHERE pd.planilla_cabecera_id = ?
                     AND ta.activo = 1
                     AND pd.monto > 0
                     ORDER BY pd.employee_id, ta.codigo";

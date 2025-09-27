@@ -638,10 +638,10 @@ $(document).ready(function() {
         
         tiposAcumulados.forEach(function(tipo, index) {
             const existing = existingMap[tipo.id] || {};
-            const isChecked = existing.incluir_en_acumulado ? 'checked' : '';
+            // Lógica simplificada: si existe registro, está incluido
+            const isChecked = existing.concepto_id ? 'checked' : '';
             const factor = existing.factor_acumulacion ? (existing.factor_acumulacion * 100) : 100;
             const observaciones = existing.observaciones || '';
-            const isActive = existing.incluir_en_acumulado !== undefined ? (existing.incluir_en_acumulado ? 'checked' : '') : 'checked';
             
             const colClass = index % 2 === 0 ? 'col-md-6' : 'col-md-6';
             

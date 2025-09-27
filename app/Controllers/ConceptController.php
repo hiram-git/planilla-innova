@@ -477,23 +477,21 @@ class ConceptController extends Controller
             
             // Insertar nuevos acumulados
             $stmt = $this->db->prepare("
-                INSERT INTO conceptos_acumulados 
-                (concepto_id, tipo_acumulado_id, factor_acumulacion, incluir_en_acumulado, observaciones) 
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO conceptos_acumulados
+                (concepto_id, tipo_acumulado_id, factor_acumulacion, observaciones)
+                VALUES (?, ?, ?, ?)
             ");
-            
+
             foreach ($acumuladosData as $tipoAcumuladoId => $config) {
                 // Solo procesar si está marcado para incluir
                 if (isset($config['incluir']) && $config['incluir'] == 1) {
                     $factor = isset($config['factor']) ? floatval($config['factor']) / 100 : 1.0; // Convertir % a decimal
-                    $incluir = isset($config['activo']) && $config['activo'] == 1 ? 1 : 0;
                     $observaciones = trim($config['observaciones'] ?? '');
-                    
+
                     $stmt->execute([
                         $conceptId,
                         $tipoAcumuladoId,
                         $factor,
-                        $incluir,
                         $observaciones
                     ]);
                 }

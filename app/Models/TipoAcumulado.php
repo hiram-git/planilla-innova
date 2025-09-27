@@ -366,7 +366,7 @@ class TipoAcumulado
                 ta.descripcion,
                 ta.periodicidad,
                 COALESCE(ca.factor_acumulacion, 1.0000) as factor_acumulacion,
-                COALESCE(ca.incluir_en_acumulado, 0) as incluir_en_acumulado,
+                CASE WHEN ca.concepto_id IS NOT NULL THEN 1 ELSE 0 END as incluir_en_acumulado,
                 ca.observaciones
             FROM {$this->table} ta
             LEFT JOIN conceptos_acumulados ca ON ta.id = ca.tipo_acumulado_id AND ca.concepto_id = ?

@@ -34,7 +34,6 @@ class PayrollAccumulationsProcessor
                     INNER JOIN tipos_acumulados ta ON ca.tipo_acumulado_id = ta.id
                     INNER JOIN concepto c ON ca.concepto_id = c.id
                     WHERE ca.concepto_id = ?
-                    AND ca.incluir_en_acumulado = 1
                     AND ta.activo = 1
                     ORDER BY ta.id";
 

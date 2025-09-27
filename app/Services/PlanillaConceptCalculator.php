@@ -1302,17 +1302,58 @@ class PlanillaConceptCalculator
     {
         $this->setVariablesColaborador($employeeId);
 
+        // Establecer fechas de liquidación (últimos 11 meses desde fecha de terminación)
+        if ($terminationId) {
+            $this->setFechasLiquidacion($terminationId);
+            $this->variablesColaborador['DIAS_PREAVISO'] = $this->getDiasPreaviso($terminationId);
+        } else {
+            $this->variablesColaborador['DIAS_PREAVISO'] = 30; // Fallback por defecto
+        }
+
         // Agregar variables específicas de liquidación
         $this->variablesColaborador['ANOS_TRABAJADOS'] = $this->getAnosTrabajados();
         $this->variablesColaborador['SUELDO_SEMANAL'] = $this->calcularSalarioSemanal($employeeId);
         $this->variablesColaborador['SUELDO_MENSUAL'] = $this->calcularSalarioMensual($employeeId);
         $this->variablesColaborador['SUELDO_DIARIO'] = $this->calcularSalarioDiario($employeeId);
+    }
 
-        // Obtener días de preaviso reales de la liquidación si existe termination_id
-        if ($terminationId) {
-            $this->variablesColaborador['DIAS_PREAVISO'] = $this->getDiasPreaviso($terminationId);
-        } else {
-            $this->variablesColaborador['DIAS_PREAVISO'] = 30; // Fallback por defecto
+    /**
+     * Establecer fechas de liquidación (últimos 11 meses desde fecha de terminación)
+     */
+    private function setFechasLiquidacion(int $terminationId): void
+    {
+        try {
+            $sql = "SELECT termination_date FROM employee_terminations WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$terminationId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result && isset($result['termination_date'])) {
+                $fechaTerminacion = new \DateTime($result['termination_date']);
+
+                // Calcular fecha de inicio: 11 meses atrás desde la fecha de terminación
+                $fechaInicio = clone $fechaTerminacion;
+                $fechaInicio->modify('-11 months');
+
+                // Establecer las fechas para INIPERIODO y FINPERIODO
+                $this->establecerFechasPlanilla(
+                    $fechaInicio->format('Y-m-d'),
+                    $fechaTerminacion->format('Y-m-d'),
+                    $fechaTerminacion->format('Y-m-d')
+                );
+            }
+        } catch (Exception $e) {
+            error_log("ERROR en setFechasLiquidacion: " . $e->getMessage());
+            // En caso de error, usar fechas por defecto del año actual
+            $fechaActual = new \DateTime();
+            $fechaInicio = new \DateTime($fechaActual->format('Y-01-01'));
+            $fechaFin = new \DateTime($fechaActual->format('Y-12-31'));
+
+            $this->establecerFechasPlanilla(
+                $fechaInicio->format('Y-m-d'),
+                $fechaFin->format('Y-m-d'),
+                $fechaActual->format('Y-m-d')
+            );
         }
     }
 
