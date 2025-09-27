@@ -33,19 +33,19 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmp
             <div class="card-body">
                 <form method="GET" action="<?= \App\Core\UrlHelper::route('panel/acumulados/byEmployee') ?>">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="year">Año</label>
                                 <select class="form-control" id="year" name="year">
                                     <?php foreach ($availableYears as $yearOption): ?>
                                         <option value="<?= $yearOption ?>" <?= $yearOption == $year ? 'selected' : '' ?>>
-                                            <?= $yearOption ?>
+                                            <?= $yearOption === 'todos' ? 'Todos los años' : $yearOption ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="month">Mes (Opcional)</label>
                                 <select class="form-control" id="month" name="month">
@@ -58,7 +58,20 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmp
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="tipo_acumulado">Tipo Acumulado (Opcional)</label>
+                                <select class="form-control" id="tipo_acumulado" name="tipo_acumulado">
+                                    <option value="">Todos los tipos</option>
+                                    <?php foreach ($tiposAcumulados as $tipoOption): ?>
+                                        <option value="<?= htmlspecialchars($tipoOption) ?>" <?= $tipoOption == $tipoAcumulado ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($tipoOption) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="empleado_id">Empleado *</label>
                                 <select class="form-control" id="empleado_id" name="empleado_id" required>
@@ -294,6 +307,22 @@ $(document).ready(function() {
         theme: 'bootstrap4',
         placeholder: 'Buscar empleado...',
         allowClear: true
+    });
+
+    // Auto-submit form when employee changes (same as search button)
+    $('#empleado_id').on('change', function() {
+        if ($(this).val()) {
+            // Submit form automatically when employee is selected
+            $('form').submit();
+        }
+    });
+
+    // Auto-submit when year filter changes (for better UX)
+    $('#year, #tipo_acumulado').on('change', function() {
+        if ($('#empleado_id').val()) {
+            // Only auto-submit if employee is already selected
+            $('form').submit();
+        }
     });
 
     // Initialize tooltips

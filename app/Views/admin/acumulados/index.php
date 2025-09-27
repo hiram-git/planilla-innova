@@ -136,7 +136,7 @@ function generateTipoPdf(tipoId) {
                         <select class="form-control" id="yearFilter">
                             <?php foreach ($years as $year): ?>
                                 <option value="<?= $year ?>" <?= $year == $selectedYear ? 'selected' : '' ?>>
-                                    <?= $year ?>
+                                    <?= $year === 'todos' ? 'Todos los años' : $year ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -202,7 +202,7 @@ function generateTipoPdf(tipoId) {
                     <?php else: ?>
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle"></i>
-                            No hay acumulados registrados para este empleado en el año <?= $selectedYear ?>.
+                            No hay acumulados registrados para este empleado<?= $selectedYear === 'todos' ? '' : ' en el año ' . $selectedYear ?>.
                         </div>
                     <?php endif; ?>
 
