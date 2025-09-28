@@ -11,6 +11,7 @@ class ReportController extends Controller
     
     public function __construct()
     {
+        parent::__construct(); // Inicializar conexión DB desde clase base
         // Los modelos se cargan dinámicamente cuando se necesitan
         $this->companyModel = $this->model('Company');
     }

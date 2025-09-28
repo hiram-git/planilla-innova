@@ -36,16 +36,18 @@ class AcumuladoController extends Controller
         // Obtener lista de empleados para filtro
         $employees = $this->employeeModel->getAllEmployees();
         
-        // Obtener tipos de acumulados activos
-        $tiposAcumulados = $this->tipoAcumuladoModel->getActivos();
-        
         // Si se especifica un empleado, obtener sus acumulados
         $acumulados = [];
         $selectedEmployee = null;
-        
+        $tiposAcumulados = [];
+
         if ($empleadoId) {
             $selectedEmployee = $this->employeeModel->getEmployeeWithFullDetails($empleadoId);
             $acumulados = $this->getAcumuladosByEmployeeAndType($empleadoId, $year);
+            $tiposAcumulados = $this->tipoAcumuladoModel->getActivos(); // No se usan cuando hay empleado específico
+        } else {
+            // Vista para todos los empleados: mostrar tipos con totales agregados
+            $tiposAcumulados = $this->getTiposAcumuladosWithTotals($year);
         }
         
         $data = [
@@ -979,6 +981,49 @@ class AcumuladoController extends Controller
 
         } catch (\PDOException $e) {
             error_log("Error obteniendo totales de planilla: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener tipos de acumulados con totales agregados para todos los empleados
+     */
+    private function getTiposAcumuladosWithTotals($year)
+    {
+        try {
+            $whereConditions = ["ape.tipo_acumulado IS NOT NULL", "ape.tipo_acumulado != ''"];
+            $params = [];
+
+            // Filtro de año - acepta "todos" o año específico
+            if ($year && $year !== 'todos') {
+                $whereConditions[] = "ape.ano = ?";
+                $params[] = $year;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            $sql = "SELECT
+                        ta.id,
+                        ta.codigo,
+                        ta.descripcion,
+                        COALESCE(SUM(ape.monto), 0) as total_acumulado,
+                        COUNT(DISTINCT ape.employee_id) as total_empleados,
+                        COUNT(DISTINCT ape.concepto_id) as total_conceptos_incluidos,
+                        COUNT(ape.planilla_id) as total_planillas
+                    FROM tipos_acumulados ta
+                    LEFT JOIN acumulados_por_empleado ape ON ta.codigo = ape.tipo_acumulado AND {$whereClause}
+                    WHERE ta.activo = 1
+                    GROUP BY ta.id, ta.codigo, ta.descripcion
+                    ORDER BY ta.codigo";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return $results;
+
+        } catch (\Exception $e) {
+            error_log("Error en getTiposAcumuladosWithTotals: " . $e->getMessage());
             return [];
         }
     }

@@ -242,6 +242,9 @@ class App
                                     } elseif ($url[2] === 'count-by-type' && method_exists($this->controller, 'countByType')) {
                                         $this->method = 'countByType';
                                         $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'by-type' && isset($url[3]) && method_exists($this->controller, 'byTypeId')) {
+                                        $this->method = 'byTypeId';
+                                        $this->params = [$url[3]];
                                     } elseif ($url[2] === 'calculate-period' && method_exists($this->controller, 'calculatePeriod')) {
                                         $this->method = 'calculatePeriod';
                                         $this->params = array_slice($url, 3);

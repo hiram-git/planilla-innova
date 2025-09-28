@@ -181,14 +181,14 @@ $content .= '
 </div>';
 
 $scripts = '
-<script src="<?= url('plugins/datatables/jquery.dataTables.min.js', false) ?>"></script>
-<script src="<?= url('plugins/datatables-bs4/js/dataTables.bootstrap4.min.js', false) ?>"></script>
+<script src="<?= url(\'plugins/datatables/jquery.dataTables.min.js\', false) ?>"></script>
+<script src="<?= url(\'plugins/datatables-bs4/js/dataTables.bootstrap4.min.js\', false) ?>"></script>
 <script>
 $(document).ready(function() {
     // DataTable
     $("#reportTable").DataTable({
         "language": {
-            "url": "<?= url('assets/js/datatables-spanish.json', false) ?>"
+            "url": "<?= url(\'assets/js/datatables-spanish.json\', false) ?>"
         },
         "order": [[0, "desc"]],
         "pageLength": 50
@@ -214,7 +214,7 @@ function exportToExcel() {
 </script>';
 
 $styles = '
-<link rel="stylesheet" href="<?= url('plugins/datatables-bs4/css/dataTables.bootstrap4.min.css', false) ?>">
+<link rel="stylesheet" href="<?= url(\'plugins/datatables-bs4/css/dataTables.bootstrap4.min.css\', false) ?>">
 <style>
 @media print {
     .card-tools, .breadcrumb, .btn { display: none !important; }

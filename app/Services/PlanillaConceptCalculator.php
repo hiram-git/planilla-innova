@@ -19,10 +19,12 @@ class PlanillaConceptCalculator
     private array $evaluando = [];
     private ?float $montoAcreedor = null;
     private array $fechasActuales = [];
+    private XIIIMesPeriodoTrimestralCalculator $xiiiMesCalculator;
 
     public function __construct()
     {
         $this->db = Database::getInstance()->getConnection();
+        $this->xiiiMesCalculator = new XIIIMesPeriodoTrimestralCalculator();
         $this->cargarConceptos();
     }
 
@@ -427,6 +429,14 @@ class PlanillaConceptCalculator
             'FECHA' => $this->fechasActuales['fecha'] ?? null
         ];
 
+        // Agregar variables de fecha XIII mes si hay empleado en contexto
+        if (isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+            $variablesFechaXIII = $this->obtenerVariablesFechaXIIIMes(
+                (int)$this->variablesColaborador['EMPLOYEE_ID']
+            );
+            $variablesEspeciales = array_merge($variablesEspeciales, $variablesFechaXIII);
+        }
+
         // Reemplazar variables especiales primero (solo fuera de comillas)
         foreach ($variablesEspeciales as $variable => $valor) {
             if ($valor !== null) {
@@ -586,6 +596,9 @@ class PlanillaConceptCalculator
 
             return (string)$totalAcumulado;
         }, $formula);
+
+        // Procesar función XIII_MES_PROPORCIONAL_TRIMESTRAL
+        $formula = $this->procesarXIIIMesProporcionalTrimestral($formula);
 
         return $formula;
     }
@@ -1413,7 +1426,7 @@ class PlanillaConceptCalculator
             $fechaIngreso = $employee['fecha_ingreso'];
 
             // Calcular meses trabajados
-            $mesesTrabajados = $this->calcularMesesTrabajados($fechaIngreso, $fechaReferencia);
+            $mesesTrabajados = (int)$this->calcularMesesTrabajados($fechaIngreso, $fechaReferencia);
 
             // Legislación panameña: 30 días por cada 11 meses
             $diasPorAno = 30;
@@ -1421,8 +1434,8 @@ class PlanillaConceptCalculator
 
             if ($mesesTrabajados >= $mesesMinimos) {
                 // Calcular años completos trabajados
-                $anosCompletos = round(floor($mesesTrabajados / 12), 2);
-                $mesesRestantes = round($mesesTrabajados % 12, 2);
+                $anosCompletos = (int)round(floor($mesesTrabajados / 12), 2);
+                $mesesRestantes = (int)round($mesesTrabajados % 12, 2);
 
                 // Días por años completos
                 $diasPorAnosCompletos = (int) round($anosCompletos * $diasPorAno);
@@ -1714,5 +1727,215 @@ class PlanillaConceptCalculator
         $this->variablesColaborador['VACATION_ACCRUAL_RATE'] = $this->VACATION_ACCRUAL_RATE($employeeId);
         $this->variablesColaborador['VACATION_ELIGIBLE'] = $this->VACATION_ELIGIBLE($employeeId) ? 1 : 0;
         $this->variablesColaborador['VACATION_DAILY_SALARY'] = $this->VACATION_COMPENSATION_AMOUNT($employeeId, 1);
+    }
+
+    // ========================================
+    // FUNCIONES XIII MES PERÍODOS TRIMESTRALES
+    // ========================================
+
+    /**
+     * Obtiene las variables de fecha dinámicas para XIII mes trimestral
+     *
+     * @param int $empleadoId
+     * @return array
+     */
+    private function obtenerVariablesFechaXIIIMes(int $empleadoId): array
+    {
+        try {
+            // Obtener fecha de liquidación del empleado
+            $fechaLiquidacion = $this->obtenerFechaLiquidacionEmpleado($empleadoId);
+
+            if (!$fechaLiquidacion) {
+                // Fallback: usar fechas de planilla actual si no hay liquidación
+                return [
+                    'INICIO_PERIODO_XIII' => $this->fechasActuales['fecha_desde'] ?? date('Y-01-01'),
+                    'FIN_PERIODO_XIII' => $this->fechasActuales['fecha_hasta'] ?? date('Y-12-31'),
+                    'PERIODO_XIII_NUMERO' => 0,
+                    'PERIODO_XIII_ESTADO' => 'SIN_LIQUIDACION'
+                ];
+            }
+
+            // Obtener fechas del período trimestral correcto
+            $periodoInfo = $this->xiiiMesCalculator->determinarPeriodoTrimestral($fechaLiquidacion);
+
+            return [
+                'INICIO_PERIODO_XIII' => $periodoInfo['fecha_inicio'],
+                'FIN_PERIODO_XIII' => $periodoInfo['fecha_fin'],
+                'PERIODO_XIII_NUMERO' => $periodoInfo['periodo'],
+                'PERIODO_XIII_AÑO' => $periodoInfo['año'],
+                'PERIODO_XIII_ESTADO' => $periodoInfo['estado'],
+                'FECHA_LIQUIDACION' => $fechaLiquidacion
+            ];
+
+        } catch (Exception $e) {
+            error_log("Error obteniendo variables fecha XIII mes: " . $e->getMessage());
+
+            return [
+                'INICIO_PERIODO_XIII' => date('Y-01-01'),
+                'FIN_PERIODO_XIII' => date('Y-12-31'),
+                'PERIODO_XIII_NUMERO' => 0,
+                'PERIODO_XIII_ESTADO' => 'ERROR'
+            ];
+        }
+    }
+
+    /**
+     * Obtiene la fecha de liquidación de un empleado
+     *
+     * @param int $empleadoId
+     * @return string|null
+     */
+    private function obtenerFechaLiquidacionEmpleado(int $empleadoId): ?string
+    {
+        try {
+            // Buscar en employee_terminations
+            $stmt = $this->db->prepare("
+                SELECT termination_date
+                FROM employee_terminations
+                WHERE employee_id = ?
+                ORDER BY termination_date DESC
+                LIMIT 1
+            ");
+
+            $stmt->execute([$empleadoId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $result ? $result['termination_date'] : null;
+
+        } catch (Exception $e) {
+            error_log("Error obteniendo fecha liquidación empleado {$empleadoId}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene la fecha de ingreso de un empleado
+     *
+     * @param int $empleadoId
+     * @return string
+     */
+    private function obtenerFechaIngresoEmpleado(int $empleadoId): string
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT fecha_ingreso
+                FROM employee
+                WHERE id = ?
+            ");
+
+            $stmt->execute([$empleadoId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $result['fecha_ingreso'] ?? date('Y-01-01');
+
+        } catch (Exception $e) {
+            error_log("Error obteniendo fecha ingreso empleado {$empleadoId}: " . $e->getMessage());
+            return date('Y-01-01');
+        }
+    }
+
+    /**
+     * Obtiene acumulados de conceptos en un período específico
+     *
+     * @param int $empleadoId
+     * @param string $conceptos
+     * @param string $fechaInicio
+     * @param string $fechaFin
+     * @return float
+     */
+    private function obtenerAcumuladosPeriodoTrimestral(
+        int $empleadoId,
+        string $conceptos,
+        string $fechaInicio,
+        string $fechaFin
+    ): float {
+        try {
+            $conceptosArray = array_map('trim', explode(',', str_replace(['"', "'"], '', $conceptos)));
+            $total = 0;
+
+            foreach ($conceptosArray as $concepto) {
+                if (empty($concepto)) continue;
+
+                $stmt = $this->db->prepare("
+                    SELECT COALESCE(SUM(pd.monto), 0) as total
+                    FROM planilla_detalle pd
+                    INNER JOIN planilla_cabecera pc ON pd.planilla_id = pc.id
+                    INNER JOIN concepto c ON pd.concepto_id = c.id
+                    WHERE pd.employee_id = ?
+                        AND c.concepto = ?
+                        AND pc.fecha_inicio >= ?
+                        AND pc.fecha_fin <= ?
+                        AND pc.estado = 'CERRADA'
+                        AND pd.tipo = 'A'
+                ");
+
+                $stmt->execute([$empleadoId, $concepto, $fechaInicio, $fechaFin]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                $total += (float)($result['total'] ?? 0);
+            }
+
+            return $total;
+
+        } catch (Exception $e) {
+            error_log("Error obteniendo acumulados período trimestral: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Procesa la función XIII_MES_PROPORCIONAL_TRIMESTRAL en fórmulas
+     *
+     * @param string $formula
+     * @return string
+     */
+    private function procesarXIIIMesProporcionalTrimestral(string $formula): string
+    {
+        return preg_replace_callback(
+            '/XIII_MES_PROPORCIONAL_TRIMESTRAL\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/',
+            function($matches) {
+                $conceptos = trim($matches[1], '"\'');
+                $fichaVariable = trim($matches[2]);
+
+                // Obtener employee_id
+                $empleadoId = (int)$this->reemplazarVariables($fichaVariable);
+
+                if (!$empleadoId) {
+                    return '0';
+                }
+
+                // Obtener fecha de liquidación
+                $fechaLiquidacion = $this->obtenerFechaLiquidacionEmpleado($empleadoId);
+
+                if (!$fechaLiquidacion) {
+                    error_log("No se encontró fecha de liquidación para empleado {$empleadoId}");
+                    return '0';
+                }
+
+                // Obtener fechas del período correcto
+                $periodoInfo = $this->xiiiMesCalculator->determinarPeriodoTrimestral($fechaLiquidacion);
+
+                // Obtener acumulados del período
+                $acumulados = $this->obtenerAcumuladosPeriodoTrimestral(
+                    $empleadoId,
+                    $conceptos,
+                    $periodoInfo['fecha_inicio'],
+                    $periodoInfo['fecha_fin']
+                );
+
+                // Obtener fecha de ingreso
+                $fechaIngreso = $this->obtenerFechaIngresoEmpleado($empleadoId);
+
+                // Calcular XIII mes proporcional
+                $resultado = $this->xiiiMesCalculator->calcularXIIIMesProporcional(
+                    $fechaLiquidacion,
+                    $acumulados,
+                    $fechaIngreso
+                );
+
+                return (string)$resultado['xiii_mes_proporcional'];
+            },
+            $formula
+        );
     }
 }

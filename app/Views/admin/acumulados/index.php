@@ -178,22 +178,32 @@ function generateTipoPdf(tipoId) {
 
                     <?php if (!empty($acumulados)): ?>
                         <div class="row">
-                            <?php foreach ($acumulados as $acumulado): ?>
+                            <?php
+                            $colors = ['primary', 'success', 'info', 'warning', 'danger', 'secondary'];
+                            $index = 0;
+                            foreach ($acumulados as $acumulado):
+                                $color = $colors[$index % count($colors)];
+                                $index++;
+                            ?>
                                 <div class="col-md-4 mb-3">
-                                    <div class="card bg-gradient-info">
-                                        <div class="card-header">
-                                            <h3 class="card-title">
-                                                <i class="fas fa-coins"></i> <?= htmlspecialchars($acumulado['tipo_codigo'] ?? $acumulado['codigo'] ?? 'N/A') ?>
-                                            </h3>
-                                        </div>
-                                        <div class="card-body">
-                                            <h4><?= htmlspecialchars($acumulado['tipo_descripcion'] ?? $acumulado['descripcion'] ?? 'N/A') ?></h4>
-                                            <p class="h3 text-white">
+                                    <div class="info-box bg-<?= $color ?>">
+                                        <span class="info-box-icon">
+                                            <i class="fas fa-coins"></i>
+                                        </span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text text-white font-weight-bold">
+                                                <?= htmlspecialchars($acumulado['tipo_codigo'] ?? $acumulado['codigo'] ?? 'N/A') ?>
+                                            </span>
+                                            <span class="info-box-number text-white">
                                                 <?= currency_symbol() ?><?= number_format($acumulado['total_acumulado'] ?? 0, 2) ?>
-                                            </p>
-                                            <small class="text-light">
-                                                Conceptos: <?= $acumulado['total_conceptos_incluidos'] ?? 0 ?>
-                                            </small>
+                                            </span>
+                                            <div class="progress">
+                                                <div class="progress-bar" style="width: 100%"></div>
+                                            </div>
+                                            <span class="progress-description text-white">
+                                                <?= htmlspecialchars($acumulado['tipo_descripcion'] ?? $acumulado['descripcion'] ?? 'N/A') ?>
+                                                <br><small>Conceptos: <?= $acumulado['total_conceptos_incluidos'] ?? 0 ?></small>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -215,21 +225,31 @@ function generateTipoPdf(tipoId) {
                     </div>
 
                     <div class="row">
-                        <?php foreach ($tiposAcumulados as $tipo): ?>
+                        <?php
+                        $colors = ['info', 'success', 'warning', 'danger', 'primary', 'secondary'];
+                        $index = 0;
+                        foreach ($tiposAcumulados as $tipo):
+                            $color = $colors[$index % count($colors)];
+                            $index++;
+                        ?>
                             <div class="col-md-4 mb-3">
-                                <div class="small-box bg-info">
+                                <div class="small-box bg-<?= $color ?>">
                                     <div class="inner">
-                                        <h3><?= htmlspecialchars($tipo['codigo'] ?? 'N/A') ?></h3>
+                                        <h3><?= currency_symbol() ?><?= number_format($tipo['total_acumulado'] ?? 0, 2) ?></h3>
                                         <p><?= htmlspecialchars($tipo['descripcion'] ?? 'N/A') ?></p>
+                                        <small class="d-block">
+                                            <i class="fas fa-users"></i> <?= $tipo['total_empleados'] ?? 0 ?> empleados |
+                                            <i class="fas fa-list"></i> <?= $tipo['total_conceptos_incluidos'] ?? 0 ?> conceptos
+                                        </small>
                                     </div>
                                     <div class="icon">
                                         <i class="fas fa-piggy-bank"></i>
                                     </div>
-                                    <div class="small-box-footer p-0">
-                                        <a href="#" class="d-inline-block p-2" style="width: 70%" onclick="viewByType(<?= $tipo['id'] ?? 0 ?>)">
-                                            Ver Detalles <i class="fas fa-arrow-circle-right"></i>
+                                    <div class="small-box-footer d-flex">
+                                        <a href="#" class="flex-fill text-white p-2 text-center" onclick="viewByType(<?= $tipo['id'] ?? 0 ?>)" style="text-decoration: none;">
+                                            <i class="fas fa-eye"></i> Ver Detalles
                                         </a>
-                                        <a href="#" class="d-inline-block p-2 border-left" style="width: 30%" onclick="generateTipoPdf(<?= $tipo['id'] ?? 0 ?>)">
+                                        <a href="#" class="p-2 border-left text-white text-center" style="width: 60px; text-decoration: none;" onclick="generateTipoPdf(<?= $tipo['id'] ?? 0 ?>)" title="Generar PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>
                                     </div>

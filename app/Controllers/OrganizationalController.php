@@ -342,7 +342,7 @@ class OrganizationalController extends Controller
     /**
      * Validar token CSRF (implementación simple)
      */
-    private function validateCsrfToken()
+    protected function validateCsrfToken()
     {
         // Por ahora una implementación básica
         // En producción se debe implementar CSRF real
