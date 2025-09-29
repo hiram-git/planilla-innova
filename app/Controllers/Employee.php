@@ -48,22 +48,22 @@ class Employee extends Controller
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
         if ($method === 'POST') {
-            return $importController->import();
+            $importController->import();
         } else {
-            return $importController->index();
+            $importController->index();
         }
     }
 
     public function importTemplate()
     {
         $importController = new \App\Controllers\Admin\EmployeeImportController();
-        return $importController->downloadTemplate();
+        $importController->downloadTemplate();
     }
 
     // Método con guiones convertidos a camelCase para el router
     public function import_template()
     {
-        return $this->importTemplate();
+        $this->importTemplate();
     }
 
     public function create()

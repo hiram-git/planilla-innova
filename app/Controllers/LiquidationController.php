@@ -739,8 +739,8 @@ class LiquidationController extends Controller
 
             $sql = "INSERT INTO planilla_detalle
                     (planilla_cabecera_id, employee_id, concepto_id, monto, tipo,
-                     firstname, lastname, referencia)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                     firstname, lastname)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -750,8 +750,7 @@ class LiquidationController extends Controller
                 $calc['calculated_amount'],
                 $tipo,
                 $termination['firstname'],
-                $termination['lastname'],
-                'Liquidación #' . $calc['termination_id']
+                $termination['lastname']
             ]);
         }
     }

@@ -1,17 +1,37 @@
 <?php
 $pageTitle = "Detalle de Planilla de Liquidación";
+
+// Obtener información del empleado liquidado de los detalles
+$employee_info = null;
+if (!empty($details)) {
+    $first_detail = $details[0];
+    $employee_info = [
+        'name' => $first_detail['firstname'] . ' ' . $first_detail['lastname'],
+        'cedula' => $first_detail['document_id'] ?? $first_detail['cedula'] ?? 'N/A'
+    ];
+}
 ?>
 
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6">
+            <div class="col-sm-8">
                 <h1 class="m-0">
                     <i class="fas fa-file-invoice mr-2"></i>
-                    Detalle de Planilla #<?= $payroll['id'] ?>
+                    Planilla de Liquidación #<?= $payroll['id'] ?>
                 </h1>
+                <?php if ($employee_info): ?>
+                <p class="text-muted mt-1 mb-0">
+                    <i class="fas fa-user mr-1"></i>
+                    <strong><?= htmlspecialchars($employee_info['name']) ?></strong>
+                    <span class="ml-2">
+                        <i class="fas fa-id-card mr-1"></i>
+                        <?= htmlspecialchars($employee_info['cedula']) ?>
+                    </span>
+                </p>
+                <?php endif; ?>
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-4">
                 <div class="row">
                     <div class="col-12 mb-2">
                         <a href="<?= \App\Core\UrlHelper::route('panel/liquidation/payrolls') ?>"
@@ -140,121 +160,168 @@ $pageTitle = "Detalle de Planilla de Liquidación";
             </div>
         </div>
 
-        <!-- Detalle por Empleado -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-list-ul mr-2"></i>
-                    Detalle de Conceptos por Empleado
-                </h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-success btn-sm" onclick="exportToCSV()">
-                        <i class="fas fa-download mr-1"></i> Exportar CSV
-                    </button>
+        <!-- Conceptos de Liquidación -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success">
+                        <h3 class="card-title">
+                            <i class="fas fa-plus-circle"></i> Asignaciones
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Concepto</th>
+                                        <th>Descripción</th>
+                                        <th class="text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $asignaciones = array_filter($details, fn($d) => $d['tipo'] === 'A');
+                                    if (!empty($asignaciones)):
+                                    ?>
+                                        <?php foreach ($asignaciones as $asignacion): ?>
+                                            <tr>
+                                                <td>
+                                                    <strong><?= htmlspecialchars($asignacion['concepto']) ?></strong>
+                                                </td>
+                                                <td>
+                                                    <?= htmlspecialchars($asignacion['concepto_descripcion']) ?>
+                                                </td>
+                                                <td class="text-right">
+                                                    <span class="text-success font-weight-bold"><?= currency_symbol() ?><?= number_format($asignacion['monto'], 2) ?></span>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">
+                                                <i class="fas fa-info-circle"></i> No hay asignaciones registradas
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="font-weight-bold bg-light">
+                                        <td colspan="2">TOTAL ASIGNACIONES</td>
+                                        <td class="text-right text-success"><?= currency_symbol() ?><?= number_format($totals['total_asignaciones'], 2) ?></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped" id="payrollDetailTable">
-                        <thead>
-                            <tr>
-                                <th>Empleado</th>
-                                <th>Cédula</th>
-                                <th>Concepto</th>
-                                <th>Descripción</th>
-                                <th>Tipo</th>
-                                <th class="text-right">Monto</th>
-                                <th>Referencia</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $current_employee = '';
-                            $employee_total_asignaciones = 0;
-                            $employee_total_deducciones = 0;
 
-                            foreach ($details as $index => $detail):
-                                $employee_name = $detail['firstname'] . ' ' . $detail['lastname'];
-                                $is_new_employee = ($current_employee !== $employee_name);
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger">
+                        <h3 class="card-title">
+                            <i class="fas fa-minus-circle"></i> Deducciones
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Concepto</th>
+                                        <th>Descripción</th>
+                                        <th class="text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $deducciones = array_filter($details, fn($d) => $d['tipo'] === 'D');
+                                    if (!empty($deducciones)):
+                                    ?>
+                                        <?php foreach ($deducciones as $deduccion): ?>
+                                            <tr>
+                                                <td>
+                                                    <strong><?= htmlspecialchars($deduccion['concepto']) ?></strong>
+                                                </td>
+                                                <td>
+                                                    <?= htmlspecialchars($deduccion['concepto_descripcion']) ?>
+                                                </td>
+                                                <td class="text-right">
+                                                    <span class="text-danger font-weight-bold"><?= currency_symbol() ?><?= number_format($deduccion['monto'], 2) ?></span>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">
+                                                <i class="fas fa-info-circle"></i> No hay deducciones registradas
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="font-weight-bold bg-light">
+                                        <td colspan="2">TOTAL DEDUCCIONES</td>
+                                        <td class="text-right text-danger"><?= currency_symbol() ?><?= number_format($totals['total_deducciones'], 2) ?></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                                if ($is_new_employee && $current_employee !== '') {
-                                    // Mostrar totales del empleado anterior
-                                    $employee_neto = $employee_total_asignaciones - $employee_total_deducciones;
-                            ?>
-                                <tr class="bg-light font-weight-bold border-top-2">
-                                    <td colspan="5" class="text-right">TOTAL <?= $current_employee ?>:</td>
-                                    <td class="text-right">
-                                        <div class="text-success">+ <?= currency_symbol() ?><?= number_format($employee_total_asignaciones, 2) ?></div>
-                                        <div class="text-danger">- <?= currency_symbol() ?><?= number_format($employee_total_deducciones, 2) ?></div>
-                                        <hr style="margin: 2px 0;">
-                                        <div class="text-primary"><?= currency_symbol() ?><?= number_format($employee_neto, 2) ?></div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                            <?php
-                                    // Resetear totales
-                                    $employee_total_asignaciones = 0;
-                                    $employee_total_deducciones = 0;
-                                }
-
-                                $current_employee = $employee_name;
-
-                                // Acumular totales del empleado
-                                if ($detail['tipo'] === 'A') {
-                                    $employee_total_asignaciones += $detail['monto'];
-                                } else {
-                                    $employee_total_deducciones += $detail['monto'];
-                                }
-                            ?>
-                                <tr>
-                                    <td><?= $is_new_employee ? '<strong>' . htmlspecialchars($employee_name) . '</strong>' : '' ?></td>
-                                    <td><?= $is_new_employee ? htmlspecialchars($detail['document_id'] ?? $detail['cedula'] ?? 'N/A') : '' ?></td>
-                                    <td><strong><?= htmlspecialchars($detail['concepto']) ?></strong></td>
-                                    <td><?= htmlspecialchars($detail['concepto_descripcion']) ?></td>
-                                    <td>
-                                        <span class="badge badge-<?= $detail['tipo'] === 'A' ? 'success' : 'danger' ?>">
-                                            <?= $detail['tipo'] === 'A' ? 'ASIGNACIÓN' : 'DEDUCCIÓN' ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-right font-weight-bold">
-                                        <span class="text-<?= $detail['tipo'] === 'A' ? 'success' : 'danger' ?>">
-                                            <?= $detail['tipo'] === 'A' ? '+' : '-' ?><?= currency_symbol() ?><?= number_format($detail['monto'], 2) ?>
-                                        </span>
-                                    </td>
-                                    <td><?= htmlspecialchars($detail['referencia'] ?? '') ?></td>
-                                </tr>
-                            <?php
-                            endforeach;
-
-                            // Mostrar totales del último empleado
-                            if ($current_employee !== '') {
-                                $employee_neto = $employee_total_asignaciones - $employee_total_deducciones;
-                            ?>
-                                <tr class="bg-light font-weight-bold border-top-2">
-                                    <td colspan="5" class="text-right">TOTAL <?= $current_employee ?>:</td>
-                                    <td class="text-right">
-                                        <div class="text-success">+ <?= currency_symbol() ?><?= number_format($employee_total_asignaciones, 2) ?></div>
-                                        <div class="text-danger">- <?= currency_symbol() ?><?= number_format($employee_total_deducciones, 2) ?></div>
-                                        <hr style="margin: 2px 0;">
-                                        <div class="text-primary"><?= currency_symbol() ?><?= number_format($employee_neto, 2) ?></div>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                            <?php } ?>
-                        </tbody>
-                        <tfoot>
-                            <tr class="bg-primary text-white font-weight-bold">
-                                <th colspan="5" class="text-right">TOTALES GENERALES:</th>
-                                <th class="text-right">
-                                    <div>+ <?= currency_symbol() ?><?= number_format($totals['total_asignaciones'], 2) ?></div>
-                                    <div>- <?= currency_symbol() ?><?= number_format($totals['total_deducciones'], 2) ?></div>
-                                    <hr style="margin: 5px 0; border-color: rgba(255,255,255,0.3);">
-                                    <div><?= currency_symbol() ?><?= number_format($totals['total_neto'], 2) ?></div>
-                                </th>
-                                <th></th>
-                            </tr>
-                        </tfoot>
-                    </table>
+        <!-- Resumen Final de Liquidación -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-receipt"></i> Resumen Final de Liquidación
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-success btn-sm" onclick="exportToCSV()">
+                                <i class="fas fa-download mr-1"></i> Exportar CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="table-responsive">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Total Asignaciones:</strong></td>
+                                            <td class="text-right text-success"><strong><?= currency_symbol() ?><?= number_format($totals['total_asignaciones'], 2) ?></strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Total Deducciones:</strong></td>
+                                            <td class="text-right text-danger"><strong>- <?= currency_symbol() ?><?= number_format($totals['total_deducciones'], 2) ?></strong></td>
+                                        </tr>
+                                        <tr class="border-top">
+                                            <td class="h5"><strong>Total Neto a Pagar:</strong></td>
+                                            <td class="text-right h4"><strong class="text-primary"><?= currency_symbol() ?><?= number_format($totals['total_neto'], 2) ?></strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <!-- Información Legal -->
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-balance-scale"></i> Marco Legal:</h6>
+                                    <p class="mb-1"><small>
+                                        <strong>Código de Trabajo de Panamá</strong><br>
+                                        • Art. 225: Prima de Antigüedad<br>
+                                        • Art. 224: Indemnización por Despido<br>
+                                        • Art. 213: Preaviso<br>
+                                        • Art. 162: XIII Mes proporcional
+                                    </small></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -263,20 +330,6 @@ $pageTitle = "Detalle de Planilla de Liquidación";
 
 <script>
 $(document).ready(function() {
-    // Initialize DataTable
-    if ($("#payrollDetailTable").length) {
-        $("#payrollDetailTable").DataTable({
-            "responsive": true,
-            "pageLength": 50,
-            "paging": false,
-            "searching": true,
-            "info": false,
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-            }
-        });
-    }
-
     // Initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
 });
@@ -284,31 +337,31 @@ $(document).ready(function() {
 function exportToCSV() {
     const payrollId = '<?= $payroll['id'] ?>';
     const description = '<?= addslashes($payroll['descripcion']) ?>';
+    const employeeName = '<?= $employee_info ? addslashes($employee_info['name']) : 'N/A' ?>';
 
-    // Crear CSV con los datos de la planilla
+    // Crear CSV con los datos de la liquidación
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Planilla de Liquidación: " + description + "\n";
+    csvContent += "Empleado: " + employeeName + "\n";
     csvContent += "Periodo: <?= date('d/m/Y', strtotime($payroll['fecha_desde'])) ?> - <?= date('d/m/Y', strtotime($payroll['fecha_hasta'])) ?>\n\n";
-    csvContent += "Empleado,Cédula,Concepto,Descripción,Tipo,Monto,Referencia\n";
+    csvContent += "Concepto,Descripción,Tipo,Monto\n";
 
     <?php foreach ($details as $detail): ?>
-    csvContent += "<?= addslashes($detail['firstname'] . ' ' . $detail['lastname']) ?>," +
-                  "<?= addslashes($detail['document_id'] ?? $detail['cedula'] ?? 'N/A') ?>," +
-                  "<?= addslashes($detail['concepto']) ?>," +
+    csvContent += "<?= addslashes($detail['concepto']) ?>," +
                   "<?= addslashes($detail['concepto_descripcion']) ?>," +
                   "<?= $detail['tipo'] === 'A' ? 'ASIGNACIÓN' : 'DEDUCCIÓN' ?>," +
-                  "<?= $detail['monto'] ?>," +
-                  "<?= addslashes($detail['referencia'] ?? '') ?>\n";
+                  "<?= $detail['monto'] ?>\n";
     <?php endforeach; ?>
 
-    csvContent += "\nTotal Asignaciones,<?= $totals['total_asignaciones'] ?>\n";
+    csvContent += "\n--- RESUMEN ---\n";
+    csvContent += "Total Asignaciones,<?= $totals['total_asignaciones'] ?>\n";
     csvContent += "Total Deducciones,<?= $totals['total_deducciones'] ?>\n";
-    csvContent += "Total Neto,<?= $totals['total_neto'] ?>\n";
+    csvContent += "Total Neto a Pagar,<?= $totals['total_neto'] ?>\n";
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `planilla_liquidacion_${payrollId}_<?= date('Y-m-d', strtotime($payroll['fecha'])) ?>.csv`);
+    link.setAttribute("download", `liquidacion_${employeeName.replace(/\s+/g, '_')}_${payrollId}_<?= date('Y-m-d', strtotime($payroll['fecha'])) ?>.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

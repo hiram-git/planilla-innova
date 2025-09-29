@@ -266,7 +266,10 @@ class App
                                     }elseif ($url[2] === 'duplicate' && isset($url[3]) && method_exists($this->controller, 'duplicate')) {
                                         $this->method = 'duplicate';
                                         $this->params = [$url[3]];
-                                    }   
+                                    } elseif ($url[2] === 'import' && method_exists($this->controller, 'import')) {
+                                        $this->method = 'import';
+                                        $this->params = array_slice($url, 3);
+                                    }
                                 } else {
                                     // Para GET, usar lógica normal
                                     if ($url[2] === 'employee-info' && method_exists($this->controller, 'employeeInfo')) {
@@ -289,6 +292,12 @@ class App
                                         $this->params = array_slice($url, 3);
                                     } elseif ($url[2] === 'terminated-datatables-ajax' && method_exists($this->controller, 'terminated_datatables_ajax')) {
                                         $this->method = 'terminated_datatables_ajax';
+                                        $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'import' && method_exists($this->controller, 'import')) {
+                                        $this->method = 'import';
+                                        $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'import_template' && method_exists($this->controller, 'import_template')) {
+                                        $this->method = 'import_template';
                                         $this->params = array_slice($url, 3);
                                     } elseif ($url[2] === 'planilla-pdf' && isset($url[3]) && method_exists($this->controller, 'planillaPdf')) {
                                         $this->method = 'planillaPdf';
@@ -335,6 +344,9 @@ class App
                                     } elseif ($url[2] === 'create' && method_exists($this->controller, 'create')) {
                                         $this->method = 'create';
                                         $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'payroll-detail' && isset($url[3]) && method_exists($this->controller, 'payrollDetail')) {
+                                        $this->method = 'payrollDetail';
+                                        $this->params = [$url[3]];
                                     } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
                                         $this->method = 'edit';
                                         $this->params = [$url[3]];

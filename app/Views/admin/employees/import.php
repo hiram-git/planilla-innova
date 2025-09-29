@@ -3,37 +3,37 @@
 
             <!-- Mensajes de estado -->
             <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle"></i> <?= $_SESSION['success'] ?>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="callout callout-success">
+                    <h5><i class="fas fa-check-circle"></i> Importación Exitosa</h5>
+                    <p><?= $_SESSION['success'] ?></p>
                 </div>
                 <?php unset($_SESSION['success']); ?>
             <?php endif; ?>
 
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle"></i> <?= $_SESSION['error'] ?>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="callout callout-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Error de Importación</h5>
+                    <p><?= $_SESSION['error'] ?></p>
                 </div>
                 <?php unset($_SESSION['error']); ?>
             <?php endif; ?>
 
             <!-- Errores de importación -->
             <?php if (isset($_SESSION['import_errors'])): ?>
-                <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                    <h5><i class="fas fa-exclamation-triangle"></i> Errores encontrados durante la importación:</h5>
-                    <ul class="mb-0">
-                        <?php foreach ($_SESSION['import_errors'] as $error): ?>
-                            <li><?= htmlspecialchars($error) ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="callout callout-warning">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Errores Encontrados Durante la Importación</h5>
+                    <div class="mb-0">
+                        <strong>Se encontraron los siguientes problemas:</strong>
+                        <ul class="mt-2">
+                            <?php foreach ($_SESSION['import_errors'] as $error): ?>
+                                <li><?= htmlspecialchars($error) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Revise el archivo Excel y corregir los datos antes de volver a importar.
+                        </small>
+                    </div>
                 </div>
                 <?php unset($_SESSION['import_errors']); ?>
             <?php endif; ?>
@@ -56,10 +56,10 @@
                                     <div class="timeline-item">
                                         <span class="time"><i class="fas fa-clock"></i> Paso 1</span>
                                         <h3 class="timeline-header">
-                                            <a href="/planilla-innova/panel/employees/import_template" class="btn btn-success btn-sm mr-2">
+                                            <a href="<?= \App\Core\UrlHelper::route('panel/employees/import_template') ?>" class="btn btn-success btn-sm mr-2">
                                                 <i class="fas fa-sync"></i> Plantilla Dinámica
                                             </a>
-                                            <a href="/planilla-innova/template_empleados.xlsx" class="btn btn-info btn-sm" download>
+                                            <a href="<?= \App\Core\UrlHelper::route('template_empleados.xlsx') ?>" class="btn btn-info btn-sm" download>
                                                 <i class="fas fa-download"></i> Plantilla Base
                                             </a>
                                         </h3>
@@ -130,7 +130,7 @@
                         <div class="card-header">
                             <h3 class="card-title"><i class="fas fa-upload"></i> Subir Archivo Excel</h3>
                         </div>
-                        <form action="/panel/employees/import" method="POST" enctype="multipart/form-data" id="importForm">
+                        <form action="" method="POST" enctype="multipart/form-data" id="importForm">
                             <input type="hidden" name="csrf_token" value="<?= \App\Core\Security::generateToken() ?>">
                             <div class="card-body">
                                 <div class="form-group">
@@ -170,7 +170,7 @@
                                 <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
                                     <i class="fas fa-upload"></i> Importar Empleados
                                 </button>
-                                <a href="/panel/employees" class="btn btn-secondary btn-block mt-2">
+                                <a href="<?= \App\Core\UrlHelper::route('panel/employees') ?>" class="btn btn-secondary btn-block mt-2">
                                     <i class="fas fa-arrow-left"></i> Volver a Empleados
                                 </a>
                             </div>

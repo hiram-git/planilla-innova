@@ -1,8 +1,8 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 24 de Septiembre, 2025
-**Versión**: 3.3.4 - Vista Empleado Mejorada + Validación Períodos Planillas + Fixes Críticos
+**Fecha**: 29 de Septiembre, 2025
+**Versión**: 3.3.9 - Sistema XIII Mes Trimestral + Liquidaciones Mejoradas + Bug Fixes Críticos
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -13,6 +13,7 @@
 
 ### ✅ **FASE 2: ACUMULADOS PANAMÁ (100% COMPLETADO)**
 - [x] **XIII Mes Legislación Panameña**: (Salario Anual ÷ 3) - Descuentos
+- [x] **XIII Mes Trimestral**: Períodos trimestrales (Dic-Abr, Abr-Ago, Ago-Dic) + variables dinámicas
 - [x] **Sistema Acumulados**: XIII_MES, VACACIONES, PRIMA_ANTIGUEDAD
 - [x] **Procesamiento Automático**: Al cerrar planillas
 - [x] **Campo Referencia Universal**: Días, horas, unidades
@@ -73,6 +74,14 @@
 - [x] **Filtrado Inteligente**: DataTables AJAX con filtros SQL optimizados por situacion_id
 - [x] **Controller Methods**: terminated() + terminated_datatables_ajax() + modificación existente
 - [x] **Navegación Mejorada**: Enlaces cruzados + breadcrumbs específicos + iconografía
+
+### ✅ **FASE 3.7: MEJORAS UX/UI + FUNCIONALIDAD LIQUIDACIONES AVANZADA (100% COMPLETADO)**
+- [x] **Función CONCEPTO()**: Reutilización cálculos entre conceptos (`CONCEPTO("LIQ005")`)
+- [x] **Modificación Días Preaviso**: Campo editable en preview + AJAX + validaciones + historial
+- [x] **Iconos Estado Planillas**: FontAwesome icons en lugar de texto + tooltips + centrado
+- [x] **Responsive Optimizado**: Breakpoint 1024px para mini laptops + columnas esenciales
+- [x] **Protección Recursión**: Sistema anti-bucles infinitos en función CONCEPTO()
+- [x] **UX Completa**: SweetAlert2 + confirmaciones + opción recálculo automático
 - [x] **Export Funcionalidad**: Botones Excel/PDF configurados para ambas vistas
 - [x] **Test Verification**: Script verificación + 100% separación funcionando correctamente
 - [x] **Bugfixes Finales**: ViewHelper fix + breadcrumbs duplicados + router config
@@ -89,111 +98,161 @@
 - [x] **Indicadores Tiempo Real**: Días trabajados + preaviso + próximo día laboral
 - [x] **Experiencia Usuario Mejorada**: Notificaciones modernas + presentación información legal
 
-### ✅ **FASE 3.8: VISTA EMPLEADO MEJORADA + VALIDACIONES CRÍTICAS (100% COMPLETADO)**
-- [x] **Vista Empleado con Información Terminación**: Sección completa datos terminación con badges visuales
-- [x] **JOIN Employee Terminations**: Modelo Employee con campos termination_date/type/reason/status
-- [x] **Callouts AdminLTE**: Uso callout-warning en lugar de alerts básicos + estilos personalizados
-- [x] **Display Condicional**: Solo mostrar información terminación si empleado tiene termination_date
-- [x] **Fix Error Contratos**: Validación robusta campos fecha vacíos con trim() + empty() + null fallback
-- [x] **Fix Parse Error**: Reestructuración código PHP vista show.php sin syntax errors
-- [x] **Validación Períodos Planillas**: Solo procesar empleados activos durante período planilla específico
-- [x] **SQL Mejorada**: WHERE con validaciones fecha_ingreso <= período_fin AND termination_date >= período_inicio
-- [x] **Mensajes Error Descriptivos**: Incluyen período específico + sugerencias verificación fechas
-- [x] **Logging Trazabilidad**: Conteo empleados antes/después validación + debugging información
+### ✅ **FASE 3.8: AJAX DATATABLES + PERFORMANCE OPTIMIZADA (100% COMPLETADO)**
+- [x] **DataTable Server-Side AJAX**: Reemplazo tablas estáticas por paginación server-side eficiente
+- [x] **PayrollController@datatablesAjax()**: Endpoint completo con búsqueda, filtros y ordenamiento
+- [x] **Modelo Payroll Mejorado**: getTotalCount() + getFilteredCount() + getAllWithStats() optimizado
+- [x] **Modal Refresh Sin Recarga**: Actualización automática después procesar/reprocesar planillas
+- [x] **Cache-Busting SSIIHH**: Timestamp automático JavaScript para evitar problemas caché navegador
+- [x] **Error Handling Robusto**: Headers AJAX + redirección automática + debugging completo
+- [x] **Compatibilidad Hacia Atrás**: Método unificado funciona con parámetros legacy y nuevos
+- [x] **URLs Dinámicas**: Sin hardcode para compatibilidad entornos producción
+- [x] **UX Modales Mejorada**: Eliminación botones innecesarios + información contextual planilla
+
+### ✅ **FASE 3.9: FILTROS AVANZADOS + SIMPLIFICACIÓN ACUMULADOS (100% COMPLETADO)**
+- [x] **Filtros Mejorados byEmployee**: Tipo acumulado + año "todos" + auto-submit empleado
+- [x] **Campo Redundante Eliminado**: `incluir_en_acumulado` + migración automática + lógica simplificada
+- [x] **PHP 8+ Compatibility**: Cast explícito (int) round() + deprecated warnings resueltos
+- [x] **Variables Dinámicas DIAS_PREAVISO**: Uso valor real BD + cálculo períodos liquidación corregido
+- [x] **UX Filtros Dinámicos**: Auto-submit year/tipo + layout responsive 4 columnas
+
+### ✅ **FASE 3.10: SISTEMA XIII MES TRIMESTRAL + LIQUIDACIONES MEJORADAS (100% COMPLETADO)**
+- [x] **XIIIMesPeriodoTrimestralCalculator**: Clase completa cálculos trimestrales legislación panameña
+- [x] **Períodos Trimestrales**: P1 (Dic16-Abr15), P2 (Abr16-Ago15), P3 (Ago16-Dic15) + determinación automática
+- [x] **Variables Dinámicas XIII**: INICIO_PERIODO_XIII + FIN_PERIODO_XIII + PERIODO_XIII_NUMERO + PERIODO_XIII_ESTADO
+- [x] **Fórmula LIQ006 Corregida**: ACUMULADOS("SALARIO_BASE", FICHA, INICIO_PERIODO_XIII, FIN_PERIODO_XIII)/4
+- [x] **Integración PlanillaConceptCalculator**: Método obtenerVariablesFechaXIIIMes() + procesamiento automático
+- [x] **Scripts Testing Completo**: test_xiii_mes_trimestral.php con 4 módulos pruebas + casos reales
+- [x] **Deployment Script**: deploy_xiii_mes_trimestral.php con backup automático + verificación prerequisitos
+- [x] **Vista Liquidación Mejorada**: Layout estilo cálculo + routing corregido + información empleado + marco legal
+- [x] **Bug Fixes Críticos**: Campo `referencia` eliminado + parámetros INSERT corregidos + error SQL resuelto
 
 ---
 
 ## 🎯 **SIGUIENTES FASES PRIORIZADAS**
 
-### 🏖️ **FASE 4: MÓDULO VACACIONES PANAMÁ** *(En Progreso - Alta Prioridad)*
+### 📅 **FASE 4: CALENDARIO EMPRESARIAL PANAMÁ** *(Q4 2025 - Alta Prioridad)*
+**Objetivo**: Sistema calendario empresarial con días laborables según legislación panameña
+**Tiempo Estimado**: 3-4 semanas
+- [ ] **Subfase 4.1: Base de Datos** *(1 semana)*
+  - [ ] Tabla business_calendar con tipos LABORAL, FERIADO, DUELO_NACIONAL
+  - [ ] 13 feriados nacionales panameños 2025-2026 + fechas móviles
+  - [ ] Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
+  - [ ] Seeders automáticos + configuración empresa específica
+- [ ] **Subfase 4.2: BusinessCalendar Model** *(1 semana)*
+  - [ ] Métodos core: getWorkingDaysBetween(), isWorkingDay(), addWorkingDays()
+  - [ ] Helper functions: business_days_between(), is_working_day()
+  - [ ] Cálculos automáticos + fallback sin BD
+  - [ ] Cache inteligente para consultas frecuentes
+- [ ] **Subfase 4.3: Interfaz Gestión** *(1 semana)*
+  - [ ] BusinessCalendarController CRUD días especiales
+  - [ ] Vista calendario mensual/anual AdminLTE + FullCalendar.js
+  - [ ] Importación masiva feriados + validación conflictos
+  - [ ] JavaScript calendar integration + UX optimizada
+- [ ] **Subfase 4.4: Integración Cálculos Legales** *(1 semana)*
+  - [ ] Actualizar liquidaciones: preaviso 30 días laborables exactos
+  - [ ] Integrar vacaciones: días hábiles únicamente
+  - [ ] XIII Mes: proporcional días trabajados reales
+  - [ ] Actualizar PlanillaConceptCalculator con días laborables
+
+### 🏖️ **FASE 5: MÓDULO VACACIONES PANAMÁ** *(Q4 2025/Q1 2026 - Alta Prioridad)*
 **Objetivo**: Sistema completo gestión vacaciones según legislación panameña
-- [ ] **Fase 1: Calculadora + Base de Datos**
+**Tiempo Estimado**: 4-5 semanas
+- [ ] **Subfase 5.1: Calculadora + Base de Datos** *(1-2 semanas)*
   - [ ] VacationCalculator class con cálculos legislación panameña
   - [ ] Migraciones BD: vacation_requests + vacation_balances + vacation_periods
   - [ ] Seeders datos iniciales + configuración empresa
-- [ ] **Fase 2: CRUD Básico**
+  - [ ] Integración con BusinessCalendar para días laborables
+- [ ] **Subfase 5.2: CRUD Básico** *(1 semana)*
   - [ ] VacationController con operaciones principales CRUD
   - [ ] Vistas básicas: index.php + create.php + show.php + employee_balance.php
-  - [ ] Validaciones formularios + reglas negocio
-- [ ] **Fase 3: Funcionalidades Avanzadas**
+  - [ ] Validaciones formularios + reglas negocio panameño
+  - [ ] Sistema estados: SOLICITADA, APROBADA, RECHAZADA, DISFRUTADA
+- [ ] **Subfase 5.3: Funcionalidades Avanzadas** *(1 semana)*
   - [ ] Sistema aprobaciones flujo multinivel (Supervisor → RRHH)
   - [ ] Calendario visual FullCalendar.js integration
   - [ ] Balance automático cálculo tiempo real + APIs
-- [ ] **Fase 4: Integración Completa**
+  - [ ] Notificaciones automáticas toastr + email
+- [ ] **Subfase 5.4: Integración Completa** *(1 semana)*
   - [ ] Integración tabla acumulados_por_empleado existente
   - [ ] Reportes PDF comprobantes + reportes gerenciales
   - [ ] Compensaciones integración planillas regulares
   - [ ] Motor fórmulas variables DIAS_VACACIONES + BALANCE_DISPONIBLE
 
-### 📅 **FASE 4.1: CALENDARIO EMPRESARIAL PANAMÁ** *(Análisis Completado - Alta Prioridad)*
-**Objetivo**: Sistema calendario empresarial con días laborables según legislación panameña
-- [ ] **Base de Datos Calendario**
-  - [ ] Tabla business_calendar con tipos LABORAL, FERIADO, DUELO_NACIONAL
-  - [ ] 13 feriados nacionales panameños + fechas móviles
-  - [ ] Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
-- [ ] **BusinessCalendar Model**
-  - [ ] Métodos: getWorkingDaysBetween(), isWorkingDay(), addWorkingDays()
-  - [ ] Cálculos automáticos + fallback sin BD
-  - [ ] Gestión feriados + días especiales empresa
-- [ ] **Interfaz Gestión Calendario**
-  - [ ] CRUD días especiales + importación masiva feriados
-  - [ ] Vista calendario mensual/anual AdminLTE
-  - [ ] Validación conflictos + auditoría cambios
-- [ ] **Integración Cálculos Legales**
-  - [ ] Preaviso: 30 días laborables exactos
-  - [ ] Vacaciones: días hábiles únicamente
-  - [ ] XIII Mes: proporcional días trabajados
-  - [ ] Helper functions: business_days_between(), is_working_day()
-
-### 🏢 **FASE 5: MULTITENANCY EMPRESARIAL** *(Alta Prioridad)*
+### 🏢 **FASE 6: MULTITENANCY EMPRESARIAL** *(Q1 2026 - Mediana Prioridad)*
 **Objetivo**: Sistema multi-empresa con wizard automático
-- [ ] **Wizard Configuración Empresa**
+**Tiempo Estimado**: 6-8 semanas
+- [ ] **Subfase 6.1: Wizard Configuración** *(2 semanas)*
   - [ ] Formulario datos empresa (nombre, RUC, dirección)
-  - [ ] Validación distribuidor/licencia
+  - [ ] Validación distribuidor/licencia API
   - [ ] Configuración inicial automática
-- [ ] **Database per Tenant**
-  - [ ] Creación automática BD por empresa
-  - [ ] Migración schema automática
-  - [ ] Seeders datos iniciales
-- [ ] **Tenant Middleware**
+  - [ ] Template inicial con datos de prueba
+- [ ] **Subfase 6.2: Database per Tenant** *(2-3 semanas)*
+  - [ ] Script creación BD automática por empresa
+  - [ ] Migración schema automática completa
+  - [ ] Seeders datos iniciales (roles, conceptos base)
+  - [ ] Sistema backup automático por tenant
+- [ ] **Subfase 6.3: Tenant Middleware** *(2 semanas)*
   - [ ] Detección tenant por dominio/subdirectorio
-  - [ ] Conexión BD dinámica
-  - [ ] Aislamiento datos por empresa
-- [ ] **Dashboard Distribuidor**
+  - [ ] Conexión BD dinámica por tenant
+  - [ ] Aislamiento completo datos empresa
+  - [ ] Session management por tenant
+- [ ] **Subfase 6.4: Dashboard Distribuidor** *(1-2 semanas)*
   - [ ] Gestión empresas clientes
   - [ ] Monitoreo licencias activas
   - [ ] Estadísticas uso sistema
+  - [ ] Panel administración central
 
-### 💰 **FASE 6: ISR PANAMÁ** *(Alta Prioridad)*
+### 💰 **FASE 7: ISR PANAMÁ** *(Q1 2026 - Mediana Prioridad)*
 **Objetivo**: Cálculo automático Impuesto Sobre la Renta
-- [ ] **Calculadora ISR Panameña**
-  - [ ] Tramos impositivos 2025
-  - [ ] Deducciones personales
-  - [ ] Gastos de representación
-- [ ] **Retenciones Automáticas**
-  - [ ] Integración con conceptos planilla
-  - [ ] Acumulado anual ISR
-  - [ ] Certificados retención
+**Tiempo Estimado**: 2-3 semanas
+- [ ] **Subfase 7.1: Calculadora ISR** *(1-2 semanas)*
+  - [ ] Implementar tramos impositivos 2025
+  - [ ] Deducciones personales automáticas
+  - [ ] Gastos de representación deducibles
+  - [ ] Integración con conceptos planilla existentes
+- [ ] **Subfase 7.2: Retenciones & Certificados** *(1 semana)*
+  - [ ] Acumulado anual ISR por empleado
+  - [ ] Generación certificados retención
+  - [ ] Reportes declaración CSS
+  - [ ] Formularios oficiales DGI
 
-### 📊 **FASE 7: REPORTERÍA AVANZADA** *(Mediana Prioridad)*
-- [ ] **Reportes Legales Panamá**
-  - [ ] Planilla Ministerio Trabajo
-  - [ ] Declaración Jurada CSS
-  - [ ] Reporte anual XIII Mes
-- [ ] **Business Intelligence**
-  - [ ] Dashboard ejecutivo
-  - [ ] Análisis tendencias
-  - [ ] Proyecciones costos
-
-### 🔧 **FASE 8: INTEGRACIONES** *(Mediana Prioridad)*
-- [ ] **API REST Completa**
+### 📊 **FASE 8: REPORTERÍA AVANZADA + API** *(Q2 2026 - Mediana Prioridad)*
+**Objetivo**: Reportes legales + API REST completa
+**Tiempo Estimado**: 6-7 semanas
+- [ ] **Subfase 8.1: Reportes Legales Panamá** *(3-4 semanas)*
+  - [ ] Planilla oficial formato Ministerio Trabajo
+  - [ ] Declaración Jurada CSS automática
+  - [ ] Reporte anual XIII Mes legislativo
+  - [ ] Formularios DGI actualizados
+- [ ] **Subfase 8.2: Business Intelligence** *(2-3 semanas)*
+  - [ ] Dashboard ejecutivo con KPIs
+  - [ ] Análisis tendencias salariales
+  - [ ] Proyecciones costos laborales
+  - [ ] Comparativas períodos anteriores
+- [ ] **Subfase 8.3: API REST Completa** *(2-3 semanas)*
   - [ ] Endpoints CRUD todas las entidades
-  - [ ] Autenticación JWT
-  - [ ] Documentación OpenAPI
-- [ ] **Conectores Externos**
-  - [ ] Bancos (pagos automáticos)
-  - [ ] Sistemas contables
-  - [ ] Ministerio Trabajo
+  - [ ] Autenticación JWT + refresh tokens
+  - [ ] Documentación OpenAPI 3.0
+  - [ ] Rate limiting + webhooks
+
+### 🔌 **FASE 9: INTEGRACIONES EXTERNAS** *(Q2/Q3 2026 - Baja Prioridad)*
+**Objetivo**: Conectores bancarios y contables
+**Tiempo Estimado**: 8-10 semanas
+- [ ] **Subfase 9.1: Sistemas Bancarios** *(4-6 semanas)*
+  - [ ] API Banco General Panamá
+  - [ ] Transferencias ACH empleados
+  - [ ] Reconciliación automática pagos
+  - [ ] Archivos planos BAC/Banistmo
+- [ ] **Subfase 9.2: Sistemas Contables** *(3-4 semanas)*
+  - [ ] Connector SAP Business One
+  - [ ] QuickBooks Online API
+  - [ ] Export asientos contables automáticos
+  - [ ] Integración ERP empresariales
+- [ ] **Subfase 9.3: Conectores Gubernamentales** *(1-2 semanas)*
+  - [ ] API Ministerio de Trabajo
+  - [ ] Integración CSS Panamá
+  - [ ] Reportes automáticos DGI
 
 ---
 
@@ -241,10 +300,28 @@
 
 ---
 
-## 🎯 **PRÓXIMOS HITOS**
+## 🎯 **PRÓXIMOS HITOS ACTUALIZADOS**
 
-**Q4 2025**: Multitenancy + ISR Panamá  
-**Q1 2026**: Reportería Legal + API REST  
-**Q2 2026**: Integraciones Bancarias + BI  
+### 📅 **Q4 2025** *(Oct - Dic 2025)*
+- **Calendario Empresarial Panamá**: Sistema completo días laborables (3-4 semanas)
+- **Módulo Vacaciones Básico**: CRUD + calculadora + integración (4-5 semanas)
+- **ISR Panamá Core**: Cálculos básicos + retenciones (2-3 semanas)
 
-**Sistema consolidado como plataforma empresarial líder en gestión nóminas Panamá** 🏆
+### 📅 **Q1 2026** *(Ene - Mar 2026)*
+- **Multitenancy Básico**: Wizard + BD por tenant + middleware (6-8 semanas)
+- **API REST Core**: Endpoints principales + JWT + docs (3-4 semanas)
+- **Mejoras Performance**: Cache + optimizaciones SQL (2-3 semanas)
+
+### 📅 **Q2 2026** *(Abr - Jun 2026)*
+- **Reportería Legal + BI**: Ministerio Trabajo + dashboard ejecutivo (6-7 semanas)
+- **Mobile Self-Service**: App empleados + notificaciones (4-5 semanas)
+- **Testing Automation**: Unit tests + E2E + cobertura 80% (3-4 semanas)
+
+### 📅 **Q3 2026** *(Jul - Sep 2026)*
+- **Integraciones Bancarias**: ACH + reconciliación + archivos planos (4-6 semanas)
+- **Security Enhancements**: 2FA + encryption + audit avanzado (2-3 semanas)
+- **Advanced Analytics**: Proyecciones + comparativas + KPIs (3-4 semanas)
+
+---
+
+**OBJETIVO 2026**: Sistema consolidado como **plataforma empresarial líder en gestión nóminas Panamá** con compliance completo, multitenancy y integraciones bancarias 🏆
