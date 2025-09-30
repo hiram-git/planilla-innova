@@ -1,0 +1,1 @@
+Evaluando fórmula: salario_anual = SALARIO*13;gr_anual = GASTOS_REPRESENTACION*13;deduc_pers = 0;neto_gravable = salario_anual - deduc_pers;saldos_gravables = SI(neto_gravable > 11000, neto_gravable , 0);

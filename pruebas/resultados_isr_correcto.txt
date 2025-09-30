@@ -1,0 +1,105 @@
+RESULTADOS PRUEBA FÓRMULA ISR - BASE DE DATOS CORRECTA - 2025-09-29 23:38:05
+BASE DE DATOS: planilla_innova29092025
+================================================================================
+
+ANÁLISIS DE LA FÓRMULA:
+======================
+La fórmula ISR implementa el sistema tributario panameño con dos tramos:
+- Tramo 1: 15% sobre exceso de B/.11,000 hasta B/.50,000
+- Tramo 2: 25% sobre exceso de B/.50,000 + B/.5,850 base
+- Deducción personal: B/.800 para empleados con clave E01/E1
+
+ERRORES DETECTADOS:
+==================
+1. Error tipográfico en línea 10: 'isr_quincenal = isr_quincenal/2'
+2. No se incluyen gastos de representación en el cálculo
+3. Deducción personal limitada a claves específicas
+
+RESULTADOS POR EMPLEADO:
+================================================================================
+
+EMP013 - ANTONIO J. JARAMILLO
+Salario: B/.2,525.00 | Gastos Rep: B/.2,435.00 | Clave: E-02
+ISR Quincenal: B/.125.91 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP012 - OSCAR RUIZ VALERO
+Salario: B/.2,150.00 | Gastos Rep: B/.2,150.00 | Clave: E02
+ISR Quincenal: B/.97.79 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP005 - CESAR ANDRES ABREGO HERNÁNDEZ
+Salario: B/.1,800.00 | Gastos Rep: B/.0.00 | Clave: C02
+ISR Quincenal: B/.71.54 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP004 - ANTONIO RODARTE MENDEZ
+Salario: B/.1,550.00 | Gastos Rep: B/.0.00 | Clave: E02
+ISR Quincenal: B/.52.79 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP009 - GABRIEL ANGEL CEDEÑO
+Salario: B/.1,450.00 | Gastos Rep: B/.0.00 | Clave: C02
+ISR Quincenal: B/.45.29 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP008 - CHRISTIAN A. HENRIQUEZ THOMAS
+Salario: B/.1,400.00 | Gastos Rep: B/.500.00 | Clave: A00
+ISR Quincenal: B/.41.54 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP006 - DOMINGO PASTOR CORDOBA ACOSTA
+Salario: B/.1,400.00 | Gastos Rep: B/.0.00 | Clave: E-03
+ISR Quincenal: B/.41.54 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP007 - JUAN CARLOS RUIZ PINTO
+Salario: B/.1,400.00 | Gastos Rep: B/.0.00 | Clave: A00
+ISR Quincenal: B/.41.54 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP014 - FRANCISCO PEREZ DELGADO
+Salario: B/.1,381.00 | Gastos Rep: B/.0.00 | Clave: E-02
+ISR Quincenal: B/.40.11 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP003 - NESTOR AUGUSTO MOLINA VALENCIA
+Salario: B/.950.00 | Gastos Rep: B/.150.00 | Clave: A00
+ISR Quincenal: B/.7.79 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP002 - NADIA XIOMARA NEWBALL CHACON
+Salario: B/.800.00 | Gastos Rep: B/.0.00 | Clave: C2
+ISR Quincenal: B/.0.00 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP001 - RUFINO JARAMILLO SANCHEZ
+Salario: B/.780.00 | Gastos Rep: B/.0.00 | Clave: C01
+ISR Quincenal: B/.0.00 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP010 - AIRYN A. ARAUZ
+Salario: B/.600.00 | Gastos Rep: B/.0.00 | Clave: A00
+ISR Quincenal: B/.0.00 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+EMP011 - ROSILIA ROSERO ASPRILLA
+Salario: B/.500.00 | Gastos Rep: B/.0.00 | Clave: A00
+ISR Quincenal: B/.0.00 | TRAMO 1 (B/.11K-50K)
+--------------------------------------------------
+
+
+RESUMEN ESTADÍSTICO:
+===================
+Base de datos: planilla_innova29092025
+Total empleados analizados: 14
+Empleados con ISR: 10 (71.4%)
+Empleados exentos: 4 (28.6%)
+Salario promedio: B/.1,334.71
+Total ISR quincenal: B/.565.83
+Promedio ISR (empleados con descuento): B/.56.58
+
+Análisis por tramos:
+- Tramo 1 (B/.11K-50K): 10 empleados
+- Tramo 2 (>B/.50K): 0 empleados
+- Exentos (<B/.11K): 4 empleados

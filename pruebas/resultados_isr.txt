@@ -1,0 +1,48 @@
+RESULTADOS PRUEBA FÓRMULA ISR - 2025-09-29 23:33:09
+================================================================================
+
+ANÁLISIS DE LA FÓRMULA:
+======================
+La fórmula ISR implementa el sistema tributario panameño con dos tramos:
+- Tramo 1: 15% sobre exceso de B/.11,000 hasta B/.50,000
+- Tramo 2: 25% sobre exceso de B/.50,000 + B/.5,850 base
+- Deducción personal: B/.800 para empleados con clave E01/E1
+
+ERRORES DETECTADOS:
+==================
+1. Error tipográfico en línea 10: 'isr_quincenal = isr_quincenal/2'
+2. No se incluyen gastos de representación en el cálculo
+3. Deducción personal limitada a claves específicas
+
+RESULTADOS POR EMPLEADO:
+================================================================================
+
+LAV269743 - innova innova
+Salario: B/.6,500.00 | ISR Quincenal: B/.556.73 | TRAMO 2 (>B/.50K)
+
+CQK456972 - hiram loreto
+Salario: B/.600.00 | ISR Quincenal: B/.0.00 | TRAMO 1 (B/.11K-50K)
+
+YPR781065 - nuevo emppleado
+Salario: B/.600.00 | ISR Quincenal: B/.0.00 | TRAMO 1 (B/.11K-50K)
+
+ZUC541670 - innova3 innova3
+Salario: B/.900.00 | ISR Quincenal: B/.4.04 | TRAMO 1 (B/.11K-50K)
+
+WIN329064 - PRUEBA 1 PRUEBA 1
+Salario: B/.700.00 | ISR Quincenal: B/.0.00 | TRAMO 1 (B/.11K-50K)
+
+YRM185369 - CAMPO VACIO
+Salario: B/.860.00 | ISR Quincenal: B/.1.04 | TRAMO 1 (B/.11K-50K)
+
+PCS319280 - LIQUIDADO POR LIQUIDAR
+Salario: B/.1,200.00 | ISR Quincenal: B/.26.54 | TRAMO 1 (B/.11K-50K)
+
+
+RESUMEN ESTADÍSTICO:
+===================
+Total empleados analizados: 7
+Empleados con ISR: 4 (57.1%)
+Empleados exentos: 3 (42.9%)
+Total ISR quincenal: B/.588.35
+Promedio ISR (empleados con descuento): B/.147.09

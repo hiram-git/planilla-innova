@@ -76,7 +76,7 @@ class PlanillaConceptCalculator
             // Obtener tipo de empresa de la configuración
             $companyType = $this->getCompanyType();
             
-            $sql = "SELECT e.fecha_ingreso, e.employee_id, e.sueldo_individual, e.gastos_representacion, p.sueldo as sueldo_posicion, s.time_in, s.time_out
+            $sql = "SELECT e.fecha_ingreso, e.employee_id, e.sueldo_individual, e.gastos_representacion, e.clave_seguro_social, p.sueldo as sueldo_posicion, s.time_in, s.time_out
                     FROM employees e
                     LEFT JOIN posiciones p ON p.id = e.position_id
                     LEFT JOIN schedules s ON s.id = e.schedule_id
@@ -121,10 +121,15 @@ class PlanillaConceptCalculator
                 // Obtener gastos de representación
                 $gastos_representacion = (float)($employee['gastos_representacion'] ?: 0);
 
+                // Obtener clave de seguro social
+                $clave_seguro_social = $employee['clave_seguro_social'] ?: '';
+
                 $this->variablesColaborador = [
                     'SALARIO' => $salario,
                     'SUELDO' => $salario,
                     'GASTOS_REPRESENTACION' => $gastos_representacion,
+                    'CLAVE_SS' => $clave_seguro_social,
+                    'CLAVE_SEGURO_SOCIAL' => $clave_seguro_social, // Alias para compatibilidad
                     'FICHA' => $ficha,
                     'EMPLEADO' => $ficha, // Usar employee_id (código) en lugar del ID numérico
                     'EMPLOYEE_ID' => $employee_id, // ID numérico para cálculos internos
@@ -239,6 +244,8 @@ class PlanillaConceptCalculator
         // Dividir por líneas ANTES de procesar variables globales
         // Soportar múltiples tipos de separadores
         $lineas = $this->dividirFormulaEnLineas($formula);
+        //print_r($lineas);exit;
+
         $ultimoResultado = 0;
 
         foreach ($lineas as $linea) {
@@ -301,7 +308,7 @@ class PlanillaConceptCalculator
     private function dividirFormulaEnLineas(string $formula): array
     {
         // Normalizar diferentes tipos de saltos de línea
-        $formula = str_replace(["\r\n", "\r"], "\n", $formula);
+        $formula = str_replace(["\r\n", "\r",";"], "\n", $formula);
 
         // Si no hay saltos de línea, intentar detectar patrones de asignación
         if (strpos($formula, "\n") === false) {
@@ -429,14 +436,6 @@ class PlanillaConceptCalculator
             'FECHA' => $this->fechasActuales['fecha'] ?? null
         ];
 
-        // Agregar variables de fecha XIII mes si hay empleado en contexto
-        if (isset($this->variablesColaborador['EMPLOYEE_ID'])) {
-            $variablesFechaXIII = $this->obtenerVariablesFechaXIIIMes(
-                (int)$this->variablesColaborador['EMPLOYEE_ID']
-            );
-            $variablesEspeciales = array_merge($variablesEspeciales, $variablesFechaXIII);
-        }
-
         // Reemplazar variables especiales primero (solo fuera de comillas)
         foreach ($variablesEspeciales as $variable => $valor) {
             if ($valor !== null) {
@@ -486,16 +485,24 @@ class PlanillaConceptCalculator
      */
     private function procesarFunciones(string $formula): string
     {
-        // Procesar función SI(condicion, valor_si_verdadero, valor_si_falso)
-        $formula = preg_replace_callback('/SI\(([^,]+),([^,]+),([^)]+)\)/', function($matches) {
-            $condicion = trim($matches[1]);
-            $valorVerdadero = trim($matches[2]);
-            $valorFalso = trim($matches[3]);
-            
-            // Evaluar condición simple
-            $condicionResult = $this->evaluarCondicion($condicion);
-            return $condicionResult ? $valorVerdadero : $valorFalso;
+        // Procesar función LEFT(texto, longitud) primero (antes de SI para evitar conflictos)
+        $formula = preg_replace_callback('/LEFT\(([^,]+),\s*(\d+)\)/', function($matches) {
+            $texto = trim($matches[1]);
+            $longitud = (int)trim($matches[2]);
+
+            // Reemplazar variables en el texto
+            $textoResuelto = $this->reemplazarVariables($texto);
+
+            // Quitar comillas si las hay
+            $textoResuelto = trim($textoResuelto, '"\'');
+
+            // Retornar substring con comillas para mantener formato de string
+            return '"' . substr($textoResuelto, 0, $longitud) . '"';
         }, $formula);
+
+        // Procesar función SI(condicion, valor_si_verdadero, valor_si_falso)
+        // Usar expresión regular mejorada que maneja paréntesis anidados
+        $formula = $this->procesarFuncionSI($formula);
 
         // Procesar función ACREEDOR(FICHA, id_deduction)
         $formula = preg_replace_callback('/ACREEDOR\(([^,]+),([^)]+)\)/', function($matches) {
@@ -597,10 +604,100 @@ class PlanillaConceptCalculator
             return (string)$totalAcumulado;
         }, $formula);
 
-        // Procesar función XIII_MES_PROPORCIONAL_TRIMESTRAL
-        $formula = $this->procesarXIIIMesProporcionalTrimestral($formula);
+        return $formula;
+    }
+
+    /**
+     * Procesar función SI() con soporte para funciones anidadas
+     */
+    private function procesarFuncionSI(string $formula): string
+    {
+        // Buscar todas las ocurrencias de SI() y procesarlas de adentro hacia afuera
+        while (preg_match('/SI\(/', $formula)) {
+            $formula = preg_replace_callback('/SI\(([^()]*(?:\([^()]*\)[^()]*)*)\)/', function($matches) {
+                $contenido = $matches[1];
+
+                // Dividir por comas pero respetando paréntesis anidados
+                $parametros = $this->dividirParametrosSI($contenido);
+
+                if (count($parametros) !== 3) {
+                    error_log("ERROR: Función SI() requiere exactamente 3 parámetros, encontrados: " . count($parametros));
+                    return '0';
+                }
+
+                $condicion = trim($parametros[0]);
+                $valorVerdadero = trim($parametros[1]);
+                $valorFalso = trim($parametros[2]);
+
+                // Evaluar condición
+                $condicionResult = $this->evaluarCondicion($condicion);
+                $valorSeleccionado = $condicionResult ? $valorVerdadero : $valorFalso;
+
+                // Si el valor seleccionado es una expresión matemática, evaluarla
+                if (preg_match('/[0-9.]+\s*[\+\-\*\/]\s*[0-9.]+/', $valorSeleccionado)) {
+                    try {
+                        $resultado = eval("return $valorSeleccionado;");
+                        return (string)$resultado;
+                    } catch (Exception $e) {
+                        error_log("Error evaluando expresión en SI(): $valorSeleccionado - " . $e->getMessage());
+                        return $valorSeleccionado;
+                    }
+                }
+
+                return $valorSeleccionado;
+
+            }, $formula);
+        }
 
         return $formula;
+    }
+
+    /**
+     * Dividir parámetros de función SI() respetando paréntesis anidados
+     */
+    private function dividirParametrosSI(string $contenido): array
+    {
+        $parametros = [];
+        $parametroActual = '';
+        $nivelParentesis = 0;
+        $enComillas = false;
+        $caracterComilla = '';
+
+        for ($i = 0; $i < strlen($contenido); $i++) {
+            $char = $contenido[$i];
+
+            // Manejar comillas
+            if (($char === '"' || $char === "'") && !$enComillas) {
+                $enComillas = true;
+                $caracterComilla = $char;
+                $parametroActual .= $char;
+            } elseif ($char === $caracterComilla && $enComillas) {
+                $enComillas = false;
+                $caracterComilla = '';
+                $parametroActual .= $char;
+            } elseif ($enComillas) {
+                $parametroActual .= $char;
+            } elseif ($char === '(') {
+                $nivelParentesis++;
+                $parametroActual .= $char;
+            } elseif ($char === ')') {
+                $nivelParentesis--;
+                $parametroActual .= $char;
+            } elseif ($char === ',' && $nivelParentesis === 0) {
+                // Esta es una coma de separación de parámetros
+                $parametros[] = $parametroActual;
+                $parametroActual = '';
+            } else {
+                $parametroActual .= $char;
+            }
+        }
+
+        // Agregar el último parámetro
+        if ($parametroActual !== '') {
+            $parametros[] = $parametroActual;
+        }
+
+        return $parametros;
     }
 
     /**
@@ -610,23 +707,31 @@ class PlanillaConceptCalculator
     {
         // Reemplazar variables
         $condicion = $this->reemplazarVariables($condicion);
-        
-        // Evaluar condiciones básicas
+        // Evaluar comparaciones de strings (con comillas)
+        if (preg_match('/["\']([^"\']*)["\']\s*=\s*["\']([^"\']*)["\']/', $condicion, $matches)) {
+            
+            $valor1 = $matches[1];
+            $valor2 = $matches[2];
+            return $valor1 === $valor2;
+        }
+
+        // Evaluar condiciones numéricas básicas
         if (preg_match('/([0-9.]+)\s*([><=]+)\s*([0-9.]+)/', $condicion, $matches)) {
             $valor1 = (float)$matches[1];
             $operador = $matches[2];
             $valor2 = (float)$matches[3];
-            
+
             switch ($operador) {
                 case '>': return $valor1 > $valor2;
                 case '<': return $valor1 < $valor2;
                 case '>=': return $valor1 >= $valor2;
                 case '<=': return $valor1 <= $valor2;
                 case '==': return $valor1 == $valor2;
+                case '=': return $valor1 == $valor2; // Agregado = simple
                 default: return false;
             }
         }
-        
+
         return false;
     }
 
@@ -1727,215 +1832,5 @@ class PlanillaConceptCalculator
         $this->variablesColaborador['VACATION_ACCRUAL_RATE'] = $this->VACATION_ACCRUAL_RATE($employeeId);
         $this->variablesColaborador['VACATION_ELIGIBLE'] = $this->VACATION_ELIGIBLE($employeeId) ? 1 : 0;
         $this->variablesColaborador['VACATION_DAILY_SALARY'] = $this->VACATION_COMPENSATION_AMOUNT($employeeId, 1);
-    }
-
-    // ========================================
-    // FUNCIONES XIII MES PERÍODOS TRIMESTRALES
-    // ========================================
-
-    /**
-     * Obtiene las variables de fecha dinámicas para XIII mes trimestral
-     *
-     * @param int $empleadoId
-     * @return array
-     */
-    private function obtenerVariablesFechaXIIIMes(int $empleadoId): array
-    {
-        try {
-            // Obtener fecha de liquidación del empleado
-            $fechaLiquidacion = $this->obtenerFechaLiquidacionEmpleado($empleadoId);
-
-            if (!$fechaLiquidacion) {
-                // Fallback: usar fechas de planilla actual si no hay liquidación
-                return [
-                    'INICIO_PERIODO_XIII' => $this->fechasActuales['fecha_desde'] ?? date('Y-01-01'),
-                    'FIN_PERIODO_XIII' => $this->fechasActuales['fecha_hasta'] ?? date('Y-12-31'),
-                    'PERIODO_XIII_NUMERO' => 0,
-                    'PERIODO_XIII_ESTADO' => 'SIN_LIQUIDACION'
-                ];
-            }
-
-            // Obtener fechas del período trimestral correcto
-            $periodoInfo = $this->xiiiMesCalculator->determinarPeriodoTrimestral($fechaLiquidacion);
-
-            return [
-                'INICIO_PERIODO_XIII' => $periodoInfo['fecha_inicio'],
-                'FIN_PERIODO_XIII' => $periodoInfo['fecha_fin'],
-                'PERIODO_XIII_NUMERO' => $periodoInfo['periodo'],
-                'PERIODO_XIII_AÑO' => $periodoInfo['año'],
-                'PERIODO_XIII_ESTADO' => $periodoInfo['estado'],
-                'FECHA_LIQUIDACION' => $fechaLiquidacion
-            ];
-
-        } catch (Exception $e) {
-            error_log("Error obteniendo variables fecha XIII mes: " . $e->getMessage());
-
-            return [
-                'INICIO_PERIODO_XIII' => date('Y-01-01'),
-                'FIN_PERIODO_XIII' => date('Y-12-31'),
-                'PERIODO_XIII_NUMERO' => 0,
-                'PERIODO_XIII_ESTADO' => 'ERROR'
-            ];
-        }
-    }
-
-    /**
-     * Obtiene la fecha de liquidación de un empleado
-     *
-     * @param int $empleadoId
-     * @return string|null
-     */
-    private function obtenerFechaLiquidacionEmpleado(int $empleadoId): ?string
-    {
-        try {
-            // Buscar en employee_terminations
-            $stmt = $this->db->prepare("
-                SELECT termination_date
-                FROM employee_terminations
-                WHERE employee_id = ?
-                ORDER BY termination_date DESC
-                LIMIT 1
-            ");
-
-            $stmt->execute([$empleadoId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $result ? $result['termination_date'] : null;
-
-        } catch (Exception $e) {
-            error_log("Error obteniendo fecha liquidación empleado {$empleadoId}: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Obtiene la fecha de ingreso de un empleado
-     *
-     * @param int $empleadoId
-     * @return string
-     */
-    private function obtenerFechaIngresoEmpleado(int $empleadoId): string
-    {
-        try {
-            $stmt = $this->db->prepare("
-                SELECT fecha_ingreso
-                FROM employee
-                WHERE id = ?
-            ");
-
-            $stmt->execute([$empleadoId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $result['fecha_ingreso'] ?? date('Y-01-01');
-
-        } catch (Exception $e) {
-            error_log("Error obteniendo fecha ingreso empleado {$empleadoId}: " . $e->getMessage());
-            return date('Y-01-01');
-        }
-    }
-
-    /**
-     * Obtiene acumulados de conceptos en un período específico
-     *
-     * @param int $empleadoId
-     * @param string $conceptos
-     * @param string $fechaInicio
-     * @param string $fechaFin
-     * @return float
-     */
-    private function obtenerAcumuladosPeriodoTrimestral(
-        int $empleadoId,
-        string $conceptos,
-        string $fechaInicio,
-        string $fechaFin
-    ): float {
-        try {
-            $conceptosArray = array_map('trim', explode(',', str_replace(['"', "'"], '', $conceptos)));
-            $total = 0;
-
-            foreach ($conceptosArray as $concepto) {
-                if (empty($concepto)) continue;
-
-                $stmt = $this->db->prepare("
-                    SELECT COALESCE(SUM(pd.monto), 0) as total
-                    FROM planilla_detalle pd
-                    INNER JOIN planilla_cabecera pc ON pd.planilla_id = pc.id
-                    INNER JOIN concepto c ON pd.concepto_id = c.id
-                    WHERE pd.employee_id = ?
-                        AND c.concepto = ?
-                        AND pc.fecha_inicio >= ?
-                        AND pc.fecha_fin <= ?
-                        AND pc.estado = 'CERRADA'
-                        AND pd.tipo = 'A'
-                ");
-
-                $stmt->execute([$empleadoId, $concepto, $fechaInicio, $fechaFin]);
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                $total += (float)($result['total'] ?? 0);
-            }
-
-            return $total;
-
-        } catch (Exception $e) {
-            error_log("Error obteniendo acumulados período trimestral: " . $e->getMessage());
-            return 0;
-        }
-    }
-
-    /**
-     * Procesa la función XIII_MES_PROPORCIONAL_TRIMESTRAL en fórmulas
-     *
-     * @param string $formula
-     * @return string
-     */
-    private function procesarXIIIMesProporcionalTrimestral(string $formula): string
-    {
-        return preg_replace_callback(
-            '/XIII_MES_PROPORCIONAL_TRIMESTRAL\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/',
-            function($matches) {
-                $conceptos = trim($matches[1], '"\'');
-                $fichaVariable = trim($matches[2]);
-
-                // Obtener employee_id
-                $empleadoId = (int)$this->reemplazarVariables($fichaVariable);
-
-                if (!$empleadoId) {
-                    return '0';
-                }
-
-                // Obtener fecha de liquidación
-                $fechaLiquidacion = $this->obtenerFechaLiquidacionEmpleado($empleadoId);
-
-                if (!$fechaLiquidacion) {
-                    error_log("No se encontró fecha de liquidación para empleado {$empleadoId}");
-                    return '0';
-                }
-
-                // Obtener fechas del período correcto
-                $periodoInfo = $this->xiiiMesCalculator->determinarPeriodoTrimestral($fechaLiquidacion);
-
-                // Obtener acumulados del período
-                $acumulados = $this->obtenerAcumuladosPeriodoTrimestral(
-                    $empleadoId,
-                    $conceptos,
-                    $periodoInfo['fecha_inicio'],
-                    $periodoInfo['fecha_fin']
-                );
-
-                // Obtener fecha de ingreso
-                $fechaIngreso = $this->obtenerFechaIngresoEmpleado($empleadoId);
-
-                // Calcular XIII mes proporcional
-                $resultado = $this->xiiiMesCalculator->calcularXIIIMesProporcional(
-                    $fechaLiquidacion,
-                    $acumulados,
-                    $fechaIngreso
-                );
-
-                return (string)$resultado['xiii_mes_proporcional'];
-            },
-            $formula
-        );
     }
 }

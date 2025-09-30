@@ -1,0 +1,47 @@
+RESULTADOS FINALES FÓRMULA ISR - DEDUCCIÓN PERSONAL CORREGIDA - 2025-09-29 23:48:00
+BASE DE DATOS: planilla_innova29092025
+================================================================================
+
+CORRECCIÓN APLICADA:
+===================
+La deducción personal de B/.800 se aplica a empleados cuya clave de seguro social COMIENCE con 'E'
+
+EMPLEADOS BENEFICIADOS CON DEDUCCIÓN PERSONAL:
+==================================================
+EMP013 - ANTONIO J. JARAMILLO (Clave: E-02)
+  Salario Anual: B/.32,825.00
+  Deducción Personal: B/.800.00
+  ISR Quincenal Final: B/.121.30
+
+EMP012 - OSCAR RUIZ VALERO (Clave: E02)
+  Salario Anual: B/.27,950.00
+  Deducción Personal: B/.800.00
+  ISR Quincenal Final: B/.93.17
+
+EMP004 - ANTONIO RODARTE MENDEZ (Clave: E02)
+  Salario Anual: B/.20,150.00
+  Deducción Personal: B/.800.00
+  ISR Quincenal Final: B/.48.17
+
+EMP006 - DOMINGO PASTOR CORDOBA ACOSTA (Clave: E-03)
+  Salario Anual: B/.18,200.00
+  Deducción Personal: B/.800.00
+  ISR Quincenal Final: B/.36.92
+
+EMP014 - FRANCISCO PEREZ DELGADO (Clave: E-02)
+  Salario Anual: B/.17,953.00
+  Deducción Personal: B/.800.00
+  ISR Quincenal Final: B/.35.50
+
+
+RESUMEN FINAL:
+=============
+Total empleados: 14
+Empleados con deducción personal: 5
+Empleados con ISR: 10
+Total ISR quincenal: B/.542.76
+Ahorro total por deducción: B/.23.08
+
+FÓRMULA CORREGIDA:
+==================
+deduc_pers = SI(LEFT(CLAVE_SS, 1) = 'E', 800, 0)
