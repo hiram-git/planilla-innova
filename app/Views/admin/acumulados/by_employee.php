@@ -231,7 +231,7 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmp
                                             <td class="text-center">
                                                 <?= $availableMonths[$acumulado['mes']] ?? $acumulado['mes'] ?>
                                             </td>
-                                            <td><?= htmlspecialchars($acumulado['tipo_acumulado']) ?></td>
+                                            <td><?= htmlspecialchars($acumulado['tipo_acumulado'] ?? '') ?></td>
                                             <td>
                                                 <span class="badge <?= $acumulado['tipo_concepto'] === 'ASIGNACION' ? 'badge-success' : 'badge-danger' ?>">
                                                     <?= $acumulado['tipo_concepto'] ?>

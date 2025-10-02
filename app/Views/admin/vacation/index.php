@@ -218,7 +218,7 @@ $pageTitle = "Gestión de Vacaciones";
                                         <br><small class="text-muted">ID: <?= htmlspecialchars($employee['employee_id']) ?></small>
                                         <br><small class="text-muted">Cédula: <?= htmlspecialchars($employee['document_id']) ?></small>
                                     </td>
-                                    <td><?= htmlspecialchars($employee['position_name'] ?? 'Sin Asignar') ?></td>
+                                    <td><?= htmlspecialchars($employee['cargo_nombre'] ?? 'Sin Asignar') ?></td>
                                     <td>
                                         <?= date('d/m/Y', strtotime($employee['fecha_ingreso'])) ?>
                                         <br><small class="text-muted"><?= $employee['dias_trabajados'] ?> días</small>

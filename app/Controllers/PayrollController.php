@@ -699,7 +699,7 @@ class PayrollController extends Controller
         $html .= '<tr>';
         $html .= '<th>Código</th>';
         $html .= '<th>Nombre Completo</th>';
-        $html .= '<th>Posición</th>';
+        $html .= '<th>Cargo</th>';
         $html .= '<th>Salario Base</th>';
         $html .= '<th>Horas Trabajadas</th>';
         $html .= '<th>Total Ingresos</th>';
@@ -1706,22 +1706,32 @@ class PayrollController extends Controller
             $search = $_GET['search']['value'] ?? '';
             $order = $_GET['order'] ?? [];
 
-            // Construir query base - corregir nombre de columna
+            // Obtener configuración de empresa para determinar qué cargo mostrar
+            $companyModel = $this->model('Company');
+            $isEmpresaConPosiciones = $companyModel->isEmpresaConPosiciones();
+
+            // Determinar qué campo de cargo usar según configuración
+            $cargoField = $isEmpresaConPosiciones
+                ? "COALESCE(pos.codigo, 'Sin posición')"
+                : "COALESCE(c.nombre, 'Sin cargo')";
+
+            // Construir query base con cargo según configuración
             $baseQuery = "FROM (
-                SELECT 
+                SELECT
                     e.id as employee_id,
                     CONCAT(e.firstname, ' ', e.lastname) as employee_name,
                     e.employee_id as employee_code,
-                    COALESCE(pos.codigo, 'Sin posición') as position_name,
+                    {$cargoField} as position_name,
                     SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) as total_ingresos,
                     SUM(CASE WHEN pd.tipo != 'A' THEN pd.monto ELSE 0 END) as total_deducciones,
-                    (SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) - 
+                    (SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) -
                      SUM(CASE WHEN pd.tipo != 'A' THEN pd.monto ELSE 0 END)) as salario_neto
                 FROM planilla_detalle pd
                 INNER JOIN employees e ON pd.employee_id = e.id
                 LEFT JOIN posiciones pos ON e.position_id = pos.id
+                LEFT JOIN cargos c ON e.cargo_id = c.id
                 WHERE pd.planilla_cabecera_id = ?
-                GROUP BY e.id, e.firstname, e.lastname, e.employee_id, pos.codigo
+                GROUP BY e.id, e.firstname, e.lastname, e.employee_id, pos.codigo, c.nombre
             ) t";
 
             $params = [$id];
@@ -1790,7 +1800,7 @@ class PayrollController extends Controller
             foreach ($employees as $employee) {
                 $data[] = [
                     0 => $employee['employee_name'],
-                    1 => $employee['position_name'] ?: 'Sin posición',
+                    1 => $employee['position_name'] ?: ($isEmpresaConPosiciones ? 'Sin posición' : 'Sin cargo'),
                     2 => currency_symbol() . number_format($employee['total_ingresos'], 2),
                     3 => currency_symbol() . number_format($employee['total_deducciones'], 2),
                     4 => currency_symbol() . number_format($employee['salario_neto'], 2),

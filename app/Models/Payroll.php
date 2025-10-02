@@ -387,7 +387,16 @@ class Payroll extends Model
     public function getPayrollDetails($payrollId)
     {
         try {
-            $sql = "SELECT 
+            // Obtener configuración de empresa para determinar qué cargo mostrar
+            $companyModel = new \App\Models\Company();
+            $isEmpresaConPosiciones = $companyModel->isEmpresaConPosiciones();
+
+            // Determinar qué campo de cargo usar según configuración
+            $cargoField = $isEmpresaConPosiciones
+                ? "COALESCE(pos.codigo, pos.codigo, 'Sin posición')"
+                : "COALESCE(c.nombre, 'Sin cargo')";
+
+            $sql = "SELECT
                         pd.employee_id,
                         pd.id,
                         CONCAT(pd.firstname, ' ', pd.lastname) as nombre_completo,
@@ -410,16 +419,18 @@ class Payroll extends Model
                         (SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) - SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END)) as salario_neto,
                         -- Calcular horas trabajadas estimadas (8 horas por defecto)
                         8.0 as horas_trabajadas,
-                        -- Nombre de la posición
-                        CONCAT(p.description, ' - Posición') as posicion
-                    FROM planilla_detalle pd 
+                        -- Cargo según configuración de empresa
+                        {$cargoField} as posicion
+                    FROM planilla_detalle pd
                     LEFT JOIN employees e ON e.id = pd.employee_id
                     LEFT JOIN position p ON p.id = pd.position_id
-                    WHERE pd.planilla_cabecera_id = :payroll_id 
-                    GROUP BY pd.employee_id, pd.firstname, pd.lastname, pd.position_id, 
-                             e.employee_id, p.description, p.rate
+                    LEFT JOIN posiciones pos ON pos.id = e.position_id
+                    LEFT JOIN cargos c ON c.id = e.cargo_id
+                    WHERE pd.planilla_cabecera_id = :payroll_id
+                    GROUP BY pd.employee_id, pd.firstname, pd.lastname, pd.position_id,
+                             e.employee_id, p.description, p.rate, pos.codigo, c.nombre
                     ORDER BY pd.firstname, pd.lastname";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':payroll_id' => $payrollId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);

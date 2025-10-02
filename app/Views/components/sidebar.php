@@ -22,16 +22,16 @@ class SidebarComponent
     }
     
     /**
-     * Verificar si es una institución pública
+     * Verificar si es una empresa con posiciones
      */
-    private function isPublicInstitution() 
+    private function isPublicInstitution()
     {
         try {
             $companyModel = new \App\Models\Company();
-            return $companyModel->isEmpresaPublica();
+            return $companyModel->isEmpresaConPosiciones();
         } catch (\Exception $e) {
             error_log("Error checking company type in sidebar: " . $e->getMessage());
-            return false; // Default to private (don't show structures)
+            return false; // Default to empresa sin posiciones
         }
     }
     

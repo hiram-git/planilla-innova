@@ -68,7 +68,7 @@ class Employee extends Model
         // Obtener tipo de empresa para validación condicional
         $companyModel = new \App\Models\Company();
         $companyConfig = $companyModel->getCompanyConfig();
-        $isPublicInstitution = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
+        $isEmpresaConPosiciones = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
         
         $rules = [
             'firstname' => 'required|min:2|max:50',
@@ -84,7 +84,7 @@ class Employee extends Model
         ];
         
         // Validación condicional según tipo de empresa
-        if ($isPublicInstitution) {
+        if ($isEmpresaConPosiciones) {
             // Institución pública: posición obligatoria
             $rules['position'] = 'required';
         } else {
@@ -115,7 +115,7 @@ class Employee extends Model
         // Obtener tipo de empresa para validación condicional
         $companyModel = new \App\Models\Company();
         $companyConfig = $companyModel->getCompanyConfig();
-        $isPublicInstitution = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
+        $isEmpresaConPosiciones = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
         
         $rules = [
             'edit_firstname' => 'required|min:2|max:50',
@@ -131,7 +131,7 @@ class Employee extends Model
         ];
         
         // Validación condicional según tipo de empresa
-        if ($isPublicInstitution) {
+        if ($isEmpresaConPosiciones) {
             // Institución pública: posición obligatoria
             $rules['edit_position'] = 'required';
         } else {
@@ -264,6 +264,23 @@ class Employee extends Model
             return $this->db->findAll($sql);
         } catch (\Exception $e) {
             error_log("Error getting employee options: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener empleados filtrados por tipo de planilla
+     *
+     * @param int $tipoPlanillaId ID del tipo de planilla
+     * @return array
+     */
+    public function getEmployeesByTipoPlanilla($tipoPlanillaId)
+    {
+        try {
+            $sql = "SELECT * FROM employees WHERE tipo_planilla_id = ? ORDER BY firstname, lastname";
+            return $this->db->findAll($sql, [$tipoPlanillaId]);
+        } catch (\Exception $e) {
+            error_log("Error getting employees by tipo planilla: " . $e->getMessage());
             return [];
         }
     }

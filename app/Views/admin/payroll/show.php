@@ -163,9 +163,55 @@ switch ($payroll['estado']) {
                     <i class="fas fa-users"></i> Empleados en la Planilla
                 </h3>
                 <div class="card-tools">
-                    <button type="button" class="btn btn-success btn-sm" onclick="refreshEmployeesTable()">
-                        <i class="fas fa-sync-alt"></i> Actualizar
-                    </button>
+                    <div class="btn-group" role="group">
+                        <?php if ($payroll['estado'] === 'PROCESADA' || $payroll['estado'] === 'CERRADA'): ?>
+                            <!-- Botones de reportes -->
+                            <a href="<?= \App\Core\UrlHelper::url('/panel/reports/planilla-pdf/' . $payroll['id']) ?>"
+                               class="btn btn-danger btn-sm"
+                               target="_blank"
+                               data-toggle="tooltip"
+                               data-placement="top"
+                               title="Generar PDF de Planilla">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                            <a href="<?= \App\Core\UrlHelper::url('/panel/reports/planilla-excel-panama/' . $payroll['id']) ?>"
+                               class="btn btn-info btn-sm"
+                               target="_blank"
+                               data-toggle="tooltip"
+                               data-placement="top"
+                               title="Excel Panamá (4 Hojas)">
+                                <i class="fas fa-file-excel"></i>
+                            </a>
+                            <a href="<?= \App\Core\UrlHelper::url('/panel/reports/comprobantes-planilla/' . $payroll['id']) ?>"
+                               class="btn btn-success btn-sm"
+                               target="_blank"
+                               data-toggle="tooltip"
+                               data-placement="top"
+                               title="Comprobantes de Pago">
+                                <i class="fas fa-receipt"></i>
+                            </a>
+                            <a href="<?= \App\Core\UrlHelper::url('/panel/reports/reporte-acreedores/' . $payroll['id']) ?>"
+                               class="btn btn-warning btn-sm"
+                               target="_blank"
+                               data-toggle="tooltip"
+                               data-placement="top"
+                               title="Reporte de Acreedores">
+                                <i class="fas fa-building"></i>
+                            </a>
+                            <a href="<?= \App\Core\UrlHelper::url('/panel/reports/informe03/' . $payroll['id']) ?>"
+                               class="btn btn-secondary btn-sm"
+                               target="_blank"
+                               data-toggle="tooltip"
+                               data-placement="top"
+                               title="Informe 03 - Reporte Gubernamental">
+                                <i class="fas fa-file-contract"></i>
+                            </a>
+                        <?php endif; ?>
+                        <!-- Botón actualizar -->
+                        <button type="button" class="btn btn-primary btn-sm" onclick="refreshEmployeesTable()">
+                            <i class="fas fa-sync-alt"></i> Actualizar
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -174,7 +220,7 @@ switch ($payroll['estado']) {
                         <thead>
                             <tr>
                                 <th>Empleado</th>
-                                <th>Posición</th>
+                                <th>Cargo</th>
                                 <th>Ingresos</th>
                                 <th>Deducciones</th>
                                 <th>Neto</th>
@@ -319,11 +365,11 @@ $(document).ready(function() {
                     return row[0] || row.employee_name || "N/A";
                 }
             },
-            { 
-                "title": "Posición", 
+            {
+                "title": "Cargo",
                 "data": null,
                 "render": function(data, type, row) {
-                    return row[1] || row.position_name || "Sin posición";
+                    return row[1] || row.cargo_name || "Sin cargo";
                 }
             },
             { 

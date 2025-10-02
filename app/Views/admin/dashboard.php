@@ -15,12 +15,60 @@ $content = '
     </div>
 </div>
 
+<!-- Tabs para Dashboard Principal y Acumulados -->
 <div class="row">
+    <div class="col-12">
+        <div class="card card-primary card-tabs">
+            <div class="card-header p-0 pt-1">
+                <ul class="nav nav-tabs" id="dashboard-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="dashboard-tab" data-toggle="pill" href="#dashboard-principal" role="tab" aria-controls="dashboard-principal" aria-selected="true">
+                            <i class="fas fa-tachometer-alt mr-1"></i> Dashboard Principal
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="acumulados-tab" data-toggle="pill" href="#dashboard-acumulados" role="tab" aria-controls="dashboard-acumulados" aria-selected="false">
+                            <i class="fas fa-piggy-bank mr-1"></i> Acumulados
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="dashboard-tabContent">
+                    <!-- Tab Dashboard Principal -->
+                    <div class="tab-pane fade show active" id="dashboard-principal" role="tabpanel" aria-labelledby="dashboard-tab">';
+
+// Indicador de filtro activo
+$filtroActivo = $tipo_seleccionado ? ' <span class="badge badge-warning"><i class="fas fa-filter"></i> Filtrado</span>' : '';
+
+// Debug visible para el usuario
+if ($tipo_seleccionado) {
+    $tipoNombre = '';
+    foreach ($tipos_planilla as $t) {
+        if ($t['id'] == $tipo_seleccionado) {
+            $tipoNombre = $t['descripcion'];
+            break;
+        }
+    }
+    $content .= '<div class="row">
+        <div class="col-12">
+            <div class="alert alert-info alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <h5><i class="icon fas fa-filter"></i> Filtro Activo</h5>
+                Mostrando datos únicamente para: <strong>' . htmlspecialchars($tipoNombre) . '</strong> (ID: ' . $tipo_seleccionado . ')
+                <br><small>Total empleados en este tipo: ' . $total_employees . '</small>
+            </div>
+        </div>
+    </div>';
+}
+
+$content .= '<div class="row">
+    <!-- 1. Total Empleados -->
     <div class="col-lg-3 col-6">
         <div class="small-box bg-info">
             <div class="inner">
                 <h3>' . $total_employees . '</h3>
-                <p>Total Empleados</p>
+                <p>Total Empleados' . $filtroActivo . '</p>
             </div>
             <div class="icon">
                 <i class="fas fa-users"></i>
@@ -30,27 +78,13 @@ $content = '
             </a>
         </div>
     </div>
-    
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-success">
-            <div class="inner">
-                <h3>' . $employees_present . '/' . $total_employees . '</h3>
-                <p>Presentes Hoy</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-user-check"></i>
-            </div>
-            <div class="small-box-footer">
-                <strong>' . $attendance_percentage . '%</strong> de asistencia hoy
-            </div>
-        </div>
-    </div>
-    
+
+    <!-- 2. Colaboradores Activos -->
     <div class="col-lg-3 col-6">
         <div class="small-box bg-primary">
             <div class="inner">
                 <h3>' . $active_employees . '</h3>
-                <p>Colaboradores Activos</p>
+                <p>Colaboradores Activos' . $filtroActivo . '</p>
             </div>
             <div class="icon">
                 <i class="fas fa-user-plus"></i>
@@ -60,18 +94,35 @@ $content = '
             </div>
         </div>
     </div>
-    
+
+    <!-- 3. Puntualidad Mensual -->
     <div class="col-lg-3 col-6">
         <div class="small-box bg-gradient-success">
             <div class="inner">
                 <h3>' . $monthly_punctuality . '%</h3>
-                <p>Puntualidad Mensual</p>
+                <p>Puntualidad Mensual' . $filtroActivo . '</p>
             </div>
             <div class="icon">
                 <i class="fas fa-star"></i>
             </div>
             <div class="small-box-footer">
                 ' . date('F Y') . '
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Presentes Hoy -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>' . $employees_present . '/' . $total_employees . '</h3>
+                <p>Presentes Hoy' . $filtroActivo . '</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="small-box-footer">
+                <strong>' . $attendance_percentage . '%</strong> de asistencia hoy
             </div>
         </div>
     </div>
@@ -325,12 +376,164 @@ $content .= '
             </div>
         </div>
     </div>
+</div>
+                    </div>
+                    <!-- Fin Tab Dashboard Principal -->
+
+                    <!-- Tab Dashboard Acumulados -->
+                    <div class="tab-pane fade" id="dashboard-acumulados" role="tabpanel" aria-labelledby="acumulados-tab">
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Resumen por Tipos de Acumulados - Año ' . ($acumulados_data['year'] ?? date('Y')) . '</h5>
+                            </div>
+                        </div>
+
+                        <div class="row">';
+
+// Mostrar tipos de acumulados
+if (!empty($acumulados_data['tipos_acumulados'])) {
+    $colors = ['info', 'success', 'warning', 'danger', 'primary', 'secondary'];
+    $index = 0;
+    foreach ($acumulados_data['tipos_acumulados'] as $tipo) {
+        $color = $colors[$index % count($colors)];
+        $index++;
+
+        $content .= '
+                            <div class="col-md-4 mb-3">
+                                <div class="small-box bg-' . $color . '">
+                                    <div class="inner">
+                                        <h3>' . currency_symbol() . number_format($tipo['total_acumulado'] ?? 0, 2) . '</h3>
+                                        <p>' . htmlspecialchars($tipo['descripcion'] ?? 'N/A') . '</p>
+                                        <small class="d-block">
+                                            <i class="fas fa-users"></i> ' . ($tipo['total_empleados'] ?? 0) . ' empleados |
+                                            <i class="fas fa-list"></i> ' . ($tipo['total_conceptos_incluidos'] ?? 0) . ' conceptos
+                                        </small>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-piggy-bank"></i>
+                                    </div>
+                                    <div class="small-box-footer">
+                                        <a href="' . \App\Core\UrlHelper::route('panel/acumulados/by-type/' . ($tipo['id'] ?? 0)) . '" class="text-white">
+                                            <i class="fas fa-eye"></i> Ver Detalles
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>';
+    }
+} else {
+    $content .= '
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    No hay acumulados registrados para el año actual.
+                                </div>
+                            </div>';
+}
+
+$content .= '
+                        </div>
+
+                        <!-- Información adicional de acumulados -->
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-info-circle"></i> Información de Acumulados
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6><i class="fas fa-check-circle text-success"></i> Tipos Activos</h6>
+                                                <ul>';
+
+if (!empty($acumulados_data['tipos_acumulados'])) {
+    foreach ($acumulados_data['tipos_acumulados'] as $tipo) {
+        $content .= '<li>' . htmlspecialchars($tipo['descripcion'] ?? 'N/A') . '</li>';
+    }
+} else {
+    $content .= '<li>No hay tipos de acumulados configurados</li>';
+}
+
+$content .= '
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6><i class="fas fa-calendar-alt"></i> Procesamiento</h6>
+                                                <p>Los acumulados se calculan automáticamente al cerrar las planillas.</p>
+                                                <p><strong>Año actual:</strong> ' . ($acumulados_data['year'] ?? date('Y')) . '</p>
+                                                <p><strong>Total empleados con acumulados:</strong> ' . count($acumulados_data['empleados_acumulados'] ?? []) . '</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-link"></i> Accesos Rápidos
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <a href="' . \App\Core\UrlHelper::route('panel/acumulados') . '" class="btn btn-primary btn-sm mb-2">
+                                                <i class="fas fa-piggy-bank"></i> Ver Todos los Acumulados
+                                            </a>
+                                            <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byEmployee') . '" class="btn btn-info btn-sm mb-2">
+                                                <i class="fas fa-user"></i> Acumulados por Empleado
+                                            </a>
+                                            <a href="' . \App\Core\UrlHelper::route('panel/reports/acumulados-general-pdf') . '" class="btn btn-danger btn-sm mb-2">
+                                                <i class="fas fa-file-pdf"></i> Reporte General PDF
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Fin Tab Acumulados -->
+                </div>
+            </div>
+        </div>
+    </div>
 </div>';
 
 $scripts = '
 <script src="' . url('plugins/chart.js/Chart.min.js', false) . '"></script>
 <script>
 $(document).ready(function() {
+    // Initialize dashboard filter from sessionStorage (like payrolls)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTipoPlanilla = urlParams.get("tipo_planilla");
+    const selectedPayrollType = sessionStorage.getItem("selectedPayrollType");
+
+    // If there\'s a selected type in sessionStorage but not in URL, reload with filter
+    if (selectedPayrollType && !urlTipoPlanilla) {
+        try {
+            const payrollTypeData = JSON.parse(selectedPayrollType);
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set("tipo_planilla", payrollTypeData.id);
+            console.log("Dashboard: Aplicando filtro desde sessionStorage:", payrollTypeData);
+            window.location.href = currentUrl.toString();
+            return; // Stop execution, will reload
+        } catch (e) {
+            console.error("Error parsing selectedPayrollType:", e);
+        }
+    }
+
+    // Listen for payroll type changes from navbar
+    window.addEventListener("payrollTypeChanged", function(event) {
+        const payrollTypeData = event.detail;
+        console.log("Dashboard: Tipo de planilla cambiado:", payrollTypeData);
+
+        // Reload dashboard with new filter
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set("tipo_planilla", payrollTypeData.id);
+        window.location.href = currentUrl.toString();
+    });
+
     // Configurar gráfica de asistencia
     var attendanceData = ' . json_encode($attendance_chart_data) . ';
     
@@ -454,6 +657,11 @@ $(document).ready(function() {
 
 $styles = '
 <style>
+/* Alinear tabs a la derecha */
+.nav-tabs {
+    justify-content: flex-end;
+}
+
 .small-box .icon {
     top: 10px;
 }

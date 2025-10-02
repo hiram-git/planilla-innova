@@ -1,0 +1,12 @@
+-- Actualización del concepto ISR con fórmula corregida
+-- Base de datos: planilla_innova29092025
+-- Concepto ID: 4
+
+UPDATE concepto
+SET formula = 'salario_anual = SALARIO*13; gr_anual = GASTOS_REPRESENTACION*13; deduc_pers = SI(LEFT(CLAVE_SS, 1) = "E", 800, 0); neto_gravable = salario_anual - deduc_pers; saldo_gravable = SI(neto_gravable > 11000, neto_gravable - 11000, 0); isr_anual = saldo_gravable * 0.15; isr_mensual = isr_anual/13; isr_quincenal = isr_mensual/2; saldo_excedente = SI(salario_anual > 50000, salario_anual - 50000, 0); excedente_gravable = SI(saldo_excedente > 0, saldo_excedente * 0.25, 0); exceso_adicional = SI(excedente_gravable > 0, excedente_gravable + 5850, 0); exceso_anual = SI(exceso_adicional > 0, exceso_adicional/13, 0); exceso_quincenal = SI(exceso_anual > 0, exceso_anual/2, 0); monto = SI(exceso_quincenal > 0, exceso_quincenal, isr_quincenal); RETURN monto'
+WHERE id = 4;
+
+-- Verificar la actualización
+SELECT id, concepto, descripcion, LEFT(formula, 100) as formula_inicio
+FROM concepto
+WHERE id = 4;

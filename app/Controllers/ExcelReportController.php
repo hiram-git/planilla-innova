@@ -1121,6 +1121,322 @@ class ExcelReportController extends Controller
     }
 
     /**
+     * Generar Informe 03 - Reporte gubernamental de planillas
+     */
+    public function generateInforme03($payrollId = null)
+    {
+        try {
+            $this->requireAuth();
+
+            // Si no se especifica planilla, mostrar selector
+            if (!$payrollId) {
+                $this->showPayrollSelector('informe03');
+                return;
+            }
+
+            // Obtener datos de la planilla
+            $planillaData = $this->getPayrollReportData($payrollId);
+
+            if (!$planillaData) {
+                error_log("ExcelReportController: Planilla no encontrada para Informe 03, ID: $payrollId");
+                $_SESSION['error'] = 'Planilla no encontrada';
+                $this->redirect('/panel/reports');
+                return;
+            }
+
+            error_log("ExcelReportController: Generando Informe 03 para planilla " . $planillaData['payroll']['id']);
+
+            // Obtener información de la empresa
+            $companyInfo = $this->getCompanyInfo();
+
+            // Generar Informe 03
+            $this->generateInforme03Excel($planillaData, $companyInfo);
+
+        } catch (\Exception $e) {
+            error_log('Error generando Informe 03: ' . $e->getMessage());
+            $_SESSION['error'] = 'Error al generar el Informe 03: ' . $e->getMessage();
+            $this->redirect('/panel/reports');
+        }
+    }
+
+    /**
+     * Generar el archivo Excel del Informe 03
+     */
+    private function generateInforme03Excel($planillaData, $companyInfo)
+    {
+        $payroll = $planillaData['payroll'];
+        $employees = $planillaData['employees'] ?? [];
+
+        // Crear nueva instancia de Spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Configurar propiedades del documento
+        $spreadsheet->getProperties()
+            ->setCreator('Sistema de Planillas MVC')
+            ->setTitle('INFORME 03 - ' . $payroll['descripcion'])
+            ->setSubject('Informe 03 Gubernamental')
+            ->setDescription('Informe 03 generado por Sistema MVC')
+            ->setKeywords('informe 03 planilla panama gobierno')
+            ->setCategory('Reportes Gubernamentales');
+
+        // Configurar el worksheet
+        $sheet->setTitle('Informe 03');
+
+        // Generar contenido del Informe 03
+        $this->buildInforme03Content($sheet, $payroll, $employees, $companyInfo);
+
+        // Nombre del archivo
+        $periodo = date('Ym', strtotime($payroll['fecha_inicio']));
+        $filename = 'Informe03_' . $periodo . '_Planilla_' . $payroll['id'] . '_' . date('Y-m-d') . '.xlsx';
+
+        // Limpiar buffer de salida
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Configurar headers para descarga
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Expires: 0');
+
+        // Crear writer y generar archivo
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * Construir contenido del Informe 03
+     */
+    private function buildInforme03Content($sheet, $payroll, $employees, $companyInfo)
+    {
+        $row = 1;
+
+        // Header del informe
+        $sheet->setCellValue('A' . $row, 'INFORME 03v5 - FORMATO A DILIGENCIAR Versión vigente del 2022 en adelante.');
+        $sheet->mergeCells('A' . $row . ':AG' . $row);
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+        ]);
+        $row++;
+
+        // Instrucciones
+        $sheet->setCellValue('A' . $row, 'Esta sección de encabezado no se debe modificar.');
+        $sheet->mergeCells('A' . $row . ':AG' . $row);
+        $row++;
+
+        $sheet->setCellValue('A' . $row, 'Los datos de este informe deben ser registrados a partir de la línea 5 en adelante.');
+        $sheet->mergeCells('A' . $row . ':AG' . $row);
+        $row++;
+
+        // Headers de columnas (fila 4)
+        $headers = [
+            'A' => 'ID_PLANILLA',
+            'B' => 'PERIODO',
+            'C' => 'TIPO',
+            'D' => 'NUMERO_DOCUMENTO',
+            'E' => 'DV',
+            'F' => 'NOMBRE_EMPLEADO',
+            'G' => 'SALARIO',
+            'H' => 'SUELDO',
+            'I' => 'HORAS_EXTRAS',
+            'J' => 'VACACIONES',
+            'K' => 'COMISIONES',
+            'L' => 'BONIFICACIONES',
+            'M' => 'SALARIO_ESPECIE',
+            'N' => 'DIETA',
+            'O' => 'PRIMA_PRODUCCION',
+            'P' => 'DTM',
+            'Q' => 'GRATIFICACION_AGUINALDOS',
+            'R' => 'GASTO_REPRESENTACION',
+            'S' => 'DEDUCCION_CONJUNTA',
+            'T' => 'INTERESES_HIPOTECARIOS',
+            'U' => 'INTERESES_EDUCATIVOS',
+            'V' => 'PRIMAS_SEGURO',
+            'W' => 'APORTE_FONDO_DE_JUBILACION',
+            'X' => 'TOTAL_DE_DEDUCCIONES',
+            'Y' => 'RENTA_NETA_GRAVABLE',
+            'Z' => 'IMPUESTO_RENTA',
+            'AA' => 'IMP_RENTA_REPRESENTACION',
+            'AB' => 'RETENCIONES_SALARIO',
+            'AC' => 'RETENCIONES_GR',
+            'AD' => 'LIQUI_T_LABORAL',
+            'AE' => 'ISR_LIQUI_T_LABORAL',
+            'AF' => 'A_FAVOR_DEL_FISCO',
+            'AG' => 'A_FAVOR_DEL_EMPLEADO'
+        ];
+
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col . $row, $header);
+            $sheet->getStyle($col . $row)->applyFromArray([
+                'font' => ['bold' => true, 'size' => 10],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ]);
+        }
+        $row++;
+
+        // Datos de empleados
+        $periodo = date('Ym', strtotime($payroll['fecha_inicio']));
+
+        foreach ($employees as $emp) {
+            $data = $this->prepareInforme03Data($emp, $payroll, $periodo);
+
+            // Llenar fila de datos
+            $sheet->setCellValue('A' . $row, $data['id_planilla']);
+            $sheet->setCellValue('B' . $row, $data['periodo']);
+            $sheet->setCellValue('C' . $row, $data['tipo']);
+            $sheet->setCellValue('D' . $row, $data['numero_documento']);
+            $sheet->setCellValue('E' . $row, $data['dv']);
+            $sheet->setCellValue('F' . $row, $data['nombre_empleado']);
+            $sheet->setCellValue('G' . $row, $data['salario']);
+            $sheet->setCellValue('H' . $row, $data['sueldo']);
+            $sheet->setCellValue('I' . $row, $data['horas_extras']);
+            $sheet->setCellValue('J' . $row, $data['vacaciones']);
+            $sheet->setCellValue('K' . $row, $data['comisiones']);
+            $sheet->setCellValue('L' . $row, $data['bonificaciones']);
+            $sheet->setCellValue('M' . $row, $data['salario_especie']);
+            $sheet->setCellValue('N' . $row, $data['dieta']);
+            $sheet->setCellValue('O' . $row, $data['prima_produccion']);
+            $sheet->setCellValue('P' . $row, $data['dtm']);
+            $sheet->setCellValue('Q' . $row, $data['gratificacion_aguinaldos']);
+            $sheet->setCellValue('R' . $row, $data['gasto_representacion']);
+            $sheet->setCellValue('S' . $row, $data['deduccion_conjunta']);
+            $sheet->setCellValue('T' . $row, $data['intereses_hipotecarios']);
+            $sheet->setCellValue('U' . $row, $data['intereses_educativos']);
+            $sheet->setCellValue('V' . $row, $data['primas_seguro']);
+            $sheet->setCellValue('W' . $row, $data['aporte_fondo_jubilacion']);
+
+            // Fórmulas calculadas
+            $sheet->setCellValue('X' . $row, "=S{$row}+T{$row}+U{$row}+V{$row}+W{$row}"); // TOTAL_DE_DEDUCCIONES
+            $sheet->setCellValue('Y' . $row, "=H{$row}+I{$row}+J{$row}+K{$row}+L{$row}+M{$row}+N{$row}+O{$row}+P{$row}+Q{$row}-X{$row}"); // RENTA_NETA_GRAVABLE
+            $sheet->setCellValue('Z' . $row, $data['impuesto_renta']);
+            $sheet->setCellValue('AA' . $row, $data['imp_renta_representacion']);
+            $sheet->setCellValue('AB' . $row, $data['retenciones_salario']);
+            $sheet->setCellValue('AC' . $row, $data['retenciones_gr']);
+            $sheet->setCellValue('AD' . $row, $data['liqui_t_laboral']);
+            $sheet->setCellValue('AE' . $row, $data['isr_liqui_t_laboral']);
+            $sheet->setCellValue('AF' . $row, "=IF(Z{$row}-AB{$row}>=0,Z{$row}-AB{$row},0)"); // A_FAVOR_DEL_FISCO
+            $sheet->setCellValue('AG' . $row, "=IF(Z{$row}-AB{$row}<0,AB{$row}-Z{$row},0)"); // A_FAVOR_DEL_EMPLEADO
+
+            // Aplicar bordes y formato numérico
+            $sheet->getStyle('A' . $row . ':AG' . $row)->applyFromArray([
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ]);
+
+            // Formato numérico para columnas monetarias
+            $monetaryColumns = ['G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
+            foreach ($monetaryColumns as $col) {
+                $sheet->getStyle($col . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            }
+
+            $row++;
+        }
+
+        // Ajustar anchos de columnas
+        foreach (range('A', 'AG') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Congelar paneles en headers
+        $sheet->freezePane('A5');
+    }
+
+    /**
+     * Preparar datos de empleado para Informe 03
+     */
+    private function prepareInforme03Data($employee, $payroll, $periodo)
+    {
+        // Extraer número de cédula y dígito verificador
+        $cedula = $employee['document_id'] ?? '';
+        $cedulaParts = explode('-', $cedula);
+        $numeroCedula = $cedulaParts[0] ?? $cedula;
+        $dv = end($cedulaParts) ?? ''; // Último elemento como DV
+
+        return [
+            'id_planilla' => $payroll['id'],
+            'periodo' => $periodo,
+            'tipo' => 1, // Tipo 1 = Empleado
+            'numero_documento' => $numeroCedula,
+            'dv' => $dv,
+            'nombre_empleado' => strtoupper(trim(($employee['firstname'] ?? '') . ' ' . ($employee['lastname'] ?? ''))),
+            'salario' => $this->getConceptAmount($employee, 'SALARIO') ?: $employee['salary'] ?? 0,
+            'sueldo' => $this->getConceptAmount($employee, 'SUELDO') ?: $employee['salary'] ?? 0,
+            'horas_extras' => $this->getConceptAmount($employee, 'HORAS_EXTRAS'),
+            'vacaciones' => $this->getConceptAmount($employee, 'VACACIONES'),
+            'comisiones' => $this->getConceptAmount($employee, 'COMISIONES'),
+            'bonificaciones' => $this->getConceptAmount($employee, 'BONIFICACION'),
+            'salario_especie' => $this->getConceptAmount($employee, 'SALARIO_ESPECIE'),
+            'dieta' => $this->getConceptAmount($employee, 'DIETA'),
+            'prima_produccion' => $this->getConceptAmount($employee, 'PRIMA_PRODUCCION'),
+            'dtm' => $this->getConceptAmount($employee, 'DTM'), // Décimo Tercer Mes
+            'gratificacion_aguinaldos' => $this->getConceptAmount($employee, 'XIII_MES'),
+            'gasto_representacion' => $this->getConceptAmount($employee, 'GASTO_REPRESENTACION'),
+            'deduccion_conjunta' => $this->getConceptAmount($employee, 'DEDUCCION_CONJUNTA', 'deduccion'),
+            'intereses_hipotecarios' => $this->getConceptAmount($employee, 'INTERESES_HIPOTECARIOS', 'deduccion'),
+            'intereses_educativos' => $this->getConceptAmount($employee, 'INTERESES_EDUCATIVOS', 'deduccion'),
+            'primas_seguro' => $this->getConceptAmount($employee, 'PRIMAS_SEGURO', 'deduccion'),
+            'aporte_fondo_jubilacion' => $this->getConceptAmount($employee, 'APORTE_JUBILACION', 'deduccion'),
+            'impuesto_renta' => $employee['totals']['impuesto_renta'] ?? 0,
+            'imp_renta_representacion' => $this->getConceptAmount($employee, 'ISR_GASTO_REP', 'deduccion'),
+            'retenciones_salario' => $employee['totals']['impuesto_renta'] ?? 0,
+            'retenciones_gr' => $this->getConceptAmount($employee, 'ISR_GASTO_REP', 'deduccion'),
+            'liqui_t_laboral' => 0, // No aplica para planillas regulares
+            'isr_liqui_t_laboral' => 0 // No aplica para planillas regulares
+        ];
+    }
+
+    /**
+     * Mostrar selector de planillas para reportes específicos
+     */
+    private function showPayrollSelector($reportType)
+    {
+        try {
+            $reportModel = $this->model('Report');
+            $db = $reportModel->getDatabase();
+            $connection = $db->getConnection();
+
+            // Obtener planillas disponibles
+            $sql = "SELECT p.id, p.descripcion, p.fecha_desde, p.fecha_hasta,
+                           tp.descripcion as tipo_descripcion,
+                           CASE p.estado
+                               WHEN 'PENDIENTE' THEN 'Pendiente'
+                               WHEN 'PROCESANDO' THEN 'Procesando'
+                               WHEN 'PROCESADA' THEN 'Procesada'
+                               WHEN 'CERRADA' THEN 'Cerrada'
+                               WHEN 'ANULADA' THEN 'Anulada'
+                               ELSE p.estado
+                           END as estado_texto
+                    FROM planilla_cabecera p
+                    LEFT JOIN tipos_planilla tp ON p.tipo_planilla_id = tp.id
+                    WHERE p.estado IN ('PROCESADA', 'CERRADA')
+                    ORDER BY p.fecha_desde DESC
+                    LIMIT 50";
+
+            $stmt = $connection->prepare($sql);
+            $stmt->execute();
+            $planillas = $stmt->fetchAll();
+
+            $this->view('admin/reports/payroll_selector', [
+                'planillas' => $planillas,
+                'reportType' => $reportType,
+                'title' => 'Seleccionar Planilla para ' . ucfirst($reportType)
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('Error obteniendo planillas: ' . $e->getMessage());
+            $_SESSION['error'] = 'Error al obtener las planillas disponibles';
+            $this->redirect('/panel/reports');
+        }
+    }
+
+    /**
      * Verificar permisos
      */
     private function checkPermission($permission)

@@ -6,8 +6,8 @@ $page_title = 'Empleados Dados de Baja';
 // Obtener tipo de empresa para mostrar columna condicional
 $companyModel = new \App\Models\Company();
 $companyConfig = $companyModel->getCompanyConfig();
-$isPublicInstitution = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
-$columnHeader = $isPublicInstitution ? 'Posición' : 'Cargo';
+$isEmpresaConPosiciones = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
+$columnHeader = 'Cargo';
 
 $content = '
 <!-- Botón para volver a empleados activos -->

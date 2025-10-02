@@ -308,6 +308,9 @@ class App
                                     } elseif ($url[2] === 'planilla-excel-panama' && isset($url[3]) && method_exists($this->controller, 'planillaExcelPanama')) {
                                         $this->method = 'planillaExcelPanama';
                                         $this->params = [$url[3]]; // payrollId
+                                    } elseif ($url[2] === 'informe03' && method_exists($this->controller, 'informe03')) {
+                                        $this->method = 'informe03';
+                                        $this->params = isset($url[3]) ? [$url[3]] : [null]; // payrollId opcional
                                     } elseif ($url[2] === 'test-comprobantes' && method_exists($this->controller, 'testComprobantes')) {
                                         $this->method = 'testComprobantes';
                                         $this->params = isset($url[3]) ? [$url[3]] : [null]; // payrollId opcional

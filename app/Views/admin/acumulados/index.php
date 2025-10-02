@@ -201,8 +201,8 @@ function generateTipoPdf(tipoId) {
                                                 <div class="progress-bar" style="width: 100%"></div>
                                             </div>
                                             <span class="progress-description text-white">
-                                                <?= htmlspecialchars($acumulado['tipo_descripcion'] ?? $acumulado['descripcion'] ?? 'N/A') ?>
-                                                <br><small>Conceptos: <?= $acumulado['total_conceptos_incluidos'] ?? 0 ?></small>
+                                                <strong><?= htmlspecialchars($acumulado['tipo_descripcion'] ?? $acumulado['descripcion'] ?? 'N/A') ?></strong>
+                                                <br><small>Conceptos (<?= $acumulado['total_conceptos_incluidos'] ?? 0 ?>): <?= htmlspecialchars($acumulado['conceptos_incluidos'] ?? 'N/A') ?></small>
                                             </span>
                                         </div>
                                     </div>

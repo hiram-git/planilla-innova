@@ -163,18 +163,18 @@ $styles = '
 
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="tipo_institucion">Tipo de Institución *</label>
+                                <label for="tipo_institucion">Tipo de Empresa *</label>
                                 <select class="form-control" id="tipo_institucion" name="tipo_institucion" required>
                                     <option value="privada" <?= ($company['tipo_institucion'] ?? 'privada') == 'privada' ? 'selected' : '' ?>>
-                                        Empresa Privada
+                                        Empresa sin posiciones
                                     </option>
                                     <option value="publica" <?= ($company['tipo_institucion'] ?? 'privada') == 'publica' ? 'selected' : '' ?>>
-                                        Institución Pública
+                                        Empresa con posiciones
                                     </option>
                                 </select>
                                 <small class="form-text text-muted">
-                                    <strong>Privada:</strong> Sueldos individuales por empleado<br>
-                                    <strong>Pública:</strong> Sueldos por posiciones presupuestarias
+                                    <strong>Sin posiciones:</strong> Sueldos individuales por empleado<br>
+                                    <strong>Con posiciones:</strong> Sueldos por posiciones presupuestarias
                                 </small>
                             </div>
                         </div>
@@ -182,8 +182,8 @@ $styles = '
                         <div class="col-md-6">
                             <div class="callout callout-info">
                                 <h5><i class="fas fa-info-circle"></i> Importante</h5>
-                                <p>• <strong>Empresa Privada:</strong> Los sueldos se configuran individualmente por empleado<br>
-                                • <strong>Institución Pública:</strong> Los sueldos se toman de las posiciones organizacionales</p>
+                                <p>• <strong>Empresa sin posiciones:</strong> Los sueldos y cargos se configuran individualmente por empleado<br>
+                                • <strong>Empresa con posiciones:</strong> Los sueldos y cargos se toman de las posiciones presupuestarias</p>
                             </div>
                         </div>
                     </div>

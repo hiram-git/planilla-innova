@@ -755,16 +755,20 @@ class AcumuladoController extends Controller
             $sql = "SELECT
                         ape.tipo_acumulado as tipo_codigo,
                         ape.tipo_acumulado as codigo,
-                        ape.tipo_acumulado as tipo_descripcion,
-                        ape.tipo_acumulado as descripcion,
+                        COALESCE(ta.descripcion, CONCAT('Tipo: ', ape.tipo_acumulado)) as tipo_descripcion,
+                        COALESCE(ta.descripcion, CONCAT('Tipo: ', ape.tipo_acumulado)) as descripcion,
                         SUM(ape.monto) as total_acumulado,
                         COUNT(DISTINCT ape.concepto_id) as total_conceptos_incluidos,
                         COUNT(ape.planilla_id) as total_planillas,
                         MIN(ape.created_at) as fecha_primer_calculo,
-                        MAX(ape.created_at) as fecha_ultimo_calculo
+                        MAX(ape.created_at) as fecha_ultimo_calculo,
+                        GROUP_CONCAT(DISTINCT c.concepto ORDER BY c.concepto SEPARATOR ', ') as conceptos_incluidos,
+                        GROUP_CONCAT(DISTINCT c.descripcion ORDER BY c.descripcion SEPARATOR ' | ') as conceptos_descripcion
                     FROM acumulados_por_empleado ape
+                    LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
+                    LEFT JOIN concepto c ON ape.concepto_id = c.id
                     WHERE {$whereClause} AND ape.tipo_acumulado IS NOT NULL AND ape.tipo_acumulado != ''
-                    GROUP BY ape.tipo_acumulado
+                    GROUP BY ape.tipo_acumulado, ta.descripcion
                     ORDER BY ape.tipo_acumulado";
 
             $stmt = $this->db->prepare($sql);

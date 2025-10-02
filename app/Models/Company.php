@@ -266,12 +266,22 @@ class Company extends Model
     }
 
     /**
-     * Verificar si es una empresa pública
+     * Verificar si es una empresa con posiciones
      * @return bool
+     */
+    public function isEmpresaConPosiciones()
+    {
+        return $this->getTipoInstitucion() === 'publica';
+    }
+
+    /**
+     * Verificar si es una empresa pública (método legacy - usar isEmpresaConPosiciones)
+     * @return bool
+     * @deprecated Use isEmpresaConPosiciones() instead
      */
     public function isEmpresaPublica()
     {
-        return $this->getTipoInstitucion() === 'publica';
+        return $this->isEmpresaConPosiciones();
     }
 
     /**

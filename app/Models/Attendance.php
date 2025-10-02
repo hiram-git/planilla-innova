@@ -129,7 +129,7 @@ class Attendance extends Model
         return round($hours, 2);
     }
 
-    public function getAttendanceByDateRange($startDate, $endDate, $employeeId = null)
+    public function getAttendanceByDateRange($startDate, $endDate, $employeeId = null, $tipoPlanillaId = null)
     {
         $sql = "SELECT a.*, e.firstname, e.lastname, e.employee_id
                 FROM attendance a
@@ -142,8 +142,13 @@ class Attendance extends Model
             $params[] = $employeeId;
         }
 
+        if ($tipoPlanillaId) {
+            $sql .= " AND e.tipo_planilla_id = ?";
+            $params[] = $tipoPlanillaId;
+        }
+
         $sql .= " ORDER BY a.date DESC, e.lastname, e.firstname";
-        
+
         return $this->db->findAll($sql, $params);
     }
 

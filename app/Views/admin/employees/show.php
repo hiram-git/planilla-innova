@@ -3,6 +3,10 @@ use App\Helpers\PermissionHelper;
 
 $page_title = 'Detalles del Empleado';
 
+// Obtener configuración de empresa para determinar qué cargo/salario mostrar
+$companyModel = new \App\Models\Company();
+$isEmpresaConPosiciones = $companyModel->isEmpresaConPosiciones();
+
 $content = '
 <div class="row">
     <div class="col-md-12">
@@ -38,7 +42,11 @@ if (!empty($employee['photo'])) {
 $content .= '
                         </div>
                         <h4>' . htmlspecialchars(($employee['firstname'] ?? '') . ' ' . ($employee['lastname'] ?? '')) . '</h4>
-                        <p class="text-muted">' . htmlspecialchars($employee['position_name'] ?? 'Sin posición') . '</p>
+                        <p class="text-muted">' . htmlspecialchars(
+                            $isEmpresaConPosiciones
+                                ? ($employee['position_name'] ?? 'Sin posición')
+                                : ($employee['cargo_nombre'] ?? 'Sin cargo')
+                        ) . '</p>
                     </div>
                     
                     <div class="col-md-9">
@@ -48,8 +56,13 @@ $content .= '
                                 <table class="table table-sm">
                                     <tr>
                                         <td><strong>ID Empleado:</strong></td>
-                                        <td>' . htmlspecialchars($employee['id']) . '</td>
-                                    </tr>
+                                        <td>' . htmlspecialchars($employee['employee_id'] ?? 'No asignado') . '</td>
+                                    </tr>' .
+                                    ($isEmpresaConPosiciones && !empty($employee['position_code']) ? '
+                                    <tr>
+                                        <td><strong>Código Posición:</strong></td>
+                                        <td><span class="badge badge-info">' . htmlspecialchars($employee['position_code']) . '</span></td>
+                                    </tr>' : '') . '
                                     <tr>
                                         <td><strong>Cédula:</strong></td>
                                         <td>' . htmlspecialchars($employee['document_id'] ?? 'No especificada') . '</td>
@@ -81,8 +94,12 @@ $content .= '
                                 <h5><i class="fas fa-briefcase text-success"></i> Información Laboral</h5>
                                 <table class="table table-sm">
                                     <tr>
-                                        <td><strong>Posición:</strong></td>
-                                        <td>' . htmlspecialchars($employee['position_name'] ?? 'No asignada') . '</td>
+                                        <td><strong>Cargo:</strong></td>
+                                        <td>' . htmlspecialchars(
+                                            $isEmpresaConPosiciones
+                                                ? ($employee['position_name'] ?? 'No asignado')
+                                                : ($employee['cargo_nombre'] ?? 'No asignado')
+                                        ) . '</td>
                                     </tr>
                                     <tr>
                                         <td><strong>Horario:</strong></td>
@@ -99,7 +116,11 @@ $content .= '
                                     </tr>
                                     <tr>
                                         <td><strong>Salario Base:</strong></td>
-                                        <td>' . ($employee['moneda_simbolo'] ?? 'Q.') . ' ' . number_format($employee['position_salary'] ?? 0, 2) . '</td>
+                                        <td>' . ($employee['moneda_simbolo'] ?? 'Q.') . ' ' . number_format(
+                                            $isEmpresaConPosiciones
+                                                ? ($employee['position_salary'] ?? 0)
+                                                : ($employee['sueldo_individual'] ?? 0), 2
+                                        ) . '</td>
                                     </tr>';
 
 if (!empty($employee['gastos_representacion']) && $employee['gastos_representacion'] > 0) {

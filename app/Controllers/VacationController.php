@@ -6,6 +6,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Models\Employee;
 use App\Services\PlanillaConceptCalculator;
+use App\Services\VacationBalanceService;
 use PDO;
 use PDOException;
 use DateTime;
@@ -14,11 +15,13 @@ use DateInterval;
 class VacationController extends Controller
 {
     protected $calculator;
+    protected $balanceService;
 
     public function __construct()
     {
         parent::__construct();
         $this->calculator = new PlanillaConceptCalculator();
+        $this->balanceService = new VacationBalanceService();
     }
 
     /**
@@ -29,14 +32,13 @@ class VacationController extends Controller
         try {
             // Obtener empleados activos con datos de vacaciones
             $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.document_id,
-                           e.fecha_ingreso, e.sueldo_individual, c.nombre as position_name,
+                           e.fecha_ingreso, e.sueldo_individual, cargo.nombre as cargo_nombre,
                            s.nombre as situacion_nombre,
                            DATEDIFF(CURDATE(), e.fecha_ingreso) as dias_trabajados,
                            TIMESTAMPDIFF(MONTH, e.fecha_ingreso, CURDATE()) as meses_trabajados,
                            vb.current_balance, vb.days_earned, vb.days_taken
                     FROM employees e
-                    LEFT JOIN posiciones p ON e.position_id = p.id
-                    LEFT JOIN cargos c ON p.id_cargo = c.id
+                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN situaciones s ON e.situacion_id = s.id
                     LEFT JOIN vacation_balances vb ON e.id = vb.employee_id AND vb.year = YEAR(CURDATE())
                     WHERE e.situacion_id = 1
@@ -92,10 +94,9 @@ class VacationController extends Controller
             }
 
             // Obtener datos del empleado
-            $sql = "SELECT e.*, c.nombre as position_name, s.nombre as situacion_nombre
+            $sql = "SELECT e.*, cargo.nombre as cargo_nombre, s.nombre as situacion_nombre
                     FROM employees e
-                    LEFT JOIN posiciones p ON e.position_id = p.id
-                    LEFT JOIN cargos c ON p.id_cargo = c.id
+                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN situaciones s ON e.situacion_id = s.id
                     WHERE e.id = ? AND e.situacion_id = 1";
 
@@ -117,11 +118,21 @@ class VacationController extends Controller
             }
 
             // Calcular datos de vacaciones
+            $current_year = date('Y');
+            $annual_balance = $this->balanceService->getAnnualBalance($employee_id, $current_year);
+            $general_totals = $this->balanceService->getGeneralTotals($employee_id);
+            $vacation_history = $this->balanceService->getVacationHistory($employee_id);
+
             $vacation_data = [
                 'days_earned' => $this->calculator->VACATION_DAYS_EARNED($employee_id),
                 'current_balance' => $this->calculator->VACATION_BALANCE($employee_id),
                 'accrual_rate' => $this->calculator->VACATION_ACCRUAL_RATE($employee_id),
-                'daily_salary' => $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1)
+                'daily_salary' => $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1),
+                // Nuevos datos de balance anual
+                'annual_balance' => $annual_balance,
+                'general_totals' => $general_totals,
+                'vacation_history' => $vacation_history,
+                'current_year' => $current_year
             ];
 
             // Obtener solicitudes anteriores
@@ -160,8 +171,22 @@ class VacationController extends Controller
             $vacation_type = $_POST['vacation_type'] ?? 'ANNUAL';
             $comments = $_POST['comments'] ?? '';
 
+            // Nuevos campos de vacaciones
+            $dias_vacaciones_anuales = $_POST['dias_vacaciones_anuales'] ?? 30;
+            $saldo_vacaciones = $_POST['saldo_vacaciones'] ?? 0;
+            $dias_solicitados_pagar = $_POST['dias_solicitados_pagar'] ?? 0;
+            $dias_vacaciones_disfrute = $_POST['dias_vacaciones_disfrute'] ?? 0;
+            $saldo_dias_disfrute = $_POST['saldo_dias_disfrute'] ?? 0;
+            $dias_solicitados_disfrute = $_POST['dias_solicitados_disfrute'] ?? 0;
+            $estado_solicitud = $_POST['estado_solicitud'] ?? 'PENDING';
+            $total_dias_solicitados = $_POST['total_dias_solicitados'] ?? 0;
+
+            // Campos de año y días calculados
+            $ano_vacaciones = $_POST['ano_vacaciones'] ?? null;
+            $dias_calculados_fechas = $_POST['dias_calculados_fechas'] ?? 0;
+
             // Validaciones básicas
-            if (!$employee_id || !$start_date || !$end_date) {
+            if (!$employee_id || !$start_date || !$end_date || !$ano_vacaciones) {
                 $this->setFlashMessage('error', 'Todos los campos obligatorios deben ser completados');
                 $this->redirect('/panel/vacation/create/' . $employee_id);
                 return;
@@ -174,6 +199,14 @@ class VacationController extends Controller
 
             if ($start_datetime < $today) {
                 $this->setFlashMessage('error', 'La fecha de inicio no puede ser en el pasado');
+                $this->redirect('/panel/vacation/create/' . $employee_id);
+                return;
+            }
+
+            // Validar anticipación de 15 días
+            $anticipation_days = $today->diff($start_datetime)->days;
+            if ($start_datetime > $today && $anticipation_days < 15) {
+                $this->setFlashMessage('error', "Las vacaciones deben solicitarse con al menos 15 días de anticipación. Días de anticipación actual: {$anticipation_days} días.");
                 $this->redirect('/panel/vacation/create/' . $employee_id);
                 return;
             }
@@ -197,6 +230,34 @@ class VacationController extends Controller
 
             // Verificar balance disponible
             $current_balance = $this->calculator->VACATION_BALANCE($employee_id);
+
+            // Validación usando el servicio de balance anual
+            $validation = $this->balanceService->canProcessVacationRequest(
+                $employee_id,
+                $ano_vacaciones,
+                $dias_solicitados_pagar,
+                $dias_solicitados_disfrute
+            );
+
+            if (!$validation['valid']) {
+                $this->setFlashMessage('error', $validation['message']);
+                $this->redirect('/panel/vacation/create/' . $employee_id);
+                return;
+            }
+
+            // Validaciones adicionales para los nuevos campos
+            if ($total_dias_solicitados > $current_balance) {
+                $this->setFlashMessage('error', "Total de días solicitados ($total_dias_solicitados) excede el balance disponible ($current_balance)");
+                $this->redirect('/panel/vacation/create/' . $employee_id);
+                return;
+            }
+
+            if ($dias_solicitados_pagar + $dias_solicitados_disfrute != $total_dias_solicitados) {
+                $this->setFlashMessage('error', 'La suma de días por pagar y disfrute debe coincidir con el total solicitado');
+                $this->redirect('/panel/vacation/create/' . $employee_id);
+                return;
+            }
+
             if ($business_days > $current_balance) {
                 $this->setFlashMessage('error', "Días solicitados ($business_days) exceden el balance disponible ($current_balance)");
                 $this->redirect('/panel/vacation/create/' . $employee_id);
@@ -218,21 +279,36 @@ class VacationController extends Controller
             $daily_salary = $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1);
             $compensation_amount = ($vacation_type === 'COMPENSATION') ? $daily_salary * $business_days : 0;
 
+            // Calcular compensación para días solicitados por pagar
+            $compensation_amount_new = $daily_salary * $dias_solicitados_pagar;
+
             // Insertar solicitud
             $sql = "INSERT INTO vacation_requests (
                         employee_id, request_date, start_date, end_date, total_days, business_days,
                         vacation_type, status, comments, years_worked, accumulated_days,
-                        available_days, remaining_days, daily_salary, compensation_amount
-                    ) VALUES (?, CURDATE(), ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?)";
+                        available_days, remaining_days, daily_salary, compensation_amount,
+                        dias_vacaciones_anuales, dias_solicitados_pagar, dias_solicitados_disfrute,
+                        ano_vacaciones, dias_calculados_fechas
+                    ) VALUES (?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 $employee_id, $start_date, $end_date, $total_days, $business_days,
-                $vacation_type, $comments, $years_worked, $accumulated_days,
-                $available_days, $remaining_days, $daily_salary, $compensation_amount
+                $vacation_type, $estado_solicitud, $comments, $years_worked, $accumulated_days,
+                $available_days, $remaining_days, $daily_salary, $compensation_amount_new,
+                $dias_vacaciones_anuales, $dias_solicitados_pagar, $dias_solicitados_disfrute,
+                $ano_vacaciones, $dias_calculados_fechas
             ]);
 
             $request_id = $this->db->lastInsertId();
+
+            // Actualizar balances anuales y totales generales
+            $this->balanceService->updateAnnualBalance(
+                $employee_id,
+                $ano_vacaciones,
+                $dias_solicitados_pagar,
+                $dias_solicitados_disfrute
+            );
 
             // Crear registro de cálculo para auditoría
             $this->createCalculationRecord($request_id, 'DAYS_REQUESTED', $business_days, $business_days, $compensation_amount);
@@ -254,11 +330,10 @@ class VacationController extends Controller
         try {
             // Obtener datos de la solicitud
             $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id, e.fecha_ingreso,
-                           c.nombre as position_name, a.name as approver_name
+                           cargo.nombre as cargo_nombre, a.name as approver_name
                     FROM vacation_requests vr
                     INNER JOIN employees e ON vr.employee_id = e.id
-                    LEFT JOIN posiciones p ON e.position_id = p.id
-                    LEFT JOIN cargos c ON p.id_cargo = c.id
+                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN admin a ON vr.approved_by = a.id
                     WHERE vr.id = ?";
 
@@ -439,9 +514,9 @@ class VacationController extends Controller
     {
         try {
             // Obtener datos del empleado
-            $sql = "SELECT e.*, p.nombre as position_name
+            $sql = "SELECT e.*, cargo.nombre as cargo_nombre
                     FROM employees e
-                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     WHERE e.id = ?";
 
             $stmt = $this->db->prepare($sql);

@@ -92,32 +92,54 @@ class Admin extends Controller
         $position = $this->model('Posicion');
         $cargo = $this->model('Cargo');
         $schedule = $this->model('Schedule');
+        $acumuladoController = new \App\Controllers\AcumuladoController();
 
-        // Obtener estadísticas básicas
-        $totalEmployees = count($employee->all());
-        $activeEmployees = $this->getActiveEmployees();
+        // Obtener tipos de planilla para filtro
+        $tiposPlanilla = $this->getTiposPlanilla();
+        $tipoSeleccionadoRaw = $_GET['tipo_planilla'] ?? null;
+
+        // Normalizar valor: si es cadena vacía, convertir a null
+        $tipoSeleccionado = (!empty($tipoSeleccionadoRaw) && $tipoSeleccionadoRaw !== '') ? $tipoSeleccionadoRaw : null;
+
+        // Obtener estadísticas básicas (filtradas por tipo de planilla si se seleccionó)
+        $employeesList = $tipoSeleccionado
+            ? $employee->getEmployeesByTipoPlanilla($tipoSeleccionado)
+            : $employee->all();
+
+        $totalEmployees = count($employeesList);
+        $activeEmployees = $this->getActiveEmployees($tipoSeleccionado);
         $totalPositions = count($position->all());
         $totalCargos = count($cargo->all());
         $totalSchedules = count($schedule->all());
-        
-        // Asistencia de hoy
-        $todayAttendance = $attendance->getAttendanceByDateRange(date('Y-m-d'), date('Y-m-d'));
-        $todayStats = $this->calculateTodayStats($todayAttendance);
-        
-        // Puntualidad mensual
-        $monthlyPunctuality = $this->calculateMonthlyPunctuality($attendance);
-        
-        // Estadísticas para las tarjetas (últimos 30 días)
-        $monthlyStats = $this->getMonthlyAttendanceStats($attendance);
-        
-        // Asistencia reciente (últimos 7 días) para la tabla
-        $recentAttendance = $attendance->getAttendanceByDateRange(
-            date('Y-m-d', strtotime('-7 days')), 
-            date('Y-m-d')
+
+        // Asistencia de hoy (filtrada por tipo de planilla)
+        $todayAttendance = $attendance->getAttendanceByDateRange(
+            date('Y-m-d'),
+            date('Y-m-d'),
+            null,
+            $tipoSeleccionado
         );
-        
-        // Datos para la gráfica (últimos 30 días)
-        $attendanceChartData = $this->getAttendanceChartData($attendance);
+        $todayStats = $this->calculateTodayStats($todayAttendance, $totalEmployees);
+
+        // Puntualidad mensual (filtrada por tipo de planilla)
+        $monthlyPunctuality = $this->calculateMonthlyPunctuality($attendance, $tipoSeleccionado);
+
+        // Estadísticas para las tarjetas (últimos 30 días, filtradas)
+        $monthlyStats = $this->getMonthlyAttendanceStats($attendance, $tipoSeleccionado);
+
+        // Asistencia reciente (últimos 7 días) para la tabla (filtrada)
+        $recentAttendance = $attendance->getAttendanceByDateRange(
+            date('Y-m-d', strtotime('-7 days')),
+            date('Y-m-d'),
+            null,
+            $tipoSeleccionado
+        );
+
+        // Datos para la gráfica (últimos 30 días, filtrados)
+        $attendanceChartData = $this->getAttendanceChartData($attendance, $tipoSeleccionado);
+
+        // Obtener datos de acumulados para el dashboard (filtrados)
+        $acumuladosData = $this->getAcumuladosData($tipoSeleccionado);
 
         $data = [
             'title' => 'Dashboard Administrativo',
@@ -134,21 +156,30 @@ class Admin extends Controller
             'monthly_punctuality' => $monthlyPunctuality,
             'monthly_stats' => $monthlyStats,
             'recent_attendance' => array_slice($recentAttendance, 0, 10),
-            'attendance_chart_data' => $attendanceChartData
+            'attendance_chart_data' => $attendanceChartData,
+            'tipos_planilla' => $tiposPlanilla,
+            'tipo_seleccionado' => $tipoSeleccionado,
+            'acumulados_data' => $acumuladosData
         ];
 
         $this->view('admin/dashboard', $data);
     }
 
-    private function getActiveEmployees()
+    private function getActiveEmployees($tipoSeleccionado = null)
     {
         $employee = $this->model('Employee');
-        $sql = "SELECT COUNT(*) as count FROM employees WHERE created_on >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        $whereClause = "created_on >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+
+        if ($tipoSeleccionado) {
+            $whereClause .= " AND tipo_planilla_id = " . (int)$tipoSeleccionado;
+        }
+
+        $sql = "SELECT COUNT(*) as count FROM employees WHERE " . $whereClause;
         $result = $employee->db->find($sql);
         return $result['count'] ?? 0;
     }
 
-    private function calculateTodayStats($todayAttendance)
+    private function calculateTodayStats($todayAttendance, $totalEmployees)
     {
         $employeesPresent = 0;
         $employeesLate = 0;
@@ -163,8 +194,6 @@ class Admin extends Controller
             }
         }
 
-        $employee = $this->model('Employee');
-        $totalEmployees = count($employee->all());
         $percentage = $totalEmployees > 0 ? round(($employeesPresent / $totalEmployees) * 100, 1) : 0;
 
         return [
@@ -175,13 +204,13 @@ class Admin extends Controller
         ];
     }
 
-    private function calculateMonthlyPunctuality($attendance)
+    private function calculateMonthlyPunctuality($attendance, $tipoSeleccionado = null)
     {
         $startDate = date('Y-m-01');
         $endDate = date('Y-m-d');
-        
-        $monthlyAttendance = $attendance->getAttendanceByDateRange($startDate, $endDate);
-        
+
+        $monthlyAttendance = $attendance->getAttendanceByDateRange($startDate, $endDate, null, $tipoSeleccionado);
+
         $totalRecords = count($monthlyAttendance);
         $punctualRecords = 0;
 
@@ -194,16 +223,16 @@ class Admin extends Controller
         return $totalRecords > 0 ? round(($punctualRecords / $totalRecords) * 100, 1) : 0;
     }
 
-    private function getMonthlyAttendanceStats($attendance)
+    private function getMonthlyAttendanceStats($attendance, $tipoSeleccionado = null)
     {
         $startDate = date('Y-m-d', strtotime('-30 days'));
         $endDate = date('Y-m-d');
-        
-        $monthlyAttendance = $attendance->getAttendanceByDateRange($startDate, $endDate);
-        
+
+        $monthlyAttendance = $attendance->getAttendanceByDateRange($startDate, $endDate, null, $tipoSeleccionado);
+
         $totalPresent = 0;
         $totalLate = 0;
-        
+
         foreach ($monthlyAttendance as $record) {
             if (isset($record['time_in']) && $record['time_in']) {
                 $totalPresent++;
@@ -212,10 +241,10 @@ class Admin extends Controller
                 }
             }
         }
-        
+
         $averageDaily = $totalPresent > 0 ? round($totalPresent / 30, 1) : 0;
         $punctualityPercentage = $totalPresent > 0 ? round((($totalPresent - $totalLate) / $totalPresent) * 100, 1) : 0;
-        
+
         return [
             'average_daily' => $averageDaily,
             'total_present' => $totalPresent,
@@ -224,15 +253,15 @@ class Admin extends Controller
         ];
     }
 
-    private function getAttendanceChartData($attendance)
+    private function getAttendanceChartData($attendance, $tipoSeleccionado = null)
     {
         $chartData = [];
-        
+
         try {
             // Obtener datos de los últimos 30 días
             for ($i = 29; $i >= 0; $i--) {
                 $date = date('Y-m-d', strtotime("-$i days"));
-                $dayAttendance = $attendance->getAttendanceByDateRange($date, $date);
+                $dayAttendance = $attendance->getAttendanceByDateRange($date, $date, null, $tipoSeleccionado);
                 
                 // Asegurar que $dayAttendance sea un array
                 if (!is_array($dayAttendance)) {
@@ -278,6 +307,68 @@ class Admin extends Controller
         return $chartData;
     }
 
+    /**
+     * Obtener tipos de planilla para filtro
+     */
+    private function getTiposPlanilla()
+    {
+        try {
+            $db = \App\Core\Database::getInstance();
+            $sql = "SELECT id, descripcion FROM tipos_planilla ORDER BY descripcion ASC";
+            $stmt = $db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error obteniendo tipos de planilla: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener datos de acumulados para dashboard
+     */
+    private function getAcumuladosData($tipoSeleccionado = null)
+    {
+        try {
+            $acumuladoModel = $this->model('Acumulado');
+            $currentYear = date('Y');
+
+            // Obtener resumen por tipos de acumulados
+            $tiposAcumulados = $acumuladoModel->getAcumuladosByTipoAndYear($currentYear, $tipoSeleccionado);
+
+            // Obtener empleados con acumulados
+            $empleadosAcumulados = $acumuladoModel->getEmployeesWithAcumulados($currentYear, $tipoSeleccionado);
+
+            // Obtener años disponibles
+            $yearsData = $acumuladoModel->getAvailableYears();
+            $availableYears = [];
+            foreach ($yearsData as $yearData) {
+                if (!empty($yearData['ano'])) {
+                    $availableYears[] = $yearData['ano'];
+                }
+            }
+            if (!in_array('todos', $availableYears)) {
+                array_unshift($availableYears, 'todos');
+            }
+
+            return [
+                'year' => $currentYear,
+                'tipos_acumulados' => $tiposAcumulados,
+                'empleados_acumulados' => $empleadosAcumulados,
+                'available_years' => $availableYears,
+                'selected_year' => $currentYear
+            ];
+        } catch (\Exception $e) {
+            error_log("Error obteniendo datos de acumulados: " . $e->getMessage());
+            return [
+                'year' => date('Y'),
+                'tipos_acumulados' => [],
+                'empleados_acumulados' => [],
+                'available_years' => [date('Y')],
+                'selected_year' => date('Y')
+            ];
+        }
+    }
 
     public function logout()
     {

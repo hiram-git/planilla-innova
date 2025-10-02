@@ -109,13 +109,21 @@ $content = '
                                                    title="Comprobantes de Pago">
                                                     <i class="fas fa-receipt"></i>
                                                 </a>
-                                                <a href="' . \App\Core\UrlHelper::url('/panel/reports/reporte-acreedores/' . $payroll['id']) . '" 
-                                                   class="btn btn-warning btn-report-action" 
+                                                <a href="' . \App\Core\UrlHelper::url('/panel/reports/reporte-acreedores/' . $payroll['id']) . '"
+                                                   class="btn btn-warning btn-report-action"
                                                    target="_blank"
-                                                   data-toggle="tooltip" 
-                                                   data-placement="top" 
+                                                   data-toggle="tooltip"
+                                                   data-placement="top"
                                                    title="Reporte de Acreedores">
                                                     <i class="fas fa-building"></i>
+                                                </a>
+                                                <a href="' . \App\Core\UrlHelper::url('/panel/reports/informe03/' . $payroll['id']) . '"
+                                                   class="btn btn-secondary btn-report-action"
+                                                   target="_blank"
+                                                   data-toggle="tooltip"
+                                                   data-placement="top"
+                                                   title="Informe 03 - Reporte Gubernamental">
+                                                    <i class="fas fa-file-contract"></i>
                                                 </a>
                                             </div>
                                         </td>

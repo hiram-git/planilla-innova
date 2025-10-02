@@ -182,6 +182,16 @@ class Employee extends Controller
                 'partida_id' => !empty($data['partida_id']) ? $data['partida_id'] : null,
                 'photo' => $photoFilename,
                 'organigrama_id' => !empty($data['organigrama_id']) ? $data['organigrama_id'] : null,
+                // Campos de forma de pago
+                'forma_pago' => $data['forma_pago'] ?? 'EFECTIVO',
+                'banco' => !empty($data['banco']) ? $data['banco'] : null,
+                'numero_cuenta' => !empty($data['numero_cuenta']) ? $data['numero_cuenta'] : null,
+                'tipo_cuenta' => !empty($data['tipo_cuenta']) ? $data['tipo_cuenta'] : null,
+                // Campos de contrato
+                'tipo_contrato' => $data['tipo_contrato'] ?? 'INDEFINIDO',
+                'fecha_inicio_contrato' => !empty(trim($data['fecha_inicio_contrato'] ?? '')) ? trim($data['fecha_inicio_contrato']) : null,
+                'fecha_vencimiento_contrato' => !empty(trim($data['fecha_vencimiento_contrato'] ?? '')) ? trim($data['fecha_vencimiento_contrato']) : null,
+                'numero_contrato' => !empty($data['numero_contrato']) ? $data['numero_contrato'] : null,
                 'created_on' => date('Y-m-d')
             ];
 
@@ -305,9 +315,9 @@ class Employee extends Controller
                 'organigrama_id' => !empty($data['edit_organigrama_id']) ? $data['edit_organigrama_id'] : null,
                 // Campos de forma de pago
                 'forma_pago' => $data['edit_forma_pago'] ?? 'EFECTIVO',
-                'banco' => $data['edit_banco'] ?? null,
-                'numero_cuenta' => $data['edit_numero_cuenta'] ?? null,
-                'tipo_cuenta' => $data['edit_tipo_cuenta'] ?? null,
+                'banco' => !empty($data['edit_banco']) ? $data['edit_banco'] : null,
+                'numero_cuenta' => !empty($data['edit_numero_cuenta']) ? $data['edit_numero_cuenta'] : null,
+                'tipo_cuenta' => !empty($data['edit_tipo_cuenta']) ? $data['edit_tipo_cuenta'] : null,
                 // Campos de contrato
                 'tipo_contrato' => $data['edit_tipo_contrato'] ?? 'INDEFINIDO',
                 'fecha_inicio_contrato' => !empty(trim($data['edit_fecha_inicio_contrato'] ?? '')) ? trim($data['edit_fecha_inicio_contrato']) : null,
@@ -524,7 +534,7 @@ class Employee extends Controller
             // Obtener tipo de empresa para mostrar columna condicional
             $companyModel = $this->model('Company');
             $companyConfig = $companyModel->getCompanyConfig();
-            $isPublicInstitution = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
+            $isEmpresaConPosiciones = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
             
             $data = [];
             foreach ($employees as $emp) {
@@ -573,7 +583,7 @@ class Employee extends Controller
                 
                 // Determinar qué mostrar en la columna condicional según tipo de empresa
                 $conditionalColumn = '';
-                if ($isPublicInstitution) {
+                if ($isEmpresaConPosiciones) {
                     // Empresa pública: mostrar posición
                     $conditionalColumn = htmlspecialchars($emp['position_name'] ?? 'Sin posición');
                 } else {
@@ -680,7 +690,7 @@ class Employee extends Controller
             // Obtener tipo de empresa para mostrar columna condicional
             $companyModel = $this->model('Company');
             $companyConfig = $companyModel->getCompanyConfig();
-            $isPublicInstitution = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
+            $isEmpresaConPosiciones = ($companyConfig['tipo_institucion'] ?? 'privada') === 'publica';
 
             $data = [];
             foreach ($employees as $emp) {
@@ -693,7 +703,7 @@ class Employee extends Controller
                 $terminationReason = $emp['termination_reason'] ?: 'No especificado';
 
                 // Nombre de posición según tipo de institución
-                $positionName = $isPublicInstitution ?
+                $positionName = $isEmpresaConPosiciones ?
                     ($emp['position_name'] ?: 'Sin posición') :
                     ($emp['cargo_name'] ?: 'Sin cargo');
 

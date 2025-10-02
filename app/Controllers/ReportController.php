@@ -1502,6 +1502,16 @@ class ReportController extends Controller
     }
 
     /**
+     * Generar Informe 03 - Reporte gubernamental de planillas
+     */
+    public function informe03($payrollId = null)
+    {
+        // Delegar al controlador especializado de Excel
+        $excelController = new \App\Controllers\ExcelReportController();
+        $excelController->generateInforme03($payrollId);
+    }
+
+    /**
      * Generar Excel profesional para Panamá con múltiples hojas
      */
     private function generateExcelPanama($planillaData, $companyInfo, $signatures)
