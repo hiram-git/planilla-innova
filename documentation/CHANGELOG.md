@@ -1,5 +1,333 @@
 # 📋 CHANGELOG - Sistema de Planillas MVC
 
+## [3.3.11] - 2025-10-02
+
+### 📊 **DASHBOARD EJECUTIVO - FILTROS POR TIPO PLANILLA + UI IMPROVEMENTS**
+
+#### ✨ **Sistema de Filtrado Dashboard Completo**
+- **Filtro por Tipo de Planilla**: Dashboard ahora filtra todas las métricas según tipo planilla seleccionado
+- **Integración con Navbar**: Lee automáticamente el tipo planilla desde `sessionStorage` del navbar
+- **Sincronización en Tiempo Real**: Listener del evento `payrollTypeChanged` actualiza dashboard automáticamente
+- **Compatible URLs Directas**: Funciona con `/panel/dashboard?tipo_planilla=1` acceso directo
+
+#### 🔧 **Backend - Modelos y Controladores**
+- **Nuevo Modelo `Acumulado.php`**:
+  - `getAcumuladosByTipoAndYear($year, $tipo)` - Resumen acumulados por tipo y año
+  - `getEmployeesWithAcumulados($year, $tipo)` - Empleados con acumulados filtrados
+  - `getAvailableYears()` - Años disponibles en sistema
+  - `getAcumuladosByEmployee()` - Acumulados por empleado con filtros
+  - `getTotalAcumuladoByTipo()` - Totales por tipo específico
+- **Employee Model Enhanced**:
+  - `getEmployeesByTipoPlanilla($tipoPlanillaId)` - Filtra empleados por tipo planilla
+- **Attendance Model Updated**:
+  - `getAttendanceByDateRange()` - Agregado parámetro `$tipoPlanillaId` (4to parámetro)
+- **Admin Controller Mejorado**:
+  - Todos los métodos privados actualizados para aceptar `$tipoSeleccionado`
+  - `getActiveEmployees($tipoSeleccionado)` - Filtrado empleados activos últimos 30 días
+  - `calculateTodayStats($todayAttendance, $totalEmployees)` - Recibe total empleados como parámetro
+  - `calculateMonthlyPunctuality($attendance, $tipoSeleccionado)` - Puntualidad mensual filtrada
+  - `getMonthlyAttendanceStats($attendance, $tipoSeleccionado)` - Estadísticas mensuales filtradas
+  - `getAttendanceChartData($attendance, $tipoSeleccionado)` - Datos gráfica filtrados
+
+#### 🎨 **Frontend - Vista y JavaScript**
+- **Tarjetas Reordenadas**: Orden actualizado según prioridad de negocio
+  1. Total Empleados
+  2. Colaboradores Activos (últimos 30 días)
+  3. Puntualidad Mensual
+  4. Presentes Hoy
+- **Indicadores Visuales**:
+  - Badge amarillo "🔍 Filtrado" en cada tarjeta cuando hay filtro activo
+  - Alerta informativa azul mostrando tipo planilla seleccionado + total empleados
+- **JavaScript Moderno**:
+  - `addEventListener` para manejo eventos limpio
+  - `URLSearchParams` API para manipulación parámetros GET
+  - `URL()` API para construcción URLs segura
+  - Sin formularios redundantes - solo lectura de sessionStorage
+- **Eliminado Select Duplicado**: Select del dashboard removido (se usa únicamente navbar)
+- **Tabs Alineados a la Derecha**: CSS `justify-content: flex-end` aplicado a `.nav-tabs`
+
+#### 📊 **Métricas Filtradas Implementadas**
+- ✅ Total empleados por tipo planilla
+- ✅ Colaboradores activos (últimos 30 días) filtrados
+- ✅ Asistencia hoy (presentes/total) filtrada
+- ✅ Puntualidad mensual filtrada
+- ✅ Estadísticas mensuales (últimos 30 días) filtradas
+- ✅ Asistencia reciente (últimos 7 días) filtrada
+- ✅ Gráfica de asistencia (últimos 30 días) filtrada
+- ✅ Acumulados por tipo filtrados
+
+#### 🧪 **Testing y Validación**
+- Verificado funcionamiento con 3 tipos de planilla diferentes (ID: 1, 2, 5)
+- Total empleados: 14 (Tipo 1: 5, Tipo 2: 8, Tipo 5: 1)
+- Pruebas con URLs directas exitosas
+- Sincronización navbar-dashboard validada
+
+#### 🗑️ **Limpieza de Código**
+- Eliminados logs de debug temporales del controlador
+- Removidos archivos de prueba (`test_*.php`, `dashboard_debug.json`)
+- Código JavaScript simplificado y optimizado
+- Sin hardcode de URLs - uso de helpers
+
+## [3.3.10] - 2025-09-29
+
+### 🔧 **EMPLOYEE IMPORT FIXES - FOREIGN KEY CONSTRAINTS + UI IMPROVEMENTS**
+
+#### 🐛 **Correcciones Críticas Importación Empleados**
+- **Foreign Key Constraint Fix**: Solucionado error `SQLSTATE[23000]: Integrity constraint violation: 1452`
+- **cleanForeignKeyNulls()**: Nuevo método para filtrar valores null/empty de foreign keys antes de inserción
+- **Campos Opcionales**: position_id ya no es obligatorio para empresas privadas (según legislación)
+- **Validación Mejorada**: Solo valida foreign keys cuando se proporcionan valores
+- **PHP 8+ Compatibility**: safeTrim() maneja valores null + null coalescing operator (??) implementado
+- **Output Buffering**: Previene "headers already sent" en procesos de importación
+- **Date Formatting Enhanced**: formatDate() con múltiples formatos (YYYY-MM-DD, DD/MM/YYYY, Excel serial)
+
+#### 🛡️ **Validaciones Robustas + Mensajes Mejorados**
+- **Foreign Key Validation**: Verifica existencia de IDs en tablas referenciadas antes de inserción
+- **Conditional Validation**: position_id opcional pero otros campos como schedule_id, situacion_id siguen siendo requeridos
+- **Excel Template**: Headers "(Ver Ref)" para guiar al usuario hacia hoja Referencias
+- **Error Handling Específico**: Mensajes incluyen columna exacta y referencia a hoja (ej: "Schedule ID '99' no existe (Columna J) - Ver hoja Referencias")
+- **Debug Logging**: Logs detallados para troubleshooting con print_r() de datos extraídos
+
+#### 🎨 **UI/UX Improvements**
+- **Callouts AdminLTE**: Reemplazado alert-* por callout-success/danger/warning para mejor integración visual
+- **Mensajes Contextuales**: Callouts incluyen iconos FontAwesome + títulos descriptivos
+- **Error Details Enhanced**: Lista de errores con bullets + texto explicativo + instrucciones revisión
+- **Visual Consistency**: Integración completa con tema AdminLTE del sistema
+
+#### 🗄️ **Model Fixes Críticos**
+- **Position Model Fix**: Corregido $table='position' → 'posiciones' + fillable fields actualizados
+- **Database Schema Sync**: Modelos sincronizados con estructura real BD (position_id válidos: 11, 12)
+- **Excel Reference Sheet**: Hoja Referencias actualizada con campos correctos (codigo vs description)
+
+#### 📊 **Testing & Validación**
+- **test_employee_import_fix.php**: Suite de pruebas para validar correcciones
+- **test_empleados_validos.xlsx**: Excel prueba con position_id=11 (válido) + empleado sin position_id
+- **Database Structure Check**: Verificación automática de columnas NULL permitidas + IDs válidos
+- **Cleanup Methods**: Separación clara entre datos obligatorios y opcionales
+
+## [3.3.9] - 2025-09-29
+
+### 🎯 **SISTEMA XIII MES TRIMESTRAL + LIQUIDACIONES MEJORADAS**
+
+#### 💰 **XIII Mes Períodos Trimestrales - Implementación Completa**
+- **XIIIMesPeriodoTrimestralCalculator**: Nueva clase para cálculos trimestrales según legislación panameña
+  - **Período 1**: 16 Diciembre → 15 Abril
+  - **Período 2**: 16 Abril → 15 Agosto
+  - **Período 3**: 16 Agosto → 15 Diciembre
+- **Variables Dinámicas**: `INICIO_PERIODO_XIII` + `FIN_PERIODO_XIII` + `PERIODO_XIII_NUMERO`
+- **Fórmula LIQ006 Corregida**: `ACUMULADOS("SALARIO_BASE", FICHA, INICIO_PERIODO_XIII, FIN_PERIODO_XIII)/4`
+- **Integración PlanillaConceptCalculator**: Método `obtenerVariablesFechaXIIIMes()` automático
+
+#### 🧪 **Scripts Testing & Deployment**
+- **test_xiii_mes_trimestral.php**: Suite completa de pruebas con 4 módulos de testing
+  - Clasificación períodos por fecha liquidación
+  - Cálculo proporcional con casos reales
+  - Variables dinámicas con employee_terminations
+  - Validación fórmula en base de datos
+- **deploy_xiii_mes_trimestral.php**: Script deployment con confirmación + backup automático
+  - Verificación prerequisitos
+  - Backup LIQ006_OLD + archivo SQL
+  - Actualización concepto + logging
+  - Verificación completa post-deploy
+
+#### 🖥️ **Vista Liquidación Mejorada**
+- **Routing Corregido**: Ruta `/panel/liquidation/payroll-detail/{id}` agregada en App.php
+- **Layout Estilo Cálculo**: Vista dividida en Asignaciones/Deducciones con colores específicos
+- **Información Empleado**: Header con nombre + cédula del empleado liquidado
+- **Marco Legal**: Artículos Código Trabajo Panamá incluidos en vista
+- **Export CSV Optimizado**: Nombre archivo con datos empleado + fecha
+
+#### 🐛 **Bug Fixes Críticos**
+- **Campo `referencia` Eliminado**: Error SQL Column not found resuelto en createLiquidationPayrollDetails()
+- **Parámetros INSERT Corregidos**: Array execute() ajustado para 7 parámetros en lugar de 8
+- **Error Handler Mejorado**: Mensajes descriptivos en generación planillas liquidación
+
+---
+
+## [3.3.8] - 2025-09-26
+
+### 🔧 **OPTIMIZACIONES ACUMULADOS + FILTROS AVANZADOS**
+
+#### 📊 **Filtros Mejorados Vista byEmployee**
+- **Nuevo Filtro**: Tipo de Acumulado en `/panel/acumulados/byEmployee`
+- **Año "Todos"**: Opción para ver acumulados de todos los años disponibles
+- **Auto-submit**: Evento change en selector empleado ejecuta búsqueda automática
+- **UX Mejorada**: Filtros dinámicos year/tipo_acumulado con actualización instantánea
+- **Layout Responsivo**: 4 filtros en columnas de 3 cada uno (Año, Mes, Tipo, Empleado)
+
+#### 🛠️ **Simplificación Lógica Acumulados**
+- **Campo Redundante Eliminado**: `incluir_en_acumulado` de tabla `conceptos_acumulados`
+- **Lógica Simplificada**: Si checkbox marcado → existe registro → se incluye en acumulado
+- **Migración Automática**: 7 registros con `incluir_en_acumulado = 0` eliminados
+- **Código Limpio**: Removidas todas las condiciones `AND ca.incluir_en_acumulado = 1`
+- **Menos Complejidad**: Mantenimiento más simple y directo
+
+#### 🔧 **Correcciones Técnicas**
+- **PHP 8+ Deprecated Fix**: Cast explícito `(int) round()` en cálculo días vacaciones
+- **DIAS_PREAVISO Dinámico**: Variable usa valor real de BD en lugar de hardcode 30
+- **Liquidation Periods**: Cálculo correcto últimos 11 meses desde fecha terminación
+- **Year Filter Fix**: Vista acumulados maneja correctamente `year=todos` agrupando por tipo
+
+#### 📈 **Mejoras Backend**
+- **Nuevos Métodos**: `getAcumuladosByEmployeeAndType()`, `getTiposAcumulados()`, `setFechasLiquidacion()`
+- **Filtros Dinámicos**: WHERE condicionales en base a parámetros presentes
+- **Compatibilidad**: Funcionalidad existente preservada + nuevas características
+
+### 🎯 **Impacto en Funcionalidad**
+- **Acumulados más Claros**: Interfaz simplificada sin campos confusos
+- **Filtros Potentes**: Múltiples opciones de búsqueda con UX fluida
+- **Cálculos Precisos**: Días reales de BD en lugar de valores estáticos
+- **Performance**: Menos joins innecesarios y lógica más directa
+
+## [3.3.7] - 2025-09-26
+
+### 🎨 **MEJORAS UI/UX + FUNCIONALIDAD MÓDULO LIQUIDACIONES**
+
+#### 🔧 **Función CONCEPTO() Implementada**
+- **Nueva Función Calculadora**: `CONCEPTO("codigo")` para reutilizar cálculos entre conceptos
+- **Sintaxis Flexible**: Funciona con y sin comillas (`CONCEPTO("LIQ005")` o `CONCEPTO(LIQ005)`)
+- **Protección Recursión**: Detección automática de referencias circulares
+- **Casos de Uso**: LIQ008 (`CONCEPTO("LIQ005") * 0.0975`) y LIQ009 (`CONCEPTO("LIQ006") * 0.0975`)
+- **Logging Inteligente**: Advertencias en log para conceptos no encontrados
+
+#### 📱 **Modificación Días de Preaviso desde Interfaz**
+- **Campo Editable**: Input numérico en vista `/panel/liquidation/preview/{id}`
+- **Actualización AJAX**: Endpoint `/panel/liquidation/{id}/update-notice-days`
+- **Validaciones**: Rango 0-365 días + estados permitidos (no PAGADA/CANCELADA)
+- **UX Completa**: SweetAlert2 + confirmaciones + opción recálculo automático
+- **Historial**: Registro automático en `liquidation_history` + flag `needs_recalculation`
+
+#### 🎯 **Iconos Estado Planillas (Sin Texto)**
+- **Iconos FontAwesome**:
+  - PENDIENTE → ⏰ `fa-clock` (amarillo)
+  - PROCESADA → ✅ `fa-check-circle` (verde)
+  - CERRADA → 🔒 `fa-lock` (azul)
+  - ANULADA → ❌ `fa-times-circle` (rojo)
+- **Tooltips Informativos**: Hover muestra nombre completo del estado
+- **Centrado Perfecto**: Clase `text-center` en columna estado
+- **Colores Conservados**: Badge colors existentes mantenidos
+
+#### 📱 **Responsive Optimizado (1024px Breakpoint)**
+- **Cambio Breakpoint**: De `d-lg-table-cell` (992px) a `d-xl-table-cell` (1200px)
+- **Columnas Ocultas 1024px**: "Tipo Planilla" y "Total Empleados"
+- **Mini Laptop Friendly**: Optimizado para resoluciones ~1024px de ancho
+- **Columnas Esenciales**: ID, Descripción, Fecha, Estado (iconos), Acciones siempre visibles
+
+#### 🔧 **Archivos Modificados**
+```
+app/Services/PlanillaConceptCalculator.php        ← Función CONCEPTO() + regex patterns
+app/Controllers/LiquidationController.php         ← updateNoticeDays() method
+app/Views/admin/liquidation/preview.php          ← Campo editable preaviso + AJAX
+app/Controllers/PayrollController.php             ← Icons status + responsive
+app/Views/admin/payroll/index.php                ← Headers responsive d-xl
+assets/javascript/modules/payroll/index.js       ← Columns responsive + center
+app/Core/App.php                                 ← Route update-notice-days
+```
+
+#### 🎯 **Flujo Completo Días Preaviso**
+1. **Vista Preview**: Campo input + botón guardar
+2. **Validación**: Rango + estado liquidación
+3. **Confirmación**: Modal con detalles del cambio
+4. **Actualización**: BD + historial + flag recálculo
+5. **Opción Automática**: Recalcular liquidación inmediatamente
+
+#### ✅ **Testing Verificado**
+- **Función CONCEPTO()**: 37 conceptos cargados + referencias anidadas funcionales
+- **Días Preaviso**: Liquidación ID 1 (prod) - cambio 0→30 días implementado
+- **Iconos Estado**: Estados visualmente diferenciados sin texto
+- **Responsive**: Breakpoint 1024px funcionando correctamente
+
+## [3.3.6] - 2025-09-25
+
+### 🔄 **DUPLICACIÓN CONCEPTOS - FUNCIONALIDAD COMPLETA**
+
+#### 🛠️ **Funcionalidad de Duplicación Implementada**
+- **Módulo Duplicación**: Sistema completo de duplicación de conceptos con modal de confirmación
+- **AJAX Robusto**: Petición POST segura con validación CSRF y manejo de errores
+- **UI/UX Optimizada**: Modal con preview del concepto, descripción editable y feedback visual
+- **Validaciones**: Control de datos requeridos y prevención de envíos múltiples
+
+#### 🔧 **Fixes Técnicos Críticos**
+- **Router Mejorado**: Fix ruta `/panel/concepts/{id}/edit` para GET requests en App.php
+- **Event Handling**: Prevención completa de bubbling y navegación accidental
+- **Error Handling**: Manejo simplificado de errores AJAX sin interferencias de sesión
+- **CSRF Seguro**: Token validation restaurada y funcionando correctamente
+
+#### 📡 **Mejoras JavaScript**
+- **Event Prevention**: `preventDefault()`, `stopPropagation()`, `stopImmediatePropagation()`
+- **AJAX Explícito**: Configuración POST con headers específicos y timeout
+- **Console Debugging**: Logs esenciales mantenidos para troubleshooting
+- **Redirect Automático**: Navegación a formulario de edición tras duplicación exitosa
+
+#### 🎯 **Flujo de Trabajo Completo**
+- **Paso 1**: Clic en botón duplicar → Modal se abre con datos pre-llenados
+- **Paso 2**: Usuario edita descripción → Confirma duplicación
+- **Paso 3**: AJAX POST → ConceptController procesa → Nuevo concepto creado
+- **Paso 4**: Respuesta JSON → Redirect automático a edición del concepto nuevo
+
+#### ✅ **Resultados de Testing**
+- **Concepto 56 → 57**: "Test Duplicate Concept" → "Test Duplicate Concept (Copia)"
+- **Concepto 57 → 58**: Duplicación en cadena funcionando correctamente
+- **Concepto 58 → 59**: Múltiples duplicaciones sin conflictos
+
+## [3.3.5] - 2025-09-25
+
+### 💰 **SISTEMA LIQUIDACIONES - CÁLCULOS MEJORADOS + FIXES CRÍTICOS**
+
+#### 🔧 **Correcciones Error Layout Admin**
+- **Fix Fatal Error**: Corrección "Call to undefined function csrf_token()" en vista liquidation/create
+- **Funciones CSRF Agregadas**: `csrf_token()` y `csrf_hash()` añadidas a `app/Core/helpers.php`
+- **Inclusión Manual**: `require_once helpers.php` en vista create.php para compatibilidad
+- **Layout Admin Restaurado**: Navbar, sidebar y dependencias cargando correctamente
+
+#### 📊 **Mejoras Cálculos de Liquidación**
+- **Período Detallado**: Cambio de "X años" a "X años, Y meses, Z días" específico
+- **Días Laborables Precisos**: Nueva función `calculateBusinessDays()` excluyendo fines de semana
+- **Endpoint AJAX**: `/panel/liquidation/calculate-period` para cálculos dinámicos en tiempo real
+- **Actualización Automática**: Cálculos legales (prima, indemnización) al cambiar fechas
+
+#### 🎨 **Fixes UI/UX Liquidaciones**
+- **SweetAlert2 CDN**: Reemplazo función `url()` inexistente por CDN de SweetAlert2
+- **BusinessCalendar Temporal**: Fix clase inexistente mostrando "N/A" temporalmente
+- **Loading States**: Indicadores de carga durante cálculos AJAX
+- **Validación Fechas**: Verificación días laborables vs no laborables
+
+#### 🧮 **Resultados Cálculos Mejorados**
+- **Empleado 5019**: 0 años, 8 meses, 21 días = 189 días laborables (vs cálculo anterior impreciso)
+- **Empleado 5020**: 0 años, 0 meses, 22 días = 17 días laborables (nuevo empleado)
+- **Legislación Panameña**: Cálculos conformes con Código de Trabajo
+
+## [3.3.4] - 2025-09-24
+
+### 📊 **SISTEMA AJAX DATATABLES PARA PLANILLAS**
+
+#### ⚡ **Implementación DataTable Server-Side**
+- **AJAX DataTable**: Reemplazo de tabla estática por DataTable server-side con paginación
+- **PayrollController@datatablesAjax()**: Nuevo endpoint AJAX con soporte para búsqueda, ordenamiento y filtros
+- **Modelo Payroll Mejorado**: Métodos `getTotalCount()`, `getFilteredCount()`, `getAllWithStats()` con paginación
+- **JavaScript Modular**: Configuración AJAX completa con error handling y debugging
+- **Headers Correctos**: `X-Requested-With: XMLHttpRequest` para autenticación apropiada
+- **URL Building Dinámico**: Construcción de URLs sin hardcode para compatibilidad producción
+
+#### 🔄 **Modal Refresh Sin Recarga + UX Mejorada**
+- **Modal Reprocesar**: Actualización automática DataTable sin recargar página completa
+- **Modal Procesar**: Auto-refresh después de completar procesamiento (delay 2 segundos)
+- **Eliminación Botones**: Removidos botones "Actualizar Lista" (innecesarios con auto-refresh)
+- **Información Contextual**: Modales muestran ID + descripción de planilla al completar
+- **UX Consistente**: Ambos modales (procesar/reprocesar) con mismo comportamiento
+- **Error Handling**: Manejo de errores AJAX con redirección automática si sesión expira
+
+#### 🚀 **Cache-Busting Sistema**
+- **Formato SSIIHH**: Timestamp automático en archivos JavaScript (Segundos-Minutos-Horas)
+- **Auto-Generación**: `date('siH')` para evitar problemas de caché de navegador
+- **No Más Ctrl+F5**: Actualización automática de archivos JS modificados
+
+#### 🐛 **Fixes Críticos**
+- **Método Duplicado**: Eliminación `getAllWithStats()` duplicado con compatibilidad hacia atrás
+- **Compatibilidad**: Método unificado funciona con parámetros legacy y nuevos
+- **Debugging Completo**: Console.log frontend + error_log backend para troubleshooting
+- **Ordenamiento**: Mantiene orden original `fecha DESC` para llamadas sin paginación
+
 ## [3.3.3] - 2025-09-24
 
 ### 👥 **SISTEMA SEPARACIÓN EMPLEADOS ACTIVOS/TERMINADOS**

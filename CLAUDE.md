@@ -1,9 +1,9 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.3.4 Vista Empleado Mejorada + Validación Períodos**
-- **Fecha**: 24 de Septiembre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VISTA EMPLEADO TERMINACIÓN + VALIDACIONES CRÍTICAS**
-- **Versión**: 3.3.4 - Vista Empleado Mejorada + Validación Períodos Planillas + Fixes Críticos
+## 📝 **Estado Actual - V3.3.11 Dashboard Filtros + UI Improvements**
+- **Fecha**: 2 de Octubre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + DASHBOARD FILTROS COMPLETO + UI/UX OPTIMIZADA**
+- **Versión**: 3.3.11 - Dashboard con filtros tipo planilla + SessionStorage + Tabs alineados
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -11,7 +11,7 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 ## ✅ **Completado (100%)**
 - ✅ **Core MVC**: Router + Database + Middleware + CSRF + Roles
 - ✅ **Planillas**: Procesamiento + PDF + Estados + Acumulados automáticos
-- ✅ **XIII Mes Panamá**: (Salario Anual ÷ 3) - Descuentos legislación
+- ✅ **XIII Mes Panamá**: (Salario Anual ÷ 3) - Descuentos legislación + Períodos Trimestrales
 - ✅ **Reportes PDF**: Planillas + Comprobantes + Logos empresariales + Firmas
 - ✅ **Módulo Organizacional**: CRUD completo + jerarquías + integración empleados
 - ✅ **Sistema Logos**: Dropzone.js + triple logo + reportes PDF
@@ -22,12 +22,31 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Planillas de Liquidación**: Generación automática + vistas separadas + periodo 11 meses
 - ✅ **Correcciones Cálculos**: Fix ASIGNACION vs DEDUCCION + totales corregidos + JOIN mejorado
 - ✅ **Sistema Separación Empleados**: /panel/employees activos + /terminated dados de baja + JavaScript modular + URLs dinámicas
+- ✅ **AJAX DataTables**: Server-side paginación + búsqueda + performance optimizada
+- ✅ **Duplicación Conceptos**: Modal AJAX + validación CSRF + redirect automático + event handling robusto
+- ✅ **Modal Refresh**: Actualización sin recargar página + auto-refresh inteligente
+- ✅ **Modal UX Optimizada**: Eliminación botones innecesarios + información contextual planilla (ID + descripción)
+- ✅ **Cache-Busting**: Sistema SSIIHH automático para JavaScript + no más Ctrl+F5
+- ✅ **Función CONCEPTO()**: Reutilización cálculos entre conceptos + protección recursión
+- ✅ **Días Preaviso Editables**: Campo modificable desde interfaz + AJAX + validaciones + historial
+- ✅ **Iconos Estado Planillas**: FontAwesome icons + tooltips + centrado perfecto
+- ✅ **Responsive 1024px**: Breakpoint optimizado mini laptops + columnas esenciales
 - ✅ **Vista Empleado Mejorada**: Información terminación completa + callouts AdminLTE + badges visuales
 - ✅ **Validaciones Críticas**: Fechas contratos + períodos planillas + empleados activos durante procesamiento
+- ✅ **Liquidaciones Mejoradas**: Período detallado (días, meses, años) + cálculos precisos días laborables + AJAX dinámico
+- ✅ **Fixes Críticos CSRF**: Funciones csrf_token() y csrf_hash() agregadas + inclusión helpers.php + layout admin restaurado
+- ✅ **Cálculos Legales Automáticos**: Prima antigüedad + indemnización actualizadas en tiempo real al cambiar fechas
 - ✅ **Bugfixes Acumulados**: Corrección campos BD + undefined variables + enlaces menú
 - ✅ **UI/UX Improvements**: Callouts AdminLTE + info boxes dinámicos + indicadores tiempo real
+- ✅ **Filtros Avanzados Acumulados**: Tipo acumulado + año "todos" + auto-submit empleado + UX optimizada
+- ✅ **Simplificación Lógica**: Campo `incluir_en_acumulado` eliminado + migración automática + código limpio
+- ✅ **PHP 8+ Compatibility**: Deprecated warnings resueltos + cast explícito `(int) round()`
+- ✅ **Variables Dinámicas**: DIAS_PREAVISO usa BD real + cálculo períodos liquidación corregido
 - ✅ **Sistema Notificaciones Toastr**: Métodos Controller base + integración automática + categorización
 - ✅ **Análisis Calendario Empresarial**: Marco legal panameño + requerimientos + estructura datos
+- ✅ **XIII Mes Trimestral**: XIIIMesPeriodoTrimestralCalculator + períodos trimestrales + variables dinámicas + scripts testing/deploy + vista mejorada
+- ✅ **Employee Import Fixes**: Foreign key constraints corregidos + cleanForeignKeyNulls() + PHP 8+ compatible + validaciones robustas
+- ✅ **Dashboard Filtros V3.3.11**: Filtrado completo por tipo planilla + integración sessionStorage + sincronización navbar + tarjetas reordenadas
 
 ## 📄 **Reportes PDF Empresariales**
 - **Planillas**: Layout horizontal + logos empresariales + firmas profesionales
@@ -35,6 +54,28 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - **Triple Logo System**: Logo principal + logo izquierdo reportes + logo derecho reportes
 - **Firmas**: Configurables desde BD companies (4 niveles de firma)
 - **PDFReportController**: Controlador específico para generación reportes
+
+## 💰 **Sistema XIII Mes Trimestral - V3.3.9**
+- **XIIIMesPeriodoTrimestralCalculator**: Clase calculadora legislación panameña períodos trimestrales
+- **Períodos Automáticos**: P1 (Dic16→Abr15), P2 (Abr16→Ago15), P3 (Ago16→Dic15)
+- **Variables Dinámicas**: INICIO_PERIODO_XIII + FIN_PERIODO_XIII + PERIODO_XIII_NUMERO + PERIODO_XIII_ESTADO
+- **Fórmula Corregida LIQ006**: `ACUMULADOS("SALARIO_BASE", FICHA, INICIO_PERIODO_XIII, FIN_PERIODO_XIII)/4`
+- **Integración Automática**: PlanillaConceptCalculator procesa variables dinámicamente
+- **Scripts Completos**: test_xiii_mes_trimestral.php (4 módulos testing) + deploy_xiii_mes_trimestral.php (backup automático)
+- **Vista Mejorada**: Layout estilo cálculo liquidación + routing corregido + información empleado + marco legal panameño
+
+## 📥 **Sistema Employee Import - V3.3.10**
+- **EmployeeImportController**: Importación masiva empleados desde Excel + validaciones robustas
+- **Foreign Key Constraint Fix**: SQLSTATE[23000] error resuelto + cleanForeignKeyNulls() method
+- **PHP 8+ Compatibility**: safeTrim() + null coalescing operator (??) + deprecated warnings corregidos
+- **Output Buffering**: ob_start()/ob_end_clean() previene "headers already sent" errors
+- **Enhanced Date Formatting**: formatDate() múltiples formatos (YYYY-MM-DD, DD/MM/YYYY, Excel serial)
+- **Conditional Validation**: position_id opcional empresas privadas + foreign keys solo validados si proporcionados
+- **Excel Template**: Headers "(Ver Ref)" + hoja Referencias con IDs válidos + ejemplos datos
+- **Error Messages Enhanced**: Mensajes específicos con columna exacta + referencia hoja (ej: "Columna J - Ver hoja Referencias")
+- **Callouts AdminLTE**: UI mejorada con callout-success/danger/warning + integración visual completa
+- **Debug Logging**: Logs detallados print_r() datos extraídos + validación errors tracking
+- **Testing Suite**: test_employee_import_fix.php + test_empleados_simple.xlsx con IDs válidos BD
 
 ## 🏢 **Módulo Organizacional Completo**
 - **OrganizationalController**: CRUD completo con create/edit/delete
@@ -57,6 +98,27 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - **Dashboard Completo**: Estadísticas + export CSV + PDF + navegación integrada
 - **Flujo Completo**: Calcular → Generar Planilla → Ver Planillas → Detalle
 
+## 📊 **Dashboard Ejecutivo con Filtros - V3.3.11**
+- **Filtrado por Tipo Planilla**: Sistema completo filtrado todas las métricas del dashboard
+- **Integración SessionStorage**: Lee automáticamente tipo planilla seleccionado desde navbar
+- **Sincronización Navbar**: Evento `payrollTypeChanged` actualiza dashboard en tiempo real
+- **Tarjetas Reordenadas**: Total Empleados → Colaboradores Activos → Puntualidad Mensual → Presentes Hoy
+- **Indicadores Visuales**: Badge "Filtrado" en tarjetas + alerta informativa con tipo seleccionado
+- **Modelos Actualizados**:
+  - `Acumulado.php`: Nuevo modelo con métodos `getAcumuladosByTipoAndYear()`, `getEmployeesWithAcumulados()`, `getAvailableYears()`
+  - `Employee.php`: Método `getEmployeesByTipoPlanilla($tipoPlanillaId)`
+  - `Attendance.php`: Parámetro `$tipoPlanillaId` en `getAttendanceByDateRange()`
+- **Métricas Filtradas**:
+  - Total empleados por tipo planilla
+  - Colaboradores activos últimos 30 días
+  - Asistencia hoy (presentes/ausentes)
+  - Puntualidad mensual
+  - Gráfica asistencia (últimos 30 días)
+  - Acumulados por tipo
+- **JavaScript Limpio**: EventListeners + URLSearchParams API + sin formularios redundantes
+- **Tabs Alineados**: CSS `justify-content: flex-end` para tabs a la derecha
+- **Compatible URLs Directas**: `/panel/dashboard?tipo_planilla=1` funciona correctamente
+
 ## 👥 **Sistema Separación Empleados**
 - **Vista Activos**: /panel/employees muestra únicamente empleados situacion_id = 1
 - **Vista Terminados**: /panel/employees/terminated para empleados dados de baja
@@ -76,6 +138,33 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - **Badges Estado**: Colores específicos para cada tipo terminación (Despido, Renuncia, Mutuo Acuerdo)
 - **Fix Contratos**: Validación robusta campos fecha vacíos con trim() + empty() + null fallback
 - **Fix Parse Error**: Reestructuración código PHP vista show.php sin syntax errors
+
+## ⚡ **AJAX DataTables + Performance**
+- **Server-Side DataTables**: Paginación eficiente con carga bajo demanda + búsqueda optimizada
+- **PayrollController@datatablesAjax()**: Endpoint completo con filtros, ordenamiento y conteo total
+- **Modelo Optimizado**: getTotalCount() + getFilteredCount() + getAllWithStats() mejorado para paginación
+- **Modal Refresh Inteligente**: Actualización automática sin recargar página después procesar/reprocesar
+- **Cache-Busting SSIIHH**: Sistema automático formato Segundos-Minutos-Horas para JavaScript
+- **Headers AJAX**: X-Requested-With + error handling + redirección automática sesión expirada
+- **URLs Dinámicas**: Sin hardcode para compatibilidad producción + debugging completo
+
+## 🧮 **Función CONCEPTO() + Motor Fórmulas Avanzado**
+- **Sintaxis Flexible**: `CONCEPTO("LIQ005")` o `CONCEPTO(LIQ005)` - ambas válidas
+- **Reutilización Cálculos**: Evita duplicar fórmulas largas entre conceptos relacionados
+- **Protección Recursión**: Detección automática bucles infinitos + logging de advertencias
+- **Casos Reales**: LIQ008 (`CONCEPTO("LIQ005") * 0.0975`) para ISR sobre vacaciones
+- **37 Conceptos Cargados**: Sistema completo con referencias anidadas funcionales
+- **Zero Values Handling**: Retorna 0 para conceptos no encontrados + logging inteligente
+
+## 📱 **UX/UI Optimizada + Responsive 1024px**
+- **Iconos Estado Planillas**: FontAwesome en lugar de texto truncado (PEND → ⏰, PROC → ✅, CERR → 🔒, ANUL → ❌)
+- **Tooltips Informativos**: Hover muestra nombre completo estado + centrado perfecto
+- **Breakpoint 1024px**: d-xl-table-cell para mini laptops + columnas esenciales siempre visibles
+- **Días Preaviso Editables**: Campo input numérico en /panel/liquidation/preview/{id}
+- **AJAX Validado**: Endpoint update-notice-days + validaciones rango 0-365 + estados permitidos
+- **Historial Completo**: Registro liquidation_history + flag needs_recalculation automático
+- **SweetAlert2 UX**: Confirmaciones + opción recálculo inmediato + restauración en errores
+- **Auto-Refresh**: Delay inteligente 2 segundos después completar procesamiento + botones inteligentes
 
 ## ✅ **Validaciones Críticas**
 - **Validación Períodos Planillas**: Solo procesar empleados activos durante período planilla específico
