@@ -168,7 +168,7 @@ class Admin extends Controller
     private function getActiveEmployees($tipoSeleccionado = null)
     {
         $employee = $this->model('Employee');
-        $whereClause = "created_on >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        $whereClause = " (situacion_id = 1 OR situacion_id LIKE '%activ%' OR situacion_id LIKE '%ACTIV%') ";
 
         if ($tipoSeleccionado) {
             $whereClause .= " AND tipo_planilla_id = " . (int)$tipoSeleccionado;
