@@ -719,7 +719,7 @@ class SidebarComponent
 
                 <!-- Sidebar Menu -->
                 <nav class="mt-0">
-                    <ul class="nav nav-pills nav-sidebar flex-column nav-compact" data-widget="treeview" role="menu" data-accordion="false">
+                    <ul class="nav nav-pills nav-sidebar flex-column nav-compact" role="menu" data-accordion="false">
                         ' . $menuHtml . '
                         
                         <!-- System Info -->
