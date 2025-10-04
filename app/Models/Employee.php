@@ -279,7 +279,9 @@ class Employee extends Model
     public function getEmployeesByTipoPlanilla($tipoPlanillaId)
     {
         try {
-            $sql = "SELECT * FROM employees WHERE tipo_planilla_id = ? ORDER BY firstname, lastname";
+            $sql = "SELECT * FROM employees WHERE tipo_planilla_id = ? 
+            AND (situacion_id = 1 OR situacion_id LIKE '%activ%' OR situacion_id LIKE '%ACTIV%')
+            ORDER BY firstname, lastname";
             return $this->db->findAll($sql, [$tipoPlanillaId]);
         } catch (\Exception $e) {
             error_log("Error getting employees by tipo planilla: " . $e->getMessage());
