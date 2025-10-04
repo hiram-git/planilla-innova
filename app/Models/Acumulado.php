@@ -24,18 +24,19 @@ class Acumulado
      * Obtener resumen de acumulados por tipo y año
      *
      * @param int $year Año a consultar
-     * @param string|null $tipoSeleccionado Código del tipo de acumulado (opcional)
+     * @param int|null $tipoPlanillaId ID del tipo de planilla para filtrar empleados (opcional)
      * @return array
      */
-    public function getAcumuladosByTipoAndYear($year, $tipoSeleccionado = null)
+    public function getAcumuladosByTipoAndYear($year, $tipoPlanillaId = null)
     {
         try {
             $whereConditions = ["ape.ano = ?"];
             $params = [$year];
 
-            if ($tipoSeleccionado && $tipoSeleccionado !== 'todos') {
-                $whereConditions[] = "ape.tipo_acumulado = ?";
-                $params[] = $tipoSeleccionado;
+            // Filtrar por tipo de planilla del empleado si se proporciona
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $whereConditions[] = "e.tipo_planilla_id = ?";
+                $params[] = (int)$tipoPlanillaId;
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -43,12 +44,13 @@ class Acumulado
             $sql = "
                 SELECT
                     ape.tipo_acumulado as tipo_codigo,
-                    COALESCE(ta.descripcion, CONCAT('Tipo: ', ape.tipo_acumulado)) as tipo_descripcion,
+                    COALESCE(ta.descripcion, CONCAT('Tipo: ', ape.tipo_acumulado)) as descripcion,
                     SUM(ape.monto) as total_acumulado,
                     COUNT(DISTINCT ape.employee_id) as total_empleados,
                     COUNT(DISTINCT ape.concepto_id) as total_conceptos_incluidos,
                     GROUP_CONCAT(DISTINCT c.concepto ORDER BY c.concepto SEPARATOR ', ') as conceptos_incluidos
                 FROM {$this->table} ape
+                INNER JOIN employees e ON ape.employee_id = e.id
                 LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                 LEFT JOIN concepto c ON ape.concepto_id = c.id
                 WHERE {$whereClause}
@@ -60,7 +62,11 @@ class Acumulado
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            error_log("getAcumuladosByTipoAndYear - Year: $year, TipoPlanillaId: " . ($tipoPlanillaId ?? 'null') . ", Results: " . count($results));
+
+            return $results;
         } catch (\PDOException $e) {
             error_log("Error en getAcumuladosByTipoAndYear: " . $e->getMessage());
             return [];
@@ -71,18 +77,19 @@ class Acumulado
      * Obtener empleados con acumulados en un año específico
      *
      * @param int $year Año a consultar
-     * @param string|null $tipoSeleccionado Código del tipo de acumulado (opcional)
+     * @param int|null $tipoPlanillaId ID del tipo de planilla para filtrar empleados (opcional)
      * @return array
      */
-    public function getEmployeesWithAcumulados($year, $tipoSeleccionado = null)
+    public function getEmployeesWithAcumulados($year, $tipoPlanillaId = null)
     {
         try {
             $whereConditions = ["ape.ano = ?"];
             $params = [$year];
 
-            if ($tipoSeleccionado && $tipoSeleccionado !== 'todos') {
-                $whereConditions[] = "ape.tipo_acumulado = ?";
-                $params[] = $tipoSeleccionado;
+            // Filtrar por tipo de planilla del empleado si se proporciona
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $whereConditions[] = "e.tipo_planilla_id = ?";
+                $params[] = (int)$tipoPlanillaId;
             }
 
             $whereClause = implode(" AND ", $whereConditions);

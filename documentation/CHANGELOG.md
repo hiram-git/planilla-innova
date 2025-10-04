@@ -1,5 +1,271 @@
 # 📋 CHANGELOG - Sistema de Planillas MVC
 
+## [3.3.15] - 2025-10-04
+
+### 📊 **MÓDULO ACUMULADOS REFACTORIZADO - AGRUPACIÓN DINÁMICA COMPLETA**
+
+#### 🎯 **Vista Acumulados por Concepto - `/panel/acumulados/byConcepto`**
+
+**Filtros Implementados**:
+- ✅ **Concepto** (required): Select2 con optgroups (Asignaciones/Deducciones)
+- ✅ **Año**: Dropdown años disponibles
+- ✅ **Mes**: Dropdown meses + opción "Todos"
+- ✅ **Agrupar por**: empleado | planilla | año
+
+**Funcionalidades**:
+- ✅ Cards visuales con totales agrupados (small-box)
+- ✅ Color dinámico según tipo_concepto (success=ASIGNACION, danger=DEDUCCION)
+- ✅ Porcentajes del total por grupo
+- ✅ Total general con info-box
+- ✅ Tabla detallada colapsada con DataTables Spanish
+- ✅ Exportar CSV integrado
+- ✅ Filtros expandidos por defecto
+
+**Métodos Controller** (`AcumuladoController.php`):
+- `byConcepto()`: Vista principal con filtros y agrupación
+- `getConceptosForFilter()`: Obtiene conceptos disponibles (fix: sin campo `activo`)
+- `getAcumuladosAgrupadosByConcepto()`: Agrupa por empleado/planilla/año
+
+#### 🎯 **Vista Acumulados por Tipo de Acumulado - `/panel/acumulados/byType`**
+
+**Filtros Implementados**:
+- ✅ **Tipo Acumulado** (required): Select2 con tipos disponibles
+- ✅ **Año**: Dropdown años disponibles
+- ✅ **Mes**: Dropdown meses + opción "Todos"
+- ✅ **Agrupar por**: empleado | mes | año
+
+**Funcionalidades**:
+- ✅ Cards visuales con totales agrupados (small-box bg-info)
+- ✅ Porcentajes del total por grupo
+- ✅ Total general con info-box
+- ✅ Tabla detallada colapsada con DataTables Spanish
+- ✅ Exportar CSV integrado
+- ✅ Filtros expandidos por defecto
+
+**Métodos Controller** (`AcumuladoController.php`):
+- `byType()`: Vista principal con filtros y agrupación (completamente refactorizado)
+- `getTiposAcumuladosForFilter()`: Obtiene tipos de acumulados disponibles
+- `getAcumuladosByTipoAcumulado()`: Filtra acumulados por tipo + año + mes
+- `getAcumuladosAgrupadosByTipo()`: Agrupa por empleado/mes/año con totales
+
+#### 🐛 **Fixes Aplicados**
+
+**app/Controllers/AcumuladoController.php**:
+- ✅ Removido `WHERE c.activo = 1` en `getConceptosForFilter()` (columna no existe en tabla concepto)
+- ✅ Separación completa entre `byType()` y `byConcepto()` (funcionalidades independientes)
+- ✅ SQL optimizado con GROUP BY dinámico según tipo de agrupación
+
+**app/Views/admin/acumulados/by_concept.php**:
+- ✅ Removido `collapsed-card` class - filtros expandidos por defecto
+- ✅ Cambiado icono de `fa-plus` a `fa-minus` para indicar estado expandido
+- ✅ Ruta limpieza corregida: apunta a `/panel/acumulados/byConcepto`
+
+**app/Views/admin/acumulados/by_type.php**:
+- ✅ Vista completamente reescrita con misma estructura que by_concept
+- ✅ Filtros expandidos por defecto
+- ✅ Integración Select2 + DataTables Spanish
+- ✅ Cards visuales con color bg-info
+
+#### 📊 **SQL Queries Implementadas**
+
+**Agrupación por Empleado**:
+```sql
+SELECT
+    ape.employee_id as grupo_id,
+    CONCAT(e.firstname, ' ', e.lastname) as grupo_descripcion,
+    e.document_id,
+    SUM(ape.monto) as total_monto,
+    COUNT(DISTINCT ape.planilla_id) as total_planillas,
+    COUNT(DISTINCT ape.employee_id) as total_empleados
+FROM acumulados_por_empleado ape
+INNER JOIN employees e ON ape.employee_id = e.id
+WHERE {filtros}
+GROUP BY ape.employee_id, e.firstname, e.lastname, e.document_id
+```
+
+**Agrupación por Mes** (solo byType):
+```sql
+SELECT
+    ape.mes as grupo_id,
+    CONCAT('Mes ', ape.mes) as grupo_descripcion,
+    SUM(ape.monto) as total_monto,
+    COUNT(DISTINCT ape.planilla_id) as total_planillas,
+    COUNT(DISTINCT ape.employee_id) as total_empleados
+FROM acumulados_por_empleado ape
+WHERE {filtros}
+GROUP BY ape.mes
+```
+
+**Agrupación por Año**:
+```sql
+SELECT
+    ape.ano as grupo_id,
+    CAST(ape.ano AS CHAR) as grupo_descripcion,
+    SUM(ape.monto) as total_monto,
+    COUNT(DISTINCT ape.planilla_id) as total_planillas,
+    COUNT(DISTINCT ape.employee_id) as total_empleados
+FROM acumulados_por_empleado ape
+WHERE {filtros}
+GROUP BY ape.ano
+```
+
+**Agrupación por Planilla** (solo byConcepto):
+```sql
+SELECT
+    ape.planilla_id as grupo_id,
+    pc.descripcion as grupo_descripcion,
+    pc.fecha_inicio,
+    pc.fecha_fin,
+    SUM(ape.monto) as total_monto,
+    COUNT(DISTINCT ape.planilla_id) as total_planillas,
+    COUNT(DISTINCT ape.employee_id) as total_empleados
+FROM acumulados_por_empleado ape
+LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+WHERE {filtros}
+GROUP BY ape.planilla_id, pc.descripcion, pc.fecha_inicio, pc.fecha_fin
+```
+
+#### ✅ **Archivos Modificados**
+
+1. `app/Controllers/AcumuladoController.php` (líneas 405-762)
+   - Método `byType()` refactorizado completamente
+   - Método `byConcepto()` mantenido separado
+   - 4 nuevos métodos privados agregados
+
+2. `app/Views/admin/acumulados/by_type.php` (completo rewrite)
+   - Nueva estructura idéntica a by_concept.php
+   - Agrupación por empleado/mes/año
+   - Cards visuales bg-info
+
+3. `app/Views/admin/acumulados/by_concept.php` (líneas 29-40)
+   - Filtros expandidos por defecto
+   - Ruta limpieza corregida
+
+#### 🎨 **UX/UI Improvements**
+
+- ✅ Select2 con tema Bootstrap4 en ambas vistas
+- ✅ DataTables con idioma español (DATATABLES_SPANISH)
+- ✅ Cards small-box con iconos FontAwesome contextuales
+- ✅ Tabla detallada colapsada por defecto para mejor performance
+- ✅ Botón "Exportar CSV" integrado en header tabla
+- ✅ Tooltips inicializados correctamente
+- ✅ Responsive design mantenido
+
+---
+
+## [3.3.14] - 2025-10-04
+
+### 🔧 **SIDEBAR MENU TOGGLE FIX - NAVEGACIÓN PERFECCIONADA**
+
+#### 🐛 **Problema Identificado**
+- **Síntoma**: Menús del sidebar no se contraían al hacer clic nuevamente
+- **Causa**: Plugin AdminLTE Treeview interfiriendo con lógica manual
+- **Clases problemáticas**: `menu-is-opening menu-open` permanecían después de clic
+- **Comportamiento esperado**: Expand/collapse funcionando como acordeón
+
+#### ✅ **Solución Implementada**
+
+**Cambios en Sidebar Component** (`app/Views/components/sidebar.php:722`)
+- **Removido** `data-widget="treeview"` del elemento `<ul>` del menú
+- **Desactivada** inicialización automática de AdminLTE Treeview
+- Sidebar ahora usa control manual 100%
+
+**Cambios en Layout Admin** (`app/Views/layouts/admin.php:501-544`)
+- **Desactivado plugin Treeview**: Sobrescrito método `_init()` para que no ejecute nada
+- **Removidos eventos AdminLTE**: `expanded.lte.treeview` y `collapsed.lte.treeview`
+- **Event handler mejorado**:
+  - `e.stopImmediatePropagation()` - Detiene TODOS los handlers de eventos
+  - Verificación dual: `menu-open` OR `menu-is-opening`
+  - `return false` - Asegura que no se propague el evento
+- **Lógica toggle perfecta**:
+  - **Abrir**: Agrega `menu-is-opening` → slideDown() → cambia a `menu-open`
+  - **Cerrar**: Remueve ambas clases → slideUp() → cambia icono
+
+#### 🎨 **Mejoras UX**
+- ✅ Toggle funciona perfectamente (expand/collapse)
+- ✅ Animaciones suaves con slideUp/slideDown
+- ✅ Iconos rotan correctamente (`fa-angle-left` ↔ `fa-angle-down`)
+- ✅ Estado persiste correctamente durante navegación
+- ✅ Sin conflictos con otros plugins AdminLTE
+
+#### 🔧 **Detalles Técnicos**
+- **Event delegation**: `$(document).on('click', '.nav-item.has-treeview > .nav-link')`
+- **Stop propagation**: `e.preventDefault()`, `e.stopPropagation()`, `e.stopImmediatePropagation()`
+- **Animation control**: `.stop(true, true)` antes de slideUp/slideDown
+- **Class management**: Remoción limpia de `menu-open` y `menu-is-opening`
+
+#### ✅ **Testing**
+- ✅ Menú "Empleados" expand/collapse funcional
+- ✅ Menú "Estructura Organizacional" funcional
+- ✅ Menú "Gestión de Planillas" funcional
+- ✅ Todos los submenús responden correctamente
+- ✅ Sin conflictos con navegación activa
+
+## [3.3.13] - 2025-10-04
+
+### 📊 **REPORTS DROPDOWN - ACCESO RÁPIDO REPORTES DESDE LISTADO PLANILLAS**
+
+#### ✨ **Nuevo Dropdown de Reportes en Listado**
+- **Ubicación**: Columna "Acciones" del listado de planillas (solo PROCESADA/CERRADA)
+- **Botón Dropdown**: Icono `fa-file-export` con tooltip "Reportes disponibles"
+- **Alineación**: Dropdown menu alineado a la derecha (`dropdown-menu-right`)
+- **Comportamiento**: Reportes se abren en nueva pestaña (`target="_blank"`)
+
+#### 📄 **Reportes Incluidos en Dropdown**
+1. **PDF Planilla** - `fa-file-pdf text-danger` - Layout horizontal profesional
+2. **Excel Panamá (4 Hojas)** - `fa-file-excel text-success` - Formato 4 hojas completo
+3. **Comprobantes de Pago** - `fa-receipt text-info` - Comprobantes individuales por empleado
+4. **Reporte Acreedores** - `fa-building text-warning` - Deducciones por acreedor
+5. **Informe 03 Gubernamental** - `fa-file-contract text-secondary` - Reporte oficial
+
+#### 🎨 **Mejoras UX/UI**
+- **Iconos de Colores**: Cada reporte con icono FontAwesome y color distintivo
+- **Header Visual**: Sección "Reportes" con icono `fa-chart-bar` en dropdown header
+- **Separador Visual**: Divider entre reportes principales y gubernamentales
+- **Tooltips Informativos**: Títulos descriptivos en hover
+- **Responsive Design**: Dropdown se adapta correctamente en pantallas pequeñas
+
+#### 🔧 **Cambios Técnicos**
+- **Archivo**: `app/Controllers/PayrollController.php:2551-2581`
+- **Método**: `generateActionButtons()` - Agregado bloque dropdown reportes
+- **Condición**: `in_array($payroll['estado'], ['PROCESADA', 'CERRADA'])`
+- **URLs**: Uso de `UrlHelper::url()` para rutas consistentes
+- **Integración**: Bootstrap 4 dropdown component + AdminLTE styles
+
+#### ✅ **Beneficios**
+- ✅ Acceso rápido a todos los reportes desde listado principal
+- ✅ Reduce clics necesarios (antes: ver detalle → buscar botón → generar)
+- ✅ Interfaz más limpia y profesional
+- ✅ Mejora productividad usuarios frecuentes
+- ✅ Consistencia visual con resto del sistema
+
+## [3.3.12] - 2025-10-04
+
+### 🔒 **CSRF SECURITY FIX - UNIFICACIÓN CÓDIGO + ELIMINACIÓN DUPLICACIÓN**
+
+#### 🐛 **Corrección Error Fatal AuthMiddleware**
+- **Error Resuelto**: `Fatal error: Call to undefined method App\Core\AuthMiddleware::validateCSRF()`
+- **Causa**: TipoPlanillaController llamaba `AuthMiddleware::validateCSRF()` pero método no existía
+- **Ubicación**: `app/Controllers/TipoPlanillaController.php:33`
+
+#### 🧹 **Limpieza y Unificación Código CSRF**
+- **AuthMiddleware::validateCSRF()**: Método agregado delegando a `Security::validateToken()`
+- **Eliminación Duplicación**: Removido método `AuthMiddleware::generateCSRF()` (duplicaba `Security::generateToken()`)
+- **Arquitectura Limpia**: Un solo lugar para generación/validación CSRF → `app/Core/Security.php`
+- **Consistencia**: Todas las validaciones CSRF ahora usan la clase `Security` centralizada
+
+#### 🔧 **Cambios Técnicos**
+- **app/Core/AuthMiddleware.php:300-313**: Agregado método `validateCSRF()` que usa `Security::validateToken()`
+- **Uso de hash_equals()**: Validación timing-safe en `Security::validateToken()`
+- **Reutilización Código**: Evita duplicación funcionalidad entre clases
+- **Documentación**: Comentarios actualizados indicando delegación a Security class
+
+#### ✅ **Beneficios**
+- ✅ Código más mantenible (un solo lugar para lógica CSRF)
+- ✅ Eliminación código duplicado
+- ✅ Consistencia arquitectónica
+- ✅ Facilita futuras actualizaciones de seguridad
+
 ## [3.3.11] - 2025-10-02
 
 ### 📊 **DASHBOARD EJECUTIVO - FILTROS POR TIPO PLANILLA + UI IMPROVEMENTS**

@@ -381,7 +381,30 @@ $content .= '
                     <!-- Fin Tab Dashboard Principal -->
 
                     <!-- Tab Dashboard Acumulados -->
-                    <div class="tab-pane fade" id="dashboard-acumulados" role="tabpanel" aria-labelledby="acumulados-tab">
+                    <div class="tab-pane fade" id="dashboard-acumulados" role="tabpanel" aria-labelledby="acumulados-tab">';
+
+// Indicador de filtro activo en tab Acumulados
+if ($tipo_seleccionado) {
+    $tipoNombre = '';
+    foreach ($tipos_planilla as $t) {
+        if ($t['id'] == $tipo_seleccionado) {
+            $tipoNombre = $t['descripcion'];
+            break;
+        }
+    }
+    $content .= '<div class="row">
+        <div class="col-12">
+            <div class="alert alert-info alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <h5><i class="icon fas fa-filter"></i> Filtro Activo</h5>
+                Mostrando acumulados únicamente para: <strong>' . htmlspecialchars($tipoNombre) . '</strong>
+                <br><small>Año: ' . ($acumulados_data['year'] ?? date('Y')) . '</small>
+            </div>
+        </div>
+    </div>';
+}
+
+$content .= '
                         <div class="row">
                             <div class="col-12">
                                 <h5>Resumen por Tipos de Acumulados - Año ' . ($acumulados_data['year'] ?? date('Y')) . '</h5>
@@ -403,7 +426,7 @@ if (!empty($acumulados_data['tipos_acumulados'])) {
                                 <div class="small-box bg-' . $color . '">
                                     <div class="inner">
                                         <h3>' . currency_symbol() . number_format($tipo['total_acumulado'] ?? 0, 2) . '</h3>
-                                        <p>' . htmlspecialchars($tipo['descripcion'] ?? 'N/A') . '</p>
+                                        <p>' . htmlspecialchars($tipo['descripcion'] ?? 'N/A') . $filtroActivo . '</p>
                                         <small class="d-block">
                                             <i class="fas fa-users"></i> ' . ($tipo['total_empleados'] ?? 0) . ' empleados |
                                             <i class="fas fa-list"></i> ' . ($tipo['total_conceptos_incluidos'] ?? 0) . ' conceptos
@@ -413,7 +436,7 @@ if (!empty($acumulados_data['tipos_acumulados'])) {
                                         <i class="fas fa-piggy-bank"></i>
                                     </div>
                                     <div class="small-box-footer">
-                                        <a href="' . \App\Core\UrlHelper::route('panel/acumulados/by-type/' . ($tipo['id'] ?? 0)) . '" class="text-white">
+                                        <a href="' . \App\Core\UrlHelper::route('panel/acumulados/by-type/' . urlencode($tipo['tipo_codigo'] ?? '')) . '" class="text-white">
                                             <i class="fas fa-eye"></i> Ver Detalles
                                         </a>
                                     </div>

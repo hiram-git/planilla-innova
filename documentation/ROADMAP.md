@@ -1,8 +1,8 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 2 de Octubre, 2025
-**Versión**: 3.3.11 - Dashboard con Filtros por Tipo Planilla + UI/UX Improvements
+**Fecha**: 4 de Octubre, 2025
+**Versión**: 3.3.15 - Módulo Acumulados Refactorizado + Agrupación Dinámica
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -78,10 +78,16 @@
 ### ✅ **FASE 3.7: MEJORAS UX/UI + FUNCIONALIDAD LIQUIDACIONES AVANZADA (100% COMPLETADO)**
 - [x] **Función CONCEPTO()**: Reutilización cálculos entre conceptos (`CONCEPTO("LIQ005")`)
 - [x] **Modificación Días Preaviso**: Campo editable en preview + AJAX + validaciones + historial
+
+### ✅ **FASE 3.8: DASHBOARD FILTROS + CSRF + REPORTS + SIDEBAR PERFECT (100% COMPLETADO)**
+- [x] **Dashboard Filtros V3.3.11**: Filtrado por tipo planilla + sessionStorage + modelos mejorados
+- [x] **CSRF Security Fix V3.3.12**: Unificación código CSRF + eliminación duplicación + delegación correcta
+- [x] **Reports Dropdown V3.3.13**: Acceso rápido reportes desde listado + 5 reportes + iconos colores + nueva pestaña
+- [x] **Sidebar Toggle Fix V3.3.14**: Menú expand/collapse perfecto + desactivación plugin AdminLTE + control manual completo
 - [x] **Iconos Estado Planillas**: FontAwesome icons en lugar de texto + tooltips + centrado
 - [x] **Responsive Optimizado**: Breakpoint 1024px para mini laptops + columnas esenciales
 - [x] **Protección Recursión**: Sistema anti-bucles infinitos en función CONCEPTO()
-- [x] **UX Completa**: SweetAlert2 + confirmaciones + opción recálculo automático
+- [x] **UX Completa**: SweetAlert2 + confirmaciones + opción recálculo automático + navegación fluida
 - [x] **Export Funcionalidad**: Botones Excel/PDF configurados para ambas vistas
 - [x] **Test Verification**: Script verificación + 100% separación funcionando correctamente
 - [x] **Bugfixes Finales**: ViewHelper fix + breadcrumbs duplicados + router config
@@ -126,6 +132,26 @@
 - [x] **Deployment Script**: deploy_xiii_mes_trimestral.php con backup automático + verificación prerequisitos
 - [x] **Vista Liquidación Mejorada**: Layout estilo cálculo + routing corregido + información empleado + marco legal
 - [x] **Bug Fixes Críticos**: Campo `referencia` eliminado + parámetros INSERT corregidos + error SQL resuelto
+
+### ✅ **FASE 3.11: EMPLOYEE IMPORT FIXES + DASHBOARD FILTROS (100% COMPLETADO)**
+- [x] **Employee Import Corregido**: Foreign key constraints fix + cleanForeignKeyNulls() + PHP 8+ compatible
+- [x] **Dashboard Filtros V3.3.11**: Filtrado completo por tipo planilla + sessionStorage + sincronización navbar
+
+### ✅ **FASE 3.12: CSRF SECURITY + REPORTES DROPDOWN (100% COMPLETADO)**
+- [x] **CSRF Unificado V3.3.12**: AuthMiddleware::validateCSRF() usa Security::validateToken() + eliminación duplicación
+- [x] **Reportes Dropdown V3.3.13**: Dropdown en listado planillas + 5 reportes acceso rápido + iconos colores
+
+### ✅ **FASE 3.13: SIDEBAR FIX + ACUMULADOS REFACTORIZADO (100% COMPLETADO)**
+- [x] **Sidebar Toggle V3.3.14**: Fix completo toggle + desactivación plugin AdminLTE + control manual + stopImmediatePropagation()
+- [x] **Acumulados Refactorizado V3.3.15**: byConcepto y byType con agrupación dinámica completa
+  - [x] **Vista byConcepto()**: Filtrado por concepto + agrupación empleado/planilla/año
+  - [x] **Vista byType()**: Filtrado por tipo acumulado + agrupación empleado/mes/año
+  - [x] **Cards Visuales**: Small-box con totales + porcentajes + color dinámico
+  - [x] **DataTables Spanish**: Tabla detallada colapsada + exportar CSV
+  - [x] **Select2 Integration**: Dropdowns mejorados con optgroups
+  - [x] **SQL Optimizado**: 4 nuevos métodos privados con GROUP BY dinámico
+  - [x] **Fix Campo Activo**: Removido WHERE c.activo = 1 (columna no existe)
+  - [x] **Filtros Expandidos**: Por defecto + mejor UX
 
 ---
 

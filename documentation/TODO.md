@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.3.11** *(2 Oct 2025)*
+## 🎯 **ESTADO ACTUAL V3.3.14** *(4 Oct 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -11,8 +11,11 @@
 - **UI/UX Optimizada**: ✅ 100% Completado
 - **Duplicación Conceptos**: ✅ 100% Completado
 - **Filtros Avanzados**: ✅ 100% Completado
-- **Dashboard con Filtros**: ✅ 100% Completado *(Nuevo V3.3.11)*
+- **Dashboard con Filtros**: ✅ 100% Completado *(V3.3.11)*
 - **Employee Import Fixes**: ✅ 100% Completado *(V3.3.10)*
+- **CSRF Security Fix**: ✅ 100% Completado *(V3.3.12)*
+- **Reports Dropdown**: ✅ 100% Completado *(V3.3.13)*
+- **Sidebar Toggle Fix**: ✅ 100% Completado *(Nuevo V3.3.14)*
 
 ---
 
@@ -208,6 +211,36 @@
 ---
 
 ## 🎯 **TAREAS COMPLETADAS RECIENTES**
+
+### ✅ **V3.3.14 - Sidebar Menu Toggle Fix** *(4 Oct 2025)*
+- [x] **Fix Toggle Menú**: Corrección expand/collapse sidebar funcionando perfectamente
+- [x] **Desactivación AdminLTE Plugin**: Plugin Treeview desactivado completamente
+- [x] **Control Manual Completo**: Event handlers con stopImmediatePropagation()
+- [x] **Lógica Toggle Perfecta**: Abrir/cerrar con animaciones suaves + clases correctas
+- [x] **Testing Completo**: Todos los menús funcionando (Empleados, Estructura, Planillas, etc.)
+- [x] **Sin Conflictos**: Navegación activa no interfiere con toggle
+
+### ✅ **V3.3.13 - Reports Dropdown + Quick Access** *(4 Oct 2025)*
+- [x] **Dropdown Reportes Listado**: Botón dropdown en acciones planillas PROCESADA/CERRADA
+- [x] **5 Reportes Disponibles**: PDF, Excel Panamá, Comprobantes, Acreedores, Informe 03
+- [x] **Iconos de Colores**: FontAwesome con colores distintivos por tipo reporte
+- [x] **Nueva Pestaña**: target="_blank" para todos los reportes
+- [x] **UX Mejorada**: Header visual + separador + tooltips + responsive
+- [x] **Acceso Rápido**: Reduce clics necesarios desde listado principal
+
+### ✅ **V3.3.12 - CSRF Security Fix + Code Cleanup** *(4 Oct 2025)*
+- [x] **Error Fatal CSRF Resuelto**: AuthMiddleware::validateCSRF() agregado y funcional
+- [x] **Unificación Código**: Eliminada duplicación CSRF entre AuthMiddleware y Security
+- [x] **Delegación Correcta**: AuthMiddleware::validateCSRF() usa Security::validateToken()
+- [x] **Arquitectura Limpia**: Un solo lugar centralizado para lógica CSRF (Security class)
+- [x] **Eliminación generateCSRF()**: Removida duplicación con Security::generateToken()
+
+### ✅ **V3.3.11 - Dashboard Filtros por Tipo Planilla** *(2 Oct 2025)*
+- [x] **Filtrado Completo Dashboard**: Todas las métricas filtradas por tipo planilla
+- [x] **SessionStorage Integration**: Lee tipo planilla seleccionado desde navbar
+- [x] **Sincronización Tiempo Real**: Evento payrollTypeChanged actualiza dashboard
+- [x] **Modelos Mejorados**: Acumulado.php + Employee.php + Attendance.php con filtros
+- [x] **Tarjetas Reordenadas**: Orden lógico según prioridad de negocio
 
 ### ✅ **V3.3.9 - XIII Mes Trimestral + Liquidaciones Mejoradas** *(29 Sept 2025)*
 - [x] **Sistema XIII Mes Trimestral**: Calculadora períodos trimestrales legislación panameña

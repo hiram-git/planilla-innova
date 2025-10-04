@@ -64,7 +64,7 @@ class TipoAcumulado
     public function getById($id)
     {
         $sql = "
-            SELECT 
+            SELECT
                 id,
                 codigo,
                 descripcion,
@@ -82,6 +82,33 @@ class TipoAcumulado
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Obtener tipo de acumulado por código
+     */
+    public function getByCodigo($codigo)
+    {
+        $sql = "
+            SELECT
+                id,
+                codigo,
+                descripcion,
+                periodicidad,
+                fecha_inicio_periodo,
+                fecha_fin_periodo,
+                reinicia_automaticamente,
+                activo,
+                created_at,
+                updated_at,
+                (SELECT COUNT(*) FROM conceptos_acumulados ca WHERE ca.tipo_acumulado_id = ta.id) as conceptos_asociados
+            FROM {$this->table} ta
+            WHERE codigo = ?
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$codigo]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 

@@ -95,21 +95,27 @@ class AcumuladoController extends Controller
     }
 
     /**
-     * Vista de acumulados por tipo (método legacy con ID)
+     * Vista de acumulados por tipo de acumulado (usando código)
      */
-    public function byTypeId($tipoId)
+    public function byTypeId($tipoCodigoOrId)
     {
-        $tipo = $this->tipoAcumuladoModel->getById($tipoId);
-        
+        // Intentar obtener por código primero, luego por ID
+        $tipo = $this->tipoAcumuladoModel->getByCodigo($tipoCodigoOrId);
+
+        if (!$tipo && is_numeric($tipoCodigoOrId)) {
+            $tipo = $this->tipoAcumuladoModel->getById($tipoCodigoOrId);
+        }
+
         if (!$tipo) {
             header('HTTP/1.1 404 Not Found');
             $this->render('errors/404', ['title' => 'Tipo de acumulado no encontrado']);
             return;
         }
-        
+
         $year = $_GET['year'] ?? date('Y');
-        $acumulados = $this->getAcumuladosByType($tipoId, $year);
-        
+        // Usar el código del tipo de acumulado para filtrar
+        $acumulados = $this->getAcumuladosByType($tipo['codigo'], $year);
+
         $data = [
             'title' => 'Acumulados: ' . $tipo['descripcion'],
             'tipo' => $tipo,
@@ -117,7 +123,7 @@ class AcumuladoController extends Controller
             'selectedYear' => $year,
             'years' => $this->getAvailableYears()
         ];
-        
+
         $this->render('admin/acumulados/by-type', $data);
     }
 
@@ -239,35 +245,36 @@ class AcumuladoController extends Controller
     }
 
     /**
-     * Obtener acumulados por concepto específico
+     * Obtener acumulados por tipo de acumulado (agrupados por concepto)
      */
-    private function getAcumuladosByType($conceptoId, $year)
+    private function getAcumuladosByType($tipoAcumuladoCodigo, $year)
     {
         try {
-            $sql = "SELECT 
-                        e.document_id,
-                        CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
-                        e.id as employee_id,
+            $sql = "SELECT
+                        c.id as concepto_id,
+                        c.concepto as concepto_codigo,
                         c.descripcion as concepto_descripcion,
+                        ape.tipo_concepto,
                         SUM(ape.monto) as total_acumulado,
-                        COUNT(ape.planilla_id) as total_planillas,
+                        COUNT(DISTINCT ape.employee_id) as total_empleados,
+                        COUNT(DISTINCT ape.planilla_id) as total_planillas,
+                        COUNT(DISTINCT ape.ano) as total_anos,
                         MIN(ape.created_at) as fecha_primer_calculo,
                         MAX(ape.created_at) as fecha_ultimo_calculo,
-                        pc.descripcion as ultima_planilla,
-                        ape.frecuencia
+                        GROUP_CONCAT(DISTINCT ape.ano ORDER BY ape.ano SEPARATOR ', ') as anos_procesados,
+                        GROUP_CONCAT(DISTINCT CONCAT(e.firstname, ' ', e.lastname) ORDER BY e.lastname SEPARATOR ', ') as empleados_list
                     FROM acumulados_por_empleado ape
-                    INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
-                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
-                    WHERE ape.concepto_id = ? AND ape.ano = ?
-                    GROUP BY e.id, c.id, ape.frecuencia
-                    ORDER BY e.lastname, e.firstname";
-            
+                    INNER JOIN employees e ON ape.employee_id = e.id
+                    WHERE ape.tipo_acumulado = ? AND ape.ano = ?
+                    GROUP BY c.id, c.concepto, c.descripcion, ape.tipo_concepto
+                    ORDER BY ape.tipo_concepto, c.descripcion";
+
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$conceptoId, $year]);
+            $stmt->execute([$tipoAcumuladoCodigo, $year]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log("Error obteniendo acumulados por concepto: " . $e->getMessage());
+            error_log("Error obteniendo acumulados por tipo: " . $e->getMessage());
             return [];
         }
     }
@@ -396,13 +403,74 @@ class AcumuladoController extends Controller
     }
 
     /**
-     * Vista de acumulados por concepto específico
+     * Vista de acumulados por tipo de acumulado con agrupación
+     * Ruta: /panel/acumulados/byType
      */
     public function byType()
     {
         $year = $_GET['year'] ?? date('Y');
+        $tipoAcumuladoCodigo = $_GET['tipo_acumulado'] ?? null;
+        $month = $_GET['month'] ?? null;
+        $groupBy = $_GET['group_by'] ?? 'empleado'; // empleado, mes, ano
+
+        try {
+            // Obtener tipos de acumulados disponibles
+            $tiposAcumulados = $this->getTiposAcumuladosForFilter();
+
+            // Si se especifica un tipo, filtrar por tipo_acumulado
+            $acumulados = [];
+            $acumuladosAgrupados = [];
+            $selectedTipo = null;
+
+            if ($tipoAcumuladoCodigo) {
+                // Buscar el tipo seleccionado
+                $selectedTipo = $this->tipoAcumuladoModel->getByCodigo($tipoAcumuladoCodigo);
+
+                if ($selectedTipo) {
+                    // Obtener registros detallados
+                    $acumulados = $this->getAcumuladosByTipoAcumulado($tipoAcumuladoCodigo, $year, $month);
+
+                    // Obtener datos agrupados según el filtro
+                    $acumuladosAgrupados = $this->getAcumuladosAgrupadosByTipo(
+                        $tipoAcumuladoCodigo,
+                        $year,
+                        $month,
+                        $groupBy
+                    );
+                }
+            }
+
+            $this->render('admin/acumulados/by_type', [
+                'year' => $year,
+                'month' => $month,
+                'groupBy' => $groupBy,
+                'tiposAcumulados' => $tiposAcumulados,
+                'tipoAcumuladoCodigo' => $tipoAcumuladoCodigo,
+                'selectedTipo' => $selectedTipo,
+                'acumulados' => $acumulados,
+                'acumuladosAgrupados' => $acumuladosAgrupados,
+                'availableYears' => $this->getAvailableYears(),
+                'availableMonths' => $this->getAvailableMonths()
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error en AcumuladoController@byType: " . $e->getMessage());
+            $_SESSION['error'] = 'Error obteniendo acumulados por tipo';
+            header('Location: /panel/acumulados');
+            exit;
+        }
+    }
+
+    /**
+     * Vista de acumulados por concepto específico con agrupación
+     * Ruta: /panel/acumulados/byConcepto
+     */
+    public function byConcepto()
+    {
+        $year = $_GET['year'] ?? date('Y');
         $conceptoId = $_GET['concepto_id'] ?? null;
         $month = $_GET['month'] ?? null;
+        $groupBy = $_GET['group_by'] ?? 'empleado'; // año, planilla, empleado
 
         try {
             // Obtener conceptos disponibles
@@ -410,6 +478,7 @@ class AcumuladoController extends Controller
 
             // Si se especifica un concepto, filtrar por concepto_id
             $acumulados = [];
+            $acumuladosAgrupados = [];
             $selectedConcepto = null;
 
             if ($conceptoId) {
@@ -422,22 +491,34 @@ class AcumuladoController extends Controller
                 }
 
                 if ($selectedConcepto) {
+                    // Obtener registros detallados
                     $acumulados = $this->getAcumuladosByConcepto($conceptoId, $year, $month);
+
+                    // Obtener datos agrupados según el filtro
+                    $acumuladosAgrupados = $this->getAcumuladosAgrupadosByConcepto(
+                        $conceptoId,
+                        $year,
+                        $month,
+                        $groupBy
+                    );
                 }
             }
 
             $this->render('admin/acumulados/by_concept', [
                 'year' => $year,
                 'month' => $month,
+                'groupBy' => $groupBy,
                 'conceptos' => $conceptos,
+                'conceptoId' => $conceptoId,
                 'selectedConcepto' => $selectedConcepto,
                 'acumulados' => $acumulados,
+                'acumuladosAgrupados' => $acumuladosAgrupados,
                 'availableYears' => $this->getAvailableYears(),
                 'availableMonths' => $this->getAvailableMonths()
             ]);
 
         } catch (\Exception $e) {
-            error_log("Error en AcumuladoController@byType: " . $e->getMessage());
+            error_log("Error en AcumuladoController@byConcepto: " . $e->getMessage());
             $_SESSION['error'] = 'Error obteniendo acumulados por concepto';
             header('Location: /panel/acumulados');
             exit;
@@ -540,7 +621,6 @@ class AcumuladoController extends Controller
                         c.tipo_concepto
                     FROM concepto c
                     INNER JOIN acumulados_por_empleado ape ON c.id = ape.concepto_id
-                    WHERE c.activo = 1
                     ORDER BY c.tipo_concepto, c.descripcion";
 
             $stmt = $this->db->prepare($sql);
@@ -548,6 +628,135 @@ class AcumuladoController extends Controller
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log("Error obteniendo conceptos para filtro: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener tipos de acumulados para filtro
+     */
+    private function getTiposAcumuladosForFilter()
+    {
+        try {
+            $sql = "SELECT DISTINCT
+                        ta.codigo,
+                        ta.descripcion
+                    FROM tipos_acumulados ta
+                    INNER JOIN acumulados_por_empleado ape ON ta.codigo = ape.tipo_acumulado
+                    ORDER BY ta.descripcion";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo tipos de acumulados para filtro: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener acumulados por tipo de acumulado
+     */
+    private function getAcumuladosByTipoAcumulado($tipoAcumuladoCodigo, $year, $month = null)
+    {
+        try {
+            $whereClause = "ape.tipo_acumulado = ? AND ape.ano = ?";
+            $params = [$tipoAcumuladoCodigo, $year];
+
+            if ($month) {
+                $whereClause .= " AND ape.mes = ?";
+                $params[] = $month;
+            }
+
+            $sql = "SELECT
+                        ape.*,
+                        CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
+                        e.document_id,
+                        c.descripcion as concepto_descripcion,
+                        pc.descripcion as planilla_descripcion,
+                        pc.fecha_inicio,
+                        pc.fecha_fin
+                    FROM acumulados_por_empleado ape
+                    INNER JOIN employees e ON ape.employee_id = e.id
+                    INNER JOIN concepto c ON ape.concepto_id = c.id
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    WHERE {$whereClause}
+                    ORDER BY e.lastname, e.firstname, ape.ano, ape.mes";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo acumulados por tipo de acumulado: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener acumulados agrupados por tipo de acumulado
+     */
+    private function getAcumuladosAgrupadosByTipo($tipoAcumuladoCodigo, $year, $month = null, $groupBy = 'empleado')
+    {
+        try {
+            $whereClause = "ape.tipo_acumulado = ? AND ape.ano = ?";
+            $params = [$tipoAcumuladoCodigo, $year];
+
+            if ($month) {
+                $whereClause .= " AND ape.mes = ?";
+                $params[] = $month;
+            }
+
+            $sql = "";
+
+            switch ($groupBy) {
+                case 'mes':
+                    $sql = "SELECT
+                                ape.mes as grupo_id,
+                                CONCAT('Mes ', ape.mes) as grupo_descripcion,
+                                SUM(ape.monto) as total_monto,
+                                COUNT(DISTINCT ape.planilla_id) as total_planillas,
+                                COUNT(DISTINCT ape.employee_id) as total_empleados
+                            FROM acumulados_por_empleado ape
+                            WHERE {$whereClause}
+                            GROUP BY ape.mes
+                            ORDER BY ape.mes";
+                    break;
+
+                case 'ano':
+                    $sql = "SELECT
+                                ape.ano as grupo_id,
+                                CAST(ape.ano AS CHAR) as grupo_descripcion,
+                                SUM(ape.monto) as total_monto,
+                                COUNT(DISTINCT ape.planilla_id) as total_planillas,
+                                COUNT(DISTINCT ape.employee_id) as total_empleados
+                            FROM acumulados_por_empleado ape
+                            WHERE {$whereClause}
+                            GROUP BY ape.ano
+                            ORDER BY ape.ano";
+                    break;
+
+                case 'empleado':
+                default:
+                    $sql = "SELECT
+                                ape.employee_id as grupo_id,
+                                CONCAT(e.firstname, ' ', e.lastname) as grupo_descripcion,
+                                e.document_id,
+                                SUM(ape.monto) as total_monto,
+                                COUNT(DISTINCT ape.planilla_id) as total_planillas,
+                                COUNT(DISTINCT ape.employee_id) as total_empleados
+                            FROM acumulados_por_empleado ape
+                            INNER JOIN employees e ON ape.employee_id = e.id
+                            WHERE {$whereClause}
+                            GROUP BY ape.employee_id, e.firstname, e.lastname, e.document_id
+                            ORDER BY e.lastname, e.firstname";
+                    break;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo acumulados agrupados por tipo: " . $e->getMessage());
             return [];
         }
     }
@@ -598,6 +807,79 @@ class AcumuladoController extends Controller
 
         } catch (\PDOException $e) {
             error_log("Error obteniendo acumulados por concepto: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener acumulados agrupados por año, planilla o empleado
+     */
+    private function getAcumuladosAgrupadosByConcepto($conceptoId, $year, $month = null, $groupBy = 'empleado')
+    {
+        try {
+            $whereConditions = ["ape.concepto_id = ?", "ape.ano = ?"];
+            $params = [$conceptoId, $year];
+
+            if ($month) {
+                $whereConditions[] = "ape.mes = ?";
+                $params[] = $month;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            // Determinar agrupación y campos SELECT
+            switch ($groupBy) {
+                case 'ano':
+                    $selectFields = "ape.ano as grupo_clave,
+                                    CAST(ape.ano AS CHAR) as grupo_descripcion,
+                                    'Año' as grupo_tipo";
+                    $groupByClause = "ape.ano";
+                    $orderByClause = "ape.ano DESC";
+                    break;
+
+                case 'planilla':
+                    $selectFields = "pc.id as grupo_clave,
+                                    pc.descripcion as grupo_descripcion,
+                                    'Planilla' as grupo_tipo,
+                                    pc.fecha_inicio,
+                                    pc.fecha_fin";
+                    $groupByClause = "pc.id, pc.descripcion, pc.fecha_inicio, pc.fecha_fin";
+                    $orderByClause = "pc.fecha_inicio DESC";
+                    break;
+
+                case 'empleado':
+                default:
+                    $selectFields = "e.id as grupo_clave,
+                                    CONCAT(e.firstname, ' ', e.lastname) as grupo_descripcion,
+                                    e.document_id,
+                                    'Empleado' as grupo_tipo";
+                    $groupByClause = "e.id, e.firstname, e.lastname, e.document_id";
+                    $orderByClause = "e.lastname, e.firstname";
+                    break;
+            }
+
+            $sql = "SELECT
+                        {$selectFields},
+                        SUM(ape.monto) as total_monto,
+                        COUNT(DISTINCT ape.planilla_id) as total_planillas,
+                        COUNT(DISTINCT ape.employee_id) as total_empleados,
+                        COUNT(DISTINCT ape.ano) as total_anos,
+                        MIN(ape.created_at) as fecha_primer_registro,
+                        MAX(ape.created_at) as fecha_ultimo_registro
+                    FROM acumulados_por_empleado ape
+                    INNER JOIN employees e ON ape.employee_id = e.id
+                    INNER JOIN concepto c ON ape.concepto_id = c.id
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    WHERE {$whereClause}
+                    GROUP BY {$groupByClause}
+                    ORDER BY {$orderByClause}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo acumulados agrupados: " . $e->getMessage());
             return [];
         }
     }

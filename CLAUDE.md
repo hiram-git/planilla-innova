@@ -1,9 +1,9 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.3.11 Dashboard Filtros + UI Improvements**
-- **Fecha**: 2 de Octubre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + DASHBOARD FILTROS COMPLETO + UI/UX OPTIMIZADA**
-- **Versión**: 3.3.11 - Dashboard con filtros tipo planilla + SessionStorage + Tabs alineados
+## 📝 **Estado Actual - V3.3.15 Acumulados Refactorizado**
+- **Fecha**: 4 de Octubre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + ACUMULADOS REFACTORIZADO + UX PERFECTA**
+- **Versión**: 3.3.15 - Módulo acumulados completamente refactorizado con agrupación dinámica
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -47,6 +47,10 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **XIII Mes Trimestral**: XIIIMesPeriodoTrimestralCalculator + períodos trimestrales + variables dinámicas + scripts testing/deploy + vista mejorada
 - ✅ **Employee Import Fixes**: Foreign key constraints corregidos + cleanForeignKeyNulls() + PHP 8+ compatible + validaciones robustas
 - ✅ **Dashboard Filtros V3.3.11**: Filtrado completo por tipo planilla + integración sessionStorage + sincronización navbar + tarjetas reordenadas
+- ✅ **CSRF Security Fix V3.3.12**: Eliminación duplicación código CSRF + AuthMiddleware::validateCSRF() usa Security::validateToken() + código unificado
+- ✅ **Reportes Dropdown V3.3.13**: Dropdown reportes en listado planillas + 5 reportes acceso rápido (PDF, Excel, Comprobantes, Acreedores, Informe 03) + iconos colores + nueva pestaña
+- ✅ **Sidebar Toggle Fix V3.3.14**: Fix completo sidebar AdminLTE + manual toggle + stopImmediatePropagation() + desactivación plugin Treeview + expand/collapse perfecto
+- ✅ **Módulo Acumulados Refactorizado V3.3.15**: byConcepto y byType completamente refactorizados + agrupación dinámica (empleado/mes/año/planilla) + filtros avanzados + cards visuales + Select2 + DataTables
 
 ## 📄 **Reportes PDF Empresariales**
 - **Planillas**: Layout horizontal + logos empresariales + firmas profesionales
@@ -97,6 +101,34 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - **Cálculos Corregidos**: Fix ASIGNACION vs DEDUCCION + totales netos correctos
 - **Dashboard Completo**: Estadísticas + export CSV + PDF + navegación integrada
 - **Flujo Completo**: Calcular → Generar Planilla → Ver Planillas → Detalle
+
+## 📊 **Módulo Acumulados Refactorizado - V3.3.15**
+- **Vista byConcepto() Mejorada**: Filtrado por concepto específico + agrupación dinámica
+  - **Filtros**: Concepto (required) + Año + Mes + Agrupar por (empleado/planilla/año)
+  - **Cards Visuales**: Small-box con totales agrupados + porcentajes + color por tipo_concepto
+  - **Total General**: Info-box con resumen completo + contadores
+  - **Tabla Detallada**: DataTables colapsada con todos los registros + exportar CSV
+  - **Select2**: Dropdown conceptos con optgroups (Asignaciones/Deducciones)
+
+- **Vista byType() Mejorada**: Filtrado por tipo de acumulado + agrupación dinámica
+  - **Filtros**: Tipo acumulado (required) + Año + Mes + Agrupar por (empleado/mes/año)
+  - **Cards Visuales**: Small-box bg-info con totales agrupados + porcentajes
+  - **Total General**: Info-box con resumen completo + contadores
+  - **Tabla Detallada**: DataTables colapsada con todos los registros + exportar CSV
+  - **Select2**: Dropdown tipos de acumulados activos
+
+- **Métodos Controller Nuevos**:
+  - `getTiposAcumuladosForFilter()`: Obtiene tipos disponibles desde BD
+  - `getAcumuladosByTipoAcumulado()`: Filtra acumulados por tipo + año + mes
+  - `getAcumuladosAgrupadosByTipo()`: Agrupa por empleado/mes/año con totales
+  - `getConceptosForFilter()`: Obtiene conceptos con acumulados (fix campo activo removido)
+  - `getAcumuladosAgrupadosByConcepto()`: Agrupa por empleado/planilla/año con totales
+
+- **Fixes Aplicados**:
+  - ✅ Eliminado `WHERE c.activo = 1` en getConceptosForFilter() (columna no existe)
+  - ✅ Filtros expandidos por defecto (removed collapsed-card class)
+  - ✅ Rutas corregidas en formularios (byType vs byConcepto separados)
+  - ✅ Integración completa Select2 + DataTables Spanish
 
 ## 📊 **Dashboard Ejecutivo con Filtros - V3.3.11**
 - **Filtrado por Tipo Planilla**: Sistema completo filtrado todas las métricas del dashboard

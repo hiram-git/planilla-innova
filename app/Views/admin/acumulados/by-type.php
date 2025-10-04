@@ -52,10 +52,10 @@ $pageTitle = "Acumulados - {$tipo['descripcion']}";
                         <div class="col-md-3">
                             <div class="info-box bg-info">
                                 <span class="info-box-icon">
-                                    <i class="fas fa-users"></i>
+                                    <i class="fas fa-list-alt"></i>
                                 </span>
                                 <div class="info-box-content">
-                                    <span class="info-box-text">Empleados</span>
+                                    <span class="info-box-text">Conceptos</span>
                                     <span class="info-box-number"><?= count($acumulados) ?></span>
                                 </div>
                             </div>
@@ -74,22 +74,22 @@ $pageTitle = "Acumulados - {$tipo['descripcion']}";
                         <div class="col-md-3">
                             <div class="info-box bg-warning">
                                 <span class="info-box-icon">
-                                    <i class="fas fa-calculator"></i>
+                                    <i class="fas fa-users"></i>
                                 </span>
                                 <div class="info-box-content">
-                                    <span class="info-box-text">Promedio</span>
-                                    <span class="info-box-number">$<?= number_format(array_sum(array_column($acumulados, 'total_acumulado')) / count($acumulados), 2) ?></span>
+                                    <span class="info-box-text">Total Empleados</span>
+                                    <span class="info-box-number"><?= array_sum(array_column($acumulados, 'total_empleados')) ?></span>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="info-box bg-secondary">
                                 <span class="info-box-icon">
-                                    <i class="fas fa-hashtag"></i>
+                                    <i class="fas fa-file-invoice"></i>
                                 </span>
                                 <div class="info-box-content">
-                                    <span class="info-box-text">Conceptos Totales</span>
-                                    <span class="info-box-number"><?= array_sum(array_column($acumulados, 'total_conceptos_incluidos')) ?></span>
+                                    <span class="info-box-text">Total Planillas</span>
+                                    <span class="info-box-number"><?= array_sum(array_column($acumulados, 'total_planillas')) ?></span>
                                 </div>
                             </div>
                         </div>
@@ -107,23 +107,25 @@ $pageTitle = "Acumulados - {$tipo['descripcion']}";
         </div>
 
         <?php if (!empty($acumulados)): ?>
-            <!-- Detalle por Empleado -->
+            <!-- Detalle por Concepto -->
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
                         <i class="fas fa-table mr-2"></i>
-                        Detalle por Empleado
+                        Detalle por Concepto - Agrupado por Planilla, Año y Empleado
                     </h3>
                 </div>
                 <div class="card-body table-responsive">
-                    <table class="table table-bordered table-striped" id="acumulados-table">
+                    <table class="table table-bordered table-striped table-hover" id="acumulados-table">
                         <thead>
                             <tr>
-                                <th>Empleado</th>
-                                <th>Cédula</th>
+                                <th>Código</th>
+                                <th>Concepto</th>
+                                <th class="text-center">Tipo</th>
                                 <th class="text-right">Total Acumulado</th>
-                                <th class="text-center">Conceptos</th>
-                                <th class="text-center">Última Planilla</th>
+                                <th class="text-center">Empleados</th>
+                                <th class="text-center">Planillas</th>
+                                <th class="text-center">Años</th>
                                 <th class="text-center">Última Actualización</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
@@ -131,29 +133,56 @@ $pageTitle = "Acumulados - {$tipo['descripcion']}";
                         <tbody>
                             <?php foreach ($acumulados as $acumulado): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($acumulado['nombre_empleado']) ?></td>
-                                    <td><?= htmlspecialchars($acumulado['document_id']) ?></td>
-                                    <td class="text-right font-weight-bold">
+                                    <td><strong><?= htmlspecialchars($acumulado['concepto_codigo']) ?></strong></td>
+                                    <td><?= htmlspecialchars($acumulado['concepto_descripcion']) ?></td>
+                                    <td class="text-center">
+                                        <?php if ($acumulado['tipo_concepto'] === 'ASIGNACION'): ?>
+                                            <span class="badge badge-success"><i class="fas fa-plus-circle"></i> Asignación</span>
+                                        <?php else: ?>
+                                            <span class="badge badge-danger"><i class="fas fa-minus-circle"></i> Deducción</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-right font-weight-bold text-<?= $acumulado['tipo_concepto'] === 'ASIGNACION' ? 'success' : 'danger' ?>">
                                         $<?= number_format($acumulado['total_acumulado'], 2) ?>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge badge-info"><?= $acumulado['total_conceptos_incluidos'] ?></span>
+                                        <span class="badge badge-info" title="Total de empleados con este concepto">
+                                            <i class="fas fa-users"></i> <?= $acumulado['total_empleados'] ?>
+                                        </span>
                                     </td>
                                     <td class="text-center">
-                                        <?= $acumulado['ultima_planilla'] ? htmlspecialchars($acumulado['ultima_planilla']) : '<em>N/A</em>' ?>
+                                        <span class="badge badge-secondary" title="Total de planillas procesadas">
+                                            <i class="fas fa-file-invoice"></i> <?= $acumulado['total_planillas'] ?>
+                                        </span>
                                     </td>
                                     <td class="text-center">
-                                        <?= date('d/m/Y H:i', strtotime($acumulado['fecha_ultimo_calculo'])) ?>
+                                        <small title="Años procesados: <?= htmlspecialchars($acumulado['anos_procesados']) ?>">
+                                            <?= $acumulado['anos_procesados'] ?>
+                                        </small>
                                     </td>
                                     <td class="text-center">
-                                        <a href="<?= \App\Core\UrlHelper::route('panel/acumulados/byEmployee') ?>?empleado_id=<?= $acumulado['empleado_id'] ?>&year=<?= $selectedYear ?>" 
-                                           class="btn btn-sm btn-info" title="Ver detalles del empleado">
-                                            <i class="fas fa-eye"></i>
+                                        <small><?= date('d/m/Y H:i', strtotime($acumulado['fecha_ultimo_calculo'])) ?></small>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="<?= \App\Core\UrlHelper::route('panel/acumulados/by-concept') ?>?concepto_id=<?= $acumulado['concepto_id'] ?>&year=<?= $selectedYear ?>"
+                                           class="btn btn-sm btn-info" title="Ver detalles del concepto">
+                                            <i class="fas fa-eye"></i> Ver Detalle
                                         </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
+                        <tfoot>
+                            <tr class="bg-light font-weight-bold">
+                                <td colspan="3" class="text-right">TOTALES:</td>
+                                <td class="text-right text-primary">
+                                    $<?= number_format(array_sum(array_column($acumulados, 'total_acumulado')), 2) ?>
+                                </td>
+                                <td class="text-center"><?= array_sum(array_column($acumulados, 'total_empleados')) ?></td>
+                                <td class="text-center"><?= array_sum(array_column($acumulados, 'total_planillas')) ?></td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
