@@ -232,6 +232,8 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
     </div>
 </section>
 
+
+<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
 <script>
 $(document).ready(function() {
     // Initialize DataTable
@@ -241,7 +243,7 @@ $(document).ready(function() {
             "pageLength": 25,
             "order": [[7, "desc"]], // Ordenar por fecha creación
             "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+                DATATABLES_SPANISH
             }
         });
     }

@@ -113,6 +113,8 @@ $pageTitle = $title ?? 'Seleccionar Planilla';
     </div>
 </section>
 
+
+<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
 <script>
 $(document).ready(function() {
     // Initialize DataTable
@@ -122,7 +124,7 @@ $(document).ready(function() {
             "pageLength": 15,
             "order": [[0, "desc"]], // Ordenar por ID descendente
             "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+                DATATABLES_SPANISH
             },
             "columnDefs": [
                 { "orderable": false, "targets": -1 } // Deshabilitar ordenamiento en columna de acciones

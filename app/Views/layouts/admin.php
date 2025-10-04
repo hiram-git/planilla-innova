@@ -51,6 +51,9 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
     <!-- Toastr -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
     <!-- Custom Component Styles -->
     <?= $navbarStyles ?>
     <?= $sidebarStyles ?>
@@ -366,6 +369,9 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
     
     <!-- Toastr -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Global Scripts -->
     <script>

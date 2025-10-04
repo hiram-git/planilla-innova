@@ -186,12 +186,14 @@ $pageTitle = "Acumulados - {$tipo['descripcion']}";
     </div>
 </section>
 
+
+<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
 <script>
 $(document).ready(function() {
     <?php if (!empty($acumulados)): ?>
     $('#acumulados-table').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json'
+            DATATABLES_SPANISH
         },
         order: [[0, 'asc']],
         pageLength: 25,

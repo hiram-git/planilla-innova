@@ -428,39 +428,18 @@ class Concept extends Model
     public function canDelete($id)
     {
         try {
-            // Verificar todas las tablas que referencian conceptos
-
-            // 1. Verificar si el concepto ha sido usado en planillas
+            // Solo verificar planilla_detalle - otras tablas se limpiarán automáticamente
+            // 1. Verificar si el concepto ha sido usado en planillas PROCESADAS/CERRADAS
             $sql = "SELECT COUNT(*) as count FROM planilla_detalle WHERE concepto_id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($result['count'] > 0) {
-                return false; // Ya usado en planillas
+                return false; // Ya usado en planillas - NO se puede eliminar
             }
 
-            // 2. Verificar si está en tabla conceptos_acumulados
-            $sql = "SELECT COUNT(*) as count FROM conceptos_acumulados WHERE concepto_id = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($result['count'] > 0) {
-                return false; // Configurado en acumulados
-            }
-
-            // 3. Verificar si está en acumulados_por_empleado
-            $sql = "SELECT COUNT(*) as count FROM acumulados_por_empleado WHERE concepto_id = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($result['count'] > 0) {
-                return false; // Tiene acumulados generados
-            }
-
-            return true; // Puede eliminarse
+            return true; // Puede eliminarse (se limpiarán liquidations, acumulados, etc.)
         } catch (PDOException $e) {
             error_log("Error verificando si concepto puede eliminarse: " . $e->getMessage());
             return false;
@@ -468,19 +447,61 @@ class Concept extends Model
     }
 
     /**
-     * Eliminar concepto solo si no ha sido usado
+     * Eliminar concepto solo si no ha sido usado en planillas
+     * Limpia automáticamente referencias en liquidations, acumulados, etc.
      */
     public function delete($id)
     {
         try {
             if (!$this->canDelete($id)) {
-                throw new \Exception('No se puede eliminar el concepto porque está siendo usado en planillas, acumulados o tiene datos generados');
+                throw new \Exception('No se puede eliminar el concepto porque está siendo usado en planillas procesadas o cerradas');
             }
 
-            return parent::delete($id);
+            // Iniciar transacción para asegurar integridad
+            $this->db->beginTransaction();
+
+            // 1. Limpiar referencias en liquidation_calculations
+            $sql = "DELETE FROM liquidation_calculations WHERE concept_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            $deletedLiquidations = $stmt->rowCount();
+
+            // 2. Limpiar referencias en acumulados_por_empleado
+            $sql = "DELETE FROM acumulados_por_empleado WHERE concepto_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            $deletedAcumuladosEmpleado = $stmt->rowCount();
+
+            // 3. Limpiar referencias en conceptos_acumulados
+            $sql = "DELETE FROM conceptos_acumulados WHERE concepto_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            $deletedConceptosAcumulados = $stmt->rowCount();
+
+            // 4. Eliminar el concepto
+            $result = parent::delete($id);
+
+            if ($result) {
+                $this->db->commit();
+
+                // Log de limpieza realizada
+                error_log("Concepto {$id} eliminado exitosamente. Registros limpiados: " .
+                         "liquidation_calculations={$deletedLiquidations}, " .
+                         "acumulados_por_empleado={$deletedAcumuladosEmpleado}, " .
+                         "conceptos_acumulados={$deletedConceptosAcumulados}");
+
+                return true;
+            } else {
+                $this->db->rollback();
+                return false;
+            }
+
         } catch (\Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollback();
+            }
             error_log("Error eliminando concepto: " . $e->getMessage());
-            return false;
+            throw $e; // Re-lanzar la excepción para que el controlador la maneje
         }
     }
 

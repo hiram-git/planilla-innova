@@ -6,7 +6,7 @@
  */
 
 // Incluir helper para funciones auxiliares
-require_once __DIR__ . '/../../../helpers.php';
+require_once __DIR__ . '/../../../Core/helpers.php';
 ?>
 
 <!-- Content Header -->
@@ -110,7 +110,7 @@ require_once __DIR__ . '/../../../helpers.php';
                             Motivo de Cancelación
                         </h3>
                     </div>
-                    <form action="/panel/liquidation/cancel/<?= $termination['id'] ?>" method="POST" id="cancelForm">
+                    <form action="<?= \App\Core\UrlHelper::route('panel/liquidation/' . $termination['id'] . '/cancel') ?>" method="POST" id="cancelForm">
                         <div class="card-body">
                             <?= csrf_field() ?>
 
@@ -179,26 +179,42 @@ require_once __DIR__ . '/../../../helpers.php';
 
 <!-- JavaScript -->
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirmCancel');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelForm = document.getElementById('cancelForm');
+    const cancelReasonField = document.getElementById('cancel_reason');
+
+    if (!confirmCheckbox || !submitBtn || !cancelForm) {
+        console.error('Error: Elementos del formulario no encontrados');
+        return;
+    }
+
     // Habilitar/deshabilitar botón según checkbox
-    $('#confirmCancel').change(function() {
-        $('#submitBtn').prop('disabled', !this.checked);
+    confirmCheckbox.addEventListener('change', function() {
+        submitBtn.disabled = !this.checked;
+        if (this.checked) {
+            submitBtn.classList.remove('disabled');
+        } else {
+            submitBtn.classList.add('disabled');
+        }
     });
 
     // Confirmación con SweetAlert2 antes de enviar
-    $('#cancelForm').on('submit', function(e) {
+    cancelForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        const reason = $('#cancel_reason').val().trim();
-        const employeeName = '<?= htmlspecialchars($termination['firstname'] . ' ' . $termination['lastname']) ?>';
-        const status = '<?= htmlspecialchars($termination['status']) ?>';
+        const reason = cancelReasonField.value.trim();
+        const employeeName = '<?= addslashes($termination['firstname'] . ' ' . $termination['lastname']) ?>';
+        const status = '<?= addslashes($termination['status']) ?>';
 
         if (reason.length < 10) {
             Swal.fire({
                 title: 'Motivo insuficiente',
                 text: 'Por favor proporcione un motivo más detallado (mínimo 10 caracteres)',
                 icon: 'warning',
-                confirmButtonText: 'Entendido'
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#3085d6'
             });
             return;
         }
@@ -209,7 +225,7 @@ $(document).ready(function() {
                 <div class="text-left">
                     <p><strong>Empleado:</strong> ${employeeName}</p>
                     <p><strong>Estado actual:</strong> <span class="badge badge-warning">${status}</span></p>
-                    <p><strong>Motivo:</strong></p>
+                    <p class="mt-3"><strong>Motivo:</strong></p>
                     <div class="bg-light p-2 rounded text-left" style="max-height: 100px; overflow-y: auto;">
                         ${reason}
                     </div>
@@ -228,7 +244,10 @@ $(document).ready(function() {
             cancelButtonText: '<i class="fas fa-times"></i> No cancelar',
             reverseButtons: true,
             allowOutsideClick: false,
-            allowEscapeKey: false
+            allowEscapeKey: false,
+            customClass: {
+                popup: 'swal2-wide'
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 // Mostrar loading mientras se procesa
@@ -244,9 +263,15 @@ $(document).ready(function() {
                 });
 
                 // Enviar formulario
-                this.submit();
+                cancelForm.submit();
             }
         });
     });
 });
 </script>
+
+<style>
+.swal2-wide {
+    width: 600px !important;
+}
+</style>

@@ -207,6 +207,7 @@ $pageTitle = "Liquidaciones de Empleados";
     </div>
 </section>
 
+<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
 <script>
 // Esperar a que jQuery esté disponible usando JavaScript puro
 (function() {
@@ -220,24 +221,59 @@ $pageTitle = "Liquidaciones de Empleados";
             "responsive": true,
             "pageLength": 25,
             "order": [[0, "asc"]], // Ordenar por nombre empleado
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-            },
+            "language": DATATABLES_SPANISH,
             "columnDefs": [
                 { "orderable": false, "targets": 6 } // Columna acciones no ordenable
             ]
         });
     }
 
-    // Confirmar liquidación
+    // Confirmar liquidación con SweetAlert2
     $('.liquidate-btn').on('click', function(e) {
         e.preventDefault();
         const employeeName = $(this).data('employee');
         const url = $(this).attr('href');
 
-        if (confirm(`¿Está seguro que desea iniciar el proceso de liquidación para ${employeeName}?\n\nEsta acción cambiará el estado del empleado a TERMINADO.`)) {
-            window.location.href = url;
-        }
+        Swal.fire({
+            title: '¿Iniciar Liquidación?',
+            html: `
+                <div class="text-left">
+                    <p><strong>Empleado:</strong> ${employeeName}</p>
+                    <hr>
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>IMPORTANTE:</strong> Esta acción cambiará el estado del empleado a <strong>TERMINADO</strong>.
+                    </div>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-handshake"></i> Sí, iniciar liquidación',
+            cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
+            reverseButtons: true,
+            customClass: {
+                popup: 'swal2-medium'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Mostrar loading mientras redirige
+                Swal.fire({
+                    title: 'Redirigiendo...',
+                    text: 'Preparando formulario de liquidación',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Redirigir a la página de creación de liquidación
+                window.location.href = url;
+            }
+        });
     });
 
     // Initialize tooltips
@@ -253,3 +289,9 @@ $pageTitle = "Liquidaciones de Empleados";
     waitForjQuery();
 })(); // Cerrar función autoejecutada
 </script>
+
+<style>
+.swal2-medium {
+    width: 550px !important;
+}
+</style>

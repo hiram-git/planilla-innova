@@ -68,8 +68,13 @@ $content .= '
                                         <td>' . htmlspecialchars($employee['document_id'] ?? 'No especificada') . '</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Clave Seguro Social:</strong></td>
-                                        <td>' . htmlspecialchars($employee['clave_seguro_social'] ?? 'No especificada') . '</td>
+                                        <td><strong>Número de Seguro Social:</strong></td>
+                                        <td>
+                                            ' . htmlspecialchars($employee['clave_seguro_social'] ?? 'No especificado') . '
+                                            ' . (($employee['clave_seguro_social'] ?? '') === ($employee['document_id'] ?? '')
+                                                ? '<span class="badge badge-info ml-2"><i class="fas fa-check-circle"></i> Mismo que cédula</span>'
+                                                : '') . '
+                                        </td>
                                     </tr>
                                     <tr>
                                         <td><strong>Email:</strong></td>

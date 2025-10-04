@@ -344,6 +344,10 @@ class App
                                         // Ruta: /panel/reports/acumulados-general-pdf
                                         $this->method = 'acumuladosGeneralPdf';
                                         $this->params = [];
+                                    } elseif ($url[2] === 'cancel-form' && isset($url[3]) && method_exists($this->controller, 'cancelForm')) {
+                                        // Ruta: /panel/liquidation/cancel-form/{id}
+                                        $this->method = 'cancelForm';
+                                        $this->params = [$url[3]]; // termination_id
                                     } elseif ($url[2] === 'create' && method_exists($this->controller, 'create')) {
                                         $this->method = 'create';
                                         $this->params = array_slice($url, 3);

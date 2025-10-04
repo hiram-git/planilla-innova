@@ -2548,6 +2548,38 @@ class PayrollController extends Controller
                          </a>';
         }
 
+        // Dropdown de Reportes (si está PROCESADA o CERRADA)
+        if (in_array($payroll['estado'], ['PROCESADA', 'CERRADA'])) {
+            $actions .= '<div class="btn-group" role="group">
+                            <button type="button" class="btn btn-secondary btn-sm dropdown-toggle"
+                                    data-toggle="dropdown"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"
+                                    title="Reportes disponibles">
+                                <i class="fas fa-file-export"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <h6 class="dropdown-header"><i class="fas fa-chart-bar"></i> Reportes</h6>
+                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/planilla-pdf/' . $payroll['id']) . '" target="_blank">
+                                    <i class="fas fa-file-pdf text-danger"></i> PDF Planilla
+                                </a>
+                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/planilla-excel-panama/' . $payroll['id']) . '" target="_blank">
+                                    <i class="fas fa-file-excel text-success"></i> Excel Panamá (4 Hojas)
+                                </a>
+                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/comprobantes-planilla/' . $payroll['id']) . '" target="_blank">
+                                    <i class="fas fa-receipt text-info"></i> Comprobantes de Pago
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/reporte-acreedores/' . $payroll['id']) . '" target="_blank">
+                                    <i class="fas fa-building text-warning"></i> Reporte Acreedores
+                                </a>
+                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/informe03/' . $payroll['id']) . '" target="_blank">
+                                    <i class="fas fa-file-contract text-secondary"></i> Informe 03 Gubernamental
+                                </a>
+                            </div>
+                         </div>';
+        }
+
         // Eliminar
         $actions .= '<button type="button" class="btn btn-danger btn-sm delete-btn"
                         data-id="' . $payroll['id'] . '"

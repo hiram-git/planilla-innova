@@ -257,6 +257,7 @@ $pageTitle = "Cálculo de Liquidación - " . htmlspecialchars($termination['firs
     </div>
 </section>
 
+<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
 <script>
 $(document).ready(function() {
     // Initialize DataTable
@@ -267,9 +268,7 @@ $(document).ready(function() {
             "paging": false,
             "searching": false,
             "info": false,
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-            }
+            "language": DATATABLES_SPANISH
         });
     }
 

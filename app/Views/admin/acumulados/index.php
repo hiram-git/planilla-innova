@@ -53,7 +53,7 @@ function initAcumuladosModule() {
             "pageLength": 25,
             "order": [[0, "asc"]],
             "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+                DATATABLES_SPANISH
             }
         });
     }

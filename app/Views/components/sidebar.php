@@ -205,7 +205,7 @@ class SidebarComponent
                 'permissions' => ['panel/payrolls'],
                 'children' => [
                     [
-                        'title' => 'Lista de Planillas',
+                        'title' => 'Planillas generadas',
                         'icon' => 'fas fa-list',
                         'url' => \App\Core\UrlHelper::payroll(),
                         'route' => 'panel/payrolls'
@@ -216,7 +216,7 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::payroll('create'),
                         'route' => 'panel/payrolls/create'
                     ],
-                    [
+                    /*[
                         'type' => 'divider'
                     ],
                     [
@@ -225,7 +225,7 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::payroll(),
                         'route' => 'panel/payrolls',
                         'description' => 'Procesamiento de nómina'
-                    ]
+                    ]*/
                 ]
             ],
             [
@@ -247,7 +247,7 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::concept('create'),
                         'route' => 'panel/concepts/create'
                     ],
-                    [
+                    /*[
                         'type' => 'divider'
                     ],
                     [
@@ -256,7 +256,7 @@ class SidebarComponent
                         'url' => \App\Core\UrlHelper::concept('create'),
                         'route' => 'panel/concepts/create',
                         'description' => 'Crear fórmulas de cálculo'
-                    ]
+                    ]*/
                 ]
             ],
             [
@@ -305,7 +305,7 @@ class SidebarComponent
                         'icon' => 'fas fa-piggy-bank',
                         'url' => \App\Core\UrlHelper::route('panel/tipos-acumulados'),
                         'route' => 'panel/tipos-acumulados',
-                        'description' => 'Aguinaldo, Bono 14, Vacaciones'
+                        'description' => 'Tipos de Acumulados'
                     ],
                     [
                         'type' => 'divider'

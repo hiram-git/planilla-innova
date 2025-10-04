@@ -214,6 +214,7 @@ $pageTitle = "Planillas de Liquidación";
     </div>
 </section>
 
+<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
 <script>
 $(document).ready(function() {
     // Initialize DataTable
@@ -222,9 +223,7 @@ $(document).ready(function() {
             "responsive": true,
             "pageLength": 25,
             "order": [[0, "desc"]], // Ordenar por ID descendente (más recientes primero)
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-            },
+            "language": DATATABLES_SPANISH,
             "columnDefs": [
                 { "orderable": false, "targets": 10 } // Columna acciones no ordenable
             ]

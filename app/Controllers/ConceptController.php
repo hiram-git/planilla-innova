@@ -416,23 +416,25 @@ class ConceptController extends Controller
 
             // Verificar si puede ser eliminado
             if (!$this->conceptModel->canDelete($id)) {
-                throw new \Exception('No se puede eliminar el concepto porque ya ha sido usado en planillas');
+                throw new \Exception('No se puede eliminar el concepto porque ya ha sido usado en planillas procesadas o cerradas. Las referencias en liquidaciones y acumulados se limpian automáticamente.');
             }
 
             $result = $this->conceptModel->delete($id);
 
             if ($result) {
+                $successMessage = 'Concepto eliminado exitosamente. Se limpiaron automáticamente las referencias en liquidaciones y acumulados.';
+
                 // Si es una petición AJAX, devolver JSON
                 if ($this->isAjaxRequest()) {
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Concepto eliminado exitosamente'
+                        'message' => $successMessage
                     ]);
                     exit;
                 }
-                
-                $_SESSION['success'] = 'Concepto eliminado exitosamente';
+
+                $_SESSION['success'] = $successMessage;
             } else {
                 throw new \Exception('Error al eliminar el concepto');
             }

@@ -40,19 +40,27 @@ $content = '
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="document_id">Cédula *</label>
-                                <input type="text" class="form-control" id="document_id" name="document_id" 
+                                <input type="text" class="form-control" id="document_id" name="document_id"
                                        value="' . ($_SESSION['old_data']['document_id'] ?? '') . '" required>
                                 ' . (isset($_SESSION['errors']['document_id']) ? '<small class="text-danger">' . $_SESSION['errors']['document_id'] . '</small>' : '') . '
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="clave_seguro_social">Clave Seguro Social</label>
-                                <input type="text" class="form-control" id="clave_seguro_social" name="clave_seguro_social" 
-                                       value="' . ($_SESSION['old_data']['clave_seguro_social'] ?? '') . '" 
-                                       placeholder="Ej: 12-34-567890">
+                                <label for="clave_seguro_social">
+                                    Número de Seguro Social *
+                                    <button type="button" class="btn btn-xs btn-outline-secondary ml-2" id="btn_copy_cedula" title="Copiar número de cédula">
+                                        <i class="fas fa-copy"></i> Usar misma cédula
+                                    </button>
+                                </label>
+                                <input type="text" class="form-control" id="clave_seguro_social" name="clave_seguro_social"
+                                       value="' . ($_SESSION['old_data']['clave_seguro_social'] ?? '') . '"
+                                       placeholder="Ej: 8-123-456 o número asignado" required>
                                 ' . (isset($_SESSION['errors']['clave_seguro_social']) ? '<small class="text-danger">' . $_SESSION['errors']['clave_seguro_social'] . '</small>' : '') . '
-                                <small class="form-text text-muted">Opcional. Clave única del empleado en el seguro social</small>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle text-info"></i>
+                                    En Panamá, generalmente es el mismo número de cédula. Si tiene número propio, ingréselo manualmente.
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -425,6 +433,28 @@ window.APP_CONFIG.company = {
 };
 window.APP_CONFIG.config = window.APP_CONFIG.config || {};
 window.APP_CONFIG.config.csrf_token = "' . ($csrf_token ?? '') . '";
+
+// Funcionalidad copiar cédula a seguro social
+$(document).ready(function() {
+    $("#btn_copy_cedula").click(function() {
+        var cedula = $("#document_id").val().trim();
+        if (cedula) {
+            $("#clave_seguro_social").val(cedula);
+            toastr.success("Número de cédula copiado al seguro social", "Copiado");
+        } else {
+            toastr.warning("Primero ingrese el número de cédula", "Advertencia");
+        }
+    });
+
+    // Auto-copiar cédula al seguro social si está vacío
+    $("#document_id").on("blur", function() {
+        var cedula = $(this).val().trim();
+        var seguro = $("#clave_seguro_social").val().trim();
+        if (cedula && !seguro) {
+            $("#clave_seguro_social").val(cedula);
+        }
+    });
+});
 </script>
 <script src="' . url('assets/javascript/modules/employees/create.js', false) . '"></script>';
 

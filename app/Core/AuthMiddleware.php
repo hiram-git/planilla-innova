@@ -295,6 +295,24 @@ class AuthMiddleware
     }
 
     /**
+     * Validar token CSRF usando Security::validateToken()
+     */
+    public static function validateCSRF()
+    {
+        if (!isset($_POST['csrf_token'])) {
+            $_SESSION['error'] = 'Token de seguridad inválido. Por favor, intente nuevamente.';
+            header('Location: /panel/dashboard');
+            exit();
+        }
+
+        if (!Security::validateToken($_POST['csrf_token'])) {
+            $_SESSION['error'] = 'Token de seguridad inválido. Por favor, intente nuevamente.';
+            header('Location: /panel/dashboard');
+            exit();
+        }
+    }
+
+    /**
      * Generar menú basado en permisos
      */
     public static function getAuthorizedMenu()
@@ -333,11 +351,11 @@ class AuthMiddleware
             $submenu = [
                 ['name' => 'Planillas', 'url' => '/panel/payrolls', 'icon' => 'fas fa-file-invoice-dollar']
             ];
-            
+
             if (isset($permissions[14]) && $permissions[14]['read']) {
                 $submenu[] = ['name' => 'Conceptos', 'url' => '/panel/concepts', 'icon' => 'fas fa-calculator'];
             }
-            
+
             $menuItems[] = [
                 'name' => 'Nómina',
                 'icon' => 'fas fa-money-check-alt',
@@ -348,11 +366,11 @@ class AuthMiddleware
         // Administración (solo admins)
         if (self::isAdmin()) {
             $adminSubmenu = [];
-            
+
             if (isset($permissions[16]) && $permissions[16]['read']) {
                 $adminSubmenu[] = ['name' => 'Usuarios', 'url' => '/panel/users', 'icon' => 'fas fa-user-cog'];
             }
-            
+
             if (isset($permissions[17]) && $permissions[17]['read']) {
                 $adminSubmenu[] = ['name' => 'Roles', 'url' => '/panel/roles', 'icon' => 'fas fa-user-shield'];
             }
