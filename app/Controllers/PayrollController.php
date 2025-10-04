@@ -2574,7 +2574,7 @@ class PayrollController extends Controller
                                     <i class="fas fa-building text-warning"></i> Reporte Acreedores
                                 </a>
                                 <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/informe03/' . $payroll['id']) . '" target="_blank">
-                                    <i class="fas fa-file-contract text-secondary"></i> Informe 03 Gubernamental
+                                    <i class="fas fa-file-contract text-secondary"></i> Informe 03
                                 </a>
                             </div>
                          </div>';
