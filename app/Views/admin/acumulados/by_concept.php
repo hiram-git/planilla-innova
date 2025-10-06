@@ -54,7 +54,7 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                         if ($concepto['tipo_concepto'] !== $currentTipo):
                                             if ($currentTipo !== '') echo '</optgroup>';
                                             $currentTipo = $concepto['tipo_concepto'];
-                                            $tipoLabel = $currentTipo === 'ASIGNACION' ? 'Asignaciones' : 'Deducciones';
+                                            $tipoLabel = $currentTipo === 'ASIGNACION' ? 'Asignaciones' : ($currentTipo === 'PATRONAL' ? 'Patronales' : 'Deducciones');
                                             echo "<optgroup label=\"{$tipoLabel}\">";
                                         endif;
                                     ?>

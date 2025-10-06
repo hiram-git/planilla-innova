@@ -269,17 +269,27 @@ $content .= '                </select>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="tipo_planilla">Tipo de Planilla *</label>
-                                <select class="form-control" id="tipo_planilla" name="tipo_planilla" required>
-                                    <option value="">Seleccionar tipo...</option>';
+                                <label for="tipo_planilla">Tipos de Planilla *</label>
+                                <select class="form-control select2" id="tipo_planilla" name="tipo_planilla[]" multiple="multiple" required style="width: 100%;">
+';
+// Obtener valores seleccionados previamente (pueden venir como string separado por comas o como array)
+$selectedValues = [];
+if (isset($_SESSION['old_data']['tipo_planilla'])) {
+    $oldData = $_SESSION['old_data']['tipo_planilla'];
+    if (is_array($oldData)) {
+        $selectedValues = $oldData;
+    } else if (is_string($oldData) && !empty($oldData)) {
+        $selectedValues = explode(',', $oldData);
+    }
+}
+
 foreach ($tipos_planilla as $tipo) {
-    // Prioridad: old_data > primer registro activo (will be overridden by JavaScript)
-    $selected = ($_SESSION['old_data']['tipo_planilla'] ?? ($tipo['id'] ?? '')) == $tipo['id'] ? ' selected' : '';
+    $selected = in_array($tipo['id'], $selectedValues) ? ' selected' : '';
     $content .= '<option value="' . $tipo['id'] . '"' . $selected . '>' . htmlspecialchars($tipo['descripcion']) . '</option>';
 }
 $content .= '                </select>
                                 <small class="form-text text-muted">
-                                    <i class="fas fa-sync-alt"></i> Se sincroniza automáticamente con el tipo seleccionado en el navbar
+                                    <i class="fas fa-list-ul"></i> Puede seleccionar múltiples tipos de planilla para este empleado
                                 </small>
                                 ' . (isset($_SESSION['errors']['tipo_planilla']) ? '<small class="text-danger">' . $_SESSION['errors']['tipo_planilla'] . '</small>' : '') . '
                             </div>

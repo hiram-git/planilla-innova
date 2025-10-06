@@ -712,8 +712,8 @@ class PDFReportController extends Controller
         if (!empty($companyInfo['logo_izquierdo_reportes'])) {
             $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
             if (file_exists($leftLogoPath)) {
-                // Ancho triplicado (era ~10, ahora 30)
-                $leftLogoWidth = 30;
+                // Ancho triplicado (era ~10, ahora 20)
+                $leftLogoWidth = 20;
                 try {
                     $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
                 } catch (Exception $e) {

@@ -142,8 +142,9 @@ class Attendance extends Model
             $params[] = $employeeId;
         }
 
+        // Soporte para múltiples tipos de planilla separados por comas
         if ($tipoPlanillaId) {
-            $sql .= " AND e.tipo_planilla_id = ?";
+            $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
             $params[] = $tipoPlanillaId;
         }
 

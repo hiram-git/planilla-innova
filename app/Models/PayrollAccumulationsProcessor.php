@@ -179,8 +179,21 @@ class PayrollAccumulationsProcessor
             $recordsCreated = 0;
             
             foreach ($details as $detail) {
-                // Convertir tipo de concepto
-                $tipoConcepto = ($detail['tipo_concepto'] === 'A') ? 'ASIGNACION' : 'DEDUCCION';
+                // Convertir tipo de concepto (A=ASIGNACION, D=DEDUCCION, P=PATRONAL)
+                switch ($detail['tipo_concepto']) {
+                    case 'A':
+                        $tipoConcepto = 'ASIGNACION';
+                        break;
+                    case 'D':
+                        $tipoConcepto = 'DEDUCCION';
+                        break;
+                    case 'P':
+                        $tipoConcepto = 'PATRONAL';
+                        break;
+                    default:
+                        $tipoConcepto = 'DEDUCCION'; // Fallback por compatibilidad
+                        break;
+                }
 
                 // Obtener TODOS los tipos de acumulados configurados para este concepto
                 $tiposAcumulados = $this->getTiposAcumuladosParaConcepto($detail['concepto_id']);

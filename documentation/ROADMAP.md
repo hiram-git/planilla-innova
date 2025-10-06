@@ -229,19 +229,48 @@
   - [ ] Estadísticas uso sistema
   - [ ] Panel administración central
 
-### 💰 **FASE 7: ISR PANAMÁ** *(Q1 2026 - Mediana Prioridad)*
-**Objetivo**: Cálculo automático Impuesto Sobre la Renta
-**Tiempo Estimado**: 2-3 semanas
-- [ ] **Subfase 7.1: Calculadora ISR** *(1-2 semanas)*
-  - [ ] Implementar tramos impositivos 2025
-  - [ ] Deducciones personales automáticas
-  - [ ] Gastos de representación deducibles
-  - [ ] Integración con conceptos planilla existentes
-- [ ] **Subfase 7.2: Retenciones & Certificados** *(1 semana)*
-  - [ ] Acumulado anual ISR por empleado
-  - [ ] Generación certificados retención
-  - [ ] Reportes declaración CSS
-  - [ ] Formularios oficiales DGI
+### ⏰ **FASE 7: INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(Q1 2026 - Alta Prioridad)*
+**Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
+**Tiempo Estimado**: 6-8 semanas
+
+- [ ] **Subfase 7.1: Integración API Externa** *(2 semanas)*
+  - [ ] API Client Service (REST/SOAP) + authentication handler
+  - [ ] Data Sync Scheduler (cron jobs) + webhook receiver
+  - [ ] Error handling + retry logic + logging completo
+  - [ ] Tablas BD: `attendance_api_config`, `attendance_raw_data`, `attendance_sync_log`
+  - [ ] Panel configuración API en dashboard
+
+- [ ] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)*
+  - [ ] AttendanceCalculator: marcaciones perfectas + horas trabajadas + ausencias
+  - [ ] Tardanzas con tolerancia configurable + salidas anticipadas
+  - [ ] OvertimeCalculator: horas extras automáticas + tiempo de almuerzo
+  - [ ] WorkScheduleResolver: horarios por empleado/día + turnos rotativos
+  - [ ] Tablas BD: `attendance_records`, `attendance_calculations`, `attendance_exceptions`
+  - [ ] Reports Generator: reportes diarios/semanales/mensuales
+
+- [ ] **Subfase 7.3: Consideraciones Legales Panamá** *(1-2 semanas)*
+  - [ ] LegalComplianceChecker: jornada ordinaria (8h/día, 48h/semana)
+  - [ ] Jornada nocturna (6PM-6AM) +50% según Art. 38 Código Trabajo
+  - [ ] Horas extras: primeras 3h +25%, siguientes +50% (Art. 39)
+  - [ ] Trabajo domingos/feriados +50% (Art. 48)
+  - [ ] WorkingDayClassifier: días ordinarios/festivos/descanso
+  - [ ] Alerts System: notificaciones excesos jornada + faltas graves
+
+- [ ] **Subfase 7.4: Integración con Generación de Planillas** *(1-2 semanas)*
+  - [ ] PayrollAttendanceIntegrator: asistencias → planillas automático
+  - [ ] Conceptos automáticos: HORAS_TRABAJADAS, HORAS_EXTRAS_25, HORAS_EXTRAS_50
+  - [ ] Conceptos adicionales: HORAS_NOCTURNAS, HORAS_DOMINICALES, DESCUENTO_TARDANZAS
+  - [ ] Conceptos bonificación: BONO_PUNTUALIDAD por asistencia perfecta
+  - [ ] PeriodAttendanceSummary: resumen asistencias por período de planilla
+  - [ ] Tablas BD: `payroll_attendance_summary`, `attendance_concepts_mapping`
+  - [ ] Validaciones cruce datos + reporte adjunto asistencias incluidas
+
+- [ ] **Subfase 7.5: Interfaz y Reportes** *(1 semana)*
+  - [ ] Vista empleados: consulta asistencias propias en tiempo real
+  - [ ] Vista gerencial: dashboard asistencias por departamento/equipo
+  - [ ] Reportes ejecutivos: puntualidad, ausentismo, horas extras
+  - [ ] Alertas automáticas: ausencias injustificadas, excesos jornada
+  - [ ] Exportación: Excel, PDF, CSV de reportes de asistencias
 
 ### 📊 **FASE 8: REPORTERÍA AVANZADA + API** *(Q2 2026 - Mediana Prioridad)*
 **Objetivo**: Reportes legales + API REST completa
@@ -331,11 +360,11 @@
 ### 📅 **Q4 2025** *(Oct - Dic 2025)*
 - **Calendario Empresarial Panamá**: Sistema completo días laborables (3-4 semanas)
 - **Módulo Vacaciones Básico**: CRUD + calculadora + integración (4-5 semanas)
-- **ISR Panamá Core**: Cálculos básicos + retenciones (2-3 semanas)
+- **Preparación API Marcaciones**: Análisis requerimientos + diseño arquitectura (1-2 semanas)
 
 ### 📅 **Q1 2026** *(Ene - Mar 2026)*
+- **API Marcaciones y Asistencias**: Integración completa + cálculos + legislación + planillas (6-8 semanas)
 - **Multitenancy Básico**: Wizard + BD por tenant + middleware (6-8 semanas)
-- **API REST Core**: Endpoints principales + JWT + docs (3-4 semanas)
 - **Mejoras Performance**: Cache + optimizaciones SQL (2-3 semanas)
 
 ### 📅 **Q2 2026** *(Abr - Jun 2026)*

@@ -1,5 +1,5 @@
 <?php
-$pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmployee['firstname'] . ' ' . $selectedEmployee['lastname']) : "Acumulados por Empleado";
+$pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars(($selectedEmployee['firstname'] ?? '') . ' ' . ($selectedEmployee['lastname'] ?? '')) : "Acumulados por Empleado";
 ?>
 
 <div class="content-header">
@@ -35,21 +35,34 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmp
                     <div class="row">
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="year">Año</label>
-                                <select class="form-control" id="year" name="year">
-                                    <?php foreach ($availableYears as $yearOption): ?>
-                                        <option value="<?= $yearOption ?>" <?= $yearOption == $year ? 'selected' : '' ?>>
-                                            <?= $yearOption === 'todos' ? 'Todos los años' : $yearOption ?>
+                                <label for="empleado_id">Empleado *</label>
+                                <select class="form-control select2" id="empleado_id" name="empleado_id" required>
+                                    <option value="">Seleccione un empleado</option>
+                                    <?php foreach ($employees as $employee): ?>
+                                        <option value="<?= $employee['id'] ?>" <?= $employee['id'] == ($selectedEmployee['id'] ?? '') ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($employee['document_id'] . ' - ' . $employee['firstname'] . ' ' . $employee['lastname']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
-                                <label for="month">Mes (Opcional)</label>
+                                <label for="year">Año</label>
+                                <select class="form-control" id="year" name="year">
+                                    <?php foreach ($availableYears as $yearOption): ?>
+                                        <option value="<?= $yearOption ?>" <?= $yearOption == $year ? 'selected' : '' ?>>
+                                            <?= $yearOption === 'todos' ? 'Todos' : $yearOption ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="month">Mes</label>
                                 <select class="form-control" id="month" name="month">
-                                    <option value="">Todos los meses</option>
+                                    <option value="">Todos</option>
                                     <?php foreach ($availableMonths as $monthNum => $monthName): ?>
                                         <option value="<?= $monthNum ?>" <?= $monthNum == $month ? 'selected' : '' ?>>
                                             <?= $monthName ?>
@@ -58,14 +71,14 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmp
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
-                                <label for="tipo_acumulado">Tipo Acumulado (Opcional)</label>
+                                <label for="tipo_acumulado">Tipo Acumulado</label>
                                 <select class="form-control" id="tipo_acumulado" name="tipo_acumulado">
-                                    <option value="">Todos los tipos</option>
+                                    <option value="">Todos</option>
                                     <?php foreach ($tiposAcumulados as $tipoOption): ?>
-                                        <option value="<?= htmlspecialchars($tipoOption) ?>" <?= $tipoOption == $tipoAcumulado ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($tipoOption) ?>
+                                        <option value="<?= htmlspecialchars($tipoOption['codigo'] ?? '') ?>" <?= ($tipoOption['codigo'] ?? '') == $tipoAcumulado ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($tipoOption['descripcion'] ?? $tipoOption['codigo'] ?? '') ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -73,14 +86,11 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmp
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="empleado_id">Empleado *</label>
-                                <select class="form-control" id="empleado_id" name="empleado_id" required>
-                                    <option value="">Seleccione un empleado</option>
-                                    <?php foreach ($employees as $employee): ?>
-                                        <option value="<?= $employee['id'] ?>" <?= $employee['id'] == ($empleadoId ?? '') ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($employee['document_id'] . ' - ' . $employee['firstname'] . ' ' . $employee['lastname']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                <label for="group_by">Agrupar por</label>
+                                <select class="form-control" id="group_by" name="group_by">
+                                    <option value="tipo_acumulado" <?= $groupBy === 'tipo_acumulado' ? 'selected' : '' ?>>Tipo de Acumulado</option>
+                                    <option value="mes" <?= $groupBy === 'mes' ? 'selected' : '' ?>>Mes</option>
+                                    <option value="planilla" <?= $groupBy === 'planilla' ? 'selected' : '' ?>>Planilla</option>
                                 </select>
                             </div>
                         </div>
@@ -99,242 +109,196 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars($selectedEmp
             </div>
         </div>
 
-        <!-- Totales Superiores (cuando hay empleado seleccionado) -->
-        <?php if ($selectedEmployee && $totales): ?>
-            <div class="row">
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-success">
-                        <div class="inner">
-                            <h3><?= currency_symbol() ?><?= number_format($totales['ASIGNACION']['total_monto'], 2) ?></h3>
-                            <p>Total Asignaciones</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-plus"></i>
-                        </div>
-                        <div class="small-box-footer">
-                            <?= $totales['ASIGNACION']['total_conceptos'] ?> conceptos, <?= $totales['ASIGNACION']['total_registros'] ?> registros
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-danger">
-                        <div class="inner">
-                            <h3><?= currency_symbol() ?><?= number_format($totales['DEDUCCION']['total_monto'], 2) ?></h3>
-                            <p>Total Deducciones</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-minus"></i>
-                        </div>
-                        <div class="small-box-footer">
-                            <?= $totales['DEDUCCION']['total_conceptos'] ?> conceptos, <?= $totales['DEDUCCION']['total_registros'] ?> registros
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-info">
-                        <div class="inner">
-                            <h3><?= currency_symbol() ?><?= number_format($totales['NETO'], 2) ?></h3>
-                            <p>Total Neto</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-calculator"></i>
-                        </div>
-                        <div class="small-box-footer">
-                            Asignaciones - Deducciones
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-warning">
-                        <div class="inner">
-                            <h3><?= count($acumulados) ?></h3>
-                            <p>Total Registros</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-list"></i>
-                        </div>
-                        <div class="small-box-footer">
-                            Período: <?= $year ?><?= $month ? ' - ' . $availableMonths[$month] : '' ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <!-- Información del Empleado Seleccionado -->
+        <!-- Resultados -->
         <?php if ($selectedEmployee): ?>
+            <!-- Información del Empleado -->
             <div class="card card-info">
                 <div class="card-header">
                     <h3 class="card-title">
                         <i class="fas fa-user mr-2"></i>
-                        Información del Empleado
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Nombre:</strong> <?= htmlspecialchars($selectedEmployee['firstname'] . ' ' . $selectedEmployee['lastname']) ?><br>
-                            <strong>Cédula:</strong> <?= htmlspecialchars($selectedEmployee['document_id'] ?? 'N/A') ?><br>
-                            <strong>Cargo:</strong> <?= htmlspecialchars($selectedEmployee['position_name'] ?? 'N/A') ?>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Período:</strong> Año <?= $year ?><?= $month ? ' - Mes ' . $availableMonths[$month] : '' ?><br>
-                            <strong>Estado:</strong> <span class="badge badge-success">Activo</span><br>
-                            <strong>Fecha Consulta:</strong> <?= date('d/m/Y H:i') ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <!-- Detalle de Registros -->
-        <?php if ($selectedEmployee): ?>
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-table mr-2"></i>
-                        Detalle de Acumulados - <?= htmlspecialchars($selectedEmployee['firstname'] . ' ' . $selectedEmployee['lastname']) ?>
+                        <?= htmlspecialchars(($selectedEmployee['firstname'] ?? '') . ' ' . ($selectedEmployee['lastname'] ?? '')) ?>
                     </h3>
                     <div class="card-tools">
-                        <button type="button" class="btn btn-success btn-sm" onclick="exportToCSV()">
-                            <i class="fas fa-download mr-1"></i> Exportar CSV
-                        </button>
+                        <span class="badge badge-light">
+                            <?= htmlspecialchars($selectedEmployee['document_id'] ?? '') ?>
+                        </span>
                     </div>
                 </div>
                 <div class="card-body">
-                    <?php if (!empty($acumulados)): ?>
+                    <p class="mb-0">
+                        <strong>Período:</strong> Año <?= $year ?>
+                        <?= $month ? ' - ' . $availableMonths[$month] : ' (Todos los meses)' ?>
+                        <?= $tipoAcumulado ? ' - Tipo: ' . htmlspecialchars($tipoAcumulado ?? '') : '' ?>
+                        <br>
+                        <strong>Agrupado por:</strong>
+                        <?php
+                        $groupLabels = ['tipo_acumulado' => 'Tipo de Acumulado', 'mes' => 'Mes', 'planilla' => 'Planilla'];
+                        echo $groupLabels[$groupBy] ?? 'Tipo de Acumulado';
+                        ?>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Cards de Totales Agrupados -->
+            <?php if (!empty($acumuladosAgrupados)): ?>
+                <div class="row">
+                    <?php
+                    $totalGeneral = array_sum(array_column($acumuladosAgrupados, 'total_monto'));
+
+                    foreach ($acumuladosAgrupados as $agrupado):
+                        $porcentaje = $totalGeneral > 0 ? ($agrupado['total_monto'] / $totalGeneral) * 100 : 0;
+
+                        // Determinar color según tipo
+                        if ($groupBy === 'tipo_acumulado') {
+                            $colorClass = ($agrupado['tipo_concepto'] ?? 'ASIGNACION') === 'ASIGNACION' ? 'success' : 'danger';
+                        } else {
+                            $colorClass = 'info';
+                        }
+                    ?>
+                        <div class="col-md-4 col-sm-6">
+                            <div class="small-box bg-<?= $colorClass ?>">
+                                <div class="inner">
+                                    <h3><?= currency_symbol() ?><?= number_format($agrupado['total_monto'], 2) ?></h3>
+                                    <p><?= htmlspecialchars($agrupado['grupo_descripcion'] ?? 'N/A') ?></p>
+                                    <div class="small mt-2">
+                                        <?php if ($groupBy === 'planilla' && isset($agrupado['fecha_inicio'])): ?>
+                                            <i class="fas fa-calendar"></i>
+                                            <?= date('d/m/Y', strtotime($agrupado['fecha_inicio'])) ?> -
+                                            <?= date('d/m/Y', strtotime($agrupado['fecha_fin'])) ?>
+                                            <br>
+                                        <?php endif; ?>
+                                        <i class="fas fa-chart-pie"></i> <?= number_format($porcentaje, 1) ?>% del total
+                                        <br>
+                                        <i class="fas fa-file-invoice"></i> <?= $agrupado['total_planillas'] ?> planilla(s)
+                                        <?php if (isset($agrupado['total_conceptos'])): ?>
+                                            |
+                                            <i class="fas fa-calculator"></i> <?= $agrupado['total_conceptos'] ?> concepto(s)
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="icon">
+                                    <?php if ($groupBy === 'tipo_acumulado'): ?>
+                                        <i class="fas fa-coins"></i>
+                                    <?php elseif ($groupBy === 'mes'): ?>
+                                        <i class="fas fa-calendar-alt"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <!-- Total General -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="info-box bg-light">
+                            <span class="info-box-icon bg-primary">
+                                <i class="fas fa-calculator"></i>
+                            </span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Total General</span>
+                                <span class="info-box-number"><?= currency_symbol() ?><?= number_format($totalGeneral, 2) ?></span>
+                                <div class="progress">
+                                    <div class="progress-bar bg-primary" style="width: 100%"></div>
+                                </div>
+                                <span class="progress-description">
+                                    <?= count($acumuladosAgrupados) ?> grupo(s) de acumulados
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla Detallada Colapsada -->
+                <div class="card card-outline card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-table mr-2"></i>
+                            Detalle Completo de Acumulados
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="display: none;">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped" id="acumuladosTable">
+                            <table id="tableAcumuladosDetalle" class="table table-bordered table-striped table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Mes</th>
-                                        <th>Acumulado</th>
-                                        <th>Tipo</th>
                                         <th>Planilla</th>
-                                        <th class="text-right">Monto</th>
-                                        <th>Fecha Período</th>
-                                        <th>Creado</th>
+                                        <th>Concepto</th>
+                                        <th>Tipo Acumulado</th>
+                                        <th>Tipo Concepto</th>
+                                        <th>Mes</th>
+                                        <th>Año</th>
+                                        <th>Monto</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php
-                                    $totalAsignaciones = 0;
-                                    $totalDeducciones = 0;
-                                    foreach ($acumulados as $acumulado):
-                                        if ($acumulado['tipo_concepto'] === 'ASIGNACION') {
-                                            $totalAsignaciones += $acumulado['monto'];
-                                        } else {
-                                            $totalDeducciones += $acumulado['monto'];
-                                        }
-                                    ?>
+                                    <?php foreach ($acumulados as $detalle): ?>
                                         <tr>
-                                            <td class="text-center">
-                                                <?= $availableMonths[$acumulado['mes']] ?? $acumulado['mes'] ?>
-                                            </td>
-                                            <td><?= htmlspecialchars($acumulado['tipo_acumulado'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($detalle['planilla_descripcion'] ?? 'N/A') ?></td>
+                                            <td><?= htmlspecialchars($detalle['concepto_descripcion'] ?? 'N/A') ?></td>
+                                            <td><?= htmlspecialchars($detalle['tipo_acumulado'] ?? 'N/A') ?></td>
                                             <td>
-                                                <span class="badge <?= $acumulado['tipo_concepto'] === 'ASIGNACION' ? 'badge-success' : 'badge-danger' ?>">
-                                                    <?= $acumulado['tipo_concepto'] ?>
+                                                <span class="badge badge-<?= ($detalle['tipo_concepto'] ?? '') === 'ASIGNACION' ? 'success' : (($detalle['tipo_concepto'] ?? '') === 'PATRONAL' ? 'info' : 'danger') ?>">
+                                                    <?= htmlspecialchars($detalle['tipo_concepto'] ?? 'N/A') ?>
                                                 </span>
                                             </td>
-                                            <td>
-                                                <?= htmlspecialchars($acumulado['planilla_descripcion'] ?? 'N/A') ?>
-                                            </td>
-                                            <td class="text-right font-weight-bold">
-                                                <?= currency_symbol() ?><?= number_format($acumulado['monto'], 2) ?>
-                                            </td>
-                                            <td>
-                                                <?php if (!empty($acumulado['fecha_desde']) && !empty($acumulado['fecha_hasta'])): ?>
-                                                    <?= date('d/m/Y', strtotime($acumulado['fecha_desde'])) ?> -
-                                                    <?= date('d/m/Y', strtotime($acumulado['fecha_hasta'])) ?>
-                                                <?php else: ?>
-                                                    N/A
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <?= !empty($acumulado['created_at']) ? date('d/m/Y H:i', strtotime($acumulado['created_at'])) : 'N/A' ?>
-                                            </td>
+                                            <td><?= $availableMonths[$detalle['mes']] ?? $detalle['mes'] ?></td>
+                                            <td><?= htmlspecialchars($detalle['ano'] ?? '') ?></td>
+                                            <td class="text-right"><?= currency_symbol() ?><?= number_format($detalle['monto'], 2) ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
-                                <tfoot>
-                                    <tr class="bg-light">
-                                        <th colspan="4" class="text-right">TOTALES:</th>
-                                        <th class="text-right">
-                                            <div class="text-success">+ <?= currency_symbol() ?><?= number_format($totalAsignaciones, 2) ?></div>
-                                            <div class="text-danger">- <?= currency_symbol() ?><?= number_format($totalDeducciones, 2) ?></div>
-                                            <hr style="margin: 5px 0;">
-                                            <div class="text-info font-weight-bold"><?= currency_symbol() ?><?= number_format($totalAsignaciones - $totalDeducciones, 2) ?></div>
-                                        </th>
-                                        <th colspan="2"></th>
-                                    </tr>
-                                </tfoot>
                             </table>
                         </div>
-                    <?php else: ?>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                            No se encontraron registros de acumulados para este empleado en el período especificado.
-                        </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+
+            <?php else: ?>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    No hay acumulados para este empleado con los filtros seleccionados.
+                </div>
+            <?php endif; ?>
+
         <?php else: ?>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle mr-2"></i>
-                Seleccione un empleado y período para ver sus acumulados detallados.
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Por favor seleccione un empleado para ver sus acumulados.
             </div>
         <?php endif; ?>
+
     </div>
 </section>
 
-
-<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
+<!-- Scripts -->
 <script>
 $(document).ready(function() {
-    // Initialize DataTable
-    if ($("#acumuladosTable").length) {
-        $("#acumuladosTable").DataTable({
-            "responsive": true,
-            "pageLength": 25,
-            "order": [[0, "desc"]], // Ordenar por mes descendente
-            "language": {
-                DATATABLES_SPANISH
-            }
-        });
-    }
-
-    // Initialize Select2 for employee dropdown
-    $('#empleado_id').select2({
+    // Inicializar Select2
+    $('.select2').select2({
         theme: 'bootstrap4',
-        placeholder: 'Buscar empleado...',
+        width: '100%',
+        placeholder: 'Seleccione un empleado',
         allowClear: true
     });
 
-    // Auto-submit form when employee changes (same as search button)
-    $('#empleado_id').on('change', function() {
-        if ($(this).val()) {
-            // Submit form automatically when employee is selected
-            $('form').submit();
-        }
+    // Inicializar DataTable para detalle
+    <?php if (!empty($acumulados)): ?>
+    $('#tableAcumuladosDetalle').DataTable({
+        responsive: true,
+        autoWidth: false,
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+        },
+        order: [[5, 'desc'], [4, 'desc']], // Ordenar por año y mes desc
+        pageLength: 25
     });
-
-    // Auto-submit when year filter changes (for better UX)
-    $('#year, #tipo_acumulado').on('change', function() {
-        if ($('#empleado_id').val()) {
-            // Only auto-submit if employee is already selected
-            $('form').submit();
-        }
-    });
-
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
+    <?php endif; ?>
 });
-
-function exportToCSV() {
-    const params = new URLSearchParams(window.location.search);
-    params.set('export', 'csv');
-    const exportUrl = '<?= \App\Core\UrlHelper::route('panel/acumulados/export') ?>?' + params.toString();
-    window.open(exportUrl, '_blank');
-}
 </script>

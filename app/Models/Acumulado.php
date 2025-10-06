@@ -34,8 +34,9 @@ class Acumulado
             $params = [$year];
 
             // Filtrar por tipo de planilla del empleado si se proporciona
+            // Soporte para múltiples tipos de planilla separados por comas
             if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
-                $whereConditions[] = "e.tipo_planilla_id = ?";
+                $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
                 $params[] = (int)$tipoPlanillaId;
             }
 
@@ -48,7 +49,7 @@ class Acumulado
                     SUM(ape.monto) as total_acumulado,
                     COUNT(DISTINCT ape.employee_id) as total_empleados,
                     COUNT(DISTINCT ape.concepto_id) as total_conceptos_incluidos,
-                    GROUP_CONCAT(DISTINCT c.concepto ORDER BY c.concepto SEPARATOR ', ') as conceptos_incluidos
+                    GROUP_CONCAT(DISTINCT c.descripcion ORDER BY c.descripcion SEPARATOR ', ') as conceptos_incluidos
                 FROM {$this->table} ape
                 INNER JOIN employees e ON ape.employee_id = e.id
                 LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
@@ -87,8 +88,9 @@ class Acumulado
             $params = [$year];
 
             // Filtrar por tipo de planilla del empleado si se proporciona
+            // Soporte para múltiples tipos de planilla separados por comas
             if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
-                $whereConditions[] = "e.tipo_planilla_id = ?";
+                $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
                 $params[] = (int)$tipoPlanillaId;
             }
 

@@ -45,7 +45,7 @@ $content .= '
                         <p class="text-muted">' . htmlspecialchars(
                             $isEmpresaConPosiciones
                                 ? ($employee['position_name'] ?? 'Sin posición')
-                                : ($employee['cargo_nombre'] ?? 'Sin cargo')
+                                : ($employee['cargo_name'] ?? 'Sin cargo')
                         ) . '</p>
                     </div>
                     
@@ -103,7 +103,7 @@ $content .= '
                                         <td>' . htmlspecialchars(
                                             $isEmpresaConPosiciones
                                                 ? ($employee['position_name'] ?? 'No asignado')
-                                                : ($employee['cargo_nombre'] ?? 'No asignado')
+                                                : ($employee['cargo_name'] ?? 'No asignado')
                                         ) . '</td>
                                     </tr>
                                     <tr>
@@ -161,6 +161,34 @@ if (!empty($employee['situacion_nombre'])) {
     $content .= '<span class="badge ' . $statusClass . '">' . htmlspecialchars($employee['situacion_nombre']) . '</span>';
 } else {
     $content .= '<span class="badge badge-warning">Sin situación asignada</span>';
+}
+
+$content .= '
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Tipo(s) de Planilla:</strong></td>
+                                        <td>';
+
+// Mostrar tipos de planilla (puede ser múltiples separados por comas)
+if (!empty($employee['tipo_planilla_id'])) {
+    $tipoPlanillaModel = new \App\Models\TipoPlanilla();
+    $tipoIds = explode(',', $employee['tipo_planilla_id']);
+    $badges = [];
+
+    foreach ($tipoIds as $tipoId) {
+        $tipoId = trim($tipoId);
+        if (is_numeric($tipoId)) {
+            $tipoPlanilla = $tipoPlanillaModel->find($tipoId);
+            if ($tipoPlanilla) {
+                $badges[] = '<span class="badge badge-primary">' . htmlspecialchars($tipoPlanilla['descripcion']) . '</span>';
+            }
+        }
+    }
+
+    $content .= !empty($badges) ? implode(' ', $badges) : '<span class="text-muted">No especificado</span>';
+} else {
+    $content .= '<span class="text-muted">No especificado</span>';
 }
 
 $content .= '

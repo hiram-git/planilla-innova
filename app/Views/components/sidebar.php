@@ -1,26 +1,46 @@
 <?php
 /**
- * Sidebar Component
- * Componente reutilizable para la barra lateral de navegación
- * ✅ INTEGRADO CON SISTEMA DE PERMISOS GRANULARES
+ * Sidebar Component - AdminLTE Multilevel Style
+ * ✅ REFACTORIZADO CON ESTRUCTURA MULTILEVEL NATIVA ADMINLTE
+ * ✅ PERSISTENCIA AUTOMÁTICA DE ESTADO CON data-widget="treeview"
  */
 
 use App\Helpers\PermissionHelper;
 
 if (!class_exists('SidebarComponent')) {
-class SidebarComponent 
+class SidebarComponent
 {
-    private $menuItems;
     private $currentRoute;
     private $userRole;
-    
-    public function __construct() 
+
+    public function __construct()
     {
         $this->currentRoute = $this->getCurrentRoute();
         $this->userRole = $_SESSION['admin_role'] ?? 'guest';
-        $this->initializeMenuItems();
     }
-    
+
+    private function getCurrentRoute()
+    {
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $path = parse_url($uri, PHP_URL_PATH);
+
+        // Obtener el base path del sistema (ej: /planilla-innova)
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $basePath = dirname($scriptName);
+
+        // Si el script está en el root, basePath será '/' o '.'
+        if ($basePath === '/' || $basePath === '.') {
+            $basePath = '';
+        }
+
+        // Remover el base path del path actual
+        if (!empty($basePath) && strpos($path, $basePath) === 0) {
+            $path = substr($path, strlen($basePath));
+        }
+
+        return trim($path, '/');
+    }
+
     /**
      * Verificar si es una empresa con posiciones
      */
@@ -31,527 +51,31 @@ class SidebarComponent
             return $companyModel->isEmpresaConPosiciones();
         } catch (\Exception $e) {
             error_log("Error checking company type in sidebar: " . $e->getMessage());
-            return false; // Default to empresa sin posiciones
+            return false;
         }
     }
-    
-    private function getCurrentRoute() 
+
+    /**
+     * Verificar si una ruta está activa
+     */
+    private function isActive($route)
     {
-        $uri = $_SERVER['REQUEST_URI'] ?? '';
-        $path = parse_url($uri, PHP_URL_PATH);
-        return trim($path, '/');
+        return strpos($this->currentRoute, $route) === 0;
     }
-    
-    private function initializeMenuItems() 
+
+    /**
+     * Verificar si tiene permiso
+     */
+    private function hasPermission($permissions)
     {
-        $this->menuItems = [
-            [
-                'type' => 'single',
-                'title' => 'Dashboard',
-                'icon' => 'fas fa-tachometer-alt',
-                'url' => \App\Core\UrlHelper::panel('dashboard'),
-                'route' => 'panel/dashboard',
-                'badge' => null,
-                'permissions' => ['panel/dashboard']
-            ],
-            [
-                'type' => 'divider',
-                'title' => 'GESTIÓN DE PERSONAL'
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Empleados',
-                'icon' => 'fas fa-users',
-                'route' => 'panel/employees',
-                'permissions' => ['panel/employees'],
-                'children' => [
-                    [
-                        'title' => 'Lista de Empleados',
-                        'icon' => 'fas fa-list',
-                        'url' => \App\Core\UrlHelper::employee(),
-                        'route' => 'panel/employees'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Empleados Dados de Baja',
-                        'icon' => 'fas fa-user-times',
-                        'url' => \App\Core\UrlHelper::route('panel/employees/terminated'),
-                        'route' => 'panel/employees/terminated',
-                        'description' => 'Ver empleados terminados o inactivos'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Nuevo Empleado',
-                        'icon' => 'fas fa-user-plus',
-                        'url' => \App\Core\UrlHelper::employee('create'),
-                        'route' => 'panel/employees/create'
-                    ],
-                    [
-                        'title' => 'Importar desde Excel',
-                        'icon' => 'fas fa-file-excel',
-                        'url' => \App\Core\UrlHelper::employee('import'),
-                        'route' => 'panel/employees/import'
-                    ]
-                ]
-            ]
-        ];
-        
-        // Agregar módulo de Estructura Organizacional con lógica condicional
-        $structureChildren = [];
-        
-        // Para empresa pública: agregar Posiciones
-        if ($this->isPublicInstitution()) {
-            $structureChildren[] = [
-                'title' => 'Posiciones',
-                'icon' => 'fas fa-briefcase',
-                'url' => \App\Core\UrlHelper::position(),
-                'route' => 'panel/positions'
-            ];
-        }
-        
-        // Siempre agregar Cargos, Partidas y Funciones (tanto pública como privada)
-        $structureChildren[] = [
-            'title' => 'Cargos',
-            'icon' => 'fas fa-user-tie',
-            'url' => \App\Core\UrlHelper::cargo(),
-            'route' => 'panel/cargos'
-        ];
-        $structureChildren[] = [
-            'title' => 'Partidas',
-            'icon' => 'fas fa-coins',
-            'url' => \App\Core\UrlHelper::partida(),
-            'route' => 'panel/partidas'
-        ];
-        $structureChildren[] = [
-            'title' => 'Funciones',
-            'icon' => 'fas fa-tasks',
-            'url' => \App\Core\UrlHelper::funcion(),
-            'route' => 'panel/funciones'
-        ];
-        
-        // Agregar el módulo de organigrama jerárquico
-        $structureChildren[] = [
-            'title' => 'Organigrama',
-            'icon' => 'fas fa-project-diagram',
-            'url' => \App\Core\UrlHelper::url('panel/organizational'),
-            'route' => 'panel/organizational'
-        ];
-        
-        // Agregar el módulo completo
-        $this->menuItems[] = [
-            'type' => 'dropdown',
-            'title' => 'Estructura Organizacional', 
-            'icon' => 'fas fa-sitemap',
-            'route' => 'structure',
-            'permissions' => [],
-            'children' => $structureChildren
-        ];
-        
-        // Continuar con otros elementos del menú
-        $additionalMenuItems = [
-            [
-                'type' => 'single',
-                'title' => 'Horarios',
-                'icon' => 'fas fa-calendar-alt',
-                'url' => \App\Core\UrlHelper::schedule(),
-                'route' => 'panel/schedules',
-                'permissions' => ['panel/schedules']
-            ],
-            [
-                'type' => 'divider',
-                'title' => 'CONTROL DE ASISTENCIA'
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Asistencia',
-                'icon' => 'fas fa-clock',
-                'route' => 'panel/attendance',
-                'permissions' => ['panel/attendance'],
-                'children' => [
-                    [
-                        'title' => 'Registros de Asistencia',
-                        'icon' => 'fas fa-list-ul',
-                        'url' => \App\Core\UrlHelper::attendance(),
-                        'route' => 'panel/attendance'
-                    ],
-                    [
-                        'title' => 'Reportes',
-                        'icon' => 'fas fa-chart-bar',
-                        'url' => \App\Core\UrlHelper::attendance('reports'),
-                        'route' => 'panel/attendance/reports'
-                    ],
-                    [
-                        'title' => 'Sistema de Marcaciones',
-                        'icon' => 'fas fa-stopwatch',
-                        'url' => \App\Core\UrlHelper::timeclock(),
-                        'route' => 'timeclock',
-                        'target' => '_blank'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'divider',
-                'title' => 'NÓMINA Y PLANILLAS'
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Gestión de Planillas',
-                'icon' => 'fas fa-file-invoice-dollar',
-                'route' => 'panel/payrolls',
-                'permissions' => ['panel/payrolls'],
-                'children' => [
-                    [
-                        'title' => 'Planillas generadas',
-                        'icon' => 'fas fa-list',
-                        'url' => \App\Core\UrlHelper::payroll(),
-                        'route' => 'panel/payrolls'
-                    ],
-                    [
-                        'title' => 'Nueva Planilla',
-                        'icon' => 'fas fa-plus-circle',
-                        'url' => \App\Core\UrlHelper::payroll('create'),
-                        'route' => 'panel/payrolls/create'
-                    ],
-                    /*[
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Procesar Planillas',
-                        'icon' => 'fas fa-play-circle',
-                        'url' => \App\Core\UrlHelper::payroll(),
-                        'route' => 'panel/payrolls',
-                        'description' => 'Procesamiento de nómina'
-                    ]*/
-                ]
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Conceptos y Fórmulas',
-                'icon' => 'fas fa-calculator',
-                'route' => 'panel/concepts',
-                'permissions' => ['panel/concepts'],
-                'children' => [
-                    [
-                        'title' => 'Gestionar Conceptos',
-                        'icon' => 'fas fa-list-ul',
-                        'url' => \App\Core\UrlHelper::concept(),
-                        'route' => 'panel/concepts'
-                    ],
-                    [
-                        'title' => 'Nuevo Concepto',
-                        'icon' => 'fas fa-plus',
-                        'url' => \App\Core\UrlHelper::concept('create'),
-                        'route' => 'panel/concepts/create'
-                    ],
-                    /*[
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Editor de Fórmulas',
-                        'icon' => 'fas fa-code',
-                        'url' => \App\Core\UrlHelper::concept('create'),
-                        'route' => 'panel/concepts/create',
-                        'description' => 'Crear fórmulas de cálculo'
-                    ]*/
-                ]
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Configuración de Conceptos',
-                'icon' => 'fas fa-cogs',
-                'route' => 'config',
-                'permissions' => [],
-                'children' => [
-                    [
-                        'title' => 'Tipos de Planilla',
-                        'icon' => 'fas fa-clipboard-list',
-                        'url' => \App\Core\UrlHelper::route('panel/tipos-planilla'),
-                        'route' => 'panel/tipos-planilla'
-                    ],
-                    [
-                        'title' => 'Frecuencias',
-                        'icon' => 'fas fa-calendar-check',
-                        'url' => \App\Core\UrlHelper::route('panel/frecuencias'),
-                        'route' => 'panel/frecuencias'
-                    ],
-                    [
-                        'title' => 'Situaciones',
-                        'icon' => 'fas fa-user-tag',
-                        'url' => \App\Core\UrlHelper::route('panel/situaciones'),
-                        'route' => 'panel/situaciones'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Acumulados',
-                'icon' => 'fas fa-coins',
-                'route' => 'panel/acumulados',
-                'permissions' => ['panel/acumulados'],
-                'children' => [
-                    [
-                        'title' => 'Dashboard Acumulados',
-                        'icon' => 'fas fa-tachometer-alt',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados'),
-                        'route' => 'panel/acumulados',
-                        'description' => 'Vista general de acumulados'
-                    ],
-                    [
-                        'title' => 'Tipos de Acumulados',
-                        'icon' => 'fas fa-piggy-bank',
-                        'url' => \App\Core\UrlHelper::route('panel/tipos-acumulados'),
-                        'route' => 'panel/tipos-acumulados',
-                        'description' => 'Tipos de Acumulados'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Por Empleado',
-                        'icon' => 'fas fa-user',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byEmployee'),
-                        'route' => 'panel/acumulados/byEmployee',
-                        'description' => 'Acumulados por empleado específico'
-                    ],
-                    [
-                        'title' => 'Por Concepto',
-                        'icon' => 'fas fa-tags',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byConcepto'),
-                        'route' => 'panel/acumulados/byConcepto',
-                        'description' => 'Acumulados por concepto específico'
-                    ],
-                    /*[
-                        'title' => 'Por Planilla',
-                        'icon' => 'fas fa-file-invoice',
-                        'url' => \App\Core\UrlHelper::route('panel/acumulados/byPayroll'),
-                        'route' => 'panel/payrolls',
-                        'description' => 'Acumulados específicos por planilla'
-                    ]*/
-                ]
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Liquidaciones',
-                'icon' => 'fas fa-handshake',
-                'route' => 'panel/liquidation',
-                'permissions' => ['panel/liquidation'],
-                'children' => [
-                    [
-                        'title' => 'Gestionar Liquidaciones',
-                        'icon' => 'fas fa-list',
-                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
-                        'route' => 'panel/liquidation',
-                        'description' => 'Lista de empleados y liquidaciones'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Planillas de Liquidación',
-                        'icon' => 'fas fa-file-invoice',
-                        'url' => \App\Core\UrlHelper::route('panel/liquidation/payrolls'),
-                        'route' => 'panel/liquidation/payrolls',
-                        'description' => 'Planillas generadas con frecuencia de liquidación'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Nueva Liquidación',
-                        'icon' => 'fas fa-user-times',
-                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
-                        'route' => 'panel/liquidation',
-                        'description' => 'Iniciar proceso de liquidación'
-                    ],
-                    [
-                        'title' => 'Liquidaciones Pendientes',
-                        'icon' => 'fas fa-clock',
-                        'url' => \App\Core\UrlHelper::route('panel/liquidation'),
-                        'route' => 'panel/liquidation',
-                        'description' => 'Revisar liquidaciones en proceso'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Vacaciones',
-                'icon' => 'fas fa-umbrella-beach',
-                'route' => 'panel/vacation',
-                'permissions' => ['panel/vacation'],
-                'children' => [
-                    [
-                        'title' => 'Gestión de Vacaciones',
-                        'icon' => 'fas fa-list',
-                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
-                        'route' => 'panel/vacation',
-                        'description' => 'Lista de empleados y balances'
-                    ],
-                    [
-                        'title' => 'Calendario de Vacaciones',
-                        'icon' => 'fas fa-calendar-alt',
-                        'url' => \App\Core\UrlHelper::route('panel/vacation/calendar'),
-                        'route' => 'panel/vacation/calendar',
-                        'description' => 'Vista calendario empresarial'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Solicitudes Pendientes',
-                        'icon' => 'fas fa-clock',
-                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
-                        'route' => 'panel/vacation',
-                        'description' => 'Aprobar/rechazar solicitudes'
-                    ],
-                    [
-                        'title' => 'Nueva Solicitud',
-                        'icon' => 'fas fa-plus',
-                        'url' => \App\Core\UrlHelper::route('panel/vacation'),
-                        'route' => 'panel/vacation',
-                        'description' => 'Solicitar vacaciones para empleado'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Reportes de Vacaciones',
-                        'icon' => 'fas fa-chart-bar',
-                        'url' => \App\Core\UrlHelper::route('panel/vacation/reports'),
-                        'route' => 'panel/vacation/reports',
-                        'description' => 'Balance por empleado y estadísticas'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Acreedores y Deducciones',
-                'icon' => 'fas fa-hand-holding-usd',
-                'route' => 'panel/creditors',
-                'permissions' => ['panel/creditors'],
-                'children' => [
-                    [
-                        'title' => 'Gestionar Acreedores',
-                        'icon' => 'fas fa-building',
-                        'url' => \App\Core\UrlHelper::route('panel/creditors'),
-                        'route' => 'panel/creditors'
-                    ],
-                    [
-                        'title' => 'Nuevo Acreedor',
-                        'icon' => 'fas fa-plus-circle',
-                        'url' => \App\Core\UrlHelper::route('panel/creditors/create'),
-                        'route' => 'panel/creditors/create'
-                    ],
-                    [
-                        'type' => 'divider'
-                    ],
-                    [
-                        'title' => 'Deducciones por Empleado',
-                        'icon' => 'fas fa-minus-circle',
-                        'url' => \App\Core\UrlHelper::route('panel/deductions'),
-                        'route' => 'panel/deductions'
-                    ],
-                    [
-                        'title' => 'Nueva Deducción',
-                        'icon' => 'fas fa-plus',
-                        'url' => \App\Core\UrlHelper::route('panel/deductions/create'),
-                        'route' => 'panel/deductions/create'
-                    ],
-                    [
-                        'title' => 'Asignación Masiva',
-                        'icon' => 'fas fa-users-cog',
-                        'url' => \App\Core\UrlHelper::route('panel/deductions/mass-assign'),
-                        'route' => 'panel/deductions/mass-assign',
-                        'description' => 'Asignar deducciones múltiples'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'divider',
-                'title' => 'CONFIGURACIÓN'
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Administración',
-                'icon' => 'fas fa-cog',
-                'route' => 'admin',
-                'permissions' => [],
-                'children' => [
-                    [
-                        'title' => 'Usuarios',
-                        'icon' => 'fas fa-users-cog',
-                        'url' => \App\Core\UrlHelper::route('panel/users'),
-                        'route' => 'panel/users'
-                    ],
-                    [
-                        'title' => 'Roles y Permisos',
-                        'icon' => 'fas fa-key',
-                        'url' => \App\Core\UrlHelper::route('panel/roles'),
-                        'route' => 'panel/roles'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'divider',
-                'title' => 'REPORTES'
-            ],
-            [
-                'type' => 'dropdown',
-                'title' => 'Reportes',
-                'icon' => 'fas fa-chart-line',
-                'route' => 'panel/reports',
-                'permissions' => ['panel/reports'],
-                'children' => [
-                    [
-                        'title' => 'Centro de Reportes',
-                        'icon' => 'fas fa-file-pdf',
-                        'url' => \App\Core\UrlHelper::url('panel/reports'),
-                        'route' => 'panel/reports'
-                    ],
-                    [
-                        'title' => 'Exportar Datos',
-                        'icon' => 'fas fa-download',
-                        'url' => \App\Core\UrlHelper::url('panel/reports/exports'),
-                        'route' => 'panel/reports/exports'
-                    ]
-                ]
-            ],
-            [
-                'type' => 'divider',
-                'title' => 'CONFIGURACIÓN'
-            ],
-            [
-                'type' => 'single',
-                'title' => 'Configuración de Empresa',
-                'icon' => 'fas fa-building',
-                'url' => \App\Core\UrlHelper::url('panel/company'),
-                'route' => 'panel/company',
-                'permissions' => ['panel/company']
-            ]
-        ];
-        
-        // Unir los elementos adicionales al menú principal
-        $this->menuItems = array_merge($this->menuItems, $additionalMenuItems);
-    }
-    
-    private function hasPermission($permissions) 
-    {
-        // ✅ REFACTORIZADO: Sistema de permisos más flexible y claro
-        
-        // 1. Si no hay permisos definidos, mostrar siempre (elementos públicos)
         if (empty($permissions)) {
             return true;
         }
-        
-        // 2. Super admin ve TODO sin restricciones
+
         if (PermissionHelper::isSuperAdmin()) {
             return true;
         }
-        
-        // 3. Si permissions es array con rutas, verificar acceso granular por BD
+
         if (is_array($permissions) && isset($permissions[0]) && is_string($permissions[0])) {
             foreach ($permissions as $permission) {
                 if (PermissionHelper::canAccess($permission, 'read')) {
@@ -560,137 +84,22 @@ class SidebarComponent
             }
             return false;
         }
-        
-        // 4. Verificación por roles específicos (backward compatibility)
+
         if (is_array($permissions)) {
             return PermissionHelper::hasAnyRole($permissions);
         }
-        
-        // 5. Verificación simple por string
+
         if (is_string($permissions)) {
             return PermissionHelper::hasRole($permissions);
         }
-        
+
         return false;
     }
-    
-    private function isActive($route) 
+
+    public function render()
     {
-        return strpos($this->currentRoute, $route) === 0;
-    }
-    
-    private function renderMenuItem($item) 
-    {
-        // ✅ SUPER ADMIN: Ve todo sin restricciones
-        if (PermissionHelper::isSuperAdmin()) {
-            // No verificar permisos, proceder directamente
-        } elseif (isset($item['permissions']) && !$this->hasPermission($item['permissions'])) {
-            return '';
-        }
-        
-        $html = '';
-        
-        switch ($item['type']) {
-            case 'divider':
-                $html = '<li class="nav-header">' . strtoupper($item['title']) . '</li>';
-                break;
-                
-            case 'single':
-                $active = isset($item['route']) && $this->isActive($item['route']) ? 'active' : '';
-                $disabled = isset($item['disabled']) && $item['disabled'] ? 'disabled' : '';
-                $target = isset($item['target']) ? 'target="' . $item['target'] . '"' : '';
-                
-                $badge = '';
-                if (isset($item['badge'])) {
-                    $badge = '<span class="right badge ' . $item['badge']['class'] . '">' . $item['badge']['text'] . '</span>';
-                }
-                
-                $html = '
-                <li class="nav-item">
-                    <a href="' . ($item['url'] ?? '#') . '" class="nav-link ' . $active . ' ' . $disabled . '" ' . $target . '>
-                        <i class="nav-icon ' . $item['icon'] . '"></i>
-                        <p>' . $item['title'] . $badge . '</p>
-                    </a>
-                </li>';
-                break;
-                
-            case 'dropdown':
-                $active = isset($item['route']) && $this->isActive($item['route']) ? 'menu-open' : '';
-                $activeLink = $active ? 'active' : '';
-                
-                $badge = '';
-                if (isset($item['badge'])) {
-                    $badge = '<span class="right badge ' . $item['badge']['class'] . '">' . $item['badge']['text'] . '</span>';
-                }
-                
-                $html = '
-                <li class="nav-item has-treeview ' . $active . '">
-                    <a href="#" class="nav-link ' . $activeLink . '">
-                        <i class="nav-icon ' . $item['icon'] . '"></i>
-                        <p>
-                            ' . $item['title'] . '
-                            <i class="right fas fa-angle-left"></i>
-                            ' . $badge . '
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">';
-                
-                foreach ($item['children'] as $child) {
-                    // Manejar dividers en dropdowns
-                    if (isset($child['type']) && $child['type'] === 'divider') {
-                        $html .= '<li class="nav-item"><hr class="dropdown-divider"></li>';
-                        continue;
-                    }
-                    
-                    // Verificar que el child tenga title antes de procesarlo
-                    if (!isset($child['title'])) {
-                        continue;
-                    }
-                    
-                    // ✅ REFACTORIZADO: Lógica simplificada para elementos hijos
-                    
-                    // Super admin ve todo - no necesita validaciones
-                    if (PermissionHelper::isSuperAdmin()) {
-                        // Continuar sin validaciones
-                    } 
-                    // Validar permisos específicos del elemento hijo
-                    elseif (isset($child['permissions']) && !$this->hasPermission($child['permissions'])) {
-                        continue;
-                    }
-                    // Validar acceso por ruta (solo para usuarios no-admin)
-                    elseif (isset($child['route']) && !PermissionHelper::canAccess($child['route'], 'read')) {
-                        continue;
-                    }
-                    
-                    $childActive = isset($child['route']) && $this->isActive($child['route']) ? 'active' : '';
-                    $childDisabled = isset($child['disabled']) && $child['disabled'] ? 'disabled' : '';
-                    $childTarget = isset($child['target']) ? 'target="' . $child['target'] . '"' : '';
-                    
-                    $html .= '
-                        <li class="nav-item">
-                            <a href="' . ($child['url'] ?? '#') . '" class="nav-link ' . $childActive . ' ' . $childDisabled . '" ' . $childTarget . '>
-                                <i class="' . ($child['icon'] ?? 'fas fa-circle') . ' nav-icon"></i>
-                                <p>' . $child['title'] . '</p>
-                            </a>
-                        </li>';
-                }
-                
-                $html .= '
-                    </ul>
-                </li>';
-                break;
-        }
-        
-        return $html;
-    }
-    
-    public function render() 
-    {
-        $menuHtml = '';
-        foreach ($this->menuItems as $item) {
-            $menuHtml .= $this->renderMenuItem($item);
-        }
-        
+        $isPublic = $this->isPublicInstitution();
+
         return '
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
@@ -701,37 +110,436 @@ class SidebarComponent
 
             <!-- Sidebar -->
             <div class="sidebar">
-                <!-- ✅ REFACTORIZADO: Panel de usuario con información de rol 
-                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-                    <div class="image">
-                        <img src="' . url('dist/img/avatar.png') . '" class="img-circle elevation-2" alt="User Image">
-                    </div>
-                    <div class="info">
-                        <a href="#" class="d-block">' . htmlspecialchars($_SESSION['admin_name'] ?? 'Usuario') . '</a>
-                        <small class="text-muted d-block">
-                            <i class="fas fa-user-tag"></i> ' . htmlspecialchars($_SESSION['admin_role'] ?? 'Sin rol') . '
-                        </small>
-                        <small class="text-muted">
-                            <i class="fas fa-circle text-success"></i> En línea
-                        </small>
-                    </div>
-                </div>-->
-
                 <!-- Sidebar Menu -->
-                <nav class="mt-0">
-                    <ul class="nav nav-pills nav-sidebar flex-column nav-compact" role="menu" data-accordion="false">
-                        ' . $menuHtml . '
-                        
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+
+                        <!-- Dashboard -->
+                        <li class="nav-item">
+                            <a href="' . \App\Core\UrlHelper::panel('dashboard') . '" class="nav-link ' . ($this->isActive('panel/dashboard') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-tachometer-alt"></i>
+                                <p>Dashboard</p>
+                            </a>
+                        </li>
+
+                        <!-- GESTIÓN DE PERSONAL -->
+                        <li class="nav-header">GESTIÓN DE PERSONAL</li>
+
+                        <!-- Empleados -->
+                        <li class="nav-item ' . ($this->isActive('panel/employees') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/employees') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-users"></i>
+                                <p>
+                                    Empleados
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::employee() . '" class="nav-link ' . ($this->isActive('panel/employees') && !$this->isActive('panel/employees/terminated') && !$this->isActive('panel/employees/create') && !$this->isActive('panel/employees/import') ? 'active' : '') . '">
+                                        <i class="fas fa-list nav-icon"></i>
+                                        <p>Lista de Empleados</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/employees/terminated') . '" class="nav-link ' . ($this->isActive('panel/employees/terminated') ? 'active' : '') . '">
+                                        <i class="fas fa-user-times nav-icon"></i>
+                                        <p>Empleados Dados de Baja</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::employee('create') . '" class="nav-link ' . ($this->isActive('panel/employees/create') ? 'active' : '') . '">
+                                        <i class="fas fa-user-plus nav-icon"></i>
+                                        <p>Nuevo Empleado</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::employee('import') . '" class="nav-link ' . ($this->isActive('panel/employees/import') ? 'active' : '') . '">
+                                        <i class="fas fa-file-excel nav-icon"></i>
+                                        <p>Importar desde Excel</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Estructura Organizacional -->
+                        <li class="nav-item ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-sitemap"></i>
+                                <p>
+                                    Estructura Organizacional
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">' .
+                            ($isPublic ? '
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::position() . '" class="nav-link ' . ($this->isActive('panel/positions') ? 'active' : '') . '">
+                                        <i class="fas fa-briefcase nav-icon"></i>
+                                        <p>Posiciones</p>
+                                    </a>
+                                </li>' : '') . '
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::cargo() . '" class="nav-link ' . ($this->isActive('panel/cargos') ? 'active' : '') . '">
+                                        <i class="fas fa-user-tie nav-icon"></i>
+                                        <p>Cargos</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::partida() . '" class="nav-link ' . ($this->isActive('panel/partidas') ? 'active' : '') . '">
+                                        <i class="fas fa-coins nav-icon"></i>
+                                        <p>Partidas</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::funcion() . '" class="nav-link ' . ($this->isActive('panel/funciones') ? 'active' : '') . '">
+                                        <i class="fas fa-tasks nav-icon"></i>
+                                        <p>Funciones</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::url('panel/organizational') . '" class="nav-link ' . ($this->isActive('panel/organizational') ? 'active' : '') . '">
+                                        <i class="fas fa-project-diagram nav-icon"></i>
+                                        <p>Organigrama</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Horarios -->
+                        <li class="nav-item">
+                            <a href="' . \App\Core\UrlHelper::schedule() . '" class="nav-link ' . ($this->isActive('panel/schedules') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-calendar-alt"></i>
+                                <p>Horarios</p>
+                            </a>
+                        </li>
+
+                        <!-- CONTROL DE ASISTENCIA -->
+                        <li class="nav-header">CONTROL DE ASISTENCIA</li>
+
+                        <!-- Asistencia -->
+                        <li class="nav-item ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-clock"></i>
+                                <p>
+                                    Asistencia
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::attendance() . '" class="nav-link ' . ($this->isActive('panel/attendance') && !$this->isActive('panel/attendance/reports') ? 'active' : '') . '">
+                                        <i class="fas fa-list-ul nav-icon"></i>
+                                        <p>Registros de Asistencia</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::attendance('reports') . '" class="nav-link ' . ($this->isActive('panel/attendance/reports') ? 'active' : '') . '">
+                                        <i class="fas fa-chart-bar nav-icon"></i>
+                                        <p>Reportes</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::timeclock() . '" class="nav-link ' . ($this->isActive('timeclock') ? 'active' : '') . '" target="_blank">
+                                        <i class="fas fa-stopwatch nav-icon"></i>
+                                        <p>Sistema de Marcaciones</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- NÓMINA Y PLANILLAS -->
+                        <li class="nav-header">NÓMINA Y PLANILLAS</li>
+
+                        <!-- Gestión de Planillas -->
+                        <li class="nav-item ' . ($this->isActive('panel/payrolls') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/payrolls') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                                <p>
+                                    Gestión de Planillas
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::payroll() . '" class="nav-link ' . ($this->isActive('panel/payrolls') && !$this->isActive('panel/payrolls/create') ? 'active' : '') . '">
+                                        <i class="fas fa-list nav-icon"></i>
+                                        <p>Planillas generadas</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::payroll('create') . '" class="nav-link ' . ($this->isActive('panel/payrolls/create') ? 'active' : '') . '">
+                                        <i class="fas fa-plus-circle nav-icon"></i>
+                                        <p>Nueva Planilla</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- REPORTES -->
+                        <li class="nav-header">REPORTES</li>
+
+                        <!-- Reportes -->
+                        <li class="nav-item ' . ($this->isActive('panel/reports') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/reports') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-chart-line"></i>
+                                <p>
+                                    Reportes
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::url('panel/reports') . '" class="nav-link ' . ($this->isActive('panel/reports') && !$this->isActive('panel/reports/exports') ? 'active' : '') . '">
+                                        <i class="fas fa-file-pdf nav-icon"></i>
+                                        <p>Centro de Reportes</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::url('panel/reports/exports') . '" class="nav-link ' . ($this->isActive('panel/reports/exports') ? 'active' : '') . '">
+                                        <i class="fas fa-download nav-icon"></i>
+                                        <p>Exportar Datos</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Conceptos y Fórmulas -->
+                        <li class="nav-item ' . ($this->isActive('panel/concepts') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/concepts') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-calculator"></i>
+                                <p>
+                                    Conceptos y Fórmulas
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::concept() . '" class="nav-link ' . ($this->isActive('panel/concepts') && !$this->isActive('panel/concepts/create') ? 'active' : '') . '">
+                                        <i class="fas fa-list-ul nav-icon"></i>
+                                        <p>Gestionar Conceptos</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::concept('create') . '" class="nav-link ' . ($this->isActive('panel/concepts/create') ? 'active' : '') . '">
+                                        <i class="fas fa-plus nav-icon"></i>
+                                        <p>Nuevo Concepto</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Configuración de Conceptos -->
+                        <li class="nav-item ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-cogs"></i>
+                                <p>
+                                    Configuración de Conceptos
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/tipos-planilla') . '" class="nav-link ' . ($this->isActive('panel/tipos-planilla') ? 'active' : '') . '">
+                                        <i class="fas fa-clipboard-list nav-icon"></i>
+                                        <p>Tipos de Planilla</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/frecuencias') . '" class="nav-link ' . ($this->isActive('panel/frecuencias') ? 'active' : '') . '">
+                                        <i class="fas fa-calendar-check nav-icon"></i>
+                                        <p>Frecuencias</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/situaciones') . '" class="nav-link ' . ($this->isActive('panel/situaciones') ? 'active' : '') . '">
+                                        <i class="fas fa-user-tag nav-icon"></i>
+                                        <p>Situaciones</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Acumulados -->
+                        <li class="nav-item ' . ($this->isActive('panel/acumulados') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/acumulados') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-coins"></i>
+                                <p>
+                                    Acumulados
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/acumulados') . '" class="nav-link ' . ($this->isActive('panel/acumulados') && !$this->isActive('panel/acumulados/byType') && !$this->isActive('panel/acumulados/byEmployee') && !$this->isActive('panel/acumulados/byConcepto') ? 'active' : '') . '">
+                                        <i class="fas fa-tachometer-alt nav-icon"></i>
+                                        <p>Dashboard Acumulados</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byType') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byType') ? 'active' : '') . '">
+                                        <i class="fas fa-piggy-bank nav-icon"></i>
+                                        <p>Tipos de Acumulados</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byEmployee') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byEmployee') ? 'active' : '') . '">
+                                        <i class="fas fa-user nav-icon"></i>
+                                        <p>Por Empleado</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byConcepto') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byConcepto') ? 'active' : '') . '">
+                                        <i class="fas fa-tags nav-icon"></i>
+                                        <p>Por Concepto</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Liquidaciones -->
+                        <li class="nav-item ' . ($this->isActive('panel/liquidation') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/liquidation') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-handshake"></i>
+                                <p>
+                                    Liquidaciones
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/liquidation') . '" class="nav-link ' . ($this->isActive('panel/liquidation') && !$this->isActive('panel/liquidation/payrolls') ? 'active' : '') . '">
+                                        <i class="fas fa-list nav-icon"></i>
+                                        <p>Gestionar Liquidaciones</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/liquidation/payrolls') . '" class="nav-link ' . ($this->isActive('panel/liquidation/payrolls') ? 'active' : '') . '">
+                                        <i class="fas fa-file-invoice nav-icon"></i>
+                                        <p>Planillas de Liquidación</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Vacaciones -->
+                        <li class="nav-item ' . ($this->isActive('panel/vacation') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/vacation') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-umbrella-beach"></i>
+                                <p>
+                                    Vacaciones
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/vacation') . '" class="nav-link ' . ($this->isActive('panel/vacation') && !$this->isActive('panel/vacation/calendar') && !$this->isActive('panel/vacation/reports') ? 'active' : '') . '">
+                                        <i class="fas fa-list nav-icon"></i>
+                                        <p>Gestión de Vacaciones</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/vacation/calendar') . '" class="nav-link ' . ($this->isActive('panel/vacation/calendar') ? 'active' : '') . '">
+                                        <i class="fas fa-calendar-alt nav-icon"></i>
+                                        <p>Calendario de Vacaciones</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/vacation/reports') . '" class="nav-link ' . ($this->isActive('panel/vacation/reports') ? 'active' : '') . '">
+                                        <i class="fas fa-chart-bar nav-icon"></i>
+                                        <p>Reportes de Vacaciones</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Acreedores y Deducciones -->
+                        <li class="nav-item ' . ($this->isActive('panel/creditors') || $this->isActive('panel/deductions') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/creditors') || $this->isActive('panel/deductions') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-hand-holding-usd"></i>
+                                <p>
+                                    Acreedores y Deducciones
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/creditors') . '" class="nav-link ' . ($this->isActive('panel/creditors') && !$this->isActive('panel/creditors/create') ? 'active' : '') . '">
+                                        <i class="fas fa-building nav-icon"></i>
+                                        <p>Gestionar Acreedores</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/creditors/create') . '" class="nav-link ' . ($this->isActive('panel/creditors/create') ? 'active' : '') . '">
+                                        <i class="fas fa-plus-circle nav-icon"></i>
+                                        <p>Nuevo Acreedor</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/deductions') . '" class="nav-link ' . ($this->isActive('panel/deductions') && !$this->isActive('panel/deductions/create') && !$this->isActive('panel/deductions/mass-assign') ? 'active' : '') . '">
+                                        <i class="fas fa-minus-circle nav-icon"></i>
+                                        <p>Deducciones por Empleado</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/deductions/create') . '" class="nav-link ' . ($this->isActive('panel/deductions/create') ? 'active' : '') . '">
+                                        <i class="fas fa-plus nav-icon"></i>
+                                        <p>Nueva Deducción</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/deductions/mass-assign') . '" class="nav-link ' . ($this->isActive('panel/deductions/mass-assign') ? 'active' : '') . '">
+                                        <i class="fas fa-users-cog nav-icon"></i>
+                                        <p>Asignación Masiva</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- CONFIGURACIÓN -->
+                        <li class="nav-header">CONFIGURACIÓN</li>
+
+                        <!-- Administración -->
+                        <li class="nav-item ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-cog"></i>
+                                <p>
+                                    Administración
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::url('panel/reports/exports') . '" class="nav-link ' . ($this->isActive('panel/reports/exports') ? 'active' : '') . '">
+                                        <i class="fas fa-users-cog nav-icon"></i>
+                                <p>Configuración de Empresa</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/users') . '" class="nav-link ' . ($this->isActive('panel/users') ? 'active' : '') . '">
+                                        <i class="fas fa-users-cog nav-icon"></i>
+                                        <p>Usuarios</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/roles') . '" class="nav-link ' . ($this->isActive('panel/roles') ? 'active' : '') . '">
+                                        <i class="fas fa-key nav-icon"></i>
+                                        <p>Roles y Permisos</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
                         <!-- System Info -->
                         <li class="nav-header">INFORMACIÓN DEL SISTEMA</li>
                         <li class="nav-item">
                             <a href="#" class="nav-link disabled">
                                 <i class="nav-icon fas fa-info-circle"></i>
                                 <p>
-                                    <?php
+                                    Versión <?php
                                     use App\Helpers\VersionHelper;
+                                    echo VersionHelper::getCurrentVersion();
                                     ?>
-                                    Versión <?= VersionHelper::getCurrentVersion() ?>
                                     <span class="right badge badge-success">MVC</span>
                                 </p>
                             </a>
@@ -741,8 +549,8 @@ class SidebarComponent
             </div>
         </aside>';
     }
-    
-    public function getStyles() 
+
+    public function getStyles()
     {
         return '
         <style>
@@ -750,44 +558,39 @@ class SidebarComponent
             scrollbar-width: thin;
             scrollbar-color: rgba(255,255,255,0.2) transparent;
         }
-        
+
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
-        
+
         .sidebar::-webkit-scrollbar-track {
             background: transparent;
         }
-        
+
         .sidebar::-webkit-scrollbar-thumb {
             background-color: rgba(255,255,255,0.2);
             border-radius: 3px;
         }
-        
-        .nav-compact .nav-item {
-            margin-bottom: 2px;
-        }
-        
-        .nav-compact .nav-link {
+
+        .nav-sidebar .nav-link {
             border-radius: 6px;
             transition: all 0.3s ease;
         }
-        
-        .nav-compact .nav-link:hover {
+
+        .nav-sidebar .nav-link:hover {
             background-color: rgba(255,255,255,0.1);
-            transform: translateX(3px);
         }
-        
-        .nav-compact .nav-link.active {
+
+        .nav-sidebar .nav-link.active {
             background-color: rgba(255,255,255,0.2) !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        
-        .nav-compact .nav-link.disabled {
+
+        .nav-sidebar .nav-link.disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-        
+
         .nav-header {
             font-size: 0.7rem;
             font-weight: 600;
@@ -796,19 +599,26 @@ class SidebarComponent
             margin-bottom: 0.5rem;
             color: rgba(255,255,255,0.6);
         }
-        
+
         .brand-link {
             transition: background-color 0.3s ease;
         }
-        
+
         .brand-link:hover {
             background-color: rgba(255,255,255,0.1);
         }
-        
-        .user-panel .info a:hover {
-            color: #fff !important;
+
+        /* AdminLTE Treeview animations */
+        .nav-treeview {
+            animation-name: fadeIn;
+            animation-duration: 0.3s;
         }
-        
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
         @media (max-width: 768px) {
             .nav-header {
                 font-size: 0.6rem;
@@ -821,5 +631,4 @@ class SidebarComponent
 
 // Crear el componente para que esté disponible en el layout
 $sidebar = new SidebarComponent();
-// El layout se encargará de renderizar usando $sidebarHtml
 ?>

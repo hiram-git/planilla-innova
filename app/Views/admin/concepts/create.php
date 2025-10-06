@@ -61,7 +61,7 @@ $title = 'Nuevo Concepto';
                                     <label class="form-check-label" for="deduccion">Deducción</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="tipo_concepto" id="patronal" value="C">
+                                    <input class="form-check-input" type="radio" name="tipo_concepto" id="patronal" value="P">
                                     <label class="form-check-label" for="patronal">Patronal</label>
                                 </div>
                             </div>

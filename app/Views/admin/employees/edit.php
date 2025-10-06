@@ -269,14 +269,35 @@ $content .= '                </select>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="edit_tipo_planilla">Tipo de Planilla *</label>
-                                <select class="form-control" id="edit_tipo_planilla" name="edit_tipo_planilla" required>
-                                    <option value="">Seleccionar tipo...</option>';
+                                <label for="edit_tipo_planilla">Tipos de Planilla *</label>
+                                <select class="form-control select2" id="edit_tipo_planilla" name="edit_tipo_planilla[]" multiple="multiple" required style="width: 100%;">
+';
+// Obtener valores seleccionados previamente (pueden venir como string separado por comas o como array)
+$selectedValues = [];
+if (isset($_SESSION['old_data']['edit_tipo_planilla'])) {
+    $oldData = $_SESSION['old_data']['edit_tipo_planilla'];
+    if (is_array($oldData)) {
+        $selectedValues = $oldData;
+    } else if (is_string($oldData) && !empty($oldData)) {
+        $selectedValues = explode(',', $oldData);
+    }
+} else if (!empty($employee['tipo_planilla_id'])) {
+    // Si viene de la BD, puede ser un string separado por comas
+    if (is_string($employee['tipo_planilla_id'])) {
+        $selectedValues = explode(',', $employee['tipo_planilla_id']);
+    } else {
+        $selectedValues = [$employee['tipo_planilla_id']];
+    }
+}
+
 foreach ($tipos_planilla as $tipo) {
-    $selected = ($_SESSION['old_data']['edit_tipo_planilla'] ?? ($employee['tipo_planilla_id'] ?? '')) == $tipo['id'] ? ' selected' : '';
+    $selected = in_array($tipo['id'], $selectedValues) ? ' selected' : '';
     $content .= '<option value="' . $tipo['id'] . '"' . $selected . '>' . htmlspecialchars($tipo['descripcion']) . '</option>';
 }
 $content .= '                </select>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-list-ul"></i> Puede seleccionar múltiples tipos de planilla para este empleado
+                                </small>
                                 ' . (isset($_SESSION['errors']['edit_tipo_planilla']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_tipo_planilla'] . '</small>' : '') . '
                             </div>
                         </div>

@@ -504,19 +504,35 @@ class App
     {
         http_response_code(404);
         $url = $this->parseUrl();
-        echo "<h1>404 - Página no encontrada</h1>";
-        echo "<p>URL solicitada: " . implode('/', $url) . "</p>";
-        echo "<p>Controlador buscado: " . (is_object($this->controller) ? get_class($this->controller) : (is_string($this->controller) ? $this->controller : 'No definido')) . "</p>";
-        echo "<p>Método buscado: " . $this->method . "</p>";
-        
+
+        // Preparar datos para la vista
+        $data = [
+            'url' => $url,
+            'controller' => $this->controller,
+            'method' => $this->method
+        ];
+
         // Mostrar controladores disponibles en modo debug
         if (isset($_GET['debug'])) {
-            echo "<h3>Controladores disponibles:</h3>";
             $controllers = glob(__DIR__ . '/../Controllers/*.php');
+            $availableControllers = [];
             foreach ($controllers as $controller) {
-                $className = basename($controller, '.php');
-                echo "<li>$className</li>";
+                $availableControllers[] = basename($controller, '.php');
             }
+            $data['availableControllers'] = $availableControllers;
+        }
+
+        // Extraer variables para la vista
+        extract($data);
+
+        // Incluir la vista 404
+        $viewPath = __DIR__ . '/../Views/errors/404.php';
+        if (file_exists($viewPath)) {
+            require $viewPath;
+        } else {
+            // Fallback simple si no existe la vista
+            echo "<h1>404 - Página no encontrada</h1>";
+            echo "<p>URL solicitada: " . implode('/', $url) . "</p>";
         }
         exit;
     }

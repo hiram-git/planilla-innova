@@ -1,5 +1,336 @@
 # 📋 CHANGELOG - Sistema de Planillas MVC
 
+## [3.3.20] - 2025-10-06
+
+### ✨ **SOPORTE MÚLTIPLES TIPOS DE PLANILLA POR EMPLEADO**
+
+#### ✅ **Funcionalidad Implementada**
+
+**Cambio Principal**:
+- Empleados ahora pueden pertenecer a múltiples tipos de planilla simultáneamente
+- Campo `tipo_planilla_id` cambiado de INT a VARCHAR(255) para almacenar valores separados por comas
+- Interfaz mejorada con Select2 para selección múltiple
+
+**Archivos Modificados**:
+
+1. **Base de Datos**:
+   - `database/migrations_consolidated/2025_10_06_1054_multiple_tipo_planilla_support.sql`
+   - Migración ALTER TABLE employees tipo_planilla_id INT(11) → VARCHAR(255)
+   - Tabla backup: employees_tipo_planilla_backup_20251006
+   - Foreign key eliminada para permitir múltiples valores
+   - Script rollback completo incluido
+
+2. **Vistas**:
+   - `app/Views/admin/employees/create.php` (líneas 270-296)
+   - `app/Views/admin/employees/edit.php` (líneas 270-303)
+   - Implementado Select2 con `multiple="multiple"`
+   - Manejo bidireccional: array → string (save) y string → array (load)
+   - `app/Views/admin/employees/show.php` (líneas 169-196)
+   - Nueva sección "Tipo(s) de Planilla" con badges múltiples
+
+3. **Controladores**:
+   - `app/Controllers/Employee.php`
+   - store() (líneas 177-179): implode(',', $array) para crear
+   - update() (líneas 310-312): implode(',', $array) para actualizar
+   - `app/Controllers/Admin.php`
+   - getActiveEmployees() (línea 175): FIND_IN_SET() para dashboard
+
+4. **Modelos**:
+   - `app/Models/Employee.php`
+   - getEmployeesByTipoPlanilla() (líneas 282-284): FIND_IN_SET() query
+   - `app/Models/Acumulado.php`
+   - getAcumuladosByTipoAndYear() (línea 39): FIND_IN_SET() filtro
+   - getEmployeesWithAcumulados() (línea 91): FIND_IN_SET() filtro
+   - `app/Models/Attendance.php`
+   - getAttendanceByDateRange() (línea 147): FIND_IN_SET() filtro
+
+**Detalles Técnicos**:
+
+- **Almacenamiento**: Valores separados por comas (ej: "1,3,5")
+- **Consultas SQL**: `FIND_IN_SET(?, tipo_planilla_id)` para filtrado
+- **Frontend**: Select2 con validación `required` múltiple
+- **Backend**: `implode(',', $array)` para guardar, `explode(',', $string)` para leer
+- **Compatibilidad**: Soporte bidireccional para valores antiguos (INT) y nuevos (VARCHAR)
+
+**Impacto en Sistema**:
+
+- ✅ Filtros Dashboard: funcionan correctamente con múltiples valores
+- ✅ Filtros Acumulados: soportan empleados en múltiples planillas
+- ✅ Asistencias: filtrado correcto por tipo planilla
+- ✅ Formularios: validación y UX mejorada con Select2
+- ✅ Vista Empleado: muestra todos los tipos asignados con badges
+
+**Testing Recomendado**:
+
+1. Crear nuevo empleado con múltiples tipos de planilla
+2. Editar empleado existente y agregar/quitar tipos
+3. Filtrar dashboard por tipo planilla
+4. Filtrar acumulados por tipo planilla
+5. Verificar vista show.php muestra todos los badges correctamente
+
+---
+
+## [3.3.19] - 2025-10-06
+
+### 📋 **ACTUALIZACIÓN ROADMAP - INTEGRACIÓN API MARCACIONES**
+
+#### ✅ **Cambio Estratégico en Hoja de Ruta**
+
+**Decisión Estratégica**:
+- ❌ Eliminada FASE 7: ISR PANAMÁ de roadmap principal
+- ✅ Agregada FASE 7: INTEGRACIÓN API MARCACIONES Y ASISTENCIAS como alta prioridad
+
+**Justificación**:
+- Mayor impacto operativo inmediato en control de asistencias
+- Automatización completa del cálculo de horas trabajadas en planillas
+- Cumplimiento legislación panameña sobre jornadas y horas extras
+- Reducción errores manuales en registro de asistencias
+- ISR queda como mejora futura de menor prioridad
+
+**Nueva FASE 7: API Marcaciones y Asistencias** (Q1 2026 - Alta Prioridad):
+
+**Subfase 7.1 - Integración API Externa** (2 semanas):
+- API Client Service con soporte REST/SOAP
+- Data Sync Scheduler con cron jobs automáticos
+- Webhook receiver para notificaciones en tiempo real
+- Error handling + retry logic robusto
+- Tablas BD: attendance_api_config, attendance_raw_data, attendance_sync_log
+
+**Subfase 7.2 - Cálculos Avanzados** (2 semanas):
+- AttendanceCalculator: marcaciones perfectas + horas trabajadas
+- OvertimeCalculator: horas extras automáticas
+- WorkScheduleResolver: horarios dinámicos por empleado
+- Detección ausencias, tardanzas, salidas anticipadas
+- Tablas BD: attendance_records, attendance_calculations, attendance_exceptions
+
+**Subfase 7.3 - Legislación Panameña** (1-2 semanas):
+- Jornada ordinaria: 8h/día, 48h/semana (Art. 31 Código Trabajo)
+- Jornada nocturna: 6PM-6AM +50% (Art. 38)
+- Horas extras: primeras 3h +25%, siguientes +50% (Art. 39)
+- Trabajo domingos/feriados +50% (Art. 48)
+- LegalComplianceChecker + Alerts System
+
+**Subfase 7.4 - Integración Planillas** (1-2 semanas):
+- PayrollAttendanceIntegrator automático
+- Conceptos: HORAS_TRABAJADAS, HORAS_EXTRAS_25, HORAS_EXTRAS_50
+- Conceptos: HORAS_NOCTURNAS, HORAS_DOMINICALES, DESCUENTO_TARDANZAS
+- PeriodAttendanceSummary por período de planilla
+- Tablas BD: payroll_attendance_summary, attendance_concepts_mapping
+
+**Subfase 7.5 - Interfaz y Reportes** (1 semana):
+- Vista empleados: consulta asistencias propias
+- Vista gerencial: dashboard departamental
+- Reportes ejecutivos: puntualidad, ausentismo, horas extras
+- Alertas automáticas + exportación Excel/PDF
+
+**Beneficios del Sistema**:
+- ✅ Automatización total eliminación carga manual
+- ✅ Cumplimiento legislación panameña garantizado
+- ✅ Transparencia: empleados consultan asistencias tiempo real
+- ✅ Auditoría completa con registro detallado
+- ✅ Precisión: eliminación errores humanos
+- ✅ Reportes ejecutivos asistencias
+
+**Archivos Actualizados**:
+- `CLAUDE.md`: Nueva sección "MÓDULO API MARCACIONES Y ASISTENCIAS - PLANIFICADO" con detalles completos
+- `ROADMAP.md`: FASE 7 reemplazada + hitos Q4 2025/Q1 2026 actualizados
+- `documentation/CHANGELOG.md`: Documentación cambio estratégico
+
+**Resultado**:
+✅ Roadmap actualizado con nueva prioridad estratégica enfocada en automatización asistencias y control horarios
+
+---
+
+## [3.3.18] - 2025-10-06
+
+### 🐛 **FIXES ACUMULADOS - DROPDOWNS TIPO CONCEPTO**
+
+#### ✅ **Corrección Optgroups y Descripciones**
+
+**Problema Identificado**:
+- En vista byEmployee: dropdown "Tipo Acumulado" mostraba códigos en lugar de descripciones
+- En vista byConcepto: optgroups mostraban "Deducciones" duplicado, faltaba "Patronales"
+
+**Soluciones Implementadas**:
+
+1. **Método getTiposAcumulados()** (`AcumuladoController.php:1192-1210`):
+   - ✅ Cambiado de FETCH_COLUMN a FETCH_ASSOC
+   - ✅ Agregado LEFT JOIN con tabla tipos_acumulados
+   - ✅ Ahora devuelve array con 'codigo' y 'descripcion'
+   - ✅ Ordenado por descripción para mejor UX
+
+2. **Vista byEmployee** (`by_employee.php:77-85`):
+   - ✅ Actualizado select para usar codigo/descripcion
+   - ✅ Muestra descripciones legibles: "Asignaciones", "Deducciones", "Patronales"
+   - ✅ Value usa código correcto para filtrado
+
+3. **Vista byConcepto** (`by_concept.php:57`):
+   - ✅ Agregado soporte para tipo PATRONAL en optgroups
+   - ✅ Ternario anidado: ASIGNACION → Asignaciones, PATRONAL → Patronales, else → Deducciones
+   - ✅ Ahora muestra correctamente los 3 grupos sin duplicados
+
+4. **Fixes Adicionales**:
+   - ✅ Badge PATRONAL con color info (azul) en tabla detalle byEmployee
+   - ✅ Mes duplicado corregido: Octubre en lugar de segundo Septiembre
+
+**Archivos Modificados**:
+- `app/Controllers/AcumuladoController.php`: Método getTiposAcumulados() refactorizado
+- `app/Views/admin/acumulados/by_employee.php`: Select tipo_acumulado + badge PATRONAL
+- `app/Views/admin/acumulados/by_concept.php`: Optgroup con 3 tipos correctos
+
+**Resultado**:
+✅ Dropdowns de acumulados muestran correctamente Asignaciones, Deducciones y Patronales sin duplicados
+
+---
+
+### 🎨 **PÁGINA 404 CON ESTILOS ADMINLTE**
+
+#### ✅ **Vista de Error 404 Profesional**
+
+**Problema Identificado**:
+- La página 404 mostraba solo HTML simple sin estilos
+- No seguía el diseño AdminLTE del resto de la aplicación
+- Poca información útil para el usuario
+
+**Soluciones Implementadas**:
+
+1. **Nueva Vista 404 AdminLTE** (`app/Views/errors/404.php`):
+   - ✅ Diseño completo AdminLTE con error-page y headline
+   - ✅ Icono warning y tipografía grande "404"
+   - ✅ Mensaje amigable al usuario
+   - ✅ Botones de acción: "Ir al Dashboard" y "Regresar"
+   - ✅ Callout informativo con detalles de la solicitud (URL, controlador, método)
+   - ✅ Modo debug con listado de controladores disponibles
+   - ✅ Responsive y consistente con el tema AdminLTE
+
+2. **Método show404() Refactorizado** (`App.php:503-538`):
+   - ✅ Preparación de datos estructurados para la vista
+   - ✅ Extract de variables para template rendering
+   - ✅ Inclusión de vista profesional
+   - ✅ Fallback simple si la vista no existe
+
+**Archivos Creados**:
+- `app/Views/errors/404.php`: Vista 404 con diseño AdminLTE completo
+
+**Archivos Modificados**:
+- `app/Core/App.php`: Método `show404()` refactorizado para usar vista
+- `app/Controllers/AcumuladoController.php`: Fix mes duplicado (línea 1018: Septiembre → Octubre)
+
+**Resultado**:
+✅ Página de error 404 profesional y consistente con el diseño AdminLTE del sistema
+
+---
+
+## [3.3.17] - 2025-10-05
+
+### 🎨 **ACUMULADOS BY EMPLOYEE - VISUALIZACIÓN CARDS AGRUPADOS**
+
+#### ✅ **Vista ByEmployee Transformada con Cards Visuales**
+
+**Problema Identificado**:
+- La vista `/panel/acumulados/byEmployee` mostraba solo tabla simple
+- Sin agrupaciones visuales por tipo acumulado, mes o planilla
+- Poca claridad en los totales y distribución de acumulados
+
+**Soluciones Implementadas**:
+
+1. **Cards Visuales Agrupados** (`by_employee.php`):
+   - ✅ Diseño de cards estilo AdminLTE `small-box` con colores dinámicos
+   - ✅ Color success/danger para tipo_acumulado según tipo_concepto
+   - ✅ Color info para agrupaciones por mes o planilla
+   - ✅ Iconos FontAwesome específicos por tipo de agrupación
+   - ✅ Porcentaje visual del total general
+   - ✅ Indicadores de total planillas y conceptos incluidos
+
+2. **Opciones de Agrupación Flexibles** (`AcumuladoController.php:544`):
+   - ✅ GroupBy dropdown con 3 opciones: tipo_acumulado, mes, planilla
+   - ✅ Método `getAcumuladosAgrupadosByEmployee()` con SQL dinámico
+   - ✅ Agrupación por tipo: muestra descripción + tipo concepto
+   - ✅ Agrupación por mes: muestra nombre del mes + totales
+   - ✅ Agrupación por planilla: muestra descripción + fechas período
+
+3. **Filtros Mejorados**:
+   - ✅ Filtros en parte superior mantenidos y funcionales
+   - ✅ Select2 para selección de empleado
+   - ✅ Filtros combinados: año, mes, tipo_acumulado, tipo_planilla
+   - ✅ Persistencia de filtros al cambiar agrupación
+
+4. **Tabla Detallada Colapsable**:
+   - ✅ DataTables con todos los registros detallados
+   - ✅ Card colapsado por defecto para no saturar vista
+   - ✅ Ordenamiento por año y mes descendente
+   - ✅ Paginación de 25 registros por página
+
+5. **Total General Info-Box**:
+   - ✅ Info-box AdminLTE con total general destacado
+   - ✅ Progress bar completa al 100%
+   - ✅ Indicador de cantidad de grupos
+
+**Archivos Modificados**:
+- `app/Views/admin/acumulados/by_employee.php`: Transformación completa a diseño de cards
+- `app/Controllers/AcumuladoController.php`: Método `getAcumuladosAgrupadosByEmployee()` (líneas 917-1008)
+
+**Resultado**:
+✅ Vista de acumulados por empleado totalmente modernizada con visualización clara y flexible de datos agrupados
+
+---
+
+## [3.3.16] - 2025-10-05
+
+### 🎨 **SIDEBAR REFACTORIZADO - NAVEGACIÓN MULTILEVEL ADMINLTE NATIVA**
+
+#### ✅ **Refactorización Completa del Sidebar**
+
+**Problema Identificado**:
+- El sidebar anterior tenía lógica JavaScript manual que interfería con AdminLTE
+- Los menús no mantenían la clase `active` al navegar
+- Los submenús se cerraban incorrectamente
+- La detección de rutas fallaba en subdirectorios (ej: `/planilla-innova/panel/employees`)
+
+**Soluciones Implementadas**:
+
+1. **Estructura HTML Multilevel Nativa AdminLTE** (`sidebar.php`):
+   - ✅ Eliminada lógica manual de renderizado complejo
+   - ✅ HTML directo siguiendo patrón oficial AdminLTE
+   - ✅ `data-widget="treeview"` en `<ul>` principal
+   - ✅ `data-accordion="false"` para múltiples menús abiertos
+   - ✅ Clase `menu-open` aplicada automáticamente según ruta activa
+   - ✅ Clase `active` en enlaces según `isActive()`
+
+2. **Corrección Detección de Rutas** (`sidebar.php:22-42`):
+   - ✅ Método `getCurrentRoute()` refactorizado
+   - ✅ Detección automática del base path (`/planilla-innova`)
+   - ✅ Eliminación correcta del prefijo de subdirectorio
+   - ✅ Soporte para instalaciones en root o subdirectorios
+
+3. **Iconos Originales Restaurados**:
+   - ✅ Reemplazados `far fa-circle` genéricos por iconos específicos
+   - ✅ Empleados: `fas fa-list`, `fas fa-user-times`, `fas fa-user-plus`, `fas fa-file-excel`
+   - ✅ Estructura Organizacional: `fas fa-briefcase`, `fas fa-user-tie`, `fas fa-coins`, `fas fa-tasks`, `fas fa-project-diagram`
+   - ✅ Asistencia: `fas fa-list-ul`, `fas fa-chart-bar`, `fas fa-stopwatch`
+   - ✅ Planillas: `fas fa-list`, `fas fa-plus-circle`
+   - ✅ Y más...
+
+4. **JavaScript Limpio** (`admin.php:497-500`):
+   - ✅ Eliminado código que desactivaba AdminLTE Treeview
+   - ✅ Removidos event handlers manuales conflictivos
+   - ✅ AdminLTE maneja automáticamente el treeview
+   - ✅ Sin inicialización manual innecesaria
+
+**Archivos Modificados**:
+- `app/Views/components/sidebar.php`: Refactorización completa estructura y lógica
+- `app/Views/components/sidebar_anterior.php`: Respaldo del sidebar anterior
+- `app/Views/layouts/admin.php`: Limpieza de JavaScript interferente
+
+**Resultado**:
+- ✅ Navegación fluida sin pérdida de estado
+- ✅ Menús permanecen abiertos (`menu-open`) correctamente
+- ✅ Enlaces activos destacados visualmente (`active`)
+- ✅ Compatible con subdirectorios y root
+- ✅ Comportamiento 100% nativo AdminLTE
+
+---
+
 ## [3.3.15] - 2025-10-04
 
 ### 📊 **MÓDULO ACUMULADOS REFACTORIZADO - AGRUPACIÓN DINÁMICA COMPLETA**

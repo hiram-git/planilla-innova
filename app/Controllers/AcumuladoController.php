@@ -32,9 +32,12 @@ class AcumuladoController extends Controller
     {
         $year = $_GET['year'] ?? date('Y');
         $empleadoId = $_GET['empleado_id'] ?? null;
-        
-        // Obtener lista de empleados para filtro
-        $employees = $this->employeeModel->getAllEmployees();
+        $tipoPlanillaId = $_GET['tipo_planilla'] ?? null;
+
+        // Obtener lista de empleados para filtro (filtrados por tipo de planilla si aplica)
+        $employees = $tipoPlanillaId
+            ? $this->employeeModel->getEmployeesByTipoPlanilla($tipoPlanillaId)
+            : $this->employeeModel->getAllEmployees();
         
         // Si se especifica un empleado, obtener sus acumulados
         $acumulados = [];
@@ -47,7 +50,7 @@ class AcumuladoController extends Controller
             $tiposAcumulados = $this->tipoAcumuladoModel->getActivos(); // No se usan cuando hay empleado específico
         } else {
             // Vista para todos los empleados: mostrar tipos con totales agregados
-            $tiposAcumulados = $this->getTiposAcumuladosWithTotals($year);
+            $tiposAcumulados = $this->getTiposAcumuladosWithTotals($year, $tipoPlanillaId);
         }
         
         $data = [
@@ -57,9 +60,12 @@ class AcumuladoController extends Controller
             'acumulados' => $acumulados,
             'selectedEmployee' => $selectedEmployee,
             'selectedYear' => $year,
-            'years' => $this->getAvailableYears()
+            'years' => $this->getAvailableYears(),
+            'scriptFiles' => [
+                'assets/javascript/modules/acumulados/common.js?' . date('His')
+            ]
         ];
-        
+
         $this->render('admin/acumulados/index', $data);
     }
 
@@ -534,23 +540,39 @@ class AcumuladoController extends Controller
         $empleadoId = $_GET['empleado_id'] ?? null;
         $month = $_GET['month'] ?? null;
         $tipoAcumulado = $_GET['tipo_acumulado'] ?? null;
+        $tipoPlanillaId = $_GET['tipo_planilla'] ?? null;
+        $groupBy = $_GET['group_by'] ?? 'tipo_acumulado'; // tipo_acumulado, mes, planilla
 
         try {
-            // Obtener lista de empleados activos
-            $employees = $this->employeeModel->getAllEmployees();
+            // Obtener lista de empleados activos (filtrados por tipo de planilla si aplica)
+            $employees = $tipoPlanillaId
+                ? $this->employeeModel->getEmployeesByTipoPlanilla($tipoPlanillaId)
+                : $this->employeeModel->getAllEmployees();
 
             // Obtener tipos de acumulados disponibles
             $tiposAcumulados = $this->getTiposAcumulados();
 
             // Si se especifica un empleado, obtener sus acumulados
             $acumulados = [];
+            $acumuladosAgrupados = [];
             $selectedEmployee = null;
             $totales = null;
 
             if ($empleadoId) {
                 $selectedEmployee = $this->employeeModel->getEmployeeWithFullDetails($empleadoId);
                 if ($selectedEmployee) {
+                    // Obtener registros detallados
                     $acumulados = $this->getAcumuladosDetalleByEmployee($empleadoId, $year, $month, $tipoAcumulado);
+
+                    // Obtener datos agrupados
+                    $acumuladosAgrupados = $this->getAcumuladosAgrupadosByEmployee(
+                        $empleadoId,
+                        $year,
+                        $month,
+                        $tipoAcumulado,
+                        $groupBy
+                    );
+
                     $totales = $this->getTotalesAcumuladosByEmployee($empleadoId, $year, $month, $tipoAcumulado);
                 }
             }
@@ -559,13 +581,18 @@ class AcumuladoController extends Controller
                 'year' => $year,
                 'month' => $month,
                 'tipoAcumulado' => $tipoAcumulado,
+                'groupBy' => $groupBy,
                 'employees' => $employees,
                 'tiposAcumulados' => $tiposAcumulados,
                 'selectedEmployee' => $selectedEmployee,
                 'acumulados' => $acumulados,
+                'acumuladosAgrupados' => $acumuladosAgrupados,
                 'totales' => $totales,
                 'availableYears' => $this->getAvailableYears(),
-                'availableMonths' => $this->getAvailableMonths()
+                'availableMonths' => $this->getAvailableMonths(),
+                'scriptFiles' => [
+                    'assets/javascript/modules/acumulados/common.js?' . date('His')
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -885,6 +912,102 @@ class AcumuladoController extends Controller
     }
 
     /**
+     * Obtener acumulados agrupados por empleado
+     */
+    private function getAcumuladosAgrupadosByEmployee($empleadoId, $year, $month = null, $tipoAcumulado = null, $groupBy = 'tipo_acumulado')
+    {
+        try {
+            $whereConditions = ["ape.employee_id = ?"];
+            $params = [$empleadoId];
+
+            // Filtro de año - acepta "todos" o año específico
+            if ($year && $year !== 'todos') {
+                $whereConditions[] = "ape.ano = ?";
+                $params[] = $year;
+            }
+
+            if ($month) {
+                $whereConditions[] = "ape.mes = ?";
+                $params[] = $month;
+            }
+
+            if ($tipoAcumulado) {
+                $whereConditions[] = "ape.tipo_acumulado = ?";
+                $params[] = $tipoAcumulado;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            // Determinar agrupación y campos SELECT
+            switch ($groupBy) {
+                case 'mes':
+                    $selectFields = "ape.mes as grupo_clave,
+                                    CASE ape.mes
+                                        WHEN 1 THEN 'Enero'
+                                        WHEN 2 THEN 'Febrero'
+                                        WHEN 3 THEN 'Marzo'
+                                        WHEN 4 THEN 'Abril'
+                                        WHEN 5 THEN 'Mayo'
+                                        WHEN 6 THEN 'Junio'
+                                        WHEN 7 THEN 'Julio'
+                                        WHEN 8 THEN 'Agosto'
+                                        WHEN 9 THEN 'Septiembre'
+                                        WHEN 10 THEN 'Octubre'
+                                        WHEN 11 THEN 'Noviembre'
+                                        WHEN 12 THEN 'Diciembre'
+                                    END as grupo_descripcion,
+                                    'Mes' as grupo_tipo";
+                    $groupByClause = "ape.mes";
+                    $orderByClause = "ape.mes";
+                    break;
+
+                case 'planilla':
+                    $selectFields = "pc.id as grupo_clave,
+                                    COALESCE(pc.descripcion, 'Sin planilla') as grupo_descripcion,
+                                    'Planilla' as grupo_tipo,
+                                    pc.fecha_inicio,
+                                    pc.fecha_fin";
+                    $groupByClause = "pc.id, pc.descripcion, pc.fecha_inicio, pc.fecha_fin";
+                    $orderByClause = "pc.fecha_inicio DESC";
+                    break;
+
+                case 'tipo_acumulado':
+                default:
+                    $selectFields = "ape.tipo_acumulado as grupo_clave,
+                                    COALESCE(ta.descripcion, ape.tipo_acumulado, 'Sin tipo') as grupo_descripcion,
+                                    'Tipo Acumulado' as grupo_tipo,
+                                    ape.tipo_concepto";
+                    $groupByClause = "ape.tipo_acumulado, ta.descripcion, ape.tipo_concepto";
+                    $orderByClause = "ape.tipo_acumulado";
+                    break;
+            }
+
+            $sql = "SELECT
+                        {$selectFields},
+                        SUM(ape.monto) as total_monto,
+                        COUNT(DISTINCT ape.planilla_id) as total_planillas,
+                        COUNT(DISTINCT ape.concepto_id) as total_conceptos,
+                        COUNT(DISTINCT ape.mes) as total_meses,
+                        MIN(ape.created_at) as fecha_primer_registro,
+                        MAX(ape.created_at) as fecha_ultimo_registro
+                    FROM acumulados_por_empleado ape
+                    LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    WHERE {$whereClause}
+                    GROUP BY {$groupByClause}
+                    ORDER BY {$orderByClause}";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo acumulados agrupados por empleado: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Obtener meses disponibles
      */
     private function getAvailableMonths()
@@ -1069,13 +1192,16 @@ class AcumuladoController extends Controller
     private function getTiposAcumulados()
     {
         try {
-            $sql = "SELECT DISTINCT tipo_acumulado
-                    FROM acumulados_por_empleado
-                    WHERE tipo_acumulado IS NOT NULL AND tipo_acumulado != ''
-                    ORDER BY tipo_acumulado";
+            $sql = "SELECT DISTINCT
+                        ape.tipo_acumulado as codigo,
+                        COALESCE(ta.descripcion, ape.tipo_acumulado) as descripcion
+                    FROM acumulados_por_empleado ape
+                    LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
+                    WHERE ape.tipo_acumulado IS NOT NULL AND ape.tipo_acumulado != ''
+                    ORDER BY ta.descripcion, ape.tipo_acumulado";
 
             $stmt = $this->db->query($sql);
-            return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         } catch (\PDOException $e) {
             error_log("Error obteniendo tipos de acumulados: " . $e->getMessage());
@@ -1274,10 +1400,10 @@ class AcumuladoController extends Controller
     /**
      * Obtener tipos de acumulados con totales agregados para todos los empleados
      */
-    private function getTiposAcumuladosWithTotals($year)
+    private function getTiposAcumuladosWithTotals($year, $tipoPlanillaId = null)
     {
         try {
-            $whereConditions = ["ape.tipo_acumulado IS NOT NULL", "ape.tipo_acumulado != ''"];
+            $whereConditions = [];
             $params = [];
 
             // Filtro de año - acepta "todos" o año específico
@@ -1286,7 +1412,17 @@ class AcumuladoController extends Controller
                 $params[] = $year;
             }
 
-            $whereClause = implode(" AND ", $whereConditions);
+            // Filtro por tipo de planilla del empleado
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $whereConditions[] = "e.tipo_planilla_id = ?";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
+            // Construir WHERE clause para subquery
+            $whereClause = '';
+            if (!empty($whereConditions)) {
+                $whereClause = 'WHERE ' . implode(" AND ", $whereConditions);
+            }
 
             $sql = "SELECT
                         ta.id,
@@ -1297,7 +1433,12 @@ class AcumuladoController extends Controller
                         COUNT(DISTINCT ape.concepto_id) as total_conceptos_incluidos,
                         COUNT(ape.planilla_id) as total_planillas
                     FROM tipos_acumulados ta
-                    LEFT JOIN acumulados_por_empleado ape ON ta.codigo = ape.tipo_acumulado AND {$whereClause}
+                    LEFT JOIN (
+                        SELECT ape.*
+                        FROM acumulados_por_empleado ape
+                        INNER JOIN employees e ON ape.employee_id = e.id
+                        {$whereClause}
+                    ) ape ON ta.codigo = ape.tipo_acumulado
                     WHERE ta.activo = 1
                     GROUP BY ta.id, ta.codigo, ta.descripcion
                     ORDER BY ta.codigo";
@@ -1305,6 +1446,8 @@ class AcumuladoController extends Controller
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            error_log("getTiposAcumuladosWithTotals - Year: $year, TipoPlanillaId: " . ($tipoPlanillaId ?? 'null') . ", Results: " . count($results));
 
             return $results;
 

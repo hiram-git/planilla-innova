@@ -455,11 +455,7 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
         });
         
         // === FIN PERSISTENCIA SIDEBAR ===
-        
-        // === ADMINLTE TREEVIEW - SIN INTERFERENCIA ===
-        // Dejar que AdminLTE maneje completamente los toggles del menú
-        // El plugin se inicializa automáticamente con data-widget="treeview"
-        
+
         // Auto-hide alerts after 5 seconds
         $('.alert:not(.alert-permanent)').delay(5000).fadeOut('slow');
         
@@ -497,52 +493,12 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
         
         // Popovers initialization
         $('[data-toggle="popover"]').popover();
-        
-        // === SIDEBAR TREEVIEW MANUAL (sin AdminLTE plugin) ===
 
-        // Desactivar completamente el plugin Treeview de AdminLTE si existe
-        if (typeof $.fn.Treeview !== 'undefined') {
-            $.fn.Treeview.Constructor.prototype._init = function() {
-                // Sobrescribir init para que no haga nada
-            };
-        }
+        // === ADMINLTE TREEVIEW NATIVO ===
+        // AdminLTE maneja automáticamente el treeview con data-widget="treeview"
+        // Los menús con clase "menu-open" se mantienen abiertos automáticamente
+        // Los enlaces con clase "active" se destacan visualmente
 
-        // Remover todos los event listeners de AdminLTE que puedan interferir
-        $(document).off('click', '.nav-item.has-treeview > .nav-link');
-        $(document).off('expanded.lte.treeview');
-        $(document).off('collapsed.lte.treeview');
-
-        // Manejar el toggle manualmente con lógica correcta
-        $(document).on('click', '.nav-item.has-treeview > .nav-link', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation(); // Detener TODOS los handlers
-
-            const $parent = $(this).parent('.nav-item.has-treeview');
-            const $submenu = $parent.find('> .nav-treeview');
-            const $icon = $(this).find('.right.fas');
-
-            // Verificar si está abierto
-            const isOpen = $parent.hasClass('menu-open') || $parent.hasClass('menu-is-opening');
-
-            if (isOpen) {
-                // CERRAR: remover todas las clases
-                $parent.removeClass('menu-open menu-is-opening');
-                $submenu.stop(true, true).slideUp(300);
-                $icon.removeClass('fa-angle-down').addClass('fa-angle-left');
-            } else {
-                // ABRIR: agregar clases
-                $parent.addClass('menu-is-opening');
-                $submenu.stop(true, true).slideDown(300, function() {
-                    // Después de abrir, cambiar a menu-open
-                    $parent.removeClass('menu-is-opening').addClass('menu-open');
-                });
-                $icon.removeClass('fa-angle-left').addClass('fa-angle-down');
-            }
-
-            return false; // Asegurar que no se propague
-        });
-        
         // Sidebar search functionality
         $(document).on('input', '[data-widget="sidebar-search"] input', function() {
             const searchTerm = $(this).val().toLowerCase();

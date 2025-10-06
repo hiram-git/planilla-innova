@@ -1052,17 +1052,17 @@ class ReportController extends Controller
         $pdf->SetFont('helvetica', '', 8);
         
         // Información en dos columnas
-        $pdf->Cell(40, 3, 'Nombre:', 0, 0, 'L');
-        $pdf->Cell(50, 3, $employee['firstname'] . ' ' . $employee['lastname'], 0, 0, 'L');
-        $pdf->Cell(25, 3, 'Cédula:', 0, 0, 'L');
-        $pdf->Cell(0, 3, $employee['document_id'] ?? 'N/A', 0, 1, 'L');
+        $pdf->Cell(20, 3, 'Nombre:', 0, 0, 'L');
+        $pdf->Cell(80, 3, $employee['firstname'] . ' ' . $employee['lastname'], 0, 0, 'L');
+        $pdf->Cell(20, 3, $employee['etiqueta_puesto'] . ':', 0, 0, 'L');
+        $pdf->Cell(70, 3, $employee['puesto_actual'] ?? 'N/A', 0, 1, 'L');
         $currentY += 3;
         
         $pdf->SetY($currentY);
-        $pdf->Cell(40, 3, 'Código:', 0, 0, 'L');
-        $pdf->Cell(50, 3, $employee['employee_id'] ?? 'N/A', 0, 0, 'L');
-        $pdf->Cell(25, 3, $employee['etiqueta_puesto'] . ':', 0, 0, 'L');
-        $pdf->Cell(0, 3, $employee['puesto_actual'] ?? 'N/A', 0, 1, 'L');
+        $pdf->Cell(20, 3, 'Cédula:', 0, 0, 'L');
+        $pdf->Cell(0, 3, $employee['document_id'] ?? 'N/A', 0, 1, 'L');
+        $pdf->Cell(30, 3, 'Código:', 0, 0, 'L');
+        $pdf->Cell(0, 3, $employee['employee_id'] ?? 'N/A', 0, 0, 'L');
         $currentY += 5;
         
         // Conceptos en formato tabla compacta

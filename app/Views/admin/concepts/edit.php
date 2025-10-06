@@ -65,8 +65,8 @@ $title = 'Editar Concepto';
                                     <label class="form-check-label" for="deduccion">Deducción</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="tipo_concepto" id="patronal" value="C"
-                                           <?= ($concept['tipo_concepto'] ?? '') === 'C' ? 'checked' : '' ?>>
+                                    <input class="form-check-input" type="radio" name="tipo_concepto" id="patronal" value="P"
+                                           <?= ($concept['tipo_concepto'] ?? '') === 'P' ? 'checked' : '' ?>>
                                     <label class="form-check-label" for="patronal">Patronal</label>
                                 </div>
                             </div>

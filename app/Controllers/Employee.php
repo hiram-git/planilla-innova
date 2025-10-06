@@ -174,7 +174,9 @@ class Employee extends Controller
                 'position_id' => !empty($data['position']) ? $data['position'] : null,
                 'schedule_id' => $data['schedule'],
                 'situacion_id' => $data['situacion'] ?? null,
-                'tipo_planilla_id' => $data['tipo_planilla'] ?? null,
+                'tipo_planilla_id' => isset($data['tipo_planilla']) && is_array($data['tipo_planilla'])
+                    ? implode(',', $data['tipo_planilla'])
+                    : ($data['tipo_planilla'] ?? null),
                 'sueldo_individual' => !empty($data['sueldo_individual']) ? (float)$data['sueldo_individual'] : null,
                 'gastos_representacion' => !empty($data['gastos_representacion']) ? (float)$data['gastos_representacion'] : 0.00,
                 'cargo_id' => !empty($data['cargo_id']) ? $data['cargo_id'] : null,
@@ -305,7 +307,9 @@ class Employee extends Controller
                 'position_id' => !empty($data['edit_position']) ? $data['edit_position'] : null,
                 'schedule_id' => $data['edit_schedule'],
                 'situacion_id' => $data['edit_situacion'] ?? null,
-                'tipo_planilla_id' => $data['edit_tipo_planilla'] ?? null,
+                'tipo_planilla_id' => isset($data['edit_tipo_planilla']) && is_array($data['edit_tipo_planilla'])
+                    ? implode(',', $data['edit_tipo_planilla'])
+                    : ($data['edit_tipo_planilla'] ?? null),
                 'sueldo_individual' => !empty($data['edit_sueldo_individual']) ? (float)$data['edit_sueldo_individual'] : null,
                 'gastos_representacion' => !empty($data['edit_gastos_representacion']) ? (float)$data['edit_gastos_representacion'] : 0.00,
                 'cargo_id' => !empty($data['edit_cargo_id']) ? $data['edit_cargo_id'] : null,

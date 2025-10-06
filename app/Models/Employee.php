@@ -279,7 +279,9 @@ class Employee extends Model
     public function getEmployeesByTipoPlanilla($tipoPlanillaId)
     {
         try {
-            $sql = "SELECT * FROM employees WHERE tipo_planilla_id = ? 
+            // Soporte para múltiples tipos de planilla separados por comas
+            // Usa FIND_IN_SET para buscar el ID en la lista de valores
+            $sql = "SELECT * FROM employees WHERE FIND_IN_SET(?, tipo_planilla_id)
             AND (situacion_id = 1 OR situacion_id LIKE '%activ%' OR situacion_id LIKE '%ACTIV%')
             ORDER BY firstname, lastname";
             return $this->db->findAll($sql, [$tipoPlanillaId]);

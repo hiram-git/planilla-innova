@@ -170,8 +170,9 @@ class Admin extends Controller
         $employee = $this->model('Employee');
         $whereClause = " (situacion_id = 1 OR situacion_id LIKE '%activ%' OR situacion_id LIKE '%ACTIV%') ";
 
+        // Soporte para múltiples tipos de planilla separados por comas
         if ($tipoSeleccionado) {
-            $whereClause .= " AND tipo_planilla_id = " . (int)$tipoSeleccionado;
+            $whereClause .= " AND FIND_IN_SET(" . (int)$tipoSeleccionado . ", tipo_planilla_id)";
         }
 
         $sql = "SELECT COUNT(*) as count FROM employees WHERE " . $whereClause;
