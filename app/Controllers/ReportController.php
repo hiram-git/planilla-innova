@@ -1052,17 +1052,17 @@ class ReportController extends Controller
         $pdf->SetFont('helvetica', '', 8);
         
         // Información en dos columnas
-        $pdf->Cell(20, 3, 'Nombre:', 0, 0, 'L');
+        $pdf->Cell(15, 3, 'Nombre:', 0, 0, 'L');
         $pdf->Cell(80, 3, $employee['firstname'] . ' ' . $employee['lastname'], 0, 0, 'L');
-        $pdf->Cell(20, 3, $employee['etiqueta_puesto'] . ':', 0, 0, 'L');
-        $pdf->Cell(70, 3, $employee['puesto_actual'] ?? 'N/A', 0, 1, 'L');
-        $currentY += 3;
+        $pdf->Cell(15, 3, 'Cédula:', 0, 0, 'L');
+        $pdf->Cell(70, 3, $employee['document_id'] ?? 'N/A', 0, 0, 'L');
+        $currentY += 4;
         
         $pdf->SetY($currentY);
-        $pdf->Cell(20, 3, 'Cédula:', 0, 0, 'L');
-        $pdf->Cell(0, 3, $employee['document_id'] ?? 'N/A', 0, 1, 'L');
-        $pdf->Cell(30, 3, 'Código:', 0, 0, 'L');
-        $pdf->Cell(0, 3, $employee['employee_id'] ?? 'N/A', 0, 0, 'L');
+        $pdf->Cell(15, 3, $employee['etiqueta_puesto'] . ':', 0, 0, 'L');
+        $pdf->Cell(80, 3, $employee['puesto_actual'] ?? 'N/A', 0, 0, 'L');
+        $pdf->Cell(15, 3, 'Código:', 0, 0, 'L');
+        $pdf->Cell(70, 3, $employee['employee_id'] ?? 'N/A', 0, 1, 'L');
         $currentY += 5;
         
         // Conceptos en formato tabla compacta
@@ -1071,10 +1071,9 @@ class ReportController extends Controller
         $pdf->SetFillColor(220, 220, 220);
         
         // Headers
-        $pdf->Cell(50, 4, 'INGRESOS', 1, 0, 'C', true);
+        $pdf->Cell(70, 4, 'INGRESOS', 1, 0, 'C', true);
         $pdf->Cell(20, 4, 'Monto', 1, 0, 'C', true);
-        $pdf->Cell(10, 4, '', 1, 0, 'C', true); // Separador
-        $pdf->Cell(50, 4, 'DEDUCCIONES', 1, 0, 'C', true);
+        $pdf->Cell(70, 4, 'DEDUCCIONES', 1, 0, 'C', true);
         $pdf->Cell(20, 4, 'Monto', 1, 1, 'C', true);
         $currentY += 4;
         
@@ -1092,24 +1091,21 @@ class ReportController extends Controller
             if (isset($ingresos[$i])) {
                 $ing = $ingresos[$i];
                 $descripcion = strlen($ing['descripcion']) > 22 ? substr($ing['descripcion'], 0, 19) . '...' : $ing['descripcion'];
-                $pdf->Cell(50, 4, $descripcion, 1, 0, 'L');
+                $pdf->Cell(70, 4, $descripcion, 1, 0, 'L');
                 $pdf->Cell(20, 4, $this->formatCurrency($ing['monto']), 1, 0, 'R');
             } else {
-                $pdf->Cell(50, 4, '', 1, 0, 'L');
+                $pdf->Cell(70, 4, '', 1, 0, 'L');
                 $pdf->Cell(20, 4, '', 1, 0, 'R');
             }
-            
-            // Separador
-            $pdf->Cell(10, 4, '', 1, 0, 'C');
             
             // Deducción
             if (isset($deducciones[$i])) {
                 $ded = $deducciones[$i];
                 $descripcion = strlen($ded['descripcion']) > 22 ? substr($ded['descripcion'], 0, 19) . '...' : $ded['descripcion'];
-                $pdf->Cell(50, 4, $descripcion, 1, 0, 'L');
+                $pdf->Cell(70, 4, $descripcion, 1, 0, 'L');
                 $pdf->Cell(20, 4, $this->formatCurrency($ded['monto']), 1, 1, 'R');
             } else {
-                $pdf->Cell(50, 4, '', 1, 0, 'L');
+                $pdf->Cell(70, 4, '', 1, 0, 'L');
                 $pdf->Cell(20, 4, '', 1, 1, 'R');
             }
             
@@ -1120,10 +1116,9 @@ class ReportController extends Controller
         $pdf->SetY($currentY);
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetFillColor(230, 230, 230);
-        $pdf->Cell(50, 4, 'TOTAL INGRESOS:', 1, 0, 'R', true);
+        $pdf->Cell(70, 4, 'TOTAL INGRESOS:', 1, 0, 'R', true);
         $pdf->Cell(20, 4, $this->formatCurrency($employeeData['total_ingresos']), 1, 0, 'R', true);
-        $pdf->Cell(10, 4, '', 1, 0, 'C', true);
-        $pdf->Cell(50, 4, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
+        $pdf->Cell(70, 4, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
         $pdf->Cell(20, 4, $this->formatCurrency($employeeData['total_deducciones']), 1, 1, 'R', true);
         $currentY += 4;
         
@@ -1131,8 +1126,8 @@ class ReportController extends Controller
         $pdf->SetY($currentY);
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->SetFillColor(220, 220, 255);
-        $pdf->Cell(100, 6, 'NETO A PAGAR:', 1, 0, 'R', true);
-        $pdf->Cell(50, 6, $this->formatCurrency($employeeData['neto']), 1, 1, 'R', true);
+        $pdf->Cell(140, 6, 'NETO A PAGAR:', 1, 0, 'R', true);
+        $pdf->Cell(40, 6, $this->formatCurrency($employeeData['neto']), 1, 1, 'R', true);
         $currentY += 15;
         
         // Firmas (solo para comprobante del empleador)
@@ -1141,20 +1136,20 @@ class ReportController extends Controller
             $pdf->SetFont('helvetica', '', 7);
             
             // Firmas en dos columnas
-            $pdf->Cell(75, 3, '', 0, 0, 'C'); // Espacio para firma
-            $pdf->Cell(75, 3, '', 0, 1, 'C'); // Espacio para firma
-            $pdf->Cell(75, 3, '____________________', 0, 0, 'C');
-            $pdf->Cell(75, 3, '____________________', 0, 1, 'C');
-            $pdf->Cell(75, 3, $signatures['elaborado_por'] ?: 'Por definir', 0, 0, 'C');
-            $pdf->Cell(75, 3, $signatures['jefe_recursos_humanos'] ?: 'Por definir', 0, 1, 'C');
-            $pdf->Cell(75, 3, $signatures['cargo_elaborador'] ?: 'Especialista en Nóminas', 0, 0, 'C');
-            $pdf->Cell(75, 3, $signatures['cargo_jefe_rrhh'] ?: 'Jefe de Recursos Humanos', 0, 1, 'C');
+            $pdf->Cell(90, 3, '', 0, 0, 'C'); // Espacio para firma
+            $pdf->Cell(90, 3, '', 0, 1, 'C'); // Espacio para firma
+            $pdf->Cell(90, 3, '____________________', 0, 0, 'C');
+            $pdf->Cell(90, 3, '____________________', 0, 1, 'C');
+            $pdf->Cell(90, 3, $signatures['elaborado_por'] ?: 'Por definir', 0, 0, 'C');
+            $pdf->Cell(90, 3, $signatures['jefe_recursos_humanos'] ?: 'Por definir', 0, 1, 'C');
+            $pdf->Cell(90, 3, $signatures['cargo_elaborador'] ?: 'Especialista en Nóminas', 0, 0, 'C');
+            $pdf->Cell(90, 3, $signatures['cargo_jefe_rrhh'] ?: 'Jefe de Recursos Humanos', 0, 1, 'C');
         //}
         
         // Footer con fecha
-        $pdf->SetY($currentY + 20);
+        $pdf->SetY($currentY + 60);
         $pdf->SetFont('helvetica', 'I', 6);
-        $pdf->Cell(0, 3, 'Generado: ' . date('d/m/Y H:i:s'), 0, 1, 'L');
+        $pdf->Cell(0, 3, 'Generado: ' . date('d/m/Y H:i:s'), 0, 1, 'R');
     }
 
     /**
