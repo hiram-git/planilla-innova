@@ -113,8 +113,8 @@ class ConceptController extends Controller
                 throw new \Exception('El tipo de concepto es obligatorio');
             }
 
-            // Validar tipo de concepto
-            if (!in_array($tipo_concepto, ['A', 'D', 'C'])) {
+            // Validar tipo de concepto (A=Asignación, D=Deducción, P=Patronal)
+            if (!in_array($tipo_concepto, ['A', 'D', 'P'])) {
                 throw new \Exception('Tipo de concepto inválido');
             }
 
@@ -292,7 +292,8 @@ class ConceptController extends Controller
                 throw new \Exception('La descripción y el tipo de concepto son obligatorios');
             }
 
-            if (!in_array($tipo_concepto, ['A', 'D', 'C'])) {
+            // Validar tipo de concepto (A=Asignación, D=Deducción, P=Patronal)
+            if (!in_array($tipo_concepto, ['A', 'D', 'P'])) {
                 throw new \Exception('Tipo de concepto inválido');
             }
 

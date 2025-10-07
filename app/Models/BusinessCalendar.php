@@ -241,6 +241,90 @@ class BusinessCalendar extends Model
     }
 
     /**
+     * Inicializar calendario completo para un año
+     * Genera todos los días laborables y fines de semana, manteniendo feriados existentes
+     */
+    public function initializeYear($year)
+    {
+        try {
+            $startDate = new \DateTime("$year-01-01");
+            $endDate = new \DateTime("$year-12-31");
+
+            // Obtener días ya existentes para este año
+            $stmt = $this->db->prepare("SELECT date_value FROM business_calendar WHERE year_value = ?");
+            $stmt->execute([$year]);
+            $existingDates = array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'date_value');
+            $existingDatesSet = array_flip($existingDates);
+
+            $diasSemana = [
+                1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday',
+                4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'
+            ];
+
+            $diasSemanaEs = [
+                1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles',
+                4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'
+            ];
+
+            $inserted = 0;
+            $currentDate = clone $startDate;
+
+            // Preparar statement de inserción
+            $insertStmt = $this->db->prepare("
+                INSERT INTO business_calendar
+                (date_value, year_value, month_value, day_of_week, day_type, status, description, is_weekend)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            while ($currentDate <= $endDate) {
+                $dateStr = $currentDate->format('Y-m-d');
+
+                // Si ya existe, saltarlo
+                if (isset($existingDatesSet[$dateStr])) {
+                    $currentDate->modify('+1 day');
+                    continue;
+                }
+
+                $dayOfWeek = (int)$currentDate->format('N'); // 1=Lunes, 7=Domingo
+                $isWeekend = ($dayOfWeek >= 6);
+
+                $dayType = $isWeekend ? 'NO_LABORAL' : 'LABORAL';
+                $description = $isWeekend
+                    ? $diasSemanaEs[$dayOfWeek]
+                    : "Día laboral - {$diasSemana[$dayOfWeek]}";
+
+                $insertStmt->execute([
+                    $dateStr,
+                    (int)$currentDate->format('Y'),
+                    (int)$currentDate->format('m'),
+                    $dayOfWeek,
+                    $dayType,
+                    'NORMAL',
+                    $description,
+                    $isWeekend ? 1 : 0
+                ]);
+
+                $inserted++;
+                $currentDate->modify('+1 day');
+            }
+
+            return [
+                'success' => true,
+                'inserted' => $inserted,
+                'skipped' => count($existingDates),
+                'total' => $inserted + count($existingDates)
+            ];
+
+        } catch (\PDOException $e) {
+            error_log("Error initializing year calendar: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Obtener colores para diferentes tipos de días
      */
     public static function getDayTypeColors()

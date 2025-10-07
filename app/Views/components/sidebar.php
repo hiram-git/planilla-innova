@@ -500,8 +500,8 @@ class SidebarComponent
                         <li class="nav-header">CONFIGURACIÓN</li>
 
                         <!-- Administración -->
-                        <li class="nav-item ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') ? 'active' : '') . '">
+                        <li class="nav-item ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') || $this->isActive('panel/business-calendar') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') || $this->isActive('panel/business-calendar') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-cog"></i>
                                 <p>
                                     Administración
@@ -511,8 +511,8 @@ class SidebarComponent
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::url('panel/reports/exports') . '" class="nav-link ' . ($this->isActive('panel/reports/exports') ? 'active' : '') . '">
-                                        <i class="fas fa-users-cog nav-icon"></i>
-                                <p>Configuración de Empresa</p>
+                                        <i class="fas fa-building nav-icon"></i>
+                                        <p>Configuración de Empresa</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -525,6 +525,12 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::route('panel/roles') . '" class="nav-link ' . ($this->isActive('panel/roles') ? 'active' : '') . '">
                                         <i class="fas fa-key nav-icon"></i>
                                         <p>Roles y Permisos</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/business-calendar') . '" class="nav-link ' . ($this->isActive('panel/business-calendar') ? 'active' : '') . '">
+                                        <i class="fas fa-calendar-check nav-icon"></i>
+                                        <p>Calendario Empresarial</p>
                                     </a>
                                 </li>
                             </ul>

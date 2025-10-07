@@ -1,9 +1,9 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.3.15 Acumulados Refactorizado**
-- **Fecha**: 4 de Octubre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + ACUMULADOS REFACTORIZADO + UX PERFECTA**
-- **Versión**: 3.3.15 - Módulo acumulados completamente refactorizado con agrupación dinámica
+## 📝 **Estado Actual - V3.3.22 Inicialización Automática Calendario**
+- **Fecha**: 6 de Octubre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO EMPRESARIAL + INICIALIZACIÓN AUTOMÁTICA**
+- **Versión**: 3.3.22 - Fix Security namespace + Inicialización automática años completos (interfaz web + scripts CLI) + validaciones + testing completado
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -51,6 +51,13 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Reportes Dropdown V3.3.13**: Dropdown reportes en listado planillas + 5 reportes acceso rápido (PDF, Excel, Comprobantes, Acreedores, Informe 03) + iconos colores + nueva pestaña
 - ✅ **Sidebar Toggle Fix V3.3.14**: Fix completo sidebar AdminLTE + manual toggle + stopImmediatePropagation() + desactivación plugin Treeview + expand/collapse perfecto
 - ✅ **Módulo Acumulados Refactorizado V3.3.15**: byConcepto y byType completamente refactorizados + agrupación dinámica (empleado/mes/año/planilla) + filtros avanzados + cards visuales + Select2 + DataTables
+- ✅ **Sidebar AdminLTE Nativo V3.3.16**: Refactorización completa sidebar + estructura multilevel nativa AdminLTE + detección rutas corregida (base path) + iconos originales restaurados + clases active/menu-open funcionando + JavaScript limpio sin interferencias + soporte subdirectorios
+- ✅ **Acumulados ByEmployee Cards V3.3.17**: Vista byEmployee transformada a cards agrupados + opciones groupBy (tipo_acumulado/mes/planilla) + integración filtro tipo_planilla + colors dinámicos + tabla detalle colapsable + info-box total general + Select2 + DataTables + fixes PHP 8+ htmlspecialchars null values
+- ✅ **Fixes Acumulados + Página 404 V3.3.18**: Dropdowns tipo_acumulado con descripciones (getTiposAcumulados refactorizado) + optgroups byConcepto corregidos (Asignaciones/Deducciones/Patronales) + badge PATRONAL color info + mes octubre corregido + Vista error 404 profesional AdminLTE completa
+- ✅ **Roadmap Actualizado V3.3.19**: ISR PANAMÁ reemplazado por FASE 7 Integración API Marcaciones y Asistencias + 5 subfases planificadas (API Externa, Cálculos Avanzados, Legislación Panamá, Integración Planillas, Interfaz/Reportes) + documentación completa CLAUDE.md + ROADMAP.md actualizado + hitos Q1 2026
+- ✅ **Múltiples Tipos de Planilla V3.3.20**: Empleados ahora pueden pertenecer a múltiples tipos de planilla + migración DB tipo_planilla_id INT→VARCHAR(255) + Select2 múltiple en create/edit + implode/explode conversión array↔string + FIND_IN_SET() queries en Employee/Acumulado/Attendance models + vista show.php muestra badges múltiples + filtros Dashboard/Acumulados actualizados + tabla backup rollback disponible
+- ✅ **Calendario Empresarial V3.3.21**: FASE 4 Subfases 4.1-4.3 completadas (75% total) + tabla business_calendar con 411 registros (feriados Panamá 2024-2025 + fines semana + días laborables) + BusinessCalendar model completo (270 líneas, 14 métodos) + BusinessCalendarController CRUD + vistas index.php/calendar.php + FullCalendar.js 6.1.8 integration + sidebar link + rutas registradas + API AJAX getWorkingDays() + estadísticas visuales + modal agregar días especiales + DataTables listado
+- ✅ **Inicialización Automática Calendario V3.3.22**: Fix Security namespace (App\Core\Security) + Script CLI fill_business_calendar_2025.php standalone + Método BusinessCalendar->initializeYear($year) con 85 líneas + Interfaz web botón "Inicializar Año" + Modal selector años (2024-2030+) + Ruta POST /initializeYear + Validaciones rango + CSRF + Testing script 2026 exitoso (365 días) + Mantiene feriados existentes + Genera días laborables/fines semana automáticamente + Mensajes detallados inserted/skipped/total
 
 ## 📄 **Reportes PDF Empresariales**
 - **Planillas**: Layout horizontal + logos empresariales + firmas profesionales
@@ -102,23 +109,69 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - **Dashboard Completo**: Estadísticas + export CSV + PDF + navegación integrada
 - **Flujo Completo**: Calcular → Generar Planilla → Ver Planillas → Detalle
 
-## 📊 **Módulo Acumulados Refactorizado - V3.3.15**
-- **Vista byConcepto() Mejorada**: Filtrado por concepto específico + agrupación dinámica
-  - **Filtros**: Concepto (required) + Año + Mes + Agrupar por (empleado/planilla/año)
-  - **Cards Visuales**: Small-box con totales agrupados + porcentajes + color por tipo_concepto
-  - **Total General**: Info-box con resumen completo + contadores
-  - **Tabla Detallada**: DataTables colapsada con todos los registros + exportar CSV
-  - **Select2**: Dropdown conceptos con optgroups (Asignaciones/Deducciones)
+## 🎨 **Sidebar AdminLTE Nativo - V3.3.16**
+- **Problema Resuelto**: Sidebar con navegación multilevel que perdía estado y clases `active`
+- **Causa Raíz**:
+  - JavaScript manual interferente que desactivaba plugin AdminLTE Treeview
+  - Detección de rutas fallaba en subdirectorios (no eliminaba `/planilla-innova`)
+  - Event handlers conflictivos con comportamiento nativo
 
-- **Vista byType() Mejorada**: Filtrado por tipo de acumulado + agrupación dinámica
-  - **Filtros**: Tipo acumulado (required) + Año + Mes + Agrupar por (empleado/mes/año)
-  - **Cards Visuales**: Small-box bg-info con totales agrupados + porcentajes
-  - **Total General**: Info-box con resumen completo + contadores
-  - **Tabla Detallada**: DataTables colapsada con todos los registros + exportar CSV
-  - **Select2**: Dropdown tipos de acumulados activos
+- **Refactorización Completa**:
+  - **Estructura HTML Nativa**: HTML directo siguiendo patrón oficial AdminLTE multilevel
+  - **Detección Rutas Corregida**: `getCurrentRoute()` detecta y elimina base path automáticamente
+  - **Iconos Específicos**: Restaurados todos los iconos originales (fas fa-list, fas fa-user-times, etc.)
+  - **JavaScript Limpio**: Eliminado código que desactivaba AdminLTE + event handlers manuales removidos
 
-- **Métodos Controller Nuevos**:
-  - `getTiposAcumuladosForFilter()`: Obtiene tipos disponibles desde BD
+- **Características**:
+  - ✅ `data-widget="treeview"` en `<ul class="nav nav-sidebar">`
+  - ✅ `data-accordion="false"` para múltiples menús abiertos simultáneamente
+  - ✅ Clase `menu-open` aplicada automáticamente por PHP según ruta activa
+  - ✅ Clase `active` en enlaces según `isActive()`
+  - ✅ Soporte subdirectorios y root transparente
+  - ✅ Comportamiento 100% AdminLTE nativo
+
+- **Archivos Modificados**:
+  - `app/Views/components/sidebar.php`: Refactorización completa + getCurrentRoute() mejorado
+  - `app/Views/components/sidebar_anterior.php`: Respaldo sidebar anterior
+  - `app/Views/layouts/admin.php`: Limpieza JavaScript interferente (líneas 497-500)
+
+## 📊 **Módulo Acumulados Refactorizado - V3.3.15 + V3.3.17**
+
+### **Vista byEmployee() V3.3.17 - Cards Agrupados**
+- **Problema Resuelto**: Vista mostraba solo tabla simple sin agrupaciones visuales claras
+- **Transformación Completa**: Diseño cards agrupados estilo byConcepto con opciones flexibles
+- **Características**:
+  - **Filtros Mejorados**: Empleado (Select2) + Año + Mes + Tipo Acumulado + Tipo Planilla + Agrupar por
+  - **Opciones Agrupación**: 3 modos dinámicos (tipo_acumulado, mes, planilla)
+  - **Cards Visuales AdminLTE**:
+    - Small-box con colores dinámicos (success/danger para tipo_acumulado según tipo_concepto, info para otros)
+    - Iconos FontAwesome específicos (fas fa-coins, fas fa-calendar-alt, fas fa-file-invoice-dollar)
+    - Porcentaje visual del total general
+    - Indicadores total planillas y conceptos incluidos
+    - Fechas período para agrupación por planilla
+  - **Info-Box Total General**: Progress bar + contador grupos
+  - **Tabla Detalle Colapsable**: DataTables con todos los registros + ordenamiento año/mes desc + paginación 25
+  - **Integración Filtro Tipo Planilla**: JavaScript común lee sessionStorage y filtra empleados automáticamente
+- **Métodos Controller**:
+  - `getAcumuladosAgrupadosByEmployee()`: SQL dinámico para agrupación (líneas 917-1008)
+  - `getAcumuladosDetalleByEmployee()`: Obtiene registros detallados para tabla
+
+### **Vista byConcepto() V3.3.15 - Mejorada**
+- **Filtros**: Concepto (required) + Año + Mes + Agrupar por (empleado/planilla/año)
+- **Cards Visuales**: Small-box con totales agrupados + porcentajes + color por tipo_concepto
+- **Total General**: Info-box con resumen completo + contadores
+- **Tabla Detallada**: DataTables colapsada con todos los registros + exportar CSV
+- **Select2**: Dropdown conceptos con optgroups (Asignaciones/Deducciones)
+
+### **Vista byType() V3.3.15 - Mejorada**
+- **Filtros**: Tipo acumulado (required) + Año + Mes + Agrupar por (empleado/mes/año)
+- **Cards Visuales**: Small-box bg-info con totales agrupados + porcentajes
+- **Total General**: Info-box con resumen completo + contadores
+- **Tabla Detallada**: DataTables colapsada con todos los registros + exportar CSV
+- **Select2**: Dropdown tipos de acumulados activos
+
+### **Métodos Controller Acumulados**
+- `getTiposAcumuladosForFilter()`: Obtiene tipos disponibles desde BD
   - `getAcumuladosByTipoAcumulado()`: Filtra acumulados por tipo + año + mes
   - `getAcumuladosAgrupadosByTipo()`: Agrupa por empleado/mes/año con totales
   - `getConceptosForFilter()`: Obtiene conceptos con acumulados (fix campo activo removido)
@@ -204,17 +257,176 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - **Mensajes Error Descriptivos**: Incluyen período específico + sugerencias verificación fechas
 - **Logging Trazabilidad**: Conteo empleados antes/después validación + debugging información
 
+## ⏰ **MÓDULO API MARCACIONES Y ASISTENCIAS - PLANIFICADO**
+
+### **Objetivo General**
+Integración completa con API externa de marcaciones para control automatizado de asistencias, cálculo de horas trabajadas, y generación automática de conceptos en planillas según legislación panameña.
+
+### **Fase 1: Integración API Externa**
+**Objetivo**: Establecer conexión robusta con API de marcaciones y sincronización bidireccional de datos.
+
+**Componentes**:
+- **API Client Service**: Clase PHP para comunicación con API externa (REST/SOAP)
+- **Authentication Handler**: Gestión de tokens, OAuth, o API keys
+- **Data Sync Scheduler**: Cron jobs para sincronización automática periódica
+- **Webhook Receiver**: Endpoint para recibir notificaciones en tiempo real
+- **Error Handling & Retry Logic**: Manejo de fallos de conexión y reintentos automáticos
+- **Logging & Monitoring**: Registro detallado de todas las transacciones API
+
+**Tablas BD**:
+- `attendance_api_config`: Configuración conexión API (endpoint, credentials, frequency)
+- `attendance_raw_data`: Datos crudos recibidos desde API (backup/auditoría)
+- `attendance_sync_log`: Historial de sincronizaciones (timestamp, records, status)
+
+### **Fase 2: Cálculos Avanzados de Asistencias**
+**Objetivo**: Procesar marcaciones y calcular métricas de asistencia según reglas empresariales.
+
+**Cálculos Implementados**:
+- **Marcaciones Perfectas**: Entrada/salida dentro de horario sin tardanzas
+- **Horas Trabajadas**: Cálculo exacto entre entrada/salida con redondeos configurables
+- **Ausencias**: Detección automática días sin marcación (justificadas/injustificadas)
+- **Tardanzas**: Minutos de retraso con tolerancia configurable (ej: 5 min gratis)
+- **Horas Extras**: Cálculo automático tiempo adicional después de jornada normal
+- **Salidas Anticipadas**: Detección de salidas antes de hora programada
+- **Tiempo de Almuerzo**: Descuento automático según políticas empresa
+
+**Componentes**:
+- **AttendanceCalculator**: Clase principal de cálculos
+- **WorkScheduleResolver**: Determina horario aplicable por empleado/día
+- **OvertimeCalculator**: Cálculo horas extras (normales/nocturnas/feriados)
+- **AbsenceDetector**: Identifica ausencias y clasifica tipos
+- **Reports Generator**: Reportes diarios/semanales/mensuales de asistencias
+
+**Tablas BD**:
+- `attendance_records`: Registros procesados de asistencias
+- `attendance_calculations`: Resultados de cálculos (horas, tardanzas, extras)
+- `attendance_exceptions`: Excepciones y justificaciones (permisos, incapacidades)
+
+### **Fase 3: Consideraciones Legales Panamá**
+**Objetivo**: Aplicar normativa laboral panameña al control de asistencias.
+
+**Normativa Implementada**:
+- **Jornada Ordinaria**: Máximo 8 horas diarias / 48 horas semanales (Código de Trabajo Art. 31)
+- **Jornada Nocturna**: 6:00 PM - 6:00 AM con recargo 50% (Art. 38)
+- **Horas Extras**: Primeras 3 horas +25%, siguientes +50% (Art. 39)
+- **Día de Descanso**: Trabajo domingos/feriados con recargo 50% (Art. 48)
+- **Tiempo de Comida**: Mínimo 30 minutos, no computable como trabajo (Art. 35)
+- **Tolerancia Tardanzas**: Configuración por empresa según políticas internas
+- **Faltas Graves**: 3+ ausencias injustificadas en mes = causal despido (Art. 213)
+
+**Componentes**:
+- **LegalComplianceChecker**: Validación cumplimiento normativa
+- **OvertimeRateCalculator**: Cálculo tarifas según tipo de hora extra
+- **WorkingDayClassifier**: Clasificación días (ordinarios, festivos, descanso)
+- **Alerts System**: Notificaciones excesos jornada o incumplimientos
+
+### **Fase 4: Integración con Generación de Planillas**
+**Objetivo**: Automatizar inclusión de conceptos de asistencia en cálculo de planillas.
+
+**Integración Implementada**:
+- **Conceptos Automáticos**:
+  - `HORAS_TRABAJADAS`: Horas normales trabajadas en el período
+  - `HORAS_EXTRAS_25`: Primeras horas extras con recargo 25%
+  - `HORAS_EXTRAS_50`: Horas extras adicionales con recargo 50%
+  - `HORAS_NOCTURNAS`: Horas trabajadas en jornada nocturna +50%
+  - `HORAS_DOMINICALES`: Horas trabajadas domingos/feriados +50%
+  - `DESCUENTO_TARDANZAS`: Deducciones por tardanzas según política
+  - `DESCUENTO_AUSENCIAS`: Descuentos por ausencias injustificadas
+  - `BONO_PUNTUALIDAD`: Incentivo por asistencia perfecta
+
+**Componentes**:
+- **PayrollAttendanceIntegrator**: Integración asistencias → planillas
+- **AttendanceConceptMapper**: Mapeo cálculos asistencias → conceptos planilla
+- **PeriodAttendanceSummary**: Resumen asistencias por período de planilla
+- **ValidationRules**: Validaciones cruce de datos asistencias/planillas
+
+**Flujo de Trabajo**:
+1. Al crear planilla, sistema consulta período de asistencias
+2. Calcula automáticamente todos los conceptos relacionados
+3. Genera registros en `planilla_detalle` con conceptos de asistencia
+4. Permite revisión manual antes de procesar planilla
+5. Genera reporte adjunto de asistencias incluidas
+
+**Tablas BD**:
+- `payroll_attendance_summary`: Resumen asistencias por empleado/período
+- `attendance_concepts_mapping`: Mapeo tipos asistencia → conceptos planilla
+- `payroll_attendance_details`: Detalle asistencias incluidas en cada planilla
+
+### **Beneficios del Sistema**
+✅ **Automatización Total**: Elimina carga manual de asistencias
+✅ **Cumplimiento Legal**: Garantiza aplicación correcta legislación panameña
+✅ **Transparencia**: Empleados pueden consultar sus asistencias en tiempo real
+✅ **Auditoría Completa**: Registro detallado de todas las marcaciones y cálculos
+✅ **Flexibilidad**: Reglas configurables por empresa y tipo de empleado
+✅ **Precisión**: Cálculos exactos eliminan errores humanos
+✅ **Reportes**: Dashboards y reportes ejecutivos de asistencias
+
 ## 🔧 **Stack Tecnológico**
 - **Backend**: PHP 8.3 + MVC + MySQL (planilla_innova)
 - **Frontend**: AdminLTE + Bootstrap 4 + JavaScript ES6 modular
 - **Reportes**: TCPDF + diseño empresarial profesional
 - **Estado**: Producción estable + arquitectura escalable
 
+## 📅 **Calendario Empresarial Panamá - V3.3.22 (80% COMPLETADO)**
+
+### ✅ **Subfases Completadas**:
+- **Subfase 4.1 - Base de Datos** ✅ 100%
+  - Tabla `business_calendar` con 731 registros (años 2024-2025 completos)
+  - 13 feriados nacionales panameños 2024 + 15 feriados 2025
+  - Tipos: LABORAL, NO_LABORAL, FERIADO, DUELO_NACIONAL, ESPECIAL
+  - Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
+  - Migración: `2025_09_22_1193_panama_business_calendar.sql`
+
+- **Subfase 4.2 - BusinessCalendar Model** ✅ 100%
+  - Modelo completo: `app/Models/BusinessCalendar.php` (355+ líneas)
+  - Métodos core: getWorkingDaysBetween(), isWorkingDay(), getNextWorkingDay(), getPreviousWorkingDay()
+  - Métodos avanzados: getMonthCalendar(), getHolidaysByYear(), addSpecialDay(), getCalendarStats()
+  - **Nuevo**: initializeYear($year) - Inicialización automática años completos (85 líneas)
+  - Fallback automático sin BD
+  - Helper functions: getDayTypeColors(), getDayTypeIcons()
+
+- **Subfase 4.3 - Interfaz Gestión** ✅ 100%
+  - BusinessCalendarController completo con CRUD
+  - Vista `index.php`: Listado feriados + estadísticas (4 small-boxes) + DataTables + modal agregar días
+  - Vista `calendar.php`: FullCalendar.js 6.1.8 + modal detalles + leyenda colores
+  - API AJAX: getWorkingDays() para consultas dinámicas
+  - Rutas registradas en App.php: `panel/business-calendar`
+  - Sidebar: Ubicado en **CONFIGURACIÓN → Administración** (después de Roles y Permisos)
+  - Icono: `fas fa-calendar-check`
+
+- **🆕 Subfase 4.3.1 - Inicialización Automática de Años** ✅ 100%
+  - **Script CLI**: `database/scripts/fill_business_calendar_2025.php`
+    - Ejecución: `php database/scripts/fill_business_calendar_2025.php`
+    - Carga automática `.env` + conexión PDO directa
+    - Generación completa año: días laborables + fines de semana
+    - Mantiene feriados existentes sin duplicar
+    - Reporte estadísticas detalladas al finalizar
+  - **Interfaz Web**: Botón "Inicializar Año" en `/panel/business-calendar/listado`
+    - Modal con selector de año (2024 hasta año actual + 5)
+    - Método `BusinessCalendar->initializeYear($year)` (líneas 247-325)
+    - Ruta: `POST /panel/business-calendar/initializeYear`
+    - Validaciones: rango años + CSRF + prevención duplicados
+    - Mensajes detallados: días insertados + omitidos + total
+  - **Testing**: Script `test_initialize_year_2026.php` con pruebas exitosas
+  - **Resultados**: 2025 (365 días), 2026 (365 días) completados automáticamente
+  - **Fix Bug**: Corregido namespace `App\Helpers\Security` → `App\Core\Security`
+
+### ⏳ **Pendiente**:
+- **Subfase 4.4 - Integración Cálculos Legales** (20% faltante)
+  - Actualizar liquidaciones: usar días laborables exactos para preaviso
+  - Integrar vacaciones: validar solo días hábiles
+  - XIII Mes: calcular proporcional con días trabajados reales
+  - PlanillaConceptCalculator: integrar BusinessCalendar
+
 ## 🔑 **Próximas Fases**
-1. **📅 CALENDARIO EMPRESARIAL PANAMÁ**: 4 fases (BD + Model + Interfaz + Integración cálculos legales)
-2. **🏖️ MÓDULO VACACIONES PANAMÁ**: 4 fases planificadas (VacationCalculator + CRUD + Aprobaciones + Integración)
+1. **📅 CALENDARIO EMPRESARIAL - SUBFASE 4.4**: Integración cálculos legales con días laborables (1 semana)
+2. **🏖️ MÓDULO VACACIONES PANAMÁ**: 4 subfases planificadas (VacationCalculator + CRUD + Aprobaciones + Integración)
 3. **🏢 MULTITENANCY**: Wizard empresas + BD automática
-4. **💰 ISR PANAMÁ**: Calculadora impuesto renta + retenciones
+4. **⏰ INTEGRACIÓN API MARCACIONES Y ASISTENCIAS**: Sistema completo de control de asistencias con API externa
+   - **Fase 1 - Integración API Externa**: Conexión con API de marcaciones + sincronización automática datos
+   - **Fase 2 - Cálculos Avanzados**: Marcaciones perfectas + horas trabajadas + ausencias + tardanzas + horas extras
+   - **Fase 3 - Consideraciones Legales**: Aplicación normativa panameña trabajo + jornadas laborales + límites legales
+   - **Fase 4 - Integración Planillas**: Cálculo horas trabajadas en generación de planillas + conceptos automáticos + validaciones
 
 ---
 

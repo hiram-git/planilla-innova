@@ -1458,12 +1458,14 @@ class PayrollController extends Controller
             // 3. Los conceptos se crearán directamente en planilla_detalle, no hay detalle separado
 
             // 4. Obtener conceptos con sus condiciones (igual que en procesamiento normal)
+            // Nota: imprime_detalles solo controla visualización, NO procesamiento
+            // El filtrado por situaciones se hace más adelante en el procesamiento
             $conceptsQuery = "
-                SELECT id, concepto, descripcion, tipo_concepto as tipo, 
+                SELECT id, concepto, descripcion, tipo_concepto as tipo,
                        tipos_planilla, frecuencias, situaciones,
-                       formula, valor_fijo, monto_calculo, monto_cero, imprime_detalles 
-                FROM concepto 
-                WHERE imprime_detalles = 1
+                       formula, valor_fijo, monto_calculo, monto_cero, imprime_detalles
+                FROM concepto
+                ORDER BY tipo_concepto, concepto
             ";
             
             $stmt = $db->prepare($conceptsQuery);

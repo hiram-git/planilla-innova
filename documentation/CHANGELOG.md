@@ -1,5 +1,176 @@
 # 📋 CHANGELOG - Sistema de Planillas MVC
 
+## [3.3.22] - 2025-10-06
+
+### 🔧 **FIXES + INICIALIZACIÓN AUTOMÁTICA CALENDARIO**
+
+#### 🐛 **Bug Fixes**
+- **Fix Security Namespace**: Corregido `use App\Helpers\Security` → `use App\Core\Security` en BusinessCalendarController
+- **Modal Agregar Día Especial**: Funcionalidad completamente operativa después de corrección namespace
+
+#### ⚡ **Nueva Funcionalidad: Inicialización Automática de Años**
+
+**Script de Línea de Comandos**:
+- `database/scripts/fill_business_calendar_2025.php`: Script standalone para llenar calendario completo
+- Carga automática variables de entorno desde `.env`
+- Mantiene feriados existentes + genera días laborables/fines de semana
+- Reporte detallado con estadísticas al finalizar
+
+**Funcionalidad Web (Interfaz)**:
+- **Botón "Inicializar Año"** en vista `/panel/business-calendar/listado`
+- **Modal con selector de año** (2024-2030+)
+- **Método BusinessCalendar->initializeYear($year)**:
+  - Genera automáticamente todos los días del año
+  - Días laborables: Lunes a Viernes
+  - Fines de semana: Sábados y Domingos
+  - Respeta días ya existentes (feriados, días especiales)
+  - Retorna estadísticas: inserted, skipped, total
+
+**Validaciones**:
+- Rango de años: 2020 a (año actual + 5)
+- CSRF protection
+- Mensajes de éxito con detalles de días insertados
+- Prevención de duplicados automática
+
+**Testing**:
+- Script de prueba: `database/scripts/test_initialize_year_2026.php`
+- Pruebas exitosas: 2025 (365 días), 2026 (365 días)
+- Distribución correcta: ~261 laborables, ~104 fines de semana
+
+**Rutas Nuevas**:
+- `POST /panel/business-calendar/initializeYear` → BusinessCalendarController@initializeYear()
+
+**Beneficios**:
+- ✅ Inicialización instantánea de años completos
+- ✅ Sin necesidad de scripts manuales
+- ✅ Accesible desde interfaz web
+- ✅ Ideal para preparar calendarios futuros
+- ✅ Base sólida para agregar feriados manualmente después
+
+---
+
+## [3.3.21] - 2025-10-06
+
+### 📅 **CALENDARIO EMPRESARIAL PANAMÁ - FASE 4 SUBFASES 4.1-4.3 COMPLETADAS**
+
+#### ✅ **Implementación Completa (75% de FASE 4)**
+
+**Subfases Completadas**:
+1. ✅ Subfase 4.1 - Base de Datos (100%)
+2. ✅ Subfase 4.2 - BusinessCalendar Model (100%)
+3. ✅ Subfase 4.3 - Interfaz Gestión (100%)
+4. ⏳ Subfase 4.4 - Integración Cálculos Legales (pendiente - 25% faltante)
+
+**Base de Datos**:
+- Tabla `business_calendar` con 411 registros pre-cargados
+- 13 feriados nacionales de Panamá (2024-2025)
+  - Año Nuevo, Día de los Mártires, Carnaval, Semana Santa
+  - Día del Trabajador, Independencia de Colombia, Día de la Bandera
+  - Día de Colón, Primer Grito de Independencia, Independencia de España
+  - Día de la Madre, Navidad
+- Fines de semana completos (sábados y domingos) 2024-2025
+- Días laborables: Lunes a Viernes automáticos
+- Tipos: LABORAL, NO_LABORAL, FERIADO, DUELO_NACIONAL, ESPECIAL
+- Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
+- Migración consolidada: `database/migrations_consolidated/2025_09_22_1193_panama_business_calendar.sql`
+
+**Modelo BusinessCalendar** (`app/Models/BusinessCalendar.php` - 270 líneas):
+
+*Métodos Core*:
+- `getWorkingDaysBetween($startDate, $endDate)` - Calcula días laborables entre fechas
+- `isWorkingDay($date)` - Verifica si un día es laboral
+- `getNextWorkingDay($date)` - Retorna próximo día laboral
+- `getPreviousWorkingDay($date)` - Retorna día laboral anterior
+- `getDayInfo($date)` - Obtiene información completa de un día
+
+*Métodos Avanzados*:
+- `getMonthCalendar($year, $month)` - Calendario completo del mes
+- `getHolidaysByYear($year)` - Todos los feriados del año
+- `addSpecialDay($date, $dayType, $status, $description)` - Agregar días especiales
+- `getCalendarStats($year)` - Estadísticas por tipo y estado
+- `calculateWorkingDaysFallback($start, $end)` - Cálculo sin BD (fallback)
+
+*Helper Functions*:
+- `getDayTypeColors()` - Array de colores por tipo de día
+- `getDayTypeIcons()` - Array de iconos FontAwesome por tipo
+
+**Controlador** (`app/Controllers/BusinessCalendarController.php`):
+
+*Rutas Implementadas*:
+- `GET /panel/business-calendar` → index() - Listado feriados
+- `GET /panel/business-calendar/calendar` → calendar() - Vista calendario
+- `POST /panel/business-calendar/store` → store() - Crear día especial
+- `POST /panel/business-calendar/delete/{id}` → delete() - Eliminar día especial
+- `POST /panel/business-calendar/getWorkingDays` → API AJAX para consultas
+
+*Seguridad*:
+- AuthMiddleware::requireAuth()
+- AuthMiddleware::requirePermission('system_config')
+- CSRF validation en todas las operaciones POST
+
+**Vistas**:
+
+1. **`app/Views/admin/business_calendar/index.php`**:
+   - 4 Small-boxes con estadísticas (Días Laborables, Feriados, Fines Semana, Días Especiales)
+   - Selector de año con navegación (año anterior/año actual/año siguiente)
+   - DataTables con listado completo de feriados
+   - Columnas: Fecha, Día Semana, Descripción, Tipo, Estado, Acciones
+   - Modal "Agregar Día Especial" con validaciones
+   - Solo permite eliminar días tipo ESPECIAL (protege feriados nacionales)
+   - SweetAlert2 para confirmación eliminación
+   - Enlace a vista calendario
+
+2. **`app/Views/admin/business_calendar/calendar.php`**:
+   - FullCalendar.js 6.1.8 integration
+   - Locale español (es)
+   - Vistas: Mes, Semana, Lista mensual
+   - Eventos coloreados por tipo (Feriados=rojo, Duelo=negro, Especiales=azul)
+   - Modal detalle al hacer clic en evento
+   - Leyenda de colores en card superior
+   - Navegación por años
+   - Enlace a vista listado
+
+**Integración Sistema**:
+- Ruta registrada en `app/Core/App.php`: `'business-calendar' => ['controller' => 'BusinessCalendarController', 'method' => null]`
+- Sidebar link en `app/Views/components/sidebar.php` (líneas 530-535)
+  - Ubicación: Sección **CONFIGURACIÓN → Administración**
+  - Posicionado después de "Roles y Permisos"
+  - Icono: `fas fa-calendar-check`
+  - Nivel: Submenu dentro de Administración
+
+**Características Técnicas**:
+- Soporte CDN FullCalendar.js 6.1.8 + locale español
+- DataTables con ordenamiento y búsqueda
+- Responsive design AdminLTE
+- API REST JSON para consultas AJAX
+- Validación protección feriados nacionales permanentes
+- Fallback automático para cálculos sin BD
+
+**Casos de Uso Implementados**:
+1. Consultar días laborables entre dos fechas
+2. Verificar si fecha específica es día laboral
+3. Agregar días especiales personalizados (cierres empresa, eventos especiales)
+4. Visualizar calendario anual con feriados
+5. Obtener estadísticas anuales del calendario
+6. Exportar datos (futuro: integración Excel/PDF)
+
+**Próximo Paso - Subfase 4.4**:
+- Integrar BusinessCalendar en cálculos de liquidaciones (días preaviso exactos)
+- Integrar en módulo vacaciones (validar solo días hábiles)
+- Integrar en XIII Mes (proporcional días trabajados reales)
+- Actualizar PlanillaConceptCalculator con días laborables
+
+**Beneficios Sistema**:
+- ✅ Cálculos precisos días laborables según legislación panameña
+- ✅ Automatización completa gestión feriados
+- ✅ Interfaz visual amigable con FullCalendar.js
+- ✅ Protección feriados nacionales (no eliminables)
+- ✅ Flexibilidad agregar días especiales empresariales
+- ✅ API AJAX para integraciones futuras
+- ✅ Base sólida para módulo vacaciones y liquidaciones
+
+---
+
 ## [3.3.20] - 2025-10-06
 
 ### ✨ **SOPORTE MÚLTIPLES TIPOS DE PLANILLA POR EMPLEADO**

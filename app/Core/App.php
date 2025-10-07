@@ -68,6 +68,7 @@ class App
                     'acumulados' => ['controller' => 'AcumuladoController', 'method' => null],
                     'liquidation' => ['controller' => 'LiquidationController', 'method' => null],
                     'vacation' => ['controller' => 'VacationController', 'method' => null],
+                    'business-calendar' => ['controller' => 'BusinessCalendarController', 'method' => null],
                     'organizational' => ['controller' => 'OrganizationalController', 'method' => null],
                     'users' => ['controller' => 'UserController', 'method' => null],
                     'roles' => ['controller' => 'RoleController', 'method' => null],

@@ -172,11 +172,13 @@ class Payroll extends Model
             }
 
             // Obtener conceptos con todos sus condicionales
-            $sql = "SELECT id, concepto, descripcion, tipo_concepto as tipo, 
+            // Nota: imprime_detalles solo controla visualización, NO procesamiento
+            // El filtrado por situaciones se hace más adelante en el procesamiento
+            $sql = "SELECT id, concepto, descripcion, tipo_concepto as tipo,
                            tipos_planilla, frecuencias, situaciones,
-                           formula, valor_fijo, monto_calculo, monto_cero, imprime_detalles 
-                    FROM concepto 
-                    WHERE imprime_detalles = 1";
+                           formula, valor_fijo, monto_calculo, monto_cero, imprime_detalles
+                    FROM concepto
+                    ORDER BY tipo_concepto, concepto";
             $stmt = $this->db->query($sql);
             $conceptos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

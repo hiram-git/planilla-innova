@@ -157,25 +157,39 @@
 
 ## 🎯 **SIGUIENTES FASES PRIORIZADAS**
 
-### 📅 **FASE 4: CALENDARIO EMPRESARIAL PANAMÁ** *(Q4 2025 - Alta Prioridad)*
+### 📅 **FASE 4: CALENDARIO EMPRESARIAL PANAMÁ** *(Q4 2025 - ✅ 80% COMPLETADO)*
 **Objetivo**: Sistema calendario empresarial con días laborables según legislación panameña
 **Tiempo Estimado**: 3-4 semanas
-- [ ] **Subfase 4.1: Base de Datos** *(1 semana)*
-  - [ ] Tabla business_calendar con tipos LABORAL, FERIADO, DUELO_NACIONAL
-  - [ ] 13 feriados nacionales panameños 2025-2026 + fechas móviles
-  - [ ] Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
-  - [ ] Seeders automáticos + configuración empresa específica
-- [ ] **Subfase 4.2: BusinessCalendar Model** *(1 semana)*
-  - [ ] Métodos core: getWorkingDaysBetween(), isWorkingDay(), addWorkingDays()
-  - [ ] Helper functions: business_days_between(), is_working_day()
-  - [ ] Cálculos automáticos + fallback sin BD
-  - [ ] Cache inteligente para consultas frecuentes
-- [ ] **Subfase 4.3: Interfaz Gestión** *(1 semana)*
-  - [ ] BusinessCalendarController CRUD días especiales
-  - [ ] Vista calendario mensual/anual AdminLTE + FullCalendar.js
-  - [ ] Importación masiva feriados + validación conflictos
-  - [ ] JavaScript calendar integration + UX optimizada
-- [ ] **Subfase 4.4: Integración Cálculos Legales** *(1 semana)*
+- [x] **Subfase 4.1: Base de Datos** *(1 semana)* ✅ **COMPLETADA**
+  - [x] Tabla business_calendar con tipos LABORAL, FERIADO, DUELO_NACIONAL
+  - [x] 13 feriados nacionales panameños 2024-2025 insertados
+  - [x] Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
+  - [x] Migración consolidada `2025_09_22_1193_panama_business_calendar.sql`
+  - [x] 731 registros en BD (años 2024-2025 completos: feriados + fines semana + días laborables)
+- [x] **Subfase 4.2: BusinessCalendar Model** *(1 semana)* ✅ **COMPLETADA**
+  - [x] Métodos core: getWorkingDaysBetween(), isWorkingDay(), getNextWorkingDay()
+  - [x] Métodos avanzados: getMonthCalendar(), getHolidaysByYear(), addSpecialDay()
+  - [x] Cálculos automáticos + fallback sin BD
+  - [x] Helper functions estáticas: getDayTypeColors(), getDayTypeIcons()
+  - [x] Método initializeYear($year) para llenado automático años completos
+  - [x] Modelo completo 355+ líneas en `app/Models/BusinessCalendar.php`
+- [x] **Subfase 4.3: Interfaz Gestión** *(1 semana)* ✅ **COMPLETADA**
+  - [x] BusinessCalendarController CRUD completo
+  - [x] Vista index.php con listado feriados + estadísticas + DataTables
+  - [x] Vista calendar.php con FullCalendar.js 6.1.8 + modal detalles
+  - [x] Modal agregar días especiales + validaciones
+  - [x] Integración completa sidebar + rutas registradas
+  - [x] API AJAX getWorkingDays() para consultas dinámicas
+  - [x] **Subfase 4.3.1: Inicialización Automática Años** ✅ **COMPLETADA**
+    - [x] Script CLI `fill_business_calendar_2025.php` standalone
+    - [x] Botón "Inicializar Año" en interfaz web
+    - [x] Modal selector años (2024-2030+)
+    - [x] Método BusinessCalendar->initializeYear($year)
+    - [x] Ruta POST /panel/business-calendar/initializeYear
+    - [x] Validaciones CSRF + rango años
+    - [x] Testing script exitoso (2025: 365 días, 2026: 365 días)
+    - [x] Fix namespace Security (App\Core\Security)
+- [ ] **Subfase 4.4: Integración Cálculos Legales** *(1 semana)* ⏳ **PENDIENTE**
   - [ ] Actualizar liquidaciones: preaviso 30 días laborables exactos
   - [ ] Integrar vacaciones: días hábiles únicamente
   - [ ] XIII Mes: proporcional días trabajados reales
