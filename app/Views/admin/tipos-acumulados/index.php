@@ -25,15 +25,7 @@ TiposAcumuladosModule.init({
                     </a>
                 </h3>
                 <div class="card-tools">
-                    <div class="input-group input-group-sm" style="width: 300px;">
-                        <select id="filterPeriodicidad" class="form-control" style="width: 120px;">
-                            <option value="">Todas las periodicidades</option>
-                            <option value="MENSUAL">Mensual</option>
-                            <option value="TRIMESTRAL">Trimestral</option>
-                            <option value="SEMESTRAL">Semestral</option>
-                            <option value="ANUAL">Anual</option>
-                            <option value="ESPECIAL">Especial</option>
-                        </select>
+                    <div class="input-group input-group-sm" style="width: 250px;">
                         <input type="text" id="searchInput" class="form-control float-right" placeholder="Buscar tipo...">
                         <div class="input-group-append">
                             <button type="button" class="btn btn-default">
@@ -50,9 +42,6 @@ TiposAcumuladosModule.init({
                             <tr>
                                 <th>Código</th>
                                 <th>Descripción</th>
-                                <th>Periodicidad</th>
-                                <th>Período Actual</th>
-                                <th>Reinicio Auto</th>
                                 <th>Conceptos</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
@@ -95,24 +84,6 @@ TiposAcumuladosModule.init({
                                         <strong><?= htmlspecialchars($tipo['descripcion']) ?></strong>
                                     </div>
                                 </td>
-                                <td>
-                                    <span class="badge <?= $periodicidadClass ?>">
-                                        <i class="fas fa-calendar-alt"></i> <?= $tipo['periodicidad'] ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <?php if ($periodoActual): ?>
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock"></i> <?= $periodoActual ?>
-                                        </small>
-                                    <?php else: ?>
-                                        <span class="text-muted">Sin período definido</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <i class="<?= $reinicioIcon ?>" title="<?= $reinicioText ?>"></i>
-                                    <br><small class="text-muted"><?= $reinicioText ?></small>
-                                </td>
                                 <td class="text-center">
                                     <div class="conceptos-count">
                                         <strong class="text-info"><?= $tipo['conceptos_asociados'] ?? 0 ?></strong>
@@ -126,24 +97,24 @@ TiposAcumuladosModule.init({
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="<?= url('/panel/tipos-acumulados/show/' . $tipo['id']) ?>" 
+                                        <a href="<?= url('/panel/tipos-acumulados/show/' . $tipo['id']) ?>"
                                            class="btn btn-info btn-sm"
                                            data-toggle="tooltip" title="Ver Detalle">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="<?= url('/panel/tipos-acumulados/edit/' . $tipo['id']) ?>" 
+                                        <a href="<?= url('/panel/tipos-acumulados/edit/' . $tipo['id']) ?>"
                                            class="btn btn-warning btn-sm"
                                            data-toggle="tooltip" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <button type="button" class="btn <?= $tipo['activo'] ? 'btn-secondary' : 'btn-success' ?> btn-sm toggle-status" 
+                                        <button type="button" class="btn <?= $tipo['activo'] ? 'btn-secondary' : 'btn-success' ?> btn-sm toggle-status"
                                                 data-id="<?= $tipo['id'] ?>"
                                                 data-current-status="<?= $tipo['activo'] ?>"
                                                 data-toggle="tooltip" title="<?= $tipo['activo'] ? 'Desactivar' : 'Activar' ?>">
                                             <i class="fas <?= $tipo['activo'] ? 'fa-eye-slash' : 'fa-eye' ?>"></i>
                                         </button>
-                                        <button type="button" class="btn btn-danger btn-sm delete-btn" 
-                                                data-id="<?= $tipo['id'] ?>" 
+                                        <button type="button" class="btn btn-danger btn-sm delete-btn"
+                                                data-id="<?= $tipo['id'] ?>"
                                                 data-codigo="<?= htmlspecialchars($tipo['codigo']) ?>"
                                                 data-conceptos-count="<?= $tipo['conceptos_asociados'] ?? 0 ?>"
                                                 data-toggle="tooltip" title="Eliminar">
@@ -155,7 +126,7 @@ TiposAcumuladosModule.init({
     <?php endforeach; ?>
 <?php else: ?>
                             <tr>
-                                <td colspan="8" class="text-center text-muted">
+                                <td colspan="5" class="text-center text-muted">
                                     <i class="fas fa-info-circle"></i> No hay tipos de acumulados registrados
                                 </td>
                             </tr>

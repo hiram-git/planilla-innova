@@ -44,17 +44,17 @@ window.TiposAcumuladosModule = (function() {
             }
         },
         "columnDefs": [
-            { "orderable": false, "targets": [7] } // Disable ordering on actions column
+            { "orderable": false, "targets": [4] } // Disable ordering on actions column
         ]
     };
     
     // Variables DOM cacheadas
-    let $table, $filterPeriodicidad, $searchInput, $deleteModal;
-    
+    let $table, $searchInput, $deleteModal;
+
     // Inicializar DataTable
     function initDataTable() {
         if (dataTableInitialized) return;
-        
+
         $table = $('#tiposTable');
         if ($table.length) {
             $table.DataTable(dataTableConfig);
@@ -62,23 +62,10 @@ window.TiposAcumuladosModule = (function() {
             console.log('DataTable inicializado correctamente');
         }
     }
-    
+
     // Configurar filtros
     function initFilters() {
-        $filterPeriodicidad = $('#filterPeriodicidad');
         $searchInput = $('#searchInput');
-        
-        // Filtro por periodicidad
-        $filterPeriodicidad.on('change', function() {
-            const filterValue = $(this).val();
-            const table = $table.DataTable();
-            
-            if (filterValue) {
-                table.column(2).search(filterValue).draw();
-            } else {
-                table.column(2).search('').draw();
-            }
-        });
 
         // Búsqueda personalizada
         $searchInput.on('keyup', function() {

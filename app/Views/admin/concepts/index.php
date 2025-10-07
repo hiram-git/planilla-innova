@@ -17,6 +17,7 @@ $title = 'Conceptos de Nómina';
                             <option value="">Todos los tipos</option>
                             <option value="INGRESO">Ingresos</option>
                             <option value="DEDUCCION">Deducciones</option>
+                            <option value="PATRONAL">Patronales</option>
                         </select>
                         <input type="text" id="searchInput" class="form-control float-right" placeholder="Buscar concepto...">
                         <div class="input-group-append">
@@ -43,10 +44,26 @@ $title = 'Conceptos de Nómina';
                         </thead>
                         <tbody>
 <?php if (!empty($concepts)): ?>
-    <?php foreach ($concepts as $concept): 
+    <?php foreach ($concepts as $concept):
         // Determinar clase y icono del tipo
-        $typeClass = ($concept['tipo_concepto'] ?? '') === 'A' ? 'badge-success' : (($concept['tipo_concepto'] ?? '') === 'D' ? 'badge-danger' : 'badge-info');
-        $typeIcon = ($concept['tipo_concepto'] ?? '') === 'A' ? 'fas fa-plus' : (($concept['tipo_concepto'] ?? '') === 'D' ? 'fas fa-minus' : 'fas fa-cog');
+        $tipoConcepto = $concept['tipo_concepto'] ?? '';
+        if ($tipoConcepto === 'A') {
+            $typeClass = 'badge-success';
+            $typeIcon = 'fas fa-plus';
+            $typeText = 'Ingreso';
+        } elseif ($tipoConcepto === 'D') {
+            $typeClass = 'badge-danger';
+            $typeIcon = 'fas fa-minus';
+            $typeText = 'Deducción';
+        } elseif ($tipoConcepto === 'P') {
+            $typeClass = 'badge-info';
+            $typeIcon = 'fas fa-building';
+            $typeText = 'Patronal';
+        } else {
+            $typeClass = 'badge-secondary';
+            $typeIcon = 'fas fa-cog';
+            $typeText = 'Mixto';
+        }
         
         // Estado impresión
         $statusClass = ($concept['imprime_detalles'] ?? 0) ? 'badge-success' : 'badge-secondary';
@@ -79,8 +96,8 @@ $title = 'Conceptos de Nómina';
                                 </td>
                                 <td>
                                     <span class="badge <?= $typeClass ?>">
-                                        <i class="<?= $typeIcon ?>"></i> 
-                                        <?= ($concept['tipo_concepto'] ?? '') === 'A' ? 'Ingreso' : (($concept['tipo_concepto'] ?? '') === 'D' ? 'Deducción' : 'Mixto') ?>
+                                        <i class="<?= $typeIcon ?>"></i>
+                                        <?= $typeText ?>
                                     </span>
                                 </td>
                                 <td>

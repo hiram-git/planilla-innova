@@ -141,92 +141,13 @@ $title = 'Nuevo Concepto';
                         </div>
                     </div>
 
-                    <!-- Configuraciones avanzadas con checkboxes agrupados -->
-                    <div class="row">
+                    <!-- Configuraciones avanzadas unificadas -->
+                    <div class="row mt-3">
                         <div class="col-md-12">
-                            <h5><i class="fas fa-cogs"></i> Configuraciones Avanzadas</h5>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label class="form-label font-weight-bold">
-                                    <i class="fas fa-calendar-alt text-primary"></i> Tipos de Planilla
-                                </label>
-                                <div class="card card-outline card-primary" style="min-height: 120px;">
-                                    <div class="card-body p-2">
-                                        <?php if (!empty($tipos_planilla)): ?>
-                                            <?php foreach ($tipos_planilla as $tipo): ?>
-                                                <?php $checked = ($tipo['codigo'] ?? '') === 'quincenal' ? 'checked' : ''; ?>
-                                                <div class="form-check form-check-sm">
-                                                    <input class="form-check-input" type="checkbox" name="tipos_planilla[]" 
-                                                           id="tipo_<?= $tipo['id'] ?>" value="<?= $tipo['id'] ?>" <?= $checked ?>>
-                                                    <label class="form-check-label" for="tipo_<?= $tipo['id'] ?>">
-                                                        <?= htmlspecialchars($tipo['nombre']) ?>
-                                                    </label>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label class="form-label font-weight-bold">
-                                    <i class="fas fa-clock text-success"></i> Frecuencias
-                                </label>
-                                <div class="card card-outline card-success" style="min-height: 120px;">
-                                    <div class="card-body p-2">
-                                        <?php if (!empty($frecuencias)): ?>
-                                            <?php foreach ($frecuencias as $frecuencia): ?>
-                                                <?php $checked = ($frecuencia['codigo'] ?? '') === 'siempre' ? 'checked' : ''; ?>
-                                                <div class="form-check form-check-sm">
-                                                    <input class="form-check-input" type="checkbox" name="frecuencias[]" 
-                                                           id="freq_<?= $frecuencia['id'] ?>" value="<?= $frecuencia['id'] ?>" <?= $checked ?>>
-                                                    <label class="form-check-label" for="freq_<?= $frecuencia['id'] ?>">
-                                                        <?= htmlspecialchars($frecuencia['nombre']) ?>
-                                                    </label>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label class="form-label font-weight-bold">
-                                    <i class="fas fa-user-check text-warning"></i> Situaciones del Empleado
-                                </label>
-                                <div class="card card-outline card-warning" style="min-height: 120px;">
-                                    <div class="card-body p-2">
-                                        <?php if (!empty($situaciones)): ?>
-                                            <?php foreach ($situaciones as $situacion): ?>
-                                                <?php $checked = ($situacion['codigo'] ?? '') === 'activo' ? 'checked' : ''; ?>
-                                                <div class="form-check form-check-sm">
-                                                    <input class="form-check-input" type="checkbox" name="situaciones[]" 
-                                                           id="sit_<?= $situacion['id'] ?>" value="<?= $situacion['id'] ?>" <?= $checked ?>>
-                                                    <label class="form-check-label" for="sit_<?= $situacion['id'] ?>">
-                                                        <?= htmlspecialchars($situacion['nombre']) ?>
-                                                    </label>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Configuración de Acumulados -->
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="card card-outline card-success">
+                            <div class="card card-outline card-info">
                                 <div class="card-header">
                                     <h3 class="card-title">
-                                        <i class="fas fa-database text-success"></i> Configuración de Acumulados
+                                        <i class="fas fa-cogs"></i> Configuraciones Avanzadas
                                     </h3>
                                     <div class="card-tools">
                                         <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -235,17 +156,102 @@ $title = 'Nuevo Concepto';
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        <strong>¿Qué son los acumulados?</strong><br>
-                                        Los acumulados permiten que este concepto contribuya al cálculo de aguinaldo, bono 14, vacaciones, 
-                                        indemnizaciones y otros beneficios laborales. Configure qué tipos de acumulados aplicarán y con qué referencia.
+                                    <div class="row">
+                                        <!-- Tipos de Planilla -->
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label font-weight-bold">
+                                                    <i class="fas fa-calendar-alt text-primary"></i> Tipos de Planilla
+                                                </label>
+                                                <div class="border rounded p-2" style="min-height: 120px; background-color: #f8f9fa;">
+                                                    <?php if (!empty($tipos_planilla)): ?>
+                                                        <?php foreach ($tipos_planilla as $tipo): ?>
+                                                            <?php $checked = ($tipo['codigo'] ?? '') === 'quincenal' ? 'checked' : ''; ?>
+                                                            <div class="form-check form-check-sm">
+                                                                <input class="form-check-input" type="checkbox" name="tipos_planilla[]"
+                                                                       id="tipo_<?= $tipo['id'] ?>" value="<?= $tipo['id'] ?>" <?= $checked ?>>
+                                                                <label class="form-check-label" for="tipo_<?= $tipo['id'] ?>">
+                                                                    <?= htmlspecialchars($tipo['nombre']) ?>
+                                                                </label>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Frecuencias -->
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label font-weight-bold">
+                                                    <i class="fas fa-clock text-success"></i> Frecuencias
+                                                </label>
+                                                <div class="border rounded p-2" style="min-height: 120px; background-color: #f8f9fa;">
+                                                    <?php if (!empty($frecuencias)): ?>
+                                                        <?php foreach ($frecuencias as $frecuencia): ?>
+                                                            <?php $checked = ($frecuencia['codigo'] ?? '') === 'siempre' ? 'checked' : ''; ?>
+                                                            <div class="form-check form-check-sm">
+                                                                <input class="form-check-input" type="checkbox" name="frecuencias[]"
+                                                                       id="freq_<?= $frecuencia['id'] ?>" value="<?= $frecuencia['id'] ?>" <?= $checked ?>>
+                                                                <label class="form-check-label" for="freq_<?= $frecuencia['id'] ?>">
+                                                                    <?= htmlspecialchars($frecuencia['nombre']) ?>
+                                                                </label>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Situaciones del Empleado -->
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label font-weight-bold">
+                                                    <i class="fas fa-user-check text-warning"></i> Situaciones del Empleado
+                                                </label>
+                                                <div class="border rounded p-2" style="min-height: 120px; background-color: #f8f9fa;">
+                                                    <?php if (!empty($situaciones)): ?>
+                                                        <?php foreach ($situaciones as $situacion): ?>
+                                                            <?php $checked = ($situacion['codigo'] ?? '') === 'activo' ? 'checked' : ''; ?>
+                                                            <div class="form-check form-check-sm">
+                                                                <input class="form-check-input" type="checkbox" name="situaciones[]"
+                                                                       id="sit_<?= $situacion['id'] ?>" value="<?= $situacion['id'] ?>" <?= $checked ?>>
+                                                                <label class="form-check-label" for="sit_<?= $situacion['id'] ?>">
+                                                                    <?= htmlspecialchars($situacion['nombre']) ?>
+                                                                </label>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Acumulado -->
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label font-weight-bold">
+                                                    <i class="fas fa-database text-info"></i> Acumulado
+                                                </label>
+                                                <div class="border rounded p-2" style="min-height: 120px; background-color: #f8f9fa; max-height: 300px; overflow-y: auto;">
+                                                    <div id="acumulados-container">
+                                                        <!-- Aquí se cargarán dinámicamente los tipos de acumulados -->
+                                                        <div class="text-center">
+                                                            <i class="fas fa-spinner fa-spin"></i>
+                                                            <small class="d-block text-muted">Cargando...</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    
-                                    <div id="acumulados-container">
-                                        <!-- Aquí se cargarán dinámicamente los tipos de acumulados -->
-                                        <div class="text-center">
-                                            <i class="fas fa-spinner fa-spin"></i> Cargando tipos de acumulados...
+
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <div class="alert alert-info mb-0">
+                                                <i class="fas fa-info-circle"></i>
+                                                <strong>Información:</strong> Los acumulados permiten que este concepto contribuya al cálculo de aguinaldo,
+                                                vacaciones, indemnizaciones y otros beneficios laborales según la legislación panameña.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

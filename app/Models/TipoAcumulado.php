@@ -336,7 +336,7 @@ class TipoAcumulado
         foreach ($tipos as $tipo) {
             $results[] = [
                 'id' => $tipo['id'],
-                'text' => "[{$tipo['codigo']}] {$tipo['descripcion']} ({$tipo['periodicidad']})"
+                'text' => $tipo['descripcion']
             ];
         }
 
