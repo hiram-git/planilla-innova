@@ -541,7 +541,7 @@ class AcumuladoController extends Controller
         $month = $_GET['month'] ?? null;
         $tipoAcumulado = $_GET['tipo_acumulado'] ?? null;
         $tipoPlanillaId = $_GET['tipo_planilla'] ?? null;
-        $groupBy = $_GET['group_by'] ?? 'tipo_acumulado'; // tipo_acumulado, mes, planilla
+        $groupBy = $_GET['group_by'] ?? 'concepto'; // concepto, mes, planilla
 
         try {
             // Obtener lista de empleados activos (filtrados por tipo de planilla si aplica)
@@ -645,10 +645,22 @@ class AcumuladoController extends Controller
             $sql = "SELECT DISTINCT
                         c.id,
                         c.descripcion,
-                        c.tipo_concepto
+                        CASE
+                            WHEN c.tipo_concepto = 'A' THEN 'ASIGNACION'
+                            WHEN c.tipo_concepto = 'D' THEN 'DEDUCCION'
+                            WHEN c.tipo_concepto = 'P' THEN 'PATRONAL'
+                            ELSE c.tipo_concepto
+                        END as tipo_concepto
                     FROM concepto c
                     INNER JOIN acumulados_por_empleado ape ON c.id = ape.concepto_id
-                    ORDER BY c.tipo_concepto, c.descripcion";
+                    ORDER BY
+                        CASE
+                            WHEN c.tipo_concepto = 'A' THEN 1
+                            WHEN c.tipo_concepto = 'D' THEN 2
+                            WHEN c.tipo_concepto = 'P' THEN 3
+                            ELSE 4
+                        END,
+                        c.descripcion";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
@@ -914,7 +926,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener acumulados agrupados por empleado
      */
-    private function getAcumuladosAgrupadosByEmployee($empleadoId, $year, $month = null, $tipoAcumulado = null, $groupBy = 'tipo_acumulado')
+    private function getAcumuladosAgrupadosByEmployee($empleadoId, $year, $month = null, $tipoAcumulado = null, $groupBy = 'concepto')
     {
         try {
             $whereConditions = ["ape.employee_id = ?"];
@@ -940,6 +952,15 @@ class AcumuladoController extends Controller
 
             // Determinar agrupación y campos SELECT
             switch ($groupBy) {
+                case 'concepto':
+                    $selectFields = "c.id as grupo_clave,
+                                    c.descripcion as grupo_descripcion,
+                                    'Concepto' as grupo_tipo,
+                                    ape.tipo_concepto";
+                    $groupByClause = "c.id, c.descripcion, ape.tipo_concepto";
+                    $orderByClause = "ape.tipo_concepto, c.descripcion";
+                    break;
+
                 case 'mes':
                     $selectFields = "ape.mes as grupo_clave,
                                     CASE ape.mes
@@ -993,6 +1014,7 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN concepto c ON ape.concepto_id = c.id
                     WHERE {$whereClause}
                     GROUP BY {$groupByClause}
                     ORDER BY {$orderByClause}";
@@ -1059,14 +1081,16 @@ class AcumuladoController extends Controller
                         ape.created_at,
                         c.descripcion as concepto_descripcion,
                         pc.descripcion as planilla_descripcion,
-                        pc.fecha_desde,
-                        pc.fecha_hasta, 
-                        ape.tipo_acumulado
+                        pc.fecha_desde as fecha_inicio,
+                        pc.fecha_hasta as fecha_fin,
+                        ape.tipo_acumulado as tipo_acumulado_codigo,
+                        COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
-                    ORDER BY ape.mes DESC, ape.tipo_concepto, c.descripcion";
+                    ORDER BY ape.ano DESC, ape.mes DESC, ape.tipo_concepto, c.descripcion";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);

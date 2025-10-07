@@ -299,31 +299,35 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
 </section>
 
 
-<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
 <script>
-$(document).ready(function() {
+// Esperar a que jQuery esté disponible
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si jQuery está cargado
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery no está cargado');
+        return;
+    }
+
     // Initialize DataTable
-    if ($("#acumuladosTable").length) {
-        $("#acumuladosTable").DataTable({
+    if (jQuery("#acumuladosTable").length) {
+        jQuery("#acumuladosTable").DataTable({
             "responsive": true,
             "pageLength": 50,
             "order": [[5, "desc"]], // Ordenar por monto
-            "language": {
-                DATATABLES_SPANISH
-            }
+            "language": window.DATATABLES_SPANISH || {}
         });
     }
 
     // Initialize Select2
-    if ($('.select2').length) {
-        $('.select2').select2({
+    if (jQuery('.select2').length) {
+        jQuery('.select2').select2({
             theme: 'bootstrap4',
             width: '100%'
         });
     }
 
     // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
+    jQuery('[data-toggle="tooltip"]').tooltip();
 });
 
 function exportToCSV() {

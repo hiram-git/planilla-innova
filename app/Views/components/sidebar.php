@@ -330,8 +330,8 @@ class SidebarComponent
                         </li>
 
                         <!-- Configuración de Conceptos -->
-                        <li class="nav-item ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') ? 'active' : '') . '">
+                        <li class="nav-item ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') || $this->isActive('panel/tipos-acumulados') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') || $this->isActive('panel/tipos-acumulados') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-cogs"></i>
                                 <p>
                                     Configuración de Conceptos
@@ -355,6 +355,12 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::route('panel/situaciones') . '" class="nav-link ' . ($this->isActive('panel/situaciones') ? 'active' : '') . '">
                                         <i class="fas fa-user-tag nav-icon"></i>
                                         <p>Situaciones</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/tipos-acumulados') . '" class="nav-link ' . ($this->isActive('panel/tipos-acumulados') ? 'active' : '') . '">
+                                        <i class="fas fa-coins nav-icon"></i>
+                                        <p>Tipos de Acumulados</p>
                                     </a>
                                 </li>
                             </ul>
