@@ -516,7 +516,7 @@ class SidebarComponent
                             </a>
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <a href="' . \App\Core\UrlHelper::url('panel/reports/exports') . '" class="nav-link ' . ($this->isActive('panel/reports/exports') ? 'active' : '') . '">
+                                    <a href="' . \App\Core\UrlHelper::url('panel/company') . '" class="nav-link ' . ($this->isActive('panel/company') ? 'active' : '') . '">
                                         <i class="fas fa-building nav-icon"></i>
                                         <p>Configuración de Empresa</p>
                                     </a>

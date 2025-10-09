@@ -570,3 +570,54 @@ $scripts = $jsConfig . "\n" . $payrollConfigScript . "\n" . JavaScriptHelper::re
     }
 }
 </style>
+
+<!-- Modal Selector de Empleados -->
+<div class="modal fade" id="employeeSelectorModal" tabindex="-1" role="dialog" aria-labelledby="employeeSelectorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="employeeSelectorModalLabel">
+                    <i class="fas fa-users"></i> Seleccionar Empleado
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Planilla: <strong id="selectedPayrollDesc"></strong></p>
+
+                <!-- Búsqueda de empleados -->
+                <div class="form-group">
+                    <label for="employeeSearch">Buscar empleado:</label>
+                    <input type="text" class="form-control" id="employeeSearch" placeholder="Nombre, cédula...">
+                </div>
+
+                <!-- Lista de empleados -->
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover table-sm" id="employeesListTable">
+                        <thead class="thead-light sticky-top">
+                            <tr>
+                                <th>Cédula</th>
+                                <th>Nombre</th>
+                                <th>Cargo</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesListBody">
+                            <tr>
+                                <td colspan="4" class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Cargando empleados...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

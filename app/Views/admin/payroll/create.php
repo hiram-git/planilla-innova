@@ -28,9 +28,9 @@ $csrf_token = $data['csrf_token'] ?? '';
                         </small>
                     </div>
                     
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>Tipo de Planilla:</strong> Se utilizará el tipo seleccionado en la barra de navegación superior.
+                    <div class="callout callout-info">
+                        <h5><i class="fas fa-info-circle"></i> Tipo de Planilla</h5>
+                        <p>Se utilizará el tipo seleccionado en la barra de navegación superior.</p>
                     </div>
                     
                     <div class="row">
@@ -75,8 +75,8 @@ $csrf_token = $data['csrf_token'] ?? '';
                         </div>
                     </div>
                     
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-info-circle"></i> Información</h6>
+                    <div class="callout callout-info">
+                        <h5><i class="fas fa-info-circle"></i> Información</h5>
                         <ul class="mb-0">
                             <li>La planilla se creará en estado <strong>PENDIENTE</strong></li>
                             <li>Después de crear, podrá <strong>procesarla</strong> para generar los cálculos</li>
@@ -151,9 +151,6 @@ $(document).ready(function() {
 .form-control:focus {
     border-color: #007bff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-.alert-info {
-    border-left: 4px solid #17a2b8;
 }
 .card-header {
     background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);

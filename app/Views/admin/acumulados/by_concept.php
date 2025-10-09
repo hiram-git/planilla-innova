@@ -164,16 +164,20 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                         <?php if ($groupBy === 'empleado'): ?>
                                             <i class="fas fa-id-card"></i> <?= htmlspecialchars($agrupado['document_id'] ?? 'N/A') ?>
                                             <br>
-                                        <?php elseif ($groupBy === 'planilla' && isset($agrupado['fecha_inicio'])): ?>
-                                            <i class="fas fa-calendar"></i>
-                                            <?= date('d/m/Y', strtotime($agrupado['fecha_inicio'])) ?> -
-                                            <?= date('d/m/Y', strtotime($agrupado['fecha_fin'])) ?>
-                                            <br>
+                                        <?php elseif ($groupBy === 'planilla'): ?>
+                                            <?php if (isset($agrupado['frecuencia_nombre'])): ?>
+                                                <i class="fas fa-clock"></i> <strong><?= htmlspecialchars($agrupado['frecuencia_nombre']) ?></strong>
+                                                <br>
+                                            <?php endif; ?>
+                                            <?php if (isset($agrupado['fecha_inicio']) && isset($agrupado['fecha_fin'])): ?>
+                                                <i class="fas fa-calendar"></i>
+                                                <?= date('d/m/Y', strtotime($agrupado['fecha_inicio'])) ?> -
+                                                <?= date('d/m/Y', strtotime($agrupado['fecha_fin'])) ?>
+                                                <br>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                         <i class="fas fa-chart-pie"></i> <?= number_format($porcentaje, 1) ?>% del total
                                         <br>
-                                        <i class="fas fa-file-invoice"></i> <?= $agrupado['total_planillas'] ?> planilla(s)
-                                        |
                                         <i class="fas fa-users"></i> <?= $agrupado['total_empleados'] ?> empleado(s)
                                     </div>
                                 </div>

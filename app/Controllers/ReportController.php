@@ -110,42 +110,696 @@ class ReportController extends Controller
     {
         try {
             //error_log("=== Iniciando comprobantesPlanilla con ID: $payrollId ===");
-            
+
             $this->requireAuth();
-            
+
             if (!$payrollId) {
                 error_log("Error: ID de planilla requerido");
                 $_SESSION['error'] = 'ID de planilla requerido';
                 $this->redirect('/panel/reports');
             }
-            
+
             //error_log("Obteniendo datos de empleados para planilla $payrollId");
-            
+
             // Obtener datos de todos los empleados de la planilla
             $planillaData = $this->getAllEmployeesPayrollData($payrollId);
-            
+
             if (!$planillaData) {
                 error_log("Error: No se pudieron obtener datos de la planilla $payrollId");
                 $_SESSION['error'] = 'Error al obtener datos de la planilla';
                 $this->redirect('/panel/reports');
             }
-            
+
             if (empty($planillaData['employees'])) {
                 error_log("Error: No hay empleados en la planilla $payrollId");
                 $_SESSION['error'] = 'No hay empleados en esta planilla';
                 $this->redirect('/panel/reports');
             }
-            
+
             error_log("Empleados encontrados: " . count($planillaData['employees']));
-            
+
             // Generar PDF con todos los comprobantes
             $this->generateAllPaySlipsPDF($planillaData);
-            
+
         } catch (\Exception $e) {
             error_log("Error en ReportController@comprobantesPlanilla: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
             $_SESSION['error'] = 'Error al generar los comprobantes: ' . $e->getMessage();
             $this->redirect('/panel/reports');
+        }
+    }
+
+    /**
+     * Generar comprobante individual de un empleado en orientación horizontal
+     * Para visualización en pantalla y envío por correo electrónico
+     *
+     * @param int $payrollId ID de la planilla
+     * @param int $employeeId ID del empleado
+     * @param string $output Modo de salida: 'I' = inline (navegador), 'S' = string (para email), 'F' = archivo
+     * @param string $dest Ruta destino si output='F'
+     * @return mixed PDF output según parámetro $output
+     */
+    public function comprobanteIndividual($payrollId, $employeeId, $output = 'I', $dest = '')
+    {
+        try {
+            $this->requireAuth();
+
+            if (!$payrollId || !$employeeId) {
+                throw new \Exception('ID de planilla y empleado requeridos');
+            }
+
+            // Obtener datos del empleado específico
+            $employeeData = $this->getEmployeePayrollData($payrollId, $employeeId);
+
+            if (!$employeeData) {
+                throw new \Exception('No se encontraron datos del empleado en esta planilla');
+            }
+
+            // Generar PDF horizontal
+            return $this->generateIndividualPaySlipPDF($employeeData, $output, $dest);
+
+        } catch (\Exception $e) {
+            error_log("Error en ReportController@comprobanteIndividual: " . $e->getMessage());
+
+            if ($output === 'I') {
+                $_SESSION['error'] = 'Error al generar el comprobante: ' . $e->getMessage();
+                $this->redirect('/panel/reports');
+            } else {
+                throw $e; // Re-lanzar para manejo en email
+            }
+        }
+    }
+
+    /**
+     * Generar comprobantes horizontales para todos los empleados de una planilla
+     * Un comprobante por página en orientación horizontal
+     *
+     * @param int $payrollId ID de la planilla
+     */
+    public function comprobantesPlanillaHorizontal($payrollId)
+    {
+        try {
+            $this->requireAuth();
+
+            if (!$payrollId) {
+                throw new \Exception('ID de planilla requerido');
+            }
+
+            // Obtener todos los empleados de la planilla
+            $allEmployeesData = $this->getAllEmployeesPayrollData($payrollId);
+
+            if (!$allEmployeesData || empty($allEmployeesData['employees'])) {
+                $_SESSION['error'] = 'No se encontraron empleados en esta planilla';
+                $this->redirect('/panel/payrolls');
+                return;
+            }
+
+            // Generar PDF con todos los comprobantes
+            $this->generateAllPayslipsHorizontalPDF($allEmployeesData);
+
+        } catch (\Exception $e) {
+            error_log("Error en ReportController@comprobantesPlanillaHorizontal: " . $e->getMessage());
+            $_SESSION['error'] = 'Error al generar comprobantes: ' . $e->getMessage();
+            $this->redirect('/panel/payrolls');
+        }
+    }
+
+    /**
+     * Generar PDF con todos los comprobantes horizontales (uno por página)
+     *
+     * @param array $allEmployeesData Datos de todos los empleados
+     */
+    private function generateAllPayslipsHorizontalPDF($allEmployeesData)
+    {
+        $payroll = $allEmployeesData['payroll'];
+        $employees = $allEmployeesData['employees'];
+
+        // Crear instancia TCPDF en orientación HORIZONTAL (Landscape)
+        $pdf = new TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+        // Configuración del documento
+        $pdf->SetCreator('Sistema de Planillas MVC');
+        $pdf->SetAuthor('Sistema de Planillas');
+        $pdf->SetTitle('Comprobantes de Pago - ' . $payroll['descripcion']);
+        $pdf->SetSubject('Comprobantes de Pago');
+
+        // Márgenes reducidos para orientación horizontal
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(TRUE, 15);
+
+        // Obtener información de la empresa para logos
+        $companyInfo = $this->getCompanyInfo();
+
+        // Obtener firmas de la empresa
+        $companySignatures = $this->companyModel->getSignaturesForReports();
+
+        // Generar una página por cada empleado
+        foreach ($employees as $index => $employeeData) {
+            // Agregar nueva página para cada empleado
+            $pdf->AddPage();
+
+            // Datos del empleado
+            $employee = $employeeData['employee'];
+
+            // Insertar logos en cada página
+            $this->insertLogosInPDF($pdf, $companyInfo);
+            $pdf->Ln();
+
+            // Header del comprobante
+            $pdf->SetFont('helvetica', 'B', 16);
+            $pdf->Cell(0, 8, 'COMPROBANTE DE PAGO', 0, 1, 'C');
+
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, 6, $payroll['descripcion'], 0, 1, 'C');
+
+            $pdf->SetFont('helvetica', '', 9);
+            $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_desde']));
+            $fechaFin = date('d/m/Y', strtotime($payroll['fecha_hasta']));
+            $pdf->Cell(0, 5, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
+
+            $pdf->Ln(8);
+
+            // === SECCIÓN: DATOS DEL EMPLEADO ===
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->SetFillColor(230, 230, 230);
+            $pdf->Cell(0, 7, 'DATOS DEL EMPLEADO', 0, 1, 'L', true);
+
+            $pdf->SetFont('helvetica', '', 9);
+
+            // Fila 1: Nombre y Cédula
+            $pdf->Cell(25, 5, 'Nombre:', 0, 0, 'L');
+            $pdf->Cell(113, 5, $employee['firstname'] . ' ' . $employee['lastname'], 0, 0, 'L');
+            $pdf->Cell(25, 5, 'Cédula:', 0, 0, 'L');
+            $pdf->Cell(0, 5, $employee['document_id'] ?? 'N/A', 0, 1, 'L');
+
+            // Fila 2: Cargo/Posición y Salario Base
+            $etiquetaPuesto = $employee['etiqueta_puesto'] ?? 'Cargo';
+            $pdf->Cell(25, 5, $etiquetaPuesto . ':', 0, 0, 'L');
+            $pdf->Cell(113, 5, $employee['puesto_actual'] ?? 'N/A', 0, 0, 'L');
+            $pdf->Cell(25, 5, 'Salario Base:', 0, 0, 'L');
+            $pdf->Cell(0, 5, '$' . number_format($employee['salario_base'], 2), 0, 1, 'L');
+
+            $pdf->Ln(6);
+
+            // === LAYOUT HORIZONTAL: INGRESOS Y DEDUCCIONES LADO A LADO ===
+
+            // Calcular anchos de columnas
+            $margins = $pdf->getMargins();
+            $leftMargin = $margins['left'];
+            $rightMargin = $margins['right'];
+            $pageWidth = $pdf->getPageWidth() - $leftMargin - $rightMargin;
+            $colWidth = ($pageWidth - 10) / 2; // 10 = espacio entre columnas
+
+            // Guardar posición Y inicial
+            $startY = $pdf->GetY();
+            $leftX = $leftMargin;
+            $rightX = $leftX + $colWidth + 10;
+
+            // === COLUMNA IZQUIERDA: INGRESOS ===
+            $pdf->SetXY($leftX, $startY);
+
+            if (!empty($employeeData['ingresos'])) {
+                $pdf->SetFont('helvetica', 'B', 11);
+                $pdf->SetFillColor(200, 200, 200);
+                $pdf->Cell($colWidth, 6, 'INGRESOS', 1, 1, 'C', true);
+
+                $pdf->SetX($leftX);
+                $pdf->SetFont('helvetica', 'B', 8);
+                $pdf->SetFillColor(240, 240, 240);
+                $colCodigo = 25;
+                $colDescripcion = $colWidth - $colCodigo - 30;
+                $colMonto = 30;
+
+                $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
+                $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+                $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
+
+                $pdf->SetFont('helvetica', '', 8);
+                foreach ($employeeData['ingresos'] as $ingreso) {
+                    $pdf->SetX($leftX);
+                    $pdf->Cell($colCodigo, 5, $ingreso['codigo'], 1, 0, 'C');
+                    $pdf->Cell($colDescripcion, 5, substr($ingreso['descripcion'], 0, 40), 1, 0, 'L');
+                    $pdf->Cell($colMonto, 5, '$' . number_format($ingreso['monto'], 2), 1, 1, 'R');
+                }
+
+                $pdf->SetX($leftX);
+                $pdf->SetFont('helvetica', 'B', 9);
+                $pdf->SetFillColor(220, 255, 220);
+                $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
+                $pdf->Cell($colMonto, 6, '$' . number_format($employeeData['total_ingresos'], 2), 1, 1, 'R', true);
+            }
+
+            $leftEndY = $pdf->GetY();
+
+            // === COLUMNA DERECHA: DEDUCCIONES ===
+            $pdf->SetXY($rightX, $startY);
+
+            if (!empty($employeeData['deducciones'])) {
+                $pdf->SetFont('helvetica', 'B', 11);
+                $pdf->SetFillColor(200, 200, 200);
+                $pdf->Cell($colWidth, 6, 'DEDUCCIONES', 1, 1, 'C', true);
+
+                $pdf->SetX($rightX);
+                $pdf->SetFont('helvetica', 'B', 8);
+                $pdf->SetFillColor(240, 240, 240);
+                $colCodigo = 25;
+                $colDescripcion = $colWidth - $colCodigo - 30;
+                $colMonto = 30;
+
+                $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
+                $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+                $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
+
+                $pdf->SetFont('helvetica', '', 8);
+                foreach ($employeeData['deducciones'] as $deduccion) {
+                    $pdf->SetX($rightX);
+                    $pdf->Cell($colCodigo, 5, $deduccion['codigo'], 1, 0, 'C');
+                    $pdf->Cell($colDescripcion, 5, substr($deduccion['descripcion'], 0, 40), 1, 0, 'L');
+                    $pdf->Cell($colMonto, 5, '$' . number_format($deduccion['monto'], 2), 1, 1, 'R');
+                }
+
+                $pdf->SetX($rightX);
+                $pdf->SetFont('helvetica', 'B', 9);
+                $pdf->SetFillColor(255, 220, 220);
+                $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
+                $pdf->Cell($colMonto, 6, '$' . number_format($employeeData['total_deducciones'], 2), 1, 1, 'R', true);
+            }
+
+            $rightEndY = $pdf->GetY();
+
+            // Posicionar después de la tabla más alta
+            $maxY = max($leftEndY, $rightEndY);
+            $pdf->SetY($maxY + 8);
+
+            // === RESUMEN FINAL: SALARIO NETO ===
+            $pdf->SetFont('helvetica', 'B', 14);
+            $pdf->SetFillColor(200, 200, 200);
+            $pdf->Cell(0, 10, 'SALARIO NETO A PAGAR: $' . number_format($employeeData['neto'], 2), 1, 1, 'C', true);
+
+            $pdf->Ln(10);
+
+            // === FIRMAS ===
+            $pdf->SetFont('helvetica', '', 8);
+
+            // Dos columnas para las firmas
+            $colWidth = ($pageWidth - $leftMargin - $rightMargin) / 2;
+
+            // Líneas para firmas
+            $pdf->Cell($colWidth, 3, '', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, '', 0, 1, 'C');
+
+            $pdf->Cell($colWidth, 3, '___________________________', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, '___________________________', 0, 1, 'C');
+
+            // Nombres
+            $pdf->SetFont('helvetica', 'B', 8);
+            $pdf->Cell($colWidth, 4, $companySignatures['elaborado_por'] ?: 'Por definir', 0, 0, 'C');
+            $pdf->Cell($colWidth, 4, $companySignatures['jefe_recursos_humanos'] ?: 'Por definir', 0, 1, 'C');
+
+            // Cargos
+            $pdf->SetFont('helvetica', '', 7);
+            $pdf->Cell($colWidth, 3, $companySignatures['cargo_elaborador'] ?: 'Especialista en Nóminas', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, $companySignatures['cargo_jefe_rrhh'] ?: 'Jefe de Recursos Humanos', 0, 1, 'C');
+
+            $pdf->Ln(3);
+
+            /*// Nota informativa
+            $pdf->SetFont('helvetica', 'I', 7);
+            $pdf->Cell(0, 4, 'Este comprobante es un documento informativo generado por el Sistema de Planillas.', 0, 1, 'C');*/
+        }
+
+        // Output del PDF
+        $filename = 'comprobantes_horizontal_' . $payroll['id'] . '_' . date('Y-m-d') . '.pdf';
+        $pdf->Output($filename, 'I');
+        exit;
+    }
+
+    /**
+     * Generar PDF de comprobante individual horizontal
+     * Layout optimizado para mostrar en una sola página horizontal
+     *
+     * @param array $data Datos del empleado y planilla
+     * @param string $output 'I' = inline, 'S' = string, 'F' = file
+     * @param string $dest Ruta destino para output='F'
+     * @return mixed PDF según parámetro output
+     */
+    private function generateIndividualPaySlipPDF($data, $output = 'I', $dest = '')
+    {
+        $employee = $data['employee'];
+        $payroll = $data['payroll'];
+
+        // Crear instancia TCPDF en orientación HORIZONTAL (Landscape)
+        $pdf = new TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+        // Configuración del documento
+        $pdf->SetCreator('Sistema de Planillas MVC');
+        $pdf->SetAuthor('Sistema de Planillas');
+        $pdf->SetTitle('Comprobante de Pago - ' . $employee['firstname'] . ' ' . $employee['lastname']);
+
+        // Márgenes reducidos para aprovechar espacio horizontal
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(TRUE, 15);
+        $pdf->AddPage();
+
+        // Obtener información de la empresa para logos
+        $companyInfo = $this->getCompanyInfo();
+
+        // Insertar logos en la cabecera
+        $this->insertLogosInPDF($pdf, $companyInfo);
+
+        // Header del comprobante
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->Cell(0, 8, 'COMPROBANTE DE PAGO', 0, 1, 'C');
+
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, 6, $payroll['descripcion'], 0, 1, 'C');
+
+        $pdf->SetFont('helvetica', '', 9);
+        $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_desde']));
+        $fechaFin = date('d/m/Y', strtotime($payroll['fecha_hasta']));
+        $pdf->Cell(0, 5, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
+
+        $pdf->Ln(8);
+
+        // === SECCIÓN: DATOS DEL EMPLEADO ===
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->Cell(0, 7, 'DATOS DEL EMPLEADO', 0, 1, 'L', true);
+
+        $pdf->SetFont('helvetica', '', 9);
+
+        // Fila 1: Nombre y Cédula
+        $pdf->Cell(40, 5, 'Nombre:', 0, 0, 'L');
+        $pdf->Cell(90, 5, $employee['firstname'] . ' ' . $employee['lastname'], 0, 0, 'L');
+        $pdf->Cell(40, 5, 'Cédula:', 0, 0, 'L');
+        $pdf->Cell(0, 5, $employee['document_id'] ?? 'N/A', 0, 1, 'L');
+
+        // Fila 2: Cargo/Posición y Salario Base
+        $etiquetaPuesto = $employee['etiqueta_puesto'] ?? 'Cargo';
+        $pdf->Cell(40, 5, $etiquetaPuesto . ':', 0, 0, 'L');
+        $pdf->Cell(90, 5, $employee['puesto_actual'] ?? 'N/A', 0, 0, 'L');
+        $pdf->Cell(40, 5, 'Salario Base:', 0, 0, 'L');
+        $pdf->Cell(0, 5, '$' . number_format($employee['salario_base'], 2), 0, 1, 'L');
+
+        $pdf->Ln(6);
+
+        // === LAYOUT HORIZONTAL: INGRESOS Y DEDUCCIONES LADO A LADO ===
+
+        // Calcular anchos de columnas para distribución horizontal
+        $margins = $pdf->getMargins();
+        $leftMargin = $margins['left'];
+        $rightMargin = $margins['right'];
+        $pageWidth = $pdf->getPageWidth() - $leftMargin - $rightMargin;
+        $colWidth = ($pageWidth - 10) / 2; // 10 = espacio entre columnas
+
+        // Guardar posición Y inicial para alinear ambas tablas
+        $startY = $pdf->GetY();
+        $leftX = $leftMargin;
+        $rightX = $leftX + $colWidth + 10;
+
+        // === COLUMNA IZQUIERDA: INGRESOS ===
+        $pdf->SetXY($leftX, $startY);
+
+        if (!empty($data['ingresos'])) {
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->SetFillColor(220, 255, 220);
+            $pdf->Cell($colWidth, 6, 'INGRESOS', 1, 1, 'C', true);
+
+            $pdf->SetX($leftX);
+            $pdf->SetFont('helvetica', 'B', 8);
+            $pdf->SetFillColor(240, 240, 240);
+            $colCodigo = 25;
+            $colDescripcion = $colWidth - $colCodigo - 30;
+            $colMonto = 30;
+
+            $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
+            $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+            $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
+
+            $pdf->SetFont('helvetica', '', 8);
+            foreach ($data['ingresos'] as $ingreso) {
+                $pdf->SetX($leftX);
+                $pdf->Cell($colCodigo, 5, $ingreso['codigo'], 1, 0, 'C');
+                $pdf->Cell($colDescripcion, 5, substr($ingreso['descripcion'], 0, 40), 1, 0, 'L');
+                $pdf->Cell($colMonto, 5, '$' . number_format($ingreso['monto'], 2), 1, 1, 'R');
+            }
+
+            $pdf->SetX($leftX);
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->SetFillColor(220, 255, 220);
+            $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
+            $pdf->Cell($colMonto, 6, '$' . number_format($data['total_ingresos'], 2), 1, 1, 'R', true);
+        }
+
+        // Guardar altura máxima alcanzada por ingresos
+        $leftEndY = $pdf->GetY();
+
+        // === COLUMNA DERECHA: DEDUCCIONES ===
+        $pdf->SetXY($rightX, $startY);
+
+        if (!empty($data['deducciones'])) {
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->SetFillColor(255, 220, 220);
+            $pdf->Cell($colWidth, 6, 'DEDUCCIONES', 1, 1, 'C', true);
+
+            $pdf->SetX($rightX);
+            $pdf->SetFont('helvetica', 'B', 8);
+            $pdf->SetFillColor(240, 240, 240);
+            $colCodigo = 25;
+            $colDescripcion = $colWidth - $colCodigo - 30;
+            $colMonto = 30;
+
+            $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
+            $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+            $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
+
+            $pdf->SetFont('helvetica', '', 8);
+            foreach ($data['deducciones'] as $deduccion) {
+                $pdf->SetX($rightX);
+                $pdf->Cell($colCodigo, 5, $deduccion['codigo'], 1, 0, 'C');
+                $pdf->Cell($colDescripcion, 5, substr($deduccion['descripcion'], 0, 40), 1, 0, 'L');
+                $pdf->Cell($colMonto, 5, '$' . number_format($deduccion['monto'], 2), 1, 1, 'R');
+            }
+
+            $pdf->SetX($rightX);
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->SetFillColor(255, 220, 220);
+            $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
+            $pdf->Cell($colMonto, 6, '$' . number_format($data['total_deducciones'], 2), 1, 1, 'R', true);
+        }
+
+        // Guardar altura máxima alcanzada por deducciones
+        $rightEndY = $pdf->GetY();
+
+        // Posicionar después de la tabla más alta
+        $maxY = max($leftEndY, $rightEndY);
+        $pdf->SetY($maxY + 8);
+
+        // === RESUMEN FINAL: SALARIO NETO ===
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->SetFillColor(200, 200, 200);
+        $pdf->Cell(0, 10, 'SALARIO NETO A PAGAR: $' . number_format($data['neto'], 2), 1, 1, 'C', true);
+
+        $pdf->Ln(5);
+
+        // Nota informativa
+        $pdf->SetFont('helvetica', 'I', 8);
+        $pdf->Cell(0, 5, 'Este comprobante es un documento informativo generado por el sistema de planillas.', 0, 1, 'C');
+
+        // Output del PDF según parámetro
+        $filename = 'comprobante_' . $employee['id'] . '_' . $payroll['id'] . '_' . date('Y-m-d') . '.pdf';
+
+        if ($output === 'S') {
+            // String output para adjuntar en email
+            return $pdf->Output($filename, 'S');
+        } elseif ($output === 'F') {
+            // File output para guardar en servidor
+            return $pdf->Output($dest . $filename, 'F');
+        } else {
+            // Inline output para navegador (default)
+            $pdf->Output($filename, 'I');
+            exit;
+        }
+    }
+
+    /**
+     * Enviar comprobante individual por correo electrónico
+     *
+     * @param int $payrollId ID de la planilla
+     * @param int $employeeId ID del empleado
+     * @param string $emailTo Email destino (opcional, usa email del empleado si no se proporciona)
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function enviarComprobanteEmail($payrollId, $employeeId, $emailTo = null)
+    {
+        try {
+            $this->requireAuth();
+
+            if (!$payrollId || !$employeeId) {
+                return ['success' => false, 'message' => 'ID de planilla y empleado requeridos'];
+            }
+
+            // Obtener datos del empleado
+            $employeeData = $this->getEmployeePayrollData($payrollId, $employeeId);
+
+            if (!$employeeData) {
+                return ['success' => false, 'message' => 'No se encontraron datos del empleado en esta planilla'];
+            }
+
+            $employee = $employeeData['employee'];
+            $payroll = $employeeData['payroll'];
+
+            // Determinar email destino
+            $destinatario = $emailTo ?? $employee['email'] ?? null;
+
+            if (!$destinatario) {
+                return ['success' => false, 'message' => 'El empleado no tiene email registrado'];
+            }
+
+            // Validar formato de email
+            if (!filter_var($destinatario, FILTER_VALIDATE_EMAIL)) {
+                return ['success' => false, 'message' => 'Email inválido: ' . $destinatario];
+            }
+
+            // Generar PDF como string para adjuntar
+            $pdfContent = $this->generateIndividualPaySlipPDF($employeeData, 'S');
+
+            // Configurar PHPMailer
+            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+
+            // Configuración del servidor SMTP
+            $mail->isSMTP();
+            $mail->Host       = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['MAIL_USERNAME'] ?? '';
+            $mail->Password   = $_ENV['MAIL_PASSWORD'] ?? '';
+            $mail->SMTPSecure = $_ENV['MAIL_ENCRYPTION'] ?? 'tls';
+            $mail->Port       = $_ENV['MAIL_PORT'] ?? 587;
+            $mail->CharSet    = 'UTF-8';
+
+            // Remitente
+            $mail->setFrom(
+                $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@planillas.com',
+                $_ENV['MAIL_FROM_NAME'] ?? 'Sistema de Planillas'
+            );
+
+            // Destinatario
+            $mail->addAddress($destinatario, $employee['firstname'] . ' ' . $employee['lastname']);
+
+            // Contenido del email
+            $mail->isHTML(true);
+            $mail->Subject = 'Comprobante de Pago - ' . $payroll['descripcion'];
+
+            $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_desde']));
+            $fechaFin = date('d/m/Y', strtotime($payroll['fecha_hasta']));
+
+            $mail->Body = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; }
+                        .header { background-color: #f4f4f4; padding: 20px; text-align: center; }
+                        .content { padding: 20px; }
+                        .footer { background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 12px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class='header'>
+                        <h2>Comprobante de Pago</h2>
+                    </div>
+                    <div class='content'>
+                        <p>Estimado/a <strong>{$employee['firstname']} {$employee['lastname']}</strong>,</p>
+                        <p>Adjunto a este correo encontrará su comprobante de pago correspondiente a:</p>
+                        <ul>
+                            <li><strong>Planilla:</strong> {$payroll['descripcion']}</li>
+                            <li><strong>Período:</strong> {$fechaInicio} al {$fechaFin}</li>
+                            <li><strong>Salario Neto:</strong> \$" . number_format($employeeData['neto'], 2) . "</li>
+                        </ul>
+                        <p>Si tiene alguna consulta sobre este comprobante, por favor contacte al departamento de Recursos Humanos.</p>
+                        <p>Saludos cordiales,<br>Departamento de Recursos Humanos</p>
+                    </div>
+                    <div class='footer'>
+                        <p>Este es un correo automático generado por el Sistema de Planillas. Por favor no responda a este mensaje.</p>
+                    </div>
+                </body>
+                </html>
+            ";
+
+            $mail->AltBody = "Estimado/a {$employee['firstname']} {$employee['lastname']},\n\n"
+                . "Adjunto a este correo encontrará su comprobante de pago correspondiente a:\n"
+                . "Planilla: {$payroll['descripcion']}\n"
+                . "Período: {$fechaInicio} al {$fechaFin}\n"
+                . "Salario Neto: \$" . number_format($employeeData['neto'], 2) . "\n\n"
+                . "Si tiene alguna consulta sobre este comprobante, por favor contacte al departamento de Recursos Humanos.\n\n"
+                . "Saludos cordiales,\nDepartamento de Recursos Humanos";
+
+            // Adjuntar PDF
+            $filename = 'comprobante_' . $employee['id'] . '_' . $payroll['id'] . '_' . date('Y-m-d') . '.pdf';
+            $mail->addStringAttachment($pdfContent, $filename, 'base64', 'application/pdf');
+
+            // Enviar email
+            $mail->send();
+
+            return [
+                'success' => true,
+                'message' => 'Comprobante enviado exitosamente a ' . $destinatario
+            ];
+
+        } catch (\PHPMailer\PHPMailer\Exception $e) {
+            error_log("Error PHPMailer en enviarComprobanteEmail: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al enviar email: ' . $mail->ErrorInfo
+            ];
+        } catch (\Exception $e) {
+            error_log("Error en ReportController@enviarComprobanteEmail: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al procesar el envío: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Endpoint AJAX para enviar comprobante por email
+     * Recibe: payroll_id, employee_id, email_to (opcional)
+     */
+    public function enviarComprobanteEmailAjax()
+    {
+        try {
+            $this->requireAuth();
+
+            // Verificar que sea una petición AJAX
+            if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Petición inválida']);
+                return;
+            }
+
+            // Obtener parámetros
+            $payrollId = $_POST['payroll_id'] ?? null;
+            $employeeId = $_POST['employee_id'] ?? null;
+            $emailTo = $_POST['email_to'] ?? null;
+
+            if (!$payrollId || !$employeeId) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Parámetros requeridos: payroll_id, employee_id']);
+                return;
+            }
+
+            // Llamar al método de envío
+            $result = $this->enviarComprobanteEmail($payrollId, $employeeId, $emailTo);
+
+            header('Content-Type: application/json');
+            echo json_encode($result);
+
+        } catch (\Exception $e) {
+            error_log("Error en ReportController@enviarComprobanteEmailAjax: " . $e->getMessage());
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -3227,6 +3881,139 @@ class ReportController extends Controller
     {
         if (!isset($_SESSION['admin'])) {
             $this->redirect('/admin');
+        }
+    }
+
+    /**
+     * Obtener información de la empresa desde la BD
+     */
+    private function getCompanyInfo()
+    {
+        try {
+            $reportModel = $this->model('Report');
+            $db = $reportModel->getDatabase();
+            $connection = $db->getConnection();
+
+            $sql = "SELECT * FROM companies WHERE id = 1";
+            $stmt = $connection->prepare($sql);
+            $stmt->execute();
+            $company = $stmt->fetch();
+
+            return [
+                'company_name' => $company['company_name'] ?? 'EMPRESA EJEMPLO S.A.',
+                'ruc' => $company['ruc'] ?? '1234567890-1-DV',
+                'address' => $company['address'] ?? 'Dirección Empresa',
+                'legal_representative' => $company['legal_representative'] ?? 'Representante Legal',
+                'jefe_recursos_humanos' => $company['jefe_recursos_humanos'] ?? 'Jefe de RRHH',
+                'cargo_jefe_rrhh' => $company['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
+                'elaborado_por' => $company['elaborado_por'] ?? 'Especialista en Nóminas',
+                'cargo_elaborador' => $company['cargo_elaborador'] ?? 'Especialista en Nóminas',
+                'firma_director_planilla' => (!empty($company['firma_director_planilla']) && trim($company['firma_director_planilla']) !== '')
+                    ? $company['firma_director_planilla']
+                    : ($company['legal_representative'] ?? ''),
+                'cargo_director_planilla' => (!empty($company['cargo_director_planilla']) && trim($company['cargo_director_planilla']) !== '')
+                    ? $company['cargo_director_planilla']
+                    : '',
+                'firma_contador_planilla' => (!empty($company['firma_contador_planilla']) && trim($company['firma_contador_planilla']) !== '')
+                    ? $company['firma_contador_planilla']
+                    : '',
+                'cargo_contador_planilla' => (!empty($company['cargo_contador_planilla']) && trim($company['cargo_contador_planilla']) !== '')
+                    ? $company['cargo_contador_planilla']
+                    : '',
+                'logo_empresa' => $company['logo_empresa'] ?? '',
+                'logo_izquierdo_reportes' => $company['logo_izquierdo_reportes'] ?? '',
+                'logo_derecho_reportes' => $company['logo_derecho_reportes'] ?? ''
+            ];
+        } catch (\Exception $e) {
+            return [
+                'company_name' => 'EMPRESA EJEMPLO S.A.',
+                'ruc' => '1234567890-1-DV',
+                'address' => 'Dirección Empresa',
+                'legal_representative' => 'Representante Legal',
+                'jefe_recursos_humanos' => 'Jefe de RRHH',
+                'cargo_jefe_rrhh' => 'Jefe de Recursos Humanos',
+                'elaborado_por' => 'Especialista en Nóminas',
+                'cargo_elaborador' => 'Especialista en Nóminas',
+                'firma_director_planilla' => '',
+                'cargo_director_planilla' => '',
+                'firma_contador_planilla' => '',
+                'cargo_contador_planilla' => '',
+                'logo_empresa' => '',
+                'logo_izquierdo_reportes' => '',
+                'logo_derecho_reportes' => ''
+            ];
+        }
+    }
+
+    /**
+     * Insertar logos en el PDF alineados con el título
+     */
+    private function insertLogosInPDF($pdf, $companyInfo)
+    {
+        $logoPath = __DIR__ . '/../../images/logos/';
+        $logoHeight = 10;
+        $pageWidth = $pdf->getPageWidth();
+        $margin = 10;
+
+        // Guardar posición actual
+        $currentY = $pdf->GetY();
+
+        // Logo izquierdo
+        if (!empty($companyInfo['logo_izquierdo_reportes'])) {
+            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
+            if (file_exists($leftLogoPath)) {
+                $leftLogoWidth = 30; // Mismo tamaño que el logo derecho
+                try {
+                    $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo izquierdo: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo derecho
+        if (!empty($companyInfo['logo_derecho_reportes'])) {
+            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
+            if (file_exists($rightLogoPath)) {
+                $rightLogoWidth = 30;
+                $rightX = $pageWidth - $margin - $rightLogoWidth;
+                try {
+                    $pdf->Image($rightLogoPath, $rightX, $currentY, $rightLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo derecho: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo principal (centro) - solo si no hay logos laterales
+        if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
+            $mainLogoPath = $logoPath . $companyInfo['logo_empresa'];
+            if (file_exists($mainLogoPath)) {
+                $mainLogoWidth = 40;
+                $centerX = ($pageWidth - $mainLogoWidth) / 2;
+                $pdf->Image($mainLogoPath, $centerX, $currentY, $mainLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+            }
+        }
+
+        // Nombre de la empresa centrado
+        if (!empty($companyInfo['company_name'])) {
+            $currentFont = $pdf->getFontFamily();
+            $currentSize = $pdf->getFontSizePt();
+
+            $pdf->SetFont('helvetica', 'B', 16);
+            $companyNameWidth = $pdf->GetStringWidth($companyInfo['company_name']);
+            $centerX = ($pageWidth - $companyNameWidth) / 2;
+            $textY = $currentY + ($logoHeight / 2) - 3;
+
+            $pdf->SetXY($centerX, $textY);
+            $pdf->Cell($companyNameWidth, 0, $companyInfo['company_name'], 0, 0, 'C');
+
+            $pdf->SetFont($currentFont, '', $currentSize);
+        }
+
+        // Reservar espacio después de los logos
+        if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
+            $pdf->SetY(20);
         }
     }
 }

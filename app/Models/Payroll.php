@@ -111,6 +111,7 @@ class Payroll extends Model
             // Obtener empleados con todas sus relaciones (posición, cargo, función, partida, horario)
             // Filtrar por empleados activos, con situación activa y que correspondan al tipo de planilla
             // VALIDACIÓN PERÍODO: Solo empleados activos durante el período de la planilla
+            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
             $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
                            e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
                            e.cargo_id, e.funcion_id, e.partida_id,
@@ -132,7 +133,7 @@ class Payroll extends Model
                     LEFT JOIN situaciones sit ON sit.id = e.situacion_id
                     LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id
                     LEFT JOIN employee_terminations et ON et.employee_id = e.id
-                    WHERE e.tipo_planilla_id = ?
+                    WHERE FIND_IN_SET(?, e.tipo_planilla_id)
                       AND e.situacion_id IN (
                           SELECT DISTINCT cs.situacion_id
                           FROM concepto_situaciones cs

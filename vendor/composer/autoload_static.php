@@ -21,6 +21,7 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
             'PhpOffice\\PhpSpreadsheet\\' => 25,
+            'PHPMailer\\PHPMailer\\' => 20,
         ),
         'N' => 
         array (
@@ -52,8 +53,8 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         ),
         'Psr\\Http\\Message\\' => 
         array (
-            0 => __DIR__ . '/..' . '/psr/http-message/src',
-            1 => __DIR__ . '/..' . '/psr/http-factory/src',
+            0 => __DIR__ . '/..' . '/psr/http-factory/src',
+            1 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
         'Psr\\Http\\Client\\' => 
         array (
@@ -62,6 +63,10 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'PhpOffice\\PhpSpreadsheet\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet',
+        ),
+        'PHPMailer\\PHPMailer\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
         'NXP\\' => 
         array (
@@ -99,9 +104,11 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'App\\Controllers\\ActivityLogController' => __DIR__ . '/../..' . '/app/Controllers/ActivityLogController.php',
         'App\\Controllers\\AcumuladoController' => __DIR__ . '/../..' . '/app/Controllers/AcumuladoController.php',
         'App\\Controllers\\Admin' => __DIR__ . '/../..' . '/app/Controllers/Admin.php',
+        'App\\Controllers\\Admin\\EmployeeImportController' => __DIR__ . '/../..' . '/app/Controllers/Admin/EmployeeImportController.php',
         'App\\Controllers\\ApiController' => __DIR__ . '/../..' . '/app/Controllers/ApiController.php',
         'App\\Controllers\\Attendance' => __DIR__ . '/../..' . '/app/Controllers/Attendance.php',
         'App\\Controllers\\BaseController' => __DIR__ . '/../..' . '/app/Controllers/BaseController.php',
+        'App\\Controllers\\BusinessCalendarController' => __DIR__ . '/../..' . '/app/Controllers/BusinessCalendarController.php',
         'App\\Controllers\\Cargo' => __DIR__ . '/../..' . '/app/Controllers/Cargo.php',
         'App\\Controllers\\CompanyController' => __DIR__ . '/../..' . '/app/Controllers/CompanyController.php',
         'App\\Controllers\\ConceptController' => __DIR__ . '/../..' . '/app/Controllers/ConceptController.php',
@@ -112,6 +119,7 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'App\\Controllers\\FrecuenciaController' => __DIR__ . '/../..' . '/app/Controllers/FrecuenciaController.php',
         'App\\Controllers\\Funcion' => __DIR__ . '/../..' . '/app/Controllers/Funcion.php',
         'App\\Controllers\\Home' => __DIR__ . '/../..' . '/app/Controllers/Home.php',
+        'App\\Controllers\\LiquidationController' => __DIR__ . '/../..' . '/app/Controllers/LiquidationController.php',
         'App\\Controllers\\OrganizationalController' => __DIR__ . '/../..' . '/app/Controllers/OrganizationalController.php',
         'App\\Controllers\\PDFReportController' => __DIR__ . '/../..' . '/app/Controllers/PDFReportController.php',
         'App\\Controllers\\Partida' => __DIR__ . '/../..' . '/app/Controllers/Partida.php',
@@ -125,7 +133,11 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'App\\Controllers\\TipoAcumuladoController' => __DIR__ . '/../..' . '/app/Controllers/TipoAcumuladoController.php',
         'App\\Controllers\\TipoPlanillaController' => __DIR__ . '/../..' . '/app/Controllers/TipoPlanillaController.php',
         'App\\Controllers\\UserController' => __DIR__ . '/../..' . '/app/Controllers/UserController.php',
+        'App\\Controllers\\VacationController' => __DIR__ . '/../..' . '/app/Controllers/VacationController.php',
         'App\\Core\\ActivityLogger' => __DIR__ . '/../..' . '/app/Core/ActivityLogger.php',
+        'App\\Core\\Adapters\\DatabaseAdapter' => __DIR__ . '/../..' . '/app/Core/Adapters/DatabaseAdapter.php',
+        'App\\Core\\Adapters\\MySQLAdapter' => __DIR__ . '/../..' . '/app/Core/Adapters/MySQLAdapter.php',
+        'App\\Core\\Adapters\\PostgreSQLAdapter' => __DIR__ . '/../..' . '/app/Core/Adapters/PostgreSQLAdapter.php',
         'App\\Core\\App' => __DIR__ . '/../..' . '/app/Core/App.php',
         'App\\Core\\AuthMiddleware' => __DIR__ . '/../..' . '/app/Core/AuthMiddleware.php',
         'App\\Core\\Bootstrap' => __DIR__ . '/../..' . '/app/Core/Bootstrap.php',
@@ -135,6 +147,7 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'App\\Core\\Logger' => __DIR__ . '/../..' . '/app/Core/Logger.php',
         'App\\Core\\Model' => __DIR__ . '/../..' . '/app/Core/Model.php',
         'App\\Core\\PayrollValidationRules' => __DIR__ . '/../..' . '/app/Core/PayrollValidationRules.php',
+        'App\\Core\\QueryBuilder' => __DIR__ . '/../..' . '/app/Core/QueryBuilder.php',
         'App\\Core\\ReferenceController' => __DIR__ . '/../..' . '/app/Core/ReferenceController.php',
         'App\\Core\\ReferenceModel' => __DIR__ . '/../..' . '/app/Core/ReferenceModel.php',
         'App\\Core\\RouteHelper' => __DIR__ . '/../..' . '/app/Core/RouteHelper.php',
@@ -142,11 +155,14 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'App\\Core\\UrlHelper' => __DIR__ . '/../..' . '/app/Core/UrlHelper.php',
         'App\\Helpers\\JavaScriptHelper' => __DIR__ . '/../..' . '/app/Helpers/JavaScriptHelper.php',
         'App\\Helpers\\PermissionHelper' => __DIR__ . '/../..' . '/app/Helpers/PermissionHelper.php',
+        'App\\Helpers\\VersionHelper' => __DIR__ . '/../..' . '/app/Helpers/VersionHelper.php',
         'App\\Libraries\\PlanillaConceptCalculator' => __DIR__ . '/../..' . '/app/Libraries/PlanillaConceptCalculator.php',
         'App\\Middleware\\AuthMiddleware' => __DIR__ . '/../..' . '/app/Middleware/AuthMiddleware.php',
         'App\\Middleware\\PermissionMiddleware' => __DIR__ . '/../..' . '/app/Middleware/PermissionMiddleware.php',
+        'App\\Models\\Acumulado' => __DIR__ . '/../..' . '/app/Models/Acumulado.php',
         'App\\Models\\Admin' => __DIR__ . '/../..' . '/app/Models/Admin.php',
         'App\\Models\\Attendance' => __DIR__ . '/../..' . '/app/Models/Attendance.php',
+        'App\\Models\\BusinessCalendar' => __DIR__ . '/../..' . '/app/Models/BusinessCalendar.php',
         'App\\Models\\Cargo' => __DIR__ . '/../..' . '/app/Models/Cargo.php',
         'App\\Models\\Company' => __DIR__ . '/../..' . '/app/Models/Company.php',
         'App\\Models\\Concept' => __DIR__ . '/../..' . '/app/Models/Concept.php',
@@ -171,6 +187,9 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'App\\Models\\TipoPlanilla' => __DIR__ . '/../..' . '/app/Models/TipoPlanilla.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Services\\PlanillaConceptCalculator' => __DIR__ . '/../..' . '/app/Services/PlanillaConceptCalculator.php',
+        'App\\Services\\PlanillaConceptCalculatorSecure' => __DIR__ . '/../..' . '/app/Services/PlanillaConceptCalculatorSecure.php',
+        'App\\Services\\VacationBalanceService' => __DIR__ . '/../..' . '/app/Services/VacationBalanceService.php',
+        'App\\Services\\XIIIMesPeriodoTrimestralCalculator' => __DIR__ . '/../..' . '/app/Services/XIIIMesPeriodoTrimestralCalculator.php',
         'Complex\\Complex' => __DIR__ . '/..' . '/markbaker/complex/classes/src/Complex.php',
         'Complex\\Exception' => __DIR__ . '/..' . '/markbaker/complex/classes/src/Exception.php',
         'Complex\\Functions' => __DIR__ . '/..' . '/markbaker/complex/classes/src/Functions.php',
@@ -442,6 +461,13 @@ class ComposerStaticInit9db209e8df574d9cef8c2b01a76fa46a
         'NXP\\Exception\\UnknownVariableException' => __DIR__ . '/..' . '/nxp/math-executor/src/NXP/Exception/UnknownVariableException.php',
         'NXP\\MathExecutor' => __DIR__ . '/..' . '/nxp/math-executor/src/NXP/MathExecutor.php',
         'PDF417' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/barcodes/pdf417.php',
+        'PHPMailer\\PHPMailer\\DSNConfigurator' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/DSNConfigurator.php',
+        'PHPMailer\\PHPMailer\\Exception' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/Exception.php',
+        'PHPMailer\\PHPMailer\\OAuth' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/OAuth.php',
+        'PHPMailer\\PHPMailer\\OAuthTokenProvider' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/OAuthTokenProvider.php',
+        'PHPMailer\\PHPMailer\\PHPMailer' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/PHPMailer.php',
+        'PHPMailer\\PHPMailer\\POP3' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/POP3.php',
+        'PHPMailer\\PHPMailer\\SMTP' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/SMTP.php',
         'PhpOffice\\PhpSpreadsheet\\Calculation\\ArrayEnabled' => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Calculation/ArrayEnabled.php',
         'PhpOffice\\PhpSpreadsheet\\Calculation\\BinaryComparison' => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Calculation/BinaryComparison.php',
         'PhpOffice\\PhpSpreadsheet\\Calculation\\Calculation' => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Calculation/Calculation.php',

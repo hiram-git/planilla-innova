@@ -1502,3 +1502,177 @@
     global.PayrollModule.showSuccessAndReload = PayrollModule.showSuccessAndReload.bind(PayrollModule);
 
 })(window);
+
+/**
+ * Selector de Empleados para Comprobantes Individuales
+ * Funciones globales para dropdown de reportes
+ */
+
+// Variables globales para el selector
+let currentPayrollId = null;
+let currentAction = null; // 'view' o 'email'
+let employeesList = [];
+
+/**
+ * Mostrar modal selector de empleados
+ * @param {number} payrollId - ID de la planilla
+ * @param {string} action - 'view' para visualizar, 'email' para enviar por correo
+ */
+function showEmployeeSelector(payrollId, action) {
+    currentPayrollId = payrollId;
+    currentAction = action;
+
+    // Actualizar título según acción
+    const modalTitle = action === 'email'
+        ? '<i class="fas fa-envelope"></i> Enviar Comprobante por Email'
+        : '<i class="fas fa-file-pdf"></i> Visualizar Comprobante Individual';
+
+    $('#employeeSelectorModalLabel').html(modalTitle);
+
+    // Cargar empleados de la planilla
+    loadPayrollEmployees(payrollId);
+
+    // Mostrar modal
+    $('#employeeSelectorModal').modal('show');
+}
+
+/**
+ * Cargar empleados de la planilla vía AJAX
+ */
+function loadPayrollEmployees(payrollId) {
+    const basePath = window.location.pathname.substring(0, window.location.pathname.indexOf('/panel'));
+    const ajaxUrl = basePath + '/panel/payrolls/' + payrollId + '/employees-list-simple';
+
+    $('#employeesListBody').html('<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando empleados...</td></tr>');
+
+    $.ajax({
+        url: ajaxUrl,
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.data) {
+                employeesList = response.data.employees || [];
+                const payrollDesc = response.data.payroll_descripcion || 'N/A';
+
+                $('#selectedPayrollDesc').text(payrollDesc);
+
+                renderEmployeesList(employeesList);
+            } else {
+                $('#employeesListBody').html('<tr><td colspan="4" class="text-center text-danger">Error al cargar empleados</td></tr>');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error al cargar empleados:', error);
+            $('#employeesListBody').html('<tr><td colspan="4" class="text-center text-danger">Error de conexión</td></tr>');
+        }
+    });
+}
+
+/**
+ * Renderizar lista de empleados en la tabla
+ */
+function renderEmployeesList(employees) {
+    if (!employees || employees.length === 0) {
+        $('#employeesListBody').html('<tr><td colspan="4" class="text-center text-muted">No hay empleados en esta planilla</td></tr>');
+        return;
+    }
+
+    let html = '';
+    employees.forEach(function(emp) {
+        const nombreCompleto = emp.lastname + ', ' + emp.firstname;
+        const cargo = emp.cargo_name || emp.position_name || 'N/A';
+
+        const actionBtn = currentAction === 'email'
+            ? '<button class="btn btn-success btn-sm" onclick="sendEmployeePayslip(' + currentPayrollId + ', ' + emp.id + ', \'' + emp.email + '\'); return false;" title="Enviar por email"><i class="fas fa-envelope"></i></button>'
+            : '<a href="' + getBasePath() + '/panel/reports/comprobante-individual/' + currentPayrollId + '/' + emp.id + '" target="_blank" class="btn btn-primary btn-sm" title="Ver PDF"><i class="fas fa-file-pdf"></i></a>';
+
+        html += '<tr>';
+        html += '<td>' + (emp.document_id || 'N/A') + '</td>';
+        html += '<td>' + nombreCompleto + '</td>';
+        html += '<td>' + cargo + '</td>';
+        html += '<td>' + actionBtn + '</td>';
+        html += '</tr>';
+    });
+
+    $('#employeesListBody').html(html);
+}
+
+/**
+ * Enviar comprobante por email
+ */
+function sendEmployeePayslip(payrollId, employeeId, employeeEmail) {
+    if (!employeeEmail || employeeEmail === 'null') {
+        toastr.error('El empleado no tiene email registrado');
+        return;
+    }
+
+    // Confirmar envío
+    if (!confirm('¿Enviar comprobante al email: ' + employeeEmail + '?')) {
+        return;
+    }
+
+    const basePath = getBasePath();
+    const ajaxUrl = basePath + '/panel/reports/enviar-comprobante-email';
+
+    // Mostrar loader
+    toastr.info('Enviando comprobante...', '', {timeOut: 0, extendedTimeOut: 0});
+
+    $.ajax({
+        url: ajaxUrl,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            payroll_id: payrollId,
+            employee_id: employeeId,
+            email_to: employeeEmail
+        },
+        success: function(response) {
+            toastr.clear();
+
+            if (response.success) {
+                toastr.success(response.message || 'Comprobante enviado exitosamente');
+            } else {
+                toastr.error(response.message || 'Error al enviar comprobante');
+            }
+        },
+        error: function(xhr, status, error) {
+            toastr.clear();
+            console.error('Error al enviar comprobante:', error);
+            toastr.error('Error de conexión al enviar comprobante');
+        }
+    });
+}
+
+/**
+ * Obtener base path de la aplicación
+ */
+function getBasePath() {
+    const path = window.location.pathname;
+    return path.substring(0, path.indexOf('/panel'));
+}
+
+/**
+ * Filtrar empleados en tiempo real
+ */
+$(document).ready(function() {
+    $('#employeeSearch').on('keyup', function() {
+        const searchTerm = $(this).val().toLowerCase();
+
+        if (!searchTerm) {
+            renderEmployeesList(employeesList);
+            return;
+        }
+
+        const filtered = employeesList.filter(function(emp) {
+            const nombreCompleto = (emp.lastname + ' ' + emp.firstname).toLowerCase();
+            const cedula = (emp.document_id || '').toLowerCase();
+            const cargo = (emp.cargo_name || emp.position_name || '').toLowerCase();
+
+            return nombreCompleto.includes(searchTerm) ||
+                   cedula.includes(searchTerm) ||
+                   cargo.includes(searchTerm);
+        });
+
+        renderEmployeesList(filtered);
+    });
+});

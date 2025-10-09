@@ -345,6 +345,18 @@ class App
                                         // Ruta: /panel/reports/acumulados-general-pdf
                                         $this->method = 'acumuladosGeneralPdf';
                                         $this->params = [];
+                                    } elseif ($url[2] === 'comprobantes-planilla-horizontal' && isset($url[3]) && method_exists($this->controller, 'comprobantesPlanillaHorizontal')) {
+                                        // Ruta: /panel/reports/comprobantes-planilla-horizontal/{payrollId}
+                                        $this->method = 'comprobantesPlanillaHorizontal';
+                                        $this->params = [$url[3]]; // payrollId
+                                    } elseif ($url[2] === 'comprobante-individual' && isset($url[3]) && isset($url[4]) && method_exists($this->controller, 'comprobanteIndividual')) {
+                                        // Ruta: /panel/reports/comprobante-individual/{payrollId}/{employeeId}
+                                        $this->method = 'comprobanteIndividual';
+                                        $this->params = [$url[3], $url[4]]; // payrollId, employeeId
+                                    } elseif ($url[2] === 'enviar-comprobante-email' && method_exists($this->controller, 'enviarComprobanteEmailAjax')) {
+                                        // Ruta: /panel/reports/enviar-comprobante-email (POST AJAX)
+                                        $this->method = 'enviarComprobanteEmailAjax';
+                                        $this->params = [];
                                     } elseif ($url[2] === 'cancel-form' && isset($url[3]) && method_exists($this->controller, 'cancelForm')) {
                                         // Ruta: /panel/liquidation/cancel-form/{id}
                                         $this->method = 'cancelForm';
@@ -371,6 +383,10 @@ class App
                                             } elseif ($url[3] === 'employees-data' && method_exists($this->controller, 'getEmployeesData')) {
                                                 // Ruta: /panel/payrolls/13/employees-data (AJAX DataTables)
                                                 $this->method = 'getEmployeesData';
+                                                $this->params = [$url[2]]; // payrollId
+                                            } elseif ($url[3] === 'employees-list-simple' && method_exists($this->controller, 'getEmployeesListSimple')) {
+                                                // Ruta: /panel/payrolls/13/employees-list-simple (Simple JSON list)
+                                                $this->method = 'getEmployeesListSimple';
                                                 $this->params = [$url[2]]; // payrollId
                                             } elseif ($url[3] === 'acumulados' && method_exists($this->controller, 'getAcumulados')) {
                                                 $this->method = 'getAcumulados';

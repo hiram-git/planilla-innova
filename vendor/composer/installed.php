@@ -3,7 +3,7 @@
         'name' => 'planilla-simple/mvc',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'ec96197dd6756d0c92bfd3acd3d31fdaeae97417',
+        'reference' => '54d6bd892e1c5229b452fd7accaf5bf26009054d',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -64,6 +64,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'phpmailer/phpmailer' => array(
+            'pretty_version' => 'v6.11.1',
+            'version' => '6.11.1.0',
+            'reference' => 'd9e3b36b47f04b497a0164c5a20f92acb4593284',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpmailer/phpmailer',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'phpoffice/phpspreadsheet' => array(
             'pretty_version' => '1.28.0',
             'version' => '1.28.0.0',
@@ -76,7 +85,7 @@
         'planilla-simple/mvc' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'ec96197dd6756d0c92bfd3acd3d31fdaeae97417',
+            'reference' => '54d6bd892e1c5229b452fd7accaf5bf26009054d',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -345,10 +345,10 @@ class Company extends Model
         
         return [
             // Campos legacy para compatibilidad con reportes existentes
-            'elaborado_por' => $company['firma_director_planilla'] ?? 'Por definir',
-            'cargo_elaborador' => $company['cargo_director_planilla'] ?? 'Especialista en Nóminas',
-            'jefe_recursos_humanos' => $company['firma_contador_planilla'] ?? 'Por definir',
-            'cargo_jefe_rrhh' => $company['cargo_contador_planilla'] ?? 'Jefe de Recursos Humanos',
+            'elaborado_por' => $company['elaborado_por'] ?? 'Por definir',
+            'cargo_elaborador' => $company['cargo_elaborador'] ?? 'Especialista en Nóminas',
+            'jefe_recursos_humanos' => $company['jefe_recursos_humanos'] ?? 'Por definir',
+            'cargo_jefe_rrhh' => $company['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
             
             // Campos nuevos para reportes de planilla
             'firma_director_planilla' => $company['firma_director_planilla'] ?? 'Director General',

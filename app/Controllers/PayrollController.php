@@ -1838,6 +1838,74 @@ class PayrollController extends Controller
     }
 
     /**
+     * Obtener lista simple de empleados de una planilla para modal selector
+     * Usado por dropdown de comprobantes individuales
+     */
+    public function getEmployeesListSimple($id)
+    {
+        try {
+            header('Content-Type: application/json');
+
+            // Verificar que la planilla existe
+            $payroll = $this->payrollModel->find($id);
+            if (!$payroll) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Planilla no encontrada'
+                ]);
+                exit;
+            }
+
+            // Obtener configuración de empresa
+            $companyModel = $this->model('Company');
+            $isEmpresaConPosiciones = $companyModel->isEmpresaConPosiciones();
+
+            // Query para obtener empleados de la planilla
+            $db = $this->payrollModel->getDatabase();
+            $conn = $db->getConnection();
+
+            $cargoField = $isEmpresaConPosiciones
+                ? "COALESCE(pos.codigo, 'Sin posición')"
+                : "COALESCE(c.nombre, 'Sin cargo')";
+
+            $sql = "SELECT DISTINCT
+                        e.id,
+                        e.firstname,
+                        e.lastname,
+                        e.document_id,
+                        e.email,
+                        {$cargoField} as cargo_name,
+                        pos.codigo as position_name
+                    FROM planilla_detalle pd
+                    INNER JOIN employees e ON pd.employee_id = e.id
+                    LEFT JOIN posiciones pos ON e.position_id = pos.id
+                    LEFT JOIN cargos c ON e.cargo_id = c.id
+                    WHERE pd.planilla_cabecera_id = ?
+                    ORDER BY e.lastname, e.firstname";
+
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$id]);
+            $employees = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'payroll_descripcion' => $payroll['descripcion'],
+                    'employees' => $employees
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error en getEmployeesListSimple: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al obtener empleados: ' . $e->getMessage()
+            ]);
+        }
+        exit;
+    }
+
+    /**
      * Generar botones de acciones para cada empleado
      */
     private function generateEmployeeActions($payrollId, $employeeId)
@@ -2575,9 +2643,19 @@ class PayrollController extends Controller
                                 <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/planilla-excel-panama/' . $payroll['id']) . '" target="_blank">
                                     <i class="fas fa-file-excel text-success"></i> Excel Panamá (4 Hojas)
                                 </a>
-                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/comprobantes-planilla/' . $payroll['id']) . '" target="_blank">
-                                    <i class="fas fa-receipt text-info"></i> Comprobantes de Pago
+                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/comprobantes-planilla-horizontal/' . $payroll['id']) . '" target="_blank">
+                                    <i class="fas fa-receipt text-info"></i> Comprobantes Horizontales
                                 </a>
+                                <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/comprobantes-planilla/' . $payroll['id']) . '" target="_blank">
+                                    <i class="fas fa-file-alt text-secondary"></i> Comprobantes Verticales
+                                </a>
+                                <!--<div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" onclick="showEmployeeSelector(' . $payroll['id'] . ', \'view\'); return false;">
+                                    <i class="fas fa-file-pdf text-primary"></i> Comprobante Individual
+                                </a>
+                                <a class="dropdown-item" href="#" onclick="showEmployeeSelector(' . $payroll['id'] . ', \'email\'); return false;">
+                                    <i class="fas fa-envelope text-success"></i> Enviar por Email
+                                </a>-->
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/reporte-acreedores/' . $payroll['id']) . '" target="_blank">
                                     <i class="fas fa-building text-warning"></i> Reporte Acreedores

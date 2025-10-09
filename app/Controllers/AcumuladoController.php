@@ -487,6 +487,7 @@ class AcumuladoController extends Controller
         $conceptoId = $_GET['concepto_id'] ?? null;
         $month = $_GET['month'] ?? null;
         $groupBy = $_GET['group_by'] ?? 'empleado'; // año, planilla, empleado
+        $tipoPlanillaId = $_GET['tipo_planilla'] ?? null; // Filtro de tipo de planilla desde navbar
 
         try {
             // Obtener conceptos disponibles
@@ -508,14 +509,15 @@ class AcumuladoController extends Controller
 
                 if ($selectedConcepto) {
                     // Obtener registros detallados
-                    $acumulados = $this->getAcumuladosByConcepto($conceptoId, $year, $month);
+                    $acumulados = $this->getAcumuladosByConcepto($conceptoId, $year, $month, $tipoPlanillaId, $groupBy);
 
                     // Obtener datos agrupados según el filtro
                     $acumuladosAgrupados = $this->getAcumuladosAgrupadosByConcepto(
                         $conceptoId,
                         $year,
                         $month,
-                        $groupBy
+                        $groupBy,
+                        $tipoPlanillaId
                     );
                 }
             }
@@ -706,25 +708,36 @@ class AcumuladoController extends Controller
     /**
      * Obtener conceptos disponibles que tienen acumulados para un tipo específico
      */
-    private function getConceptosWithAcumuladosByTipo($tipoAcumuladoCodigo, $year = null)
+    private function getConceptosWithAcumuladosByTipo($tipoAcumuladoCodigo, $year = null, $tipoPlanillaId = null)
     {
         try {
-            $whereClause = "ape.tipo_acumulado = ?";
+            $whereConditions = ["ape.tipo_acumulado = ?"];
             $params = [$tipoAcumuladoCodigo];
 
-            if ($year) {
-                $whereClause .= " AND ape.ano = ?";
+            if ($year && $year !== 'todos') {
+                $whereConditions[] = "ape.ano = ?";
                 $params[] = $year;
             }
+
+            // Filtro por tipo de planilla del empleado
+            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
 
             $sql = "SELECT DISTINCT
                         c.id,
                         c.concepto,
                         c.descripcion,
                         COUNT(DISTINCT ape.employee_id) as total_empleados,
+                        COUNT(DISTINCT ape.planilla_id) as total_planillas,
                         SUM(ape.monto) as monto_total
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    INNER JOIN employees e ON ape.employee_id = e.id
                     WHERE {$whereClause}
                     GROUP BY c.id, c.concepto, c.descripcion
                     ORDER BY c.descripcion";
@@ -860,7 +873,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener acumulados por concepto específico desde acumulados_por_empleado
      */
-    private function getAcumuladosByConcepto($conceptoId, $year, $month = null)
+    private function getAcumuladosByConcepto($conceptoId, $year, $month = null, $tipoPlanillaId = null, $groupBy = null)
     {
         try {
             $whereConditions = ["ape.concepto_id = ?", "ape.ano = ?"];
@@ -869,6 +882,26 @@ class AcumuladoController extends Controller
             if ($month) {
                 $whereConditions[] = "ape.mes = ?";
                 $params[] = $month;
+            }
+
+            // Filtro por tipo de planilla del empleado
+            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
+
+            $groupByClause = "";
+            if ($groupBy === 'ano') {
+                $groupBy = 'ano';
+                $groupByClause = "GROUP BY ape.{$groupBy}";
+            } elseif ($groupBy === 'planilla') {
+                $groupBy = 'planilla_id';
+                $groupByClause = "GROUP BY ape.{$groupBy}";
+            } else {
+                $groupBy = 'employee_id';
+                $groupByClause = "GROUP BY ape.{$groupBy}";
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -888,15 +921,15 @@ class AcumuladoController extends Controller
                         CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
                         c.descripcion as concepto_descripcion,
                         pc.descripcion as planilla_descripcion,
-                        pc.fecha_inicio,
-                        pc.fecha_fin
+                        pc.fecha_desde as fecha_inicio,
+                        pc.fecha_hasta as fecha_fin
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE {$whereClause}
+                    {$groupByClause}
                     ORDER BY ape.mes DESC, e.lastname, e.firstname";
-
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -910,7 +943,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener acumulados agrupados por año, planilla o empleado
      */
-    private function getAcumuladosAgrupadosByConcepto($conceptoId, $year, $month = null, $groupBy = 'empleado')
+    private function getAcumuladosAgrupadosByConcepto($conceptoId, $year, $month = null, $groupBy = 'empleado', $tipoPlanillaId = null)
     {
         try {
             $whereConditions = ["ape.concepto_id = ?", "ape.ano = ?"];
@@ -919,6 +952,13 @@ class AcumuladoController extends Controller
             if ($month) {
                 $whereConditions[] = "ape.mes = ?";
                 $params[] = $month;
+            }
+
+            // Filtro por tipo de planilla del empleado
+            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = (int)$tipoPlanillaId;
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -934,13 +974,14 @@ class AcumuladoController extends Controller
                     break;
 
                 case 'planilla':
-                    $selectFields = "pc.id as grupo_clave,
+                    $selectFields = "ape.planilla_id as grupo_clave,
                                     pc.descripcion as grupo_descripcion,
                                     'Planilla' as grupo_tipo,
-                                    pc.fecha_inicio,
-                                    pc.fecha_fin";
-                    $groupByClause = "pc.id, pc.descripcion, pc.fecha_inicio, pc.fecha_fin";
-                    $orderByClause = "pc.fecha_inicio DESC";
+                                    pc.fecha_desde as fecha_inicio,
+                                    pc.fecha_hasta as fecha_fin,
+                                    f.nombre as frecuencia_nombre";
+                    $groupByClause = "ape.planilla_id";
+                    $orderByClause = "pc.fecha_desde DESC";
                     break;
 
                 case 'empleado':
@@ -966,6 +1007,7 @@ class AcumuladoController extends Controller
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
                     WHERE {$whereClause}
                     GROUP BY {$groupByClause}
                     ORDER BY {$orderByClause}";
@@ -1494,8 +1536,9 @@ class AcumuladoController extends Controller
             }
 
             // Filtro por tipo de planilla del empleado
+            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
             if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
-                $whereConditions[] = "e.tipo_planilla_id = ?";
+                $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
                 $params[] = (int)$tipoPlanillaId;
             }
 
@@ -1528,9 +1571,37 @@ class AcumuladoController extends Controller
             $stmt->execute($params);
             $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            error_log("getTiposAcumuladosWithTotals - Year: $year, TipoPlanillaId: " . ($tipoPlanillaId ?? 'null') . ", Results: " . count($results));
+            // Expandir tipo "CONCEPTO" en múltiples registros por concepto
+            $expandedResults = [];
+            foreach ($results as $tipo) {
+                if ($tipo['codigo'] === 'CONCEPTO') {
+                    // Obtener conceptos para este tipo
+                    $conceptos = $this->getConceptosWithAcumuladosByTipo('CONCEPTO', $year, $tipoPlanillaId);
 
-            return $results;
+                    // Crear un registro por cada concepto
+                    foreach ($conceptos as $concepto) {
+                        $expandedResults[] = [
+                            'id' => $tipo['id'], // Mantener el ID del tipo para compatibilidad
+                            'codigo' => 'CONCEPTO_' . $concepto['id'], // Código único por concepto
+                            'descripcion' => $concepto['concepto'] . ' - ' . $concepto['descripcion'],
+                            'total_acumulado' => $concepto['monto_total'],
+                            'total_empleados' => $concepto['total_empleados'],
+                            'total_conceptos_incluidos' => 1, // Es un solo concepto
+                            'total_planillas' => $concepto['total_planillas'] ?? 0,
+                            'concepto_id' => $concepto['id'], // Agregar para referencia
+                            'concepto_codigo' => $concepto['concepto'],
+                            'is_concepto_expanded' => true // Flag para identificar en la vista
+                        ];
+                    }
+                } else {
+                    // Tipos normales, agregar sin modificar
+                    $expandedResults[] = $tipo;
+                }
+            }
+
+            error_log("getTiposAcumuladosWithTotals - Year: $year, TipoPlanillaId: " . ($tipoPlanillaId ?? 'null') . ", Original Results: " . count($results) . ", Expanded Results: " . count($expandedResults));
+
+            return $expandedResults;
 
         } catch (\Exception $e) {
             error_log("Error en getTiposAcumuladosWithTotals: " . $e->getMessage());
