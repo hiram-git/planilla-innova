@@ -5,10 +5,26 @@
 
 $(document).ready(function() {
     console.log('Employees Create Module Loading...');
-    
+
+    // Inicializar Select2 para el campo de tipo de planilla
+    $('#tipo_planilla').select2({
+        theme: 'bootstrap4',
+        placeholder: 'Seleccione uno o más tipos de planilla',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron resultados";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        }
+    });
+
     // Obtener tipo de institución de la empresa
     var companyType = window.APP_CONFIG?.company?.tipo_institucion || 'privada';
-    
+
     // Mostrar/ocultar campos según tipo de institución
     function toggleFieldsByCompanyType() {
         if (companyType === 'privada') {
@@ -43,19 +59,19 @@ $(document).ready(function() {
     window.addEventListener('payrollTypeChanged', function(event) {
         const payrollType = event.detail;
         if (payrollType && payrollType.id) {
-            $('#tipo_planilla').val(payrollType.id);
+            $('#tipo_planilla').val(payrollType.id).trigger('change'); // trigger change para Select2
             showSyncNotification(payrollType.name);
             console.log('Tipo de planilla sincronizado desde navbar:', payrollType.name);
         }
     });
-    
+
     // Función para sincronizar el tipo de planilla desde el navbar
     function syncPayrollTypeFromNavbar() {
         // Verificar si existe la función global para obtener el tipo seleccionado
         if (typeof window.getSelectedPayrollType === 'function') {
             const selectedPayrollType = window.getSelectedPayrollType();
             if (selectedPayrollType && selectedPayrollType.id) {
-                $('#tipo_planilla').val(selectedPayrollType.id);
+                $('#tipo_planilla').val(selectedPayrollType.id).trigger('change'); // trigger change para Select2
                 showSyncNotification(selectedPayrollType.name);
                 console.log('Tipo de planilla preseleccionado:', selectedPayrollType.name);
             }
@@ -65,7 +81,7 @@ $(document).ready(function() {
                 if (typeof window.getSelectedPayrollType === 'function') {
                     const selectedPayrollType = window.getSelectedPayrollType();
                     if (selectedPayrollType && selectedPayrollType.id) {
-                        $('#tipo_planilla').val(selectedPayrollType.id);
+                        $('#tipo_planilla').val(selectedPayrollType.id).trigger('change'); // trigger change para Select2
                         showSyncNotification(selectedPayrollType.name);
                         console.log('Tipo de planilla preseleccionado (delayed):', selectedPayrollType.name);
                     }

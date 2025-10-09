@@ -109,7 +109,7 @@ class ReportController extends Controller
     public function comprobantesPlanilla($payrollId)
     {
         try {
-            error_log("=== Iniciando comprobantesPlanilla con ID: $payrollId ===");
+            //error_log("=== Iniciando comprobantesPlanilla con ID: $payrollId ===");
             
             $this->requireAuth();
             
@@ -119,7 +119,7 @@ class ReportController extends Controller
                 $this->redirect('/panel/reports');
             }
             
-            error_log("Obteniendo datos de empleados para planilla $payrollId");
+            //error_log("Obteniendo datos de empleados para planilla $payrollId");
             
             // Obtener datos de todos los empleados de la planilla
             $planillaData = $this->getAllEmployeesPayrollData($payrollId);
@@ -396,8 +396,10 @@ class ReportController extends Controller
             // Organizar conceptos por tipo
             $ingresos = [];
             $deducciones = [];
+            $aptronales = [];
             $totalIngresos = 0;
             $totalDeducciones = 0;
+            $totalPatronales = 0;
             
             foreach ($concepts as $concept) {
                 $monto = $concept['monto'] ?? 0;
@@ -410,10 +412,14 @@ class ReportController extends Controller
                 if ($concept['tipo_concepto'] == 'A') {
                     $ingresos[] = $conceptData;
                     $totalIngresos += $monto;
-                } else {
+                } elseif ($concept['tipo_concepto'] == 'D') {
                     $deducciones[] = $conceptData;
                     $totalDeducciones += $monto;
+                } elseif ($concept['tipo_concepto'] == 'P') {
+                    $aptronales[] = $conceptData;
+                    $totalPatronales += $monto;
                 }
+                
             }
             
             return [
@@ -421,8 +427,10 @@ class ReportController extends Controller
                 'employee' => $employee,
                 'ingresos' => $ingresos,
                 'deducciones' => $deducciones,
+                'aptronales' => $aptronales,
                 'total_ingresos' => $totalIngresos,
                 'total_deducciones' => $totalDeducciones,
+                'total_aptronales' => $totalPatronales,
                 'neto' => $totalIngresos - $totalDeducciones
             ];
             

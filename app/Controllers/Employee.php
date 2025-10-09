@@ -517,9 +517,10 @@ class Employee extends Controller
             $params[] = 1;
             
             // Filtrar por tipo de planilla si se proporciona desde el navbar
+            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
             $tipoPlanillaId = intval($_GET['tipo_planilla_id'] ?? 0);
             if ($tipoPlanillaId > 0) {
-                $whereConditions[] = "employees.tipo_planilla_id = ?";
+                $whereConditions[] = "FIND_IN_SET(?, employees.tipo_planilla_id)";
                 $params[] = $tipoPlanillaId;
             }
             
@@ -675,6 +676,14 @@ class Employee extends Controller
             // Filtrar solo empleados terminados/inactivos (situacion_id != 1)
             $whereConditions[] = "employees.situacion_id != ?";
             $params[] = 1;
+
+            // Filtrar por tipo de planilla si se proporciona desde el navbar
+            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
+            $tipoPlanillaId = intval($_GET['tipo_planilla_id'] ?? 0);
+            if ($tipoPlanillaId > 0) {
+                $whereConditions[] = "FIND_IN_SET(?, employees.tipo_planilla_id)";
+                $params[] = $tipoPlanillaId;
+            }
 
             if (!empty($searchValue)) {
                 $whereConditions[] = "(employees.firstname LIKE ? OR employees.lastname LIKE ? OR employees.document_id LIKE ? OR employees.employee_id LIKE ? OR posiciones.codigo LIKE ? OR cargos.descripcion LIKE ?)";

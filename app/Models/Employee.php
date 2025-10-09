@@ -203,11 +203,12 @@ class Employee extends Model
     {
         $sql = "SELECT e.*,
                        pos.codigo as position_name,
+                       pos.codigo as position_code,
                        pos.sueldo as position_salary,
                        s.time_in, s.time_out,
-                       c.descripcion as cargo_name,
-                       p.partida as partida_name,
-                       f.descripcion as funcion_name,
+                       COALESCE(cargo.nombre, pos_cargo.nombre) as cargo_name,
+                       COALESCE(partida.codigo, pos_partida.partida) as partida_name,
+                       COALESCE(funcion.nombre, pos_funcion.descripcion) as funcion_name,
                        org.descripcion as organigrama_descripcion,
                        sit.descripcion as situacion_nombre,
                        comp.currency_symbol as moneda_simbolo,
@@ -218,15 +219,18 @@ class Employee extends Model
                 FROM employees e
                 LEFT JOIN posiciones pos ON e.position_id = pos.id
                 LEFT JOIN schedules s ON e.schedule_id = s.id
-                LEFT JOIN cargos c ON pos.id_cargo = c.id
-                LEFT JOIN partidas p ON pos.id_partida = p.id
-                LEFT JOIN funciones f ON pos.id_funcion = f.id
+                LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
+                LEFT JOIN cargos pos_cargo ON pos.id_cargo = pos_cargo.id
+                LEFT JOIN partidas partida ON e.partida_id = partida.id
+                LEFT JOIN partidas pos_partida ON pos.id_partida = pos_partida.id
+                LEFT JOIN funciones funcion ON e.funcion_id = funcion.id
+                LEFT JOIN funciones pos_funcion ON pos.id_funcion = pos_funcion.id
                 LEFT JOIN organigrama org ON e.organigrama_id = org.id
                 LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                 LEFT JOIN companies comp ON 1=1
                 LEFT JOIN employee_terminations et ON et.employee_id = e.id
                 WHERE e.id = ?";
-        
+
         return $this->db->find($sql, [$id]);
     }
 

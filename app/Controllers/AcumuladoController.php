@@ -418,6 +418,7 @@ class AcumuladoController extends Controller
         $tipoAcumuladoCodigo = $_GET['tipo_acumulado'] ?? null;
         $month = $_GET['month'] ?? null;
         $groupBy = $_GET['group_by'] ?? 'empleado'; // empleado, mes, ano
+        $conceptoId = $_GET['concepto_id'] ?? null; // Nuevo filtro para tipo CONCEPTO
 
         try {
             // Obtener tipos de acumulados disponibles
@@ -427,21 +428,28 @@ class AcumuladoController extends Controller
             $acumulados = [];
             $acumuladosAgrupados = [];
             $selectedTipo = null;
+            $conceptosDisponibles = [];
 
             if ($tipoAcumuladoCodigo) {
                 // Buscar el tipo seleccionado
                 $selectedTipo = $this->tipoAcumuladoModel->getByCodigo($tipoAcumuladoCodigo);
 
                 if ($selectedTipo) {
-                    // Obtener registros detallados
-                    $acumulados = $this->getAcumuladosByTipoAcumulado($tipoAcumuladoCodigo, $year, $month);
+                    // Si el tipo es "CONCEPTO", obtener los conceptos disponibles con acumulados
+                    if ($tipoAcumuladoCodigo === 'CONCEPTO') {
+                        $conceptosDisponibles = $this->getConceptosWithAcumuladosByTipo($tipoAcumuladoCodigo, $year);
+                    }
 
-                    // Obtener datos agrupados según el filtro
+                    // Obtener registros detallados (con filtro de concepto si aplica)
+                    $acumulados = $this->getAcumuladosByTipoAcumulado($tipoAcumuladoCodigo, $year, $month, $conceptoId);
+
+                    // Obtener datos agrupados según el filtro (con filtro de concepto si aplica)
                     $acumuladosAgrupados = $this->getAcumuladosAgrupadosByTipo(
                         $tipoAcumuladoCodigo,
                         $year,
                         $month,
-                        $groupBy
+                        $groupBy,
+                        $conceptoId
                     );
                 }
             }
@@ -456,7 +464,9 @@ class AcumuladoController extends Controller
                 'acumulados' => $acumulados,
                 'acumuladosAgrupados' => $acumuladosAgrupados,
                 'availableYears' => $this->getAvailableYears(),
-                'availableMonths' => $this->getAvailableMonths()
+                'availableMonths' => $this->getAvailableMonths(),
+                'conceptosDisponibles' => $conceptosDisponibles,
+                'conceptoId' => $conceptoId
             ]);
 
         } catch (\Exception $e) {
@@ -694,9 +704,44 @@ class AcumuladoController extends Controller
     }
 
     /**
+     * Obtener conceptos disponibles que tienen acumulados para un tipo específico
+     */
+    private function getConceptosWithAcumuladosByTipo($tipoAcumuladoCodigo, $year = null)
+    {
+        try {
+            $whereClause = "ape.tipo_acumulado = ?";
+            $params = [$tipoAcumuladoCodigo];
+
+            if ($year) {
+                $whereClause .= " AND ape.ano = ?";
+                $params[] = $year;
+            }
+
+            $sql = "SELECT DISTINCT
+                        c.id,
+                        c.concepto,
+                        c.descripcion,
+                        COUNT(DISTINCT ape.employee_id) as total_empleados,
+                        SUM(ape.monto) as monto_total
+                    FROM acumulados_por_empleado ape
+                    INNER JOIN concepto c ON ape.concepto_id = c.id
+                    WHERE {$whereClause}
+                    GROUP BY c.id, c.concepto, c.descripcion
+                    ORDER BY c.descripcion";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo conceptos con acumulados por tipo: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Obtener acumulados por tipo de acumulado
      */
-    private function getAcumuladosByTipoAcumulado($tipoAcumuladoCodigo, $year, $month = null)
+    private function getAcumuladosByTipoAcumulado($tipoAcumuladoCodigo, $year, $month = null, $conceptoId = null)
     {
         try {
             $whereClause = "ape.tipo_acumulado = ? AND ape.ano = ?";
@@ -705,6 +750,12 @@ class AcumuladoController extends Controller
             if ($month) {
                 $whereClause .= " AND ape.mes = ?";
                 $params[] = $month;
+            }
+
+            // Filtro adicional por concepto_id (para tipo CONCEPTO)
+            if ($conceptoId) {
+                $whereClause .= " AND ape.concepto_id = ?";
+                $params[] = $conceptoId;
             }
 
             $sql = "SELECT
@@ -734,7 +785,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener acumulados agrupados por tipo de acumulado
      */
-    private function getAcumuladosAgrupadosByTipo($tipoAcumuladoCodigo, $year, $month = null, $groupBy = 'empleado')
+    private function getAcumuladosAgrupadosByTipo($tipoAcumuladoCodigo, $year, $month = null, $groupBy = 'empleado', $conceptoId = null)
     {
         try {
             $whereClause = "ape.tipo_acumulado = ? AND ape.ano = ?";
@@ -743,6 +794,12 @@ class AcumuladoController extends Controller
             if ($month) {
                 $whereClause .= " AND ape.mes = ?";
                 $params[] = $month;
+            }
+
+            // Filtro adicional por concepto_id (para tipo CONCEPTO)
+            if ($conceptoId) {
+                $whereClause .= " AND ape.concepto_id = ?";
+                $params[] = $conceptoId;
             }
 
             $sql = "";

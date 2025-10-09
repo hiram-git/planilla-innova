@@ -6,6 +6,22 @@
 $(document).ready(function() {
     console.log('Employees Edit Module Loading...');
 
+    // Inicializar Select2 para el campo de tipo de planilla
+    $('#edit_tipo_planilla').select2({
+        theme: 'bootstrap4',
+        placeholder: 'Seleccione uno o más tipos de planilla',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron resultados";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        }
+    });
+
     // Obtener tipo de institución de la empresa
     var companyType = window.APP_CONFIG?.company?.tipo_institucion || 'privada';
     console.log('Company type detected:', companyType);

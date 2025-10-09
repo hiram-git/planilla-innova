@@ -270,7 +270,7 @@ $content .= '                </select>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="tipo_planilla">Tipos de Planilla *</label>
-                                <select class="form-control select2" id="tipo_planilla" name="tipo_planilla[]" multiple="multiple" required style="width: 100%;">
+                                <select class="form-control" id="tipo_planilla" name="tipo_planilla[]" multiple="multiple" required style="width: 100%;">
 ';
 // Obtener valores seleccionados previamente (pueden venir como string separado por comas o como array)
 $selectedValues = [];

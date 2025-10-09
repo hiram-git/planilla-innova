@@ -2,26 +2,6 @@
 $pageTitle = $selectedTipo ? "Acumulados - " . htmlspecialchars($selectedTipo['descripcion']) : "Acumulados por Tipo de Acumulado";
 ?>
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">
-                    <i class="fas fa-layer-group mr-2"></i>
-                    Acumulados por Tipo de Acumulado
-                </h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="<?= \App\Core\UrlHelper::route('panel') ?>">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="<?= \App\Core\UrlHelper::route('panel/acumulados') ?>">Acumulados</a></li>
-                    <li class="breadcrumb-item active">Por Tipo</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</div>
-
 <section class="content">
     <div class="container-fluid">
 
@@ -56,6 +36,27 @@ $pageTitle = $selectedTipo ? "Acumulados - " . htmlspecialchars($selectedTipo['d
                                 </select>
                             </div>
                         </div>
+
+                        <!-- Select de Conceptos (solo visible cuando tipo_acumulado = 'CONCEPTO') -->
+                        <div class="col-md-4" id="concepto_filter_container" style="display: none;">
+                            <div class="form-group">
+                                <label for="concepto_id">
+                                    <i class="fas fa-list-alt"></i> Concepto
+                                </label>
+                                <select class="form-control select2" id="concepto_id" name="concepto_id">
+                                    <option value="">Todos los conceptos</option>
+                                    <?php if (!empty($conceptosDisponibles)): ?>
+                                        <?php foreach ($conceptosDisponibles as $concepto): ?>
+                                            <option value="<?= $concepto['id'] ?>" <?= $concepto['id'] == ($conceptoId ?? '') ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($concepto['concepto']) ?> - <?= htmlspecialchars($concepto['descripcion']) ?>
+                                                (<?= $concepto['total_empleados'] ?> empleados, <?= currency_symbol() ?><?= number_format($concepto['monto_total'], 2) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label for="year"><i class="fas fa-calendar-alt"></i> Año</label>
@@ -273,8 +274,16 @@ $pageTitle = $selectedTipo ? "Acumulados - " . htmlspecialchars($selectedTipo['d
 
 
 <script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
+
 <script>
-$(document).ready(function() {
+    
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si jQuery está cargado
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery no está cargado');
+        return;
+    }
+
     // Initialize DataTable
     if ($("#acumuladosTable").length) {
         $("#acumuladosTable").DataTable({
@@ -295,14 +304,34 @@ $(document).ready(function() {
         });
     }
 
+    // Función para mostrar/ocultar el filtro de conceptos
+    function toggleConceptoFilter() {
+        const tipoAcumulado = $('#tipo_acumulado').val();
+        if (tipoAcumulado === 'CONCEPTO') {
+            $('#concepto_filter_container').show();
+        } else {
+            $('#concepto_filter_container').hide();
+            $('#concepto_id').val('').trigger('change');
+        }
+    }
+
+    // Ejecutar al cargar la página
+    toggleConceptoFilter();
+
+    // Ejecutar cuando cambia el select de tipo de acumulado
+    $('#tipo_acumulado').on('change', function() {
+        toggleConceptoFilter();
+    });
+
     // Initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
+
+    function exportToCSV() {
+        const params = new URLSearchParams(window.location.search);
+        params.set('export', 'csv');
+        const exportUrl = '<?= \App\Core\UrlHelper::route('panel/acumulados/export') ?>?' + params.toString();
+        window.open(exportUrl, '_blank');
+    }
 });
 
-function exportToCSV() {
-    const params = new URLSearchParams(window.location.search);
-    params.set('export', 'csv');
-    const exportUrl = '<?= \App\Core\UrlHelper::route('panel/acumulados/export') ?>?' + params.toString();
-    window.open(exportUrl, '_blank');
-}
 </script>

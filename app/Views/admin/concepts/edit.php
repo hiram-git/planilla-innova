@@ -33,7 +33,7 @@ $title = 'Editar Concepto';
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="concepto">Concepto</label>
+                                <label for="concepto">Código</label>
                                 <input type="text" class="form-control" id="concepto" name="concepto"
                                        value="<?= htmlspecialchars($concept['concepto'] ?? '') ?>"
                                        placeholder="Código del concepto">

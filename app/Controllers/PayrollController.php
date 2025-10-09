@@ -617,6 +617,7 @@ class PayrollController extends Controller
             // Separar conceptos por tipo para mejor presentación
             $incomes = [];
             $deductions = [];
+            $patronales = [];
             $totalIncomes = 0;
             $totalDeductions = 0;
             
@@ -630,9 +631,14 @@ class PayrollController extends Controller
                     (stripos($concept['descripcion'], 'sueldo') !== false)) {
                     $incomes[] = $concept;
                     $totalIncomes += $concept['monto'];
-                } else {
+                } elseif ($tipoConcepto === 'D' || $tipoConcepto === 'DEDUCCION' || 
+                    (stripos($concept['descripcion'], 'sueldo') !== false)) {
                     $deductions[] = $concept;
                     $totalDeductions += $concept['monto'];
+                }  elseif ($tipoConcepto === 'P' || $tipoConcepto === 'PATRONAL' || 
+                    (stripos($concept['descripcion'], 'patronal') !== false)) {
+                    $patronales[] = $concept;
+                    $totalPatronales += $concept['monto'];
                 }
             }
 
@@ -642,6 +648,7 @@ class PayrollController extends Controller
                 'concepts' => $concepts,
                 'incomes' => $incomes,
                 'deductions' => $deductions,
+                'patronales' => $patronales,
                 'totalIncomes' => $totalIncomes,
                 'totalDeductions' => $totalDeductions,
                 'netSalary' => $totalIncomes - $totalDeductions,
@@ -1725,9 +1732,9 @@ class PayrollController extends Controller
                     e.employee_id as employee_code,
                     {$cargoField} as position_name,
                     SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) as total_ingresos,
-                    SUM(CASE WHEN pd.tipo != 'A' THEN pd.monto ELSE 0 END) as total_deducciones,
+                    SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END) as total_deducciones,
                     (SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) -
-                     SUM(CASE WHEN pd.tipo != 'A' THEN pd.monto ELSE 0 END)) as salario_neto
+                     SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END)) as salario_neto
                 FROM planilla_detalle pd
                 INNER JOIN employees e ON pd.employee_id = e.id
                 LEFT JOIN posiciones pos ON e.position_id = pos.id

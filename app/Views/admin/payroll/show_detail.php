@@ -37,9 +37,21 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                             
                             <dt class="col-sm-5">Nombre:</dt>
                             <dd class="col-sm-7"><strong><?= htmlspecialchars($detail['employee_name']) ?></strong></dd>
-                            
-                            <dt class="col-sm-5">Posición:</dt>
-                            <dd class="col-sm-7"><?= htmlspecialchars($detail['position_name'] ?? 'Sin asignar') ?></dd>
+
+                            <dt class="col-sm-5">
+                                <?php
+                                $companyModel = new \App\Models\Company();
+                                $isEmpresaConPosiciones = $companyModel->isEmpresaConPosiciones();
+                                echo $isEmpresaConPosiciones ? 'Posición:' : 'Cargo:';
+                                ?>
+                            </dt>
+                            <dd class="col-sm-7">
+                                <?= htmlspecialchars(
+                                    $isEmpresaConPosiciones
+                                        ? ($detail['position_name'] ?? 'Sin posición')
+                                        : ($detail['cargo_name'] ?? 'Sin cargo')
+                                ) ?>
+                            </dd>
                         </dl>
                     </div>
                     <div class="col-md-6">

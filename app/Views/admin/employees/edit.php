@@ -270,7 +270,7 @@ $content .= '                </select>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="edit_tipo_planilla">Tipos de Planilla *</label>
-                                <select class="form-control select2" id="edit_tipo_planilla" name="edit_tipo_planilla[]" multiple="multiple" required style="width: 100%;">
+                                <select class="form-control" id="edit_tipo_planilla" name="edit_tipo_planilla[]" multiple="multiple" required style="width: 100%;">
 ';
 // Obtener valores seleccionados previamente (pueden venir como string separado por comas o como array)
 $selectedValues = [];
@@ -521,6 +521,24 @@ function initializeEmployeeEditFallback() {
 // Inicializar fallback si existe jQuery
 if (typeof $ !== "undefined") {
     $(document).ready(function() {
+        // Inicializar Select2 para el campo de tipo de planilla (fallback inline)
+        if (typeof $.fn.select2 !== "undefined") {
+            $("#edit_tipo_planilla").select2({
+                theme: "bootstrap4",
+                placeholder: "Seleccione uno o más tipos de planilla",
+                allowClear: true,
+                width: "100%",
+                language: {
+                    noResults: function() {
+                        return "No se encontraron resultados";
+                    },
+                    searching: function() {
+                        return "Buscando...";
+                    }
+                }
+            });
+        }
+
         initializeEmployeeEditFallback();
 
         // Funcionalidad copiar cédula a seguro social
