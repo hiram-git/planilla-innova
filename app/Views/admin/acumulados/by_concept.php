@@ -44,10 +44,13 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="concepto_id">
-                                    <i class="fas fa-calculator"></i> Concepto *
+                                    <i class="fas fa-calculator"></i> Concepto
                                 </label>
-                                <select class="form-control select2" id="concepto_id" name="concepto_id" required>
+                                <select class="form-control select2" id="concepto_id" name="concepto_id">
                                     <option value="">Seleccione un concepto</option>
+                                    <option value="all" <?= ($conceptoId ?? '') === 'all' ? 'selected' : '' ?>>
+                                        <strong>📊 TODOS LOS CONCEPTOS</strong>
+                                    </option>
                                     <?php
                                     $currentTipo = '';
                                     foreach ($conceptos as $concepto):
@@ -64,6 +67,9 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                     <?php endforeach; ?>
                                     <?php if ($currentTipo !== '') echo '</optgroup>'; ?>
                                 </select>
+                                <small class="form-text text-muted">
+                                    Seleccione "TODOS LOS CONCEPTOS" para ver un resumen agrupado de todos los conceptos
+                                </small>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -119,16 +125,22 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
         <!-- Resultados -->
         <?php if ($selectedConcepto): ?>
             <!-- Información del Concepto -->
-            <div class="card card-info">
+            <div class="card <?= $selectedConcepto['tipo_concepto'] === 'ALL' ? 'card-primary' : 'card-info' ?>">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-info-circle mr-2"></i>
+                        <i class="fas <?= $selectedConcepto['tipo_concepto'] === 'ALL' ? 'fa-list' : 'fa-info-circle' ?> mr-2"></i>
                         <?= htmlspecialchars($selectedConcepto['descripcion']) ?>
                     </h3>
                     <div class="card-tools">
-                        <span class="badge <?= $selectedConcepto['tipo_concepto'] === 'ASIGNACION' ? 'badge-success' : 'badge-danger' ?>">
-                            <?= $selectedConcepto['tipo_concepto'] ?>
-                        </span>
+                        <?php if ($selectedConcepto['tipo_concepto'] === 'ALL'): ?>
+                            <span class="badge badge-light">
+                                <i class="fas fa-layer-group"></i> Vista Agrupada
+                            </span>
+                        <?php else: ?>
+                            <span class="badge <?= $selectedConcepto['tipo_concepto'] === 'ASIGNACION' ? 'badge-success' : ($selectedConcepto['tipo_concepto'] === 'PATRONAL' ? 'badge-info' : 'badge-danger') ?>">
+                                <?= $selectedConcepto['tipo_concepto'] ?>
+                            </span>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="card-body">
@@ -136,11 +148,15 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                         <strong>Período:</strong> Año <?= $year ?>
                         <?= $month ? ' - ' . $availableMonths[$month] : ' (Todos los meses)' ?>
                         <br>
-                        <strong>Agrupado por:</strong>
-                        <?php
-                        $groupLabels = ['empleado' => 'Empleado', 'planilla' => 'Planilla', 'ano' => 'Año'];
-                        echo $groupLabels[$groupBy] ?? 'Empleado';
-                        ?>
+                        <?php if ($selectedConcepto['tipo_concepto'] === 'ALL'): ?>
+                            <strong>Agrupado por:</strong> Concepto (mostrando totales de todos los conceptos)
+                        <?php else: ?>
+                            <strong>Agrupado por:</strong>
+                            <?php
+                            $groupLabels = ['empleado' => 'Empleado', 'planilla' => 'Planilla', 'ano' => 'Año'];
+                            echo $groupLabels[$groupBy] ?? 'Empleado';
+                            ?>
+                        <?php endif; ?>
                     </p>
                 </div>
             </div>
@@ -150,16 +166,37 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                 <div class="row">
                     <?php
                     $totalGeneral = array_sum(array_column($acumuladosAgrupados, 'total_monto'));
-                    $colorClass = $selectedConcepto['tipo_concepto'] === 'ASIGNACION' ? 'success' : 'danger';
+
+                    // Determinar color según el contexto
+                    if ($selectedConcepto['tipo_concepto'] === 'ALL') {
+                        // Para "TODOS LOS CONCEPTOS", el color se determina por cada concepto individual
+                        $colorClass = 'info'; // Color por defecto, se sobreescribe por concepto
+                    } else {
+                        // Para concepto específico, color según tipo
+                        $colorClass = $selectedConcepto['tipo_concepto'] === 'ASIGNACION' ? 'success' : ($selectedConcepto['tipo_concepto'] === 'PATRONAL' ? 'info' : 'danger');
+                    }
 
                     foreach ($acumuladosAgrupados as $agrupado):
                         $porcentaje = $totalGeneral > 0 ? ($agrupado['total_monto'] / $totalGeneral) * 100 : 0;
+
+                        // Para "TODOS LOS CONCEPTOS", determinar color por tipo de concepto
+                        if ($selectedConcepto['tipo_concepto'] === 'ALL') {
+                            $colorClass = $agrupado['tipo_concepto'] === 'ASIGNACION' ? 'success' : ($agrupado['tipo_concepto'] === 'PATRONAL' ? 'info' : 'danger');
+                        }
                     ?>
                         <div class="col-md-4 col-sm-6">
                             <div class="small-box bg-<?= $colorClass ?>">
                                 <div class="inner">
                                     <h3><?= currency_symbol() ?><?= number_format($agrupado['total_monto'], 2) ?></h3>
-                                    <p><?= htmlspecialchars($agrupado['grupo_descripcion']) ?></p>
+                                    <p>
+                                        <?= htmlspecialchars($agrupado['grupo_descripcion']) ?>
+                                        <?php if ($selectedConcepto['tipo_concepto'] === 'ALL' && isset($agrupado['tipo_concepto'])): ?>
+                                            <br>
+                                            <span class="badge badge-light mt-1">
+                                                <?= $agrupado['tipo_concepto'] ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </p>
                                     <div class="small mt-2">
                                         <?php if ($groupBy === 'empleado'): ?>
                                             <i class="fas fa-id-card"></i> <?= htmlspecialchars($agrupado['document_id'] ?? 'N/A') ?>
@@ -182,7 +219,9 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                     </div>
                                 </div>
                                 <div class="icon">
-                                    <?php if ($groupBy === 'empleado'): ?>
+                                    <?php if ($selectedConcepto['tipo_concepto'] === 'ALL'): ?>
+                                        <i class="fas fa-calculator"></i>
+                                    <?php elseif ($groupBy === 'empleado'): ?>
                                         <i class="fas fa-user"></i>
                                     <?php elseif ($groupBy === 'planilla'): ?>
                                         <i class="fas fa-file-invoice-dollar"></i>
@@ -241,42 +280,71 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-sm" id="acumuladosTable">
-                                <thead>
+                            <table class="table table-bordered table-striped table-sm table-hover" id="acumuladosTable">
+                                <thead class="thead-light">
                                     <tr>
                                         <th>Empleado</th>
                                         <th>Cédula</th>
+                                        <th>Concepto</th>
                                         <th>Planilla</th>
                                         <th>Mes</th>
                                         <th>Año</th>
-                                        <th class="text-right">Monto</th>
-                                        <th>Fecha Período</th>
+                                        <th>Monto</th>
+                                        <th>Período</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($acumulados as $acumulado): ?>
                                         <tr>
-                                            <td><?= htmlspecialchars($acumulado['nombre_empleado']) ?></td>
-                                            <td><?= htmlspecialchars($acumulado['document_id']) ?></td>
-                                            <td><?= htmlspecialchars($acumulado['planilla_descripcion'] ?? 'N/A') ?></td>
-                                            <td class="text-center">
-                                                <?= $availableMonths[$acumulado['mes']] ?? $acumulado['mes'] ?>
+                                            <td>
+                                                <?= htmlspecialchars($acumulado['nombre_empleado']) ?>
                                             </td>
-                                            <td class="text-center"><?= $acumulado['ano'] ?></td>
-                                            <td class="text-right font-weight-bold">
+                                            <td><?= htmlspecialchars($acumulado['document_id']) ?></td>
+                                            <td>
+                                                <i class="fas fa-calculator mr-1"></i>
+                                                <small><?= htmlspecialchars($acumulado['concepto_descripcion'] ?? 'N/A') ?></small>
+                                            </td>
+                                            <td>
+                                                <small><?= htmlspecialchars($acumulado['planilla_descripcion'] ?? 'N/A') ?></small>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-secondary badge-sm">
+                                                    <?= $availableMonths[$acumulado['mes']] ?? $acumulado['mes'] ?>
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <strong><?= $acumulado['ano'] ?></strong>
+                                            </td>
+                                            <td class="text-right font-weight-bold text-primary">
                                                 <?= currency_symbol() ?><?= number_format($acumulado['monto'], 2) ?>
                                             </td>
                                             <td class="text-center">
                                                 <?php if (!empty($acumulado['fecha_inicio']) && !empty($acumulado['fecha_fin'])): ?>
-                                                    <?= date('d/m/Y', strtotime($acumulado['fecha_inicio'])) ?> -
-                                                    <?= date('d/m/Y', strtotime($acumulado['fecha_fin'])) ?>
+                                                    <small style="font-size: 0.7rem;">
+                                                        <?= date('d/m', strtotime($acumulado['fecha_inicio'])) ?>
+                                                        <br>
+                                                        <?= date('d/m', strtotime($acumulado['fecha_fin'])) ?>
+                                                    </small>
                                                 <?php else: ?>
-                                                    N/A
+                                                    <span class="text-muted">-</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
+                                <tfoot class="thead-light">
+                                    <tr>
+                                        <th colspan="6" class="text-right">
+                                            <strong>TOTAL:</strong>
+                                        </th>
+                                        <th class="text-right text-primary">
+                                            <strong>
+                                                <?= currency_symbol() ?><?= number_format(array_sum(array_column($acumulados, 'monto')), 2) ?>
+                                            </strong>
+                                        </th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
@@ -312,12 +380,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Initialize DataTable
+    // Initialize DataTable - Configuración básica responsive
     if (jQuery("#acumuladosTable").length) {
         jQuery("#acumuladosTable").DataTable({
             "responsive": true,
             "pageLength": 50,
-            "order": [[5, "desc"]], // Ordenar por monto
+            "order": [[2, "asc"], [6, "desc"]], // Ordenar por concepto y luego por monto
             "language": window.DATATABLES_SPANISH || {}
         });
     }

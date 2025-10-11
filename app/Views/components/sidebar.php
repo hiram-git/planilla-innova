@@ -218,8 +218,8 @@ class SidebarComponent
                         <li class="nav-header">CONTROL DE ASISTENCIA</li>
 
                         <!-- Asistencia -->
-                        <li class="nav-item ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') ? 'active' : '') . '">
+                        <li class="nav-item ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') || $this->isActive('panel/attendance-api-config') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') || $this->isActive('panel/attendance-api-config') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-clock"></i>
                                 <p>
                                     Asistencia
@@ -237,6 +237,12 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::attendance('reports') . '" class="nav-link ' . ($this->isActive('panel/attendance/reports') ? 'active' : '') . '">
                                         <i class="fas fa-chart-bar nav-icon"></i>
                                         <p>Reportes</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('/panel/attendance-api-config') . '" class="nav-link ' . ($this->isActive('panel/attendance-api-config') ? 'active' : '') . '">
+                                        <i class="fas fa-plug nav-icon"></i>
+                                        <p>Configuración API</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">

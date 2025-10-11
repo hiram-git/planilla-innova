@@ -303,6 +303,29 @@ $content .= '                </select>
                         </div>
                     </div>
 
+                    <!-- Salarios por Tipo de Planilla -->
+                    <div class="row" id="salaries-section" style="display: none;">
+                        <div class="col-md-12">
+                            <div class="card card-secondary">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="fas fa-money-bill-wave"></i> Salarios por Tipo de Planilla
+                                    </h3>
+                                    <div class="card-tools">
+                                        <span class="badge badge-info">
+                                            <span id="salaries-count-badge">0</span> configurados
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="salaries-container">
+                                        <!-- Se llenará dinámicamente con JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Campos de Contrato -->
                     <div class="row">
                         <div class="col-md-6">
@@ -553,8 +576,12 @@ if (typeof $ !== "undefined") {
         });
     });
 }
+
+// Datos de salarios existentes para el empleado
+window.EMPLOYEE_SALARIES = ' . json_encode($employee_salaries ?? []) . ';
 </script>
-<script src="' . asset('javascript/modules/employees/edit.js') . '"></script>';
+<script src="' . asset('javascript/modules/employees/edit.js') . '"></script>
+<script src="' . url('assets/javascript/modules/employees/salaries-inline.js', false) . '?v=' . date('siH') . '"></script>';
 
 $styles = '';
 

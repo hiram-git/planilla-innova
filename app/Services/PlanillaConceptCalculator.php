@@ -69,13 +69,15 @@ class PlanillaConceptCalculator
 
     /**
      * Establecer variables específicas del colaborador
+     * @param int $employee_id ID del empleado
+     * @param int|null $tipo_planilla_id ID del tipo de planilla (si aplica)
      */
-    public function setVariablesColaborador(int $employee_id): void
+    public function setVariablesColaborador(int $employee_id, int $tipo_planilla_id = null): void
     {
         try {
             // Obtener tipo de empresa de la configuración
             $companyType = $this->getCompanyType();
-            
+
             $sql = "SELECT e.fecha_ingreso, e.employee_id, e.sueldo_individual, e.gastos_representacion, e.clave_seguro_social, p.sueldo as sueldo_posicion, s.time_in, s.time_out
                     FROM employees e
                     LEFT JOIN posiciones p ON p.id = e.position_id
@@ -86,19 +88,34 @@ class PlanillaConceptCalculator
             $employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($employee) {
-                // Determinar sueldo según tipo de empresa
+                // Determinar sueldo según tipo de empresa y tipo de planilla
                 $salario = 0;
+                $gastos_representacion = 0;
+
                 if ($companyType === 'publica') {
                     // Empresa pública: sueldo viene de la posición
                     $salario = (float)($employee['sueldo_posicion'] ?: 0);
+                    $gastos_representacion = (float)($employee['gastos_representacion'] ?: 0);
                 } else {
-                    // Empresa privada: sueldo individual del empleado
-                    $sueldo_individual = (float)($employee['sueldo_individual'] ?: 0);
-                    
-                    if ($sueldo_individual > 0) {
-                        $salario = $sueldo_individual;
+                    // Empresa privada: intentar obtener salario de la nueva tabla
+                    if ($tipo_planilla_id !== null) {
+                        $salario_planilla = $this->getSalarioByTipoPlanilla($employee_id, $tipo_planilla_id);
+                        if ($salario_planilla) {
+                            $salario = $salario_planilla['sueldo_base'];
+                            $gastos_representacion = $salario_planilla['gastos_representacion'];
+                        } else {
+                            // Fallback: usar campos antiguos si no hay registro en la nueva tabla
+                            $salario = (float)($employee['sueldo_individual'] ?: 0);
+                            $gastos_representacion = (float)($employee['gastos_representacion'] ?: 0);
+                        }
                     } else {
-                        // Fallback: usar sueldo de posición si no hay sueldo individual
+                        // Si no se especifica tipo_planilla_id, usar campos antiguos
+                        $salario = (float)($employee['sueldo_individual'] ?: 0);
+                        $gastos_representacion = (float)($employee['gastos_representacion'] ?: 0);
+                    }
+
+                    // Fallback final: usar sueldo de posición si no hay nada
+                    if ($salario == 0) {
                         $salario = (float)($employee['sueldo_posicion'] ?: 0);
                     }
                 }
@@ -117,9 +134,6 @@ class PlanillaConceptCalculator
                 $antiguedad_anual = $fecha_ingreso->diff($now)->y;   // Años
                 $antiguedad_mes = $fecha_ingreso->diff($now)->m;
                 $antiguedad = $fecha_ingreso->diff($now)->days;
-
-                // Obtener gastos de representación
-                $gastos_representacion = (float)($employee['gastos_representacion'] ?: 0);
 
                 // Obtener clave de seguro social
                 $clave_seguro_social = $employee['clave_seguro_social'] ?: '';
@@ -1832,5 +1846,43 @@ class PlanillaConceptCalculator
         $this->variablesColaborador['VACATION_ACCRUAL_RATE'] = $this->VACATION_ACCRUAL_RATE($employeeId);
         $this->variablesColaborador['VACATION_ELIGIBLE'] = $this->VACATION_ELIGIBLE($employeeId) ? 1 : 0;
         $this->variablesColaborador['VACATION_DAILY_SALARY'] = $this->VACATION_COMPENSATION_AMOUNT($employeeId, 1);
+    }
+
+    /**
+     * Obtener salario del empleado según tipo de planilla desde la tabla employee_payroll_salaries
+     *
+     * @param int $employee_id ID del empleado
+     * @param int $tipo_planilla_id ID del tipo de planilla
+     * @return array|null Array con sueldo_base y gastos_representacion o null si no existe
+     */
+    private function getSalarioByTipoPlanilla(int $employee_id, int $tipo_planilla_id): ?array
+    {
+        try {
+            $sql = "SELECT sueldo_base, gastos_representacion
+                    FROM employee_payroll_salaries
+                    WHERE employee_id = ?
+                    AND tipo_planilla_id = ?
+                    AND is_active = 1
+                    AND (fecha_fin IS NULL OR fecha_fin >= CURDATE())
+                    ORDER BY fecha_inicio DESC
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employee_id, $tipo_planilla_id]);
+            $salary = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($salary) {
+                return [
+                    'sueldo_base' => (float)$salary['sueldo_base'],
+                    'gastos_representacion' => (float)($salary['gastos_representacion'] ?? 0)
+                ];
+            }
+
+            return null;
+
+        } catch (PDOException $e) {
+            error_log("Error obteniendo salario por tipo planilla: " . $e->getMessage());
+            return null;
+        }
     }
 }

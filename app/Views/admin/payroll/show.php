@@ -187,7 +187,15 @@ switch ($payroll['estado']) {
                                target="_blank"
                                data-toggle="tooltip"
                                data-placement="top"
-                               title="Comprobantes de Pago">
+                               title="Comprobantes de Pago Verticales">
+                                <i class="fas fa-receipt"></i>
+                            </a>
+                            <a href="<?= \App\Core\UrlHelper::url('/panel/reports/comprobantes-planilla-horizontal/' . $payroll['id']) ?>"
+                               class="btn btn-primary btn-sm"
+                               target="_blank"
+                               data-toggle="tooltip"
+                               data-placement="top"
+                               title="Comprobantes Horizontales">
                                 <i class="fas fa-receipt"></i>
                             </a>
                             <a href="<?= \App\Core\UrlHelper::url('/panel/reports/reporte-acreedores/' . $payroll['id']) ?>"

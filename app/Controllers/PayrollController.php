@@ -1496,7 +1496,7 @@ class PayrollController extends Controller
             $calculadora = new \App\Services\PlanillaConceptCalculator();
 
             // Establecer fechas de la planilla para variables INIPERIODO/FINPERIODO
-            $calculadora->establecerFechasPlanilla($periodo_inicio, $periodo_fin, $fecha);
+            $calculadora->establecerFechasPlanilla($payroll['fecha_desde'], $payroll['fecha_hasta'], $payroll['fecha']);
 
             // Situación del empleado (activo = 1)
             $employeeSituacion = 1;
@@ -1510,10 +1510,11 @@ class PayrollController extends Controller
                 }
                 try {
                     $amount = 0;
-                    
+
                     // Establecer variables del colaborador en la calculadora
-                    $calculadora->setVariablesColaborador($employeeId);
-                    
+                    // IMPORTANTE: Pasar tipo_planilla_id para obtener salario correcto de employee_payroll_salaries
+                    $calculadora->setVariablesColaborador($employeeId, $payroll['tipo_planilla_id']);
+
                     // Calcular monto según la configuración del concepto (igual que procesamiento normal)
                     if (!empty($concept['valor_fijo']) && $concept['valor_fijo'] > 0) {
                         $amount = floatval($concept['valor_fijo']);

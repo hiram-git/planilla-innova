@@ -15,7 +15,7 @@ class AcumuladosCommon {
         // Escuchar cambios en el tipo de planilla desde navbar
         window.addEventListener('payrollTypeChanged', (event) => {
             console.log('AcumuladosCommon: Tipo de planilla cambió', event.detail);
-            this.handlePayrollTypeChange(event.detail.tipoPlanillaId);
+            this.handlePayrollTypeChange(event.detail.id || event.detail.tipoPlanillaId);
         });
     }
 

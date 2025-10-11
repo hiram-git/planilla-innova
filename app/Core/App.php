@@ -36,7 +36,13 @@ class App
             $this->handleApiRoutes($url);
             return;
         }
-        
+
+        // Manejo especial para webhooks (sin autenticación)
+        if (!empty($url[0]) && $url[0] === 'webhooks') {
+            $this->handleWebhookRoutes($url);
+            return;
+        }
+
         // Manejo especial para rutas que empiezan con 'panel'
         if (!empty($url[0]) && $url[0] === 'panel') {
             if (isset($url[1])) {
@@ -52,6 +58,7 @@ class App
                     'funciones' => ['controller' => 'Funcion', 'method' => null],
                     'schedules' => ['controller' => 'Schedule', 'method' => null],
                     'attendance' => ['controller' => 'Attendance', 'method' => null],
+                    'attendance-api-config' => ['controller' => 'AttendanceApiConfigController', 'method' => 'index'],
                     'marcaciones' => ['controller' => 'Timeclock', 'method' => 'index'],
                     'payrolls' => ['controller' => 'PayrollController', 'method' => null],
                     'concepts' => ['controller' => 'ConceptController', 'method' => null],
@@ -249,6 +256,30 @@ class App
                                     } elseif ($url[2] === 'calculate-period' && method_exists($this->controller, 'calculatePeriod')) {
                                         $this->method = 'calculatePeriod';
                                         $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'api-config' && isset($url[3])) {
+                                        // Rutas para AttendanceApiConfigController
+                                        if ($url[3] === 'save' && method_exists($this->controller, 'save')) {
+                                            $this->method = 'save';
+                                            $this->params = [];
+                                        } elseif ($url[3] === 'test-connection' && method_exists($this->controller, 'testConnection')) {
+                                            $this->method = 'testConnection';
+                                            $this->params = [];
+                                        } elseif ($url[3] === 'sync-now' && method_exists($this->controller, 'syncNow')) {
+                                            $this->method = 'syncNow';
+                                            $this->params = [];
+                                        } elseif ($url[3] === 'enable-sync' && method_exists($this->controller, 'enableSync')) {
+                                            $this->method = 'enableSync';
+                                            $this->params = [];
+                                        } elseif ($url[3] === 'disable-sync' && method_exists($this->controller, 'disableSync')) {
+                                            $this->method = 'disableSync';
+                                            $this->params = [];
+                                        } elseif ($url[3] === 'log-details' && method_exists($this->controller, 'getLogDetails')) {
+                                            $this->method = 'getLogDetails';
+                                            $this->params = [];
+                                        } elseif ($url[3] === 'clean-logs' && method_exists($this->controller, 'cleanOldLogs')) {
+                                            $this->method = 'cleanOldLogs';
+                                            $this->params = [];
+                                        }
                                     } elseif ($url[2] === 'upload-logo' && method_exists($this->controller, 'uploadLogo')) {
                                         $this->method = 'uploadLogo';
                                         $this->params = array_slice($url, 3);
@@ -684,6 +715,58 @@ class App
             error_log("Error in crear-empresa route: " . $e->getMessage());
             http_response_code(500);
             echo 'Internal server error';
+        }
+    }
+
+    /**
+     * Manejo de rutas de webhooks
+     * Ruta: /webhooks/{provider}/{entity}
+     * Ejemplo: /webhooks/base44/attendance
+     */
+    private function handleWebhookRoutes($url)
+    {
+        try {
+            // Validar que tengamos provider y entity
+            if (!isset($url[1]) || !isset($url[2])) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Ruta de webhook inválida']);
+                return;
+            }
+
+            $provider = $url[1]; // base44
+            $entity = $url[2];   // attendance, employee, etc.
+
+            // Mapeo de providers a controladores
+            $providerMapping = [
+                'base44' => 'Base44WebhookController'
+            ];
+
+            if (!isset($providerMapping[$provider])) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Proveedor no soportado']);
+                return;
+            }
+
+            // Cargar controlador de webhook
+            $controllerClass = '\\App\\Controllers\\Webhooks\\' . $providerMapping[$provider];
+
+            if (!class_exists($controllerClass)) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Controlador de webhook no encontrado']);
+                return;
+            }
+
+            $this->controller = new $controllerClass();
+            $this->method = 'receive'; // Método estándar para todos los webhooks
+            $this->params = [$entity];
+
+            // Ejecutar método
+            call_user_func_array([$this->controller, $this->method], $this->params);
+
+        } catch (Exception $e) {
+            error_log("Error in webhook route: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
         }
     }
 }

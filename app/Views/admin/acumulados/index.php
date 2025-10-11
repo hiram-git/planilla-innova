@@ -228,7 +228,14 @@ function generateTipoPdf(tipoId) {
                         <?php
                         $colors = ['info', 'success', 'warning', 'danger', 'primary', 'secondary'];
                         $index = 0;
+                        $hasVisibleItems = false;
                         foreach ($tiposAcumulados as $tipo):
+                            // Ocultar small-boxes con total cero
+                            $totalAcumulado = floatval($tipo['total_acumulado'] ?? 0);
+                            if ($totalAcumulado <= 0) {
+                                continue;
+                            }
+                            $hasVisibleItems = true;
                             $color = $colors[$index % count($colors)];
                             $index++;
                         ?>
@@ -246,9 +253,16 @@ function generateTipoPdf(tipoId) {
                                         <i class="fas fa-piggy-bank"></i>
                                     </div>
                                     <div class="small-box-footer d-flex">
-                                        <a href="#" class="flex-fill text-white p-2 text-center" onclick="viewByType(<?= $tipo['id'] ?? 0 ?>)" style="text-decoration: none;">
-                                            <i class="fas fa-eye"></i> Ver Detalles
-                                        </a>
+                                        <?php if (isset($tipo['is_concepto_expanded']) && $tipo['is_concepto_expanded']): ?>
+                                            <a href="<?= url('/panel/acumulados/byType?tipo_acumulado=CONCEPTO&concepto_id=' . ($tipo['concepto_id'] ?? 0) . '&year=' . $selectedYear) ?>"
+                                               class="flex-fill text-white p-2 text-center" style="text-decoration: none;">
+                                                <i class="fas fa-eye"></i> Ver Detalles
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="#" class="flex-fill text-white p-2 text-center" onclick="viewByType(<?= $tipo['id'] ?? 0 ?>)" style="text-decoration: none;">
+                                                <i class="fas fa-eye"></i> Ver Detalles
+                                            </a>
+                                        <?php endif; ?>
                                         <a href="#" class="p-2 border-left text-white text-center" style="width: 60px; text-decoration: none;" onclick="generateTipoPdf(<?= $tipo['id'] ?? 0 ?>)" title="Generar PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>
@@ -256,6 +270,15 @@ function generateTipoPdf(tipoId) {
                                 </div>
                             </div>
                         <?php endforeach; ?>
+
+                        <?php if (!$hasVisibleItems): ?>
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    No hay acumulados registrados para <?= $selectedYear === 'todos' ? 'ningún año' : 'el año ' . $selectedYear ?><?= isset($_GET['tipo_planilla']) ? ' en el tipo de planilla seleccionado' : '' ?>.
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Información adicional -->
@@ -270,11 +293,25 @@ function generateTipoPdf(tipoId) {
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <h6><i class="fas fa-check-circle text-success"></i> Tipos Activos</h6>
+                                            <h6><i class="fas fa-check-circle text-success"></i> Tipos Activos con Acumulados</h6>
                                             <ul>
-                                                <?php foreach ($tiposAcumulados as $tipo): ?>
-                                                    <li><?= htmlspecialchars($tipo['descripcion'] ?? 'N/A') ?></li>
-                                                <?php endforeach; ?>
+                                                <?php
+                                                $tiposVisibles = array_filter($tiposAcumulados, function($tipo) {
+                                                    return floatval($tipo['total_acumulado'] ?? 0) > 0;
+                                                });
+                                                if (!empty($tiposVisibles)):
+                                                    foreach ($tiposVisibles as $tipo):
+                                                ?>
+                                                    <li>
+                                                        <strong><?= htmlspecialchars($tipo['descripcion'] ?? 'N/A') ?>:</strong>
+                                                        <?= currency_symbol() ?><?= number_format($tipo['total_acumulado'] ?? 0, 2) ?>
+                                                    </li>
+                                                <?php
+                                                    endforeach;
+                                                else:
+                                                ?>
+                                                    <li class="text-muted">No hay acumulados registrados</li>
+                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                         <div class="col-md-6">
@@ -282,6 +319,9 @@ function generateTipoPdf(tipoId) {
                                             <p>Los acumulados se calculan automáticamente al cerrar las planillas.</p>
                                             <p><strong>Año actual:</strong> <?= $selectedYear ?></p>
                                             <p><strong>Total empleados:</strong> <?= count($employees) ?></p>
+                                            <?php if (isset($_GET['tipo_planilla'])): ?>
+                                                <p><strong>Filtrado por:</strong> Tipo de planilla seleccionado</p>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>

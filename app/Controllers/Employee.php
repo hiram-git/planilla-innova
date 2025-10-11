@@ -197,12 +197,25 @@ class Employee extends Controller
                 'created_on' => date('Y-m-d')
             ];
 
-            $employee->create($employeeData);
-            
+            $newEmployeeId = $employee->create($employeeData);
+
+            // ✅ Guardar salarios múltiples por tipo de planilla
+            if (!empty($data['salaries']) && is_array($data['salaries']) && $newEmployeeId) {
+                $employeePayrollSalary = $this->model('EmployeePayrollSalary');
+                $userId = $_SESSION['user_id'] ?? null;
+
+                $salariesResult = $employeePayrollSalary->saveBulkSalaries($newEmployeeId, $data['salaries'], $userId);
+
+                if (!$salariesResult['success']) {
+                    error_log("Warning: Some salaries failed to save for employee {$newEmployeeId}. Errors: {$salariesResult['errors']}");
+                }
+            }
+
             $_SESSION['success'] = 'Colaborador agregado exitosamente con ID: ' . $employeeId;
             $this->redirect(\App\Core\UrlHelper::employee());
         } catch (\Exception $e) {
             $_SESSION['error'] = 'Error al agregar colaborador: ' . $e->getMessage();
+            error_log("Error creating employee: " . $e->getMessage());
             $this->redirect(\App\Core\UrlHelper::employee('create'));
         }
     }
@@ -219,6 +232,7 @@ class Employee extends Controller
         $funcion = $this->model('Funcion');
         $partida = $this->model('Partida');
         $organigrama = $this->model('Organizational');
+        $employeePayrollSalary = $this->model('EmployeePayrollSalary');
 
         $employeeData = $employee->getEmployeeWithFullDetails($id);
         if (!$employeeData) {
@@ -226,10 +240,21 @@ class Employee extends Controller
             $this->redirect(\App\Core\UrlHelper::employee());
         }
 
+        // Obtener salarios existentes del empleado
+        $existingSalaries = $employeePayrollSalary->getAllSalariesForEmployee($id);
+        $salariesByType = [];
+        foreach ($existingSalaries as $salary) {
+            $salariesByType[$salary['tipo_planilla_id']] = [
+                'sueldo_base' => $salary['sueldo_base'],
+                'gastos_representacion' => $salary['gastos_representacion']
+            ];
+        }
+
         $data = [
             'title' => 'Editar Empleado',
             'page_title' => 'Editar Colaborador',
             'employee' => $employeeData,
+            'employee_salaries' => $salariesByType,
             'positions' => $position->all(),
             'schedules' => $schedule->all(),
             'situaciones' => $situacion->all(),
@@ -330,11 +355,24 @@ class Employee extends Controller
             ];
 
             $employee->update($id, $updateData);
-            
+
+            // ✅ Guardar/actualizar salarios múltiples por tipo de planilla
+            if (!empty($data['salaries']) && is_array($data['salaries'])) {
+                $employeePayrollSalary = $this->model('EmployeePayrollSalary');
+                $userId = $_SESSION['user_id'] ?? null;
+
+                $salariesResult = $employeePayrollSalary->saveBulkSalaries($id, $data['salaries'], $userId);
+
+                if (!$salariesResult['success']) {
+                    error_log("Warning: Some salaries failed to save for employee {$id}. Errors: {$salariesResult['errors']}");
+                }
+            }
+
             $_SESSION['success'] = 'Colaborador actualizado exitosamente';
             $this->redirect(\App\Core\UrlHelper::employee());
         } catch (\Exception $e) {
             $_SESSION['error'] = 'Error al actualizar colaborador: ' . $e->getMessage();
+            error_log("Error updating employee: " . $e->getMessage());
             $this->redirect(\App\Core\UrlHelper::employee("edit/$id"));
         }
     }

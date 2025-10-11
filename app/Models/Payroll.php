@@ -213,7 +213,7 @@ class Payroll extends Model
                     $monto = 0;
 
                     // Establecer variables del colaborador en la calculadora
-                    $calculadora->setVariablesColaborador($employee['id']);
+                    $calculadora->setVariablesColaborador($employee['id'] , $tipoId);
 
 
                     // Calcular monto según la configuración del concepto
