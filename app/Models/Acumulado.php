@@ -44,12 +44,12 @@ class Acumulado
 
             $sql = "
                 SELECT
-                    ape.tipo_acumulado as tipo_codigo,
-                    COALESCE(c.descripcion, CONCAT('Tipo: ', c.descripcion)) as descripcion,
-                    SUM(ape.monto) as total_acumulado,
-                    COUNT(DISTINCT ape.employee_id) as total_empleados,
-                    COUNT(DISTINCT ape.concepto_id) as total_conceptos_incluidos,
-                    GROUP_CONCAT(DISTINCT c.descripcion ORDER BY c.descripcion SEPARATOR ', ') as conceptos_incluidos
+                    ape.tipo_acumulado AS tipo_codigo,
+                    COALESCE(c.descripcion, CONCAT('Tipo: ', ape.tipo_acumulado)) AS descripcion,
+                    SUM(ape.monto) AS total_acumulado,
+                    COUNT(DISTINCT ape.employee_id) AS total_empleados,
+                    COUNT(DISTINCT ape.concepto_id) AS total_conceptos_incluidos,
+                    GROUP_CONCAT(DISTINCT c.descripcion ORDER BY c.descripcion SEPARATOR ', ') AS conceptos_incluidos
                 FROM {$this->table} ape
                 INNER JOIN employees e ON ape.employee_id = e.id
                 LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
@@ -57,7 +57,7 @@ class Acumulado
                 WHERE {$whereClause}
                   AND ape.tipo_acumulado IS NOT NULL
                   AND ape.tipo_acumulado != ''
-                GROUP BY ape.tipo_acumulado, ta.descripcion
+                GROUP BY ape.tipo_acumulado, c.descripcion
                 ORDER BY ape.tipo_acumulado
             ";
 
