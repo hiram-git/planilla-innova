@@ -45,7 +45,7 @@ class Acumulado
             $sql = "
                 SELECT
                     ape.tipo_acumulado as tipo_codigo,
-                    COALESCE(ta.descripcion, CONCAT('Tipo: ', ape.tipo_acumulado)) as descripcion,
+                    COALESCE(c.descripcion, CONCAT('Tipo: ', c.descripcion)) as descripcion,
                     SUM(ape.monto) as total_acumulado,
                     COUNT(DISTINCT ape.employee_id) as total_empleados,
                     COUNT(DISTINCT ape.concepto_id) as total_conceptos_incluidos,

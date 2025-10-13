@@ -389,12 +389,6 @@ class SidebarComponent
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byType') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byType') ? 'active' : '') . '">
-                                        <i class="fas fa-piggy-bank nav-icon"></i>
-                                        <p>Tipos de Acumulados</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byEmployee') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byEmployee') ? 'active' : '') . '">
                                         <i class="fas fa-user nav-icon"></i>
                                         <p>Por Empleado</p>
