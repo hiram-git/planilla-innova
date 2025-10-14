@@ -127,7 +127,7 @@ class AbsenceDetector
     public function detectAllAbsences($startDate, $endDate)
     {
         // Obtener todos los empleados activos
-        $employees = $this->employeeModel->findAll();
+        $employees = $this->employeeModel->all();
         $activeEmployees = array_filter($employees, function($emp) {
             return $emp['situacion_id'] == 1; // Activos
         });

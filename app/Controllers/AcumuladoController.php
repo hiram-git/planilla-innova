@@ -684,22 +684,22 @@ class AcumuladoController extends Controller
             $sql = "SELECT DISTINCT
                         c.id,
                         c.descripcion,
+                        c.tipo_concepto as tipo_concepto_original,
                         CASE
                             WHEN c.tipo_concepto = 'A' THEN 'ASIGNACION'
                             WHEN c.tipo_concepto = 'D' THEN 'DEDUCCION'
                             WHEN c.tipo_concepto = 'P' THEN 'PATRONAL'
                             ELSE c.tipo_concepto
-                        END as tipo_concepto
-                    FROM concepto c
-                    INNER JOIN acumulados_por_empleado ape ON c.id = ape.concepto_id
-                    ORDER BY
+                        END as tipo_concepto,
                         CASE
                             WHEN c.tipo_concepto = 'A' THEN 1
                             WHEN c.tipo_concepto = 'D' THEN 2
                             WHEN c.tipo_concepto = 'P' THEN 3
                             ELSE 4
-                        END,
-                        c.descripcion";
+                        END as orden_tipo
+                    FROM concepto c
+                    INNER JOIN acumulados_por_empleado ape ON c.id = ape.concepto_id
+                    ORDER BY orden_tipo, c.descripcion";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
