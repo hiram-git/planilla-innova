@@ -301,6 +301,13 @@ class Employee extends Controller
             $this->redirect(\App\Core\UrlHelper::employee("edit/$id"));
         }
 
+        // 🔍 DEBUG PRODUCCIÓN: Datos recibidos del formulario
+        error_log("======== EMPLOYEE UPDATE DEBUG (PRODUCTION MySQL 8.0) ========");
+        error_log("Employee ID: {$id}");
+        error_log("Tipos planilla recibidos: " . print_r($data['edit_tipo_planilla'] ?? 'NO ENVIADO', true));
+        error_log("Salarios recibidos: " . print_r($data['salaries'] ?? 'NO ENVIADO', true));
+        error_log("Sueldo individual: " . ($data['edit_sueldo_individual'] ?? 'NO ENVIADO'));
+
         try {
             // Manejar actualización de foto
             $photoFilename = $employeeData['photo'];
@@ -370,16 +377,30 @@ class Employee extends Controller
             }
 
             // 🗑️ PASO 1: Eliminar salarios huérfanos (de tipos de planilla ya no seleccionados)
+            error_log("🗑️ Eliminando salarios huérfanos...");
+            error_log("Tipos planilla actualmente seleccionados: " . implode(',', $selectedTiposPlanillaIds));
             $deleteResult = $employeePayrollSalary->deleteOrphanSalaries($id, $selectedTiposPlanillaIds);
+            error_log("Resultado eliminación: " . json_encode($deleteResult));
 
             // 💾 PASO 2: Guardar/actualizar salarios para tipos de planilla seleccionados
             if (!empty($data['salaries']) && is_array($data['salaries'])) {
+                error_log("💾 Guardando salarios...");
+                error_log("Salarios a procesar: " . json_encode($data['salaries']));
+
                 $salariesResult = $employeePayrollSalary->saveBulkSalaries($id, $data['salaries'], $userId);
+
+                error_log("Resultado guardado: " . json_encode($salariesResult));
 
                 if (!$salariesResult['success']) {
                     error_log("[Employee::update] ⚠️ Warning: Some salaries failed to save for employee {$id}. Errors: " . ($salariesResult['errors'] ?? 0) . ", Details: " . json_encode($salariesResult['error_details'] ?? []));
+                } else {
+                    error_log("✅ Salaries saved successfully: {$salariesResult['saved']} saved, {$salariesResult['skipped']} skipped");
                 }
+            } else {
+                error_log("⚠️ NO salaries data received from form!");
             }
+
+            error_log("======== END EMPLOYEE UPDATE DEBUG ========");
 
             // ✅ Redirigir al formulario de edición con mensaje de éxito
             $_SESSION['success'] = 'Colaborador actualizado exitosamente';
