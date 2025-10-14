@@ -156,11 +156,17 @@ class EmployeePayrollSalary extends Model
                 continue;
             }
 
+            // ✅ FIX MySQL 8.0: Convertir strings vacíos a 0 para campos numéricos
+            $gastosRepresentacion = $salaryData['gastos_representacion'] ?? 0;
+            if ($gastosRepresentacion === '' || $gastosRepresentacion === null) {
+                $gastosRepresentacion = 0;
+            }
+
             $data = [
                 'employee_id' => $employeeId,
                 'tipo_planilla_id' => $tipoPlanillaId,
                 'sueldo_base' => $salaryData['sueldo_base'],
-                'gastos_representacion' => $salaryData['gastos_representacion'] ?? 0,
+                'gastos_representacion' => $gastosRepresentacion,
                 'fecha_inicio' => $salaryData['fecha_inicio'] ?? date('Y-m-d'),
                 'fecha_fin' => $salaryData['fecha_fin'] ?? null,
                 'is_active' => 1,
