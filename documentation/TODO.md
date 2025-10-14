@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.3.14** *(4 Oct 2025)*
+## 🎯 **ESTADO ACTUAL V3.4.1** *(10 Oct 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -15,33 +15,74 @@
 - **Employee Import Fixes**: ✅ 100% Completado *(V3.3.10)*
 - **CSRF Security Fix**: ✅ 100% Completado *(V3.3.12)*
 - **Reports Dropdown**: ✅ 100% Completado *(V3.3.13)*
-- **Sidebar Toggle Fix**: ✅ 100% Completado *(Nuevo V3.3.14)*
+- **Sidebar Toggle Fix**: ✅ 100% Completado *(V3.3.14)*
+- **Calendario Empresarial**: ✅ 100% Completado *(V3.3.21-22)*
+- **API Asistencias Base44**: ✅ Subfase 7.1 Completada *(V3.4.0)*
+- **🆕 Migraciones BD Asistencias**: ✅ Migraciones Subfase 7.2 Completadas *(V3.4.1)*
 
 ---
 
 ## 📅 **PRÓXIMAS TAREAS PRIORIZADAS**
 
-### 📅 **CALENDARIO EMPRESARIAL PANAMÁ** *(Alta Prioridad - Análisis Completado)*
-- [ ] **Fase 1: Base de Datos**
-  - [ ] Crear migración business_calendar con tipos LABORAL, FERIADO, DUELO_NACIONAL
-  - [ ] Insertar 13 feriados nacionales panameños 2025-2026
-  - [ ] Estados: NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL
-  - [ ] Seeders con datos feriados + configuración empresa
-- [ ] **Fase 2: BusinessCalendar Model**
-  - [ ] Métodos: getWorkingDaysBetween(), isWorkingDay(), addWorkingDays()
-  - [ ] Helper functions: business_days_between(), is_working_day()
-  - [ ] Cálculos automáticos + fallback sin BD
-  - [ ] Cache inteligente para consultas frecuentes
-- [ ] **Fase 3: Interfaz Gestión**
-  - [ ] BusinessCalendarController CRUD días especiales
-  - [ ] Vista calendario mensual/anual AdminLTE
-  - [ ] Importación masiva feriados + validación conflictos
-  - [ ] JavaScript calendar integration (FullCalendar.js)
-- [ ] **Fase 4: Integración Cálculos Legales**
-  - [ ] Actualizar liquidaciones: preaviso 30 días laborables exactos
-  - [ ] Integrar vacaciones: días hábiles únicamente
-  - [ ] XIII Mes: proporcional días trabajados reales
-  - [ ] Actualizar PlanillaConceptCalculator con días laborables
+### ⏰ **INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(PRIORIDAD ALTA - En Desarrollo 25%)*
+**Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
+**Tiempo Estimado**: 6-8 semanas
+**Progreso**: Subfase 7.1 ✅ COMPLETADA | Subfase 7.2 🔵 EN PROGRESO (25%) | Subfases 7.3-7.5 Pendientes
+
+- [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
+  - [x] Base44ApiClient (367 líneas) + retry logic + backoff exponencial
+  - [x] AttendanceSyncService (510 líneas) sincronización completa/incremental
+  - [x] AttendanceApiConfig Model (240 líneas) + validaciones
+  - [x] AttendanceApiConfigController (300+ líneas) + 9 endpoints
+  - [x] Vista AdminLTE completa (500+ líneas) + estadísticas + logs
+  - [x] Cron job sincronización cada 15 minutos
+  - [x] Base44WebhookController para notificaciones tiempo real
+  - [x] Tablas BD: `attendance_api_config`, `attendance_raw_data`, `attendance_sync_log`
+  - [x] Rutas registradas + sidebar integration
+  - [x] **Resultado**: ~2,417 líneas código | 12 archivos nuevos | 2 modificados
+
+- [~] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* 🔵 **EN PROGRESO (25%)**
+  - [x] **Migraciones BD** ✅ **COMPLETADAS (10-Oct-2025)**:
+    - [x] Tabla `attendance_calculations` (total_hours, overtime_hours, tardiness, perfect_attendance, etc.)
+    - [x] Tabla `attendance_absence_log` (ausencias con justificaciones MEDICAL/PERMISSION/VACATION)
+    - [x] Tabla `employee_payroll_salaries` (salarios múltiples por tipo planilla + histórico vigencias)
+    - [x] 14 Foreign Keys + 22 Índices optimizados para consultas rápidas
+    - [x] Migración `2025_10_10_attendance_calculations.sql` (145 líneas)
+    - [x] Migración `2025_10_10_employee_payroll_salaries.sql` (153 líneas) con script migración datos
+    - [x] **Total**: 298 líneas SQL | 3 tablas nuevas
+  - [ ] AttendanceCalculator: marcaciones perfectas + horas trabajadas + ausencias
+  - [ ] Tardanzas con tolerancia configurable + salidas anticipadas
+  - [ ] OvertimeCalculator: horas extras automáticas (normales/nocturnas/feriados)
+  - [ ] WorkScheduleResolver: horarios por empleado/día + turnos rotativos
+  - [ ] AbsenceDetector: identificación y clasificación ausencias justificadas/injustificadas
+  - [ ] Reports Generator: reportes diarios/semanales/mensuales asistencias
+
+- [ ] **Fase 3: Consideraciones Legales Panamá** *(1-2 semanas)*
+  - [ ] LegalComplianceChecker: jornada ordinaria (8h/día, 48h/semana - Art. 31)
+  - [ ] Jornada nocturna (6PM-6AM) +50% según Art. 38 Código Trabajo
+  - [ ] Horas extras: primeras 3h +25%, siguientes +50% (Art. 39)
+  - [ ] Trabajo domingos/feriados +50% (Art. 48) + tiempo comida (Art. 35)
+  - [ ] WorkingDayClassifier: clasificación días ordinarios/festivos/descanso
+  - [ ] **Integración BusinessCalendar**: Usar días laborables para cálculos legales
+  - [ ] Alerts System: notificaciones excesos jornada + faltas graves (3+ ausencias)
+
+- [ ] **Fase 4: Integración con Generación de Planillas** *(1-2 semanas)*
+  - [ ] PayrollAttendanceIntegrator: asistencias → planillas automático
+  - [ ] AttendanceConceptMapper: mapeo cálculos asistencias → conceptos planilla
+  - [ ] Conceptos automáticos: HORAS_TRABAJADAS, HORAS_EXTRAS_25, HORAS_EXTRAS_50
+  - [ ] Conceptos adicionales: HORAS_NOCTURNAS, HORAS_DOMINICALES, DESCUENTO_TARDANZAS
+  - [ ] Conceptos bonificación: BONO_PUNTUALIDAD por asistencia perfecta
+  - [ ] PeriodAttendanceSummary: resumen asistencias por período de planilla
+  - [ ] Tablas BD: `payroll_attendance_summary`, `attendance_concepts_mapping`, `payroll_attendance_details`
+  - [ ] ValidationRules: validaciones cruce datos asistencias/planillas
+  - [ ] Flujo completo: consulta período → cálculo conceptos → revisión manual → reporte adjunto
+
+- [ ] **Fase 5: Interfaz y Reportes** *(1 semana)*
+  - [ ] Vista empleados: consulta asistencias propias en tiempo real
+  - [ ] Vista gerencial: dashboard asistencias por departamento/equipo
+  - [ ] Reportes ejecutivos: puntualidad, ausentismo, horas extras
+  - [ ] Alertas automáticas: ausencias injustificadas, excesos jornada
+  - [ ] Exportación: Excel, PDF, CSV de reportes de asistencias
 
 ### 🏖️ **MÓDULO VACACIONES PANAMÁ** *(Alta Prioridad - En Progreso)*
 - [ ] **Fase 1: Calculadora + Base de Datos**
@@ -87,17 +128,14 @@
   - [ ] Estadísticas uso sistema
   - [ ] Panel administración central
 
-### 💰 **ISR PANAMÁ** *(Mediana Prioridad)*
-- [ ] **Fase 1: Calculadora ISR**
-  - [ ] Implementar tramos impositivos 2025
-  - [ ] Deducciones personales automáticas
-  - [ ] Integración con conceptos planilla existentes
-  - [ ] Gastos de representación deducibles
-- [ ] **Fase 2: Retenciones & Certificados**
-  - [ ] Acumulado anual ISR por empleado
-  - [ ] Generación certificados retención
-  - [ ] Reportes declaración CSS
-  - [ ] Formularios oficiales DGI
+### 📅 **CALENDARIO EMPRESARIAL PANAMÁ** *(Completado - Integración Cálculos Legales CANCELADA)*
+**Nota**: La Subfase 4.4 (Integración Cálculos Legales) fue CANCELADA. La integración del BusinessCalendar con liquidaciones, vacaciones y XIII Mes se implementará como parte de la **FASE 7: API Marcaciones y Asistencias (Subfase 3)**.
+
+- [x] **Fase 1: Base de Datos** ✅ COMPLETADA
+- [x] **Fase 2: BusinessCalendar Model** ✅ COMPLETADA
+- [x] **Fase 3: Interfaz Gestión** ✅ COMPLETADA
+- [x] **Subfase 3.1: Inicialización Automática Años** ✅ COMPLETADA
+- [~] **Fase 4: Integración Cálculos Legales** ❌ CANCELADA (Ver Fase 7)
 
 ### 🔧 **MEJORAS SISTEMA ACTUAL** *(Mediana Prioridad)*
 - [ ] **Performance Optimizations**

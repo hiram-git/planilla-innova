@@ -160,6 +160,70 @@ class EmployeePayrollSalary extends Model
     }
 
     /**
+     * Eliminar salarios huérfanos (salarios de tipos de planilla que ya no están asignados al empleado)
+     *
+     * @param int $employeeId
+     * @param array $currentTiposPlanillaIds Array de IDs de tipos de planilla actualmente seleccionados
+     * @return array Resultado de la eliminación
+     */
+    public function deleteOrphanSalaries($employeeId, $currentTiposPlanillaIds)
+    {
+        try {
+            $deleted = 0;
+
+            // Si no hay tipos de planilla seleccionados, eliminar todos los salarios
+            if (empty($currentTiposPlanillaIds)) {
+                $sql = "DELETE FROM {$this->table}
+                        WHERE employee_id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$employeeId]);
+                $deleted = $stmt->rowCount();
+
+                return [
+                    'success' => true,
+                    'deleted' => $deleted,
+                    'message' => "Todos los salarios eliminados (empleado sin tipos de planilla)"
+                ];
+            }
+
+            // Obtener salarios existentes
+            $sql = "SELECT id, tipo_planilla_id
+                    FROM {$this->table}
+                    WHERE employee_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $existingSalaries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Identificar salarios huérfanos (tipos de planilla que ya no están asignados)
+            foreach ($existingSalaries as $salary) {
+                if (!in_array($salary['tipo_planilla_id'], $currentTiposPlanillaIds)) {
+                    // Eliminar salario huérfano
+                    $deleteSql = "DELETE FROM {$this->table} WHERE id = ?";
+                    $deleteStmt = $this->db->prepare($deleteSql);
+                    if ($deleteStmt->execute([$salary['id']])) {
+                        $deleted++;
+                    }
+                }
+            }
+
+            return [
+                'success' => true,
+                'deleted' => $deleted,
+                'message' => $deleted > 0 ? "Se eliminaron {$deleted} salario(s) huérfano(s)" : "No hay salarios huérfanos"
+            ];
+
+        } catch (PDOException $e) {
+            error_log("Error deleting orphan salaries: " . $e->getMessage());
+            return [
+                'success' => false,
+                'deleted' => 0,
+                'message' => 'Error al eliminar salarios huérfanos',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Desactivar (soft delete) un salario específico
      *
      * @param int $id

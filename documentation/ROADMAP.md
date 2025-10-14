@@ -1,8 +1,8 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 4 de Octubre, 2025
-**Versión**: 3.3.15 - Módulo Acumulados Refactorizado + Agrupación Dinámica
+**Fecha**: 10 de Octubre, 2025
+**Versión**: 3.4.1 - Preparación Cálculos Avanzados Asistencias (Migraciones BD Subfase 7.2)
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -157,7 +157,7 @@
 
 ## 🎯 **SIGUIENTES FASES PRIORIZADAS**
 
-### 📅 **FASE 4: CALENDARIO EMPRESARIAL PANAMÁ** *(Q4 2025 - ✅ 80% COMPLETADO)*
+### 📅 **FASE 4: CALENDARIO EMPRESARIAL PANAMÁ** *(Q4 2025 - ✅ 100% COMPLETADO)*
 **Objetivo**: Sistema calendario empresarial con días laborables según legislación panameña
 **Tiempo Estimado**: 3-4 semanas
 - [x] **Subfase 4.1: Base de Datos** *(1 semana)* ✅ **COMPLETADA**
@@ -189,11 +189,9 @@
     - [x] Validaciones CSRF + rango años
     - [x] Testing script exitoso (2025: 365 días, 2026: 365 días)
     - [x] Fix namespace Security (App\Core\Security)
-- [ ] **Subfase 4.4: Integración Cálculos Legales** *(1 semana)* ⏳ **PENDIENTE**
-  - [ ] Actualizar liquidaciones: preaviso 30 días laborables exactos
-  - [ ] Integrar vacaciones: días hábiles únicamente
-  - [ ] XIII Mes: proporcional días trabajados reales
-  - [ ] Actualizar PlanillaConceptCalculator con días laborables
+- [~] **Subfase 4.4: Integración Cálculos Legales** ❌ **CANCELADA**
+  - **Nota**: Esta subfase fue cancelada. La integración del BusinessCalendar con liquidaciones, vacaciones y XIII Mes se implementará como parte de **FASE 7: API Marcaciones y Asistencias (Subfase 7.3)**.
+  - El modelo BusinessCalendar permanece disponible para uso futuro según necesidades del proyecto.
 
 ### 🏖️ **FASE 5: MÓDULO VACACIONES PANAMÁ** *(Q4 2025/Q1 2026 - Alta Prioridad)*
 **Objetivo**: Sistema completo gestión vacaciones según legislación panameña
@@ -243,41 +241,68 @@
   - [ ] Estadísticas uso sistema
   - [ ] Panel administración central
 
-### ⏰ **FASE 7: INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(Q1 2026 - Alta Prioridad)*
+### ⏰ **FASE 7: INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(Q4 2025/Q1 2026 - ⭐ PRIORIDAD ALTA)*
 **Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
 **Tiempo Estimado**: 6-8 semanas
+**Estado**: 🟢 En Desarrollo (25% completado - Migraciones BD Fase 7.2 completadas)
 
-- [ ] **Subfase 7.1: Integración API Externa** *(2 semanas)*
-  - [ ] API Client Service (REST/SOAP) + authentication handler
-  - [ ] Data Sync Scheduler (cron jobs) + webhook receiver
-  - [ ] Error handling + retry logic + logging completo
-  - [ ] Tablas BD: `attendance_api_config`, `attendance_raw_data`, `attendance_sync_log`
-  - [ ] Panel configuración API en dashboard
+- [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
+  - [x] Base44ApiClient (367 líneas): Cliente HTTP cURL + retry logic + backoff exponencial
+  - [x] AttendanceSyncService (510 líneas): Sincronización completa/incremental/manual
+  - [x] AttendanceApiConfig Model (240 líneas): CRUD + validaciones + estadísticas
+  - [x] AttendanceApiConfigController (300+ líneas): 9 endpoints REST
+  - [x] Vista AdminLTE (500+ líneas): Formulario + estadísticas + logs + modales
+  - [x] Cron Job (130 líneas): Script CLI sincronización cada 15 minutos
+  - [x] Base44WebhookController (220 líneas): Endpoint /webhooks/base44/attendance
+  - [x] Tablas BD: `attendance_api_config`, `attendance_raw_data`, `attendance_sync_log`
+  - [x] Rutas registradas + sidebar integration
+  - [x] Logging exhaustivo (API, sync, webhooks)
+  - [x] **Estadísticas**: ~2,417 líneas código | 12 archivos nuevos
 
-- [ ] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)*
+- [~] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* 🔵 **EN PROGRESO (25%)**
+  - [x] **Migraciones BD** ✅ **COMPLETADAS (10-Oct-2025)**:
+    - [x] Tabla `attendance_calculations` (total_hours, overtime_hours, tardiness, perfect_attendance)
+    - [x] Tabla `attendance_absence_log` (ausencias con justificaciones y resolución)
+    - [x] Tabla `employee_payroll_salaries` (salarios múltiples por tipo de planilla + histórico)
+    - [x] 14 Foreign Keys + 22 Índices optimizados
+    - [x] **Migración**: `2025_10_10_attendance_calculations.sql` (145 líneas)
+    - [x] **Migración**: `2025_10_10_employee_payroll_salaries.sql` (153 líneas)
   - [ ] AttendanceCalculator: marcaciones perfectas + horas trabajadas + ausencias
-  - [ ] Tardanzas con tolerancia configurable + salidas anticipadas
-  - [ ] OvertimeCalculator: horas extras automáticas + tiempo de almuerzo
-  - [ ] WorkScheduleResolver: horarios por empleado/día + turnos rotativos
-  - [ ] Tablas BD: `attendance_records`, `attendance_calculations`, `attendance_exceptions`
-  - [ ] Reports Generator: reportes diarios/semanales/mensuales
+  - [ ] Tardanzas con tolerancia configurable (ej: 5 min gratis) + salidas anticipadas
+  - [ ] OvertimeCalculator: horas extras automáticas (normales/nocturnas/feriados)
+  - [ ] WorkScheduleResolver: determina horario aplicable por empleado/día + turnos rotativos
+  - [ ] AbsenceDetector: identifica ausencias y clasifica tipos (justificadas/injustificadas)
+  - [ ] Tiempo de Almuerzo: descuento automático según políticas empresa
+  - [ ] Reports Generator: reportes diarios/semanales/mensuales asistencias
 
-- [ ] **Subfase 7.3: Consideraciones Legales Panamá** *(1-2 semanas)*
-  - [ ] LegalComplianceChecker: jornada ordinaria (8h/día, 48h/semana)
+- [ ] **Subfase 7.3: Consideraciones Legales Panamá + Integración BusinessCalendar** *(1-2 semanas)*
+  - [ ] LegalComplianceChecker: validación cumplimiento normativa laboral panameña
+  - [ ] Jornada Ordinaria: máximo 8h/día, 48h/semana (Código de Trabajo Art. 31)
   - [ ] Jornada nocturna (6PM-6AM) +50% según Art. 38 Código Trabajo
   - [ ] Horas extras: primeras 3h +25%, siguientes +50% (Art. 39)
-  - [ ] Trabajo domingos/feriados +50% (Art. 48)
-  - [ ] WorkingDayClassifier: días ordinarios/festivos/descanso
+  - [ ] Trabajo domingos/feriados +50% (Art. 48) + tiempo comida mínimo 30 min (Art. 35)
+  - [ ] Tolerancia tardanzas: configuración por empresa según políticas internas
+  - [ ] Faltas graves: 3+ ausencias injustificadas en mes = causal despido (Art. 213)
+  - [ ] WorkingDayClassifier: clasificación días ordinarios/festivos/descanso
+  - [ ] **🔗 INTEGRACIÓN BusinessCalendar**: Uso de días laborables para cálculos legales
+  - [ ] **🔗 Liquidaciones**: Actualizar preaviso con 30 días laborables exactos usando BusinessCalendar
+  - [ ] **🔗 Vacaciones**: Validar solo días hábiles según BusinessCalendar
+  - [ ] **🔗 XIII Mes**: Calcular proporcional con días trabajados reales
+  - [ ] **🔗 PlanillaConceptCalculator**: Integrar BusinessCalendar para días laborables
+  - [ ] OvertimeRateCalculator: cálculo tarifas según tipo de hora extra
   - [ ] Alerts System: notificaciones excesos jornada + faltas graves
 
 - [ ] **Subfase 7.4: Integración con Generación de Planillas** *(1-2 semanas)*
-  - [ ] PayrollAttendanceIntegrator: asistencias → planillas automático
+  - [ ] PayrollAttendanceIntegrator: integración asistencias → planillas automático
+  - [ ] AttendanceConceptMapper: mapeo cálculos asistencias → conceptos planilla
   - [ ] Conceptos automáticos: HORAS_TRABAJADAS, HORAS_EXTRAS_25, HORAS_EXTRAS_50
-  - [ ] Conceptos adicionales: HORAS_NOCTURNAS, HORAS_DOMINICALES, DESCUENTO_TARDANZAS
+  - [ ] Conceptos adicionales: HORAS_NOCTURNAS, HORAS_DOMINICALES, DESCUENTO_TARDANZAS, DESCUENTO_AUSENCIAS
   - [ ] Conceptos bonificación: BONO_PUNTUALIDAD por asistencia perfecta
   - [ ] PeriodAttendanceSummary: resumen asistencias por período de planilla
-  - [ ] Tablas BD: `payroll_attendance_summary`, `attendance_concepts_mapping`
-  - [ ] Validaciones cruce datos + reporte adjunto asistencias incluidas
+  - [ ] ValidationRules: validaciones cruce de datos asistencias/planillas
+  - [ ] Tablas BD: `payroll_attendance_summary`, `attendance_concepts_mapping`, `payroll_attendance_details`
+  - [ ] Flujo de trabajo: crear planilla → consultar período asistencias → calcular conceptos → revisión manual → generar reporte adjunto
+  - [ ] Reporte adjunto: detalle asistencias incluidas en cada planilla
 
 - [ ] **Subfase 7.5: Interfaz y Reportes** *(1 semana)*
   - [ ] Vista empleados: consulta asistencias propias en tiempo real
@@ -285,6 +310,17 @@
   - [ ] Reportes ejecutivos: puntualidad, ausentismo, horas extras
   - [ ] Alertas automáticas: ausencias injustificadas, excesos jornada
   - [ ] Exportación: Excel, PDF, CSV de reportes de asistencias
+  - [ ] Dashboards visuales: gráficos asistencia por período
+  - [ ] Notificaciones: alertas automáticas para supervisores/RRHH
+
+**Beneficios del Sistema**:
+- ✅ **Automatización Total**: Elimina carga manual de asistencias
+- ✅ **Cumplimiento Legal**: Garantiza aplicación correcta legislación panameña
+- ✅ **Transparencia**: Empleados pueden consultar sus asistencias en tiempo real
+- ✅ **Auditoría Completa**: Registro detallado de todas las marcaciones y cálculos
+- ✅ **Flexibilidad**: Reglas configurables por empresa y tipo de empleado
+- ✅ **Precisión**: Cálculos exactos eliminan errores humanos
+- ✅ **Reportes**: Dashboards y reportes ejecutivos de asistencias
 
 ### 📊 **FASE 8: REPORTERÍA AVANZADA + API** *(Q2 2026 - Mediana Prioridad)*
 **Objetivo**: Reportes legales + API REST completa
@@ -372,12 +408,12 @@
 ## 🎯 **PRÓXIMOS HITOS ACTUALIZADOS**
 
 ### 📅 **Q4 2025** *(Oct - Dic 2025)*
-- **Calendario Empresarial Panamá**: Sistema completo días laborables (3-4 semanas)
+- ✅ **Calendario Empresarial Panamá**: Sistema completo días laborables (COMPLETADO)
+- **API Marcaciones y Asistencias**: Inicio implementación (Subfases 7.1 y 7.2) (4 semanas)
 - **Módulo Vacaciones Básico**: CRUD + calculadora + integración (4-5 semanas)
-- **Preparación API Marcaciones**: Análisis requerimientos + diseño arquitectura (1-2 semanas)
 
 ### 📅 **Q1 2026** *(Ene - Mar 2026)*
-- **API Marcaciones y Asistencias**: Integración completa + cálculos + legislación + planillas (6-8 semanas)
+- **API Marcaciones y Asistencias**: Completar subfases 7.3, 7.4 y 7.5 (legislación + planillas + interfaz) (4-5 semanas)
 - **Multitenancy Básico**: Wizard + BD por tenant + middleware (6-8 semanas)
 - **Mejoras Performance**: Cache + optimizaciones SQL (2-3 semanas)
 

@@ -806,42 +806,88 @@
         },
 
         /**
-         * Submit form action (delete, etc.)
+         * Submit form action via AJAX (reopen, delete, toPending)
          */
         submitFormAction: function(action, data = {}) {
-            const form = $("<form>", {
-                method: "POST",
-                action: `${this.config.urls.payrolls}/${this.state.currentPayrollId}/${action}`
-            });
+            const self = this;
 
-            form.append($("<input>", {
-                type: "hidden",
-                name: "csrf_token",
-                value: this.config.csrfToken
-            }));
+            // Prepare AJAX data
+            const ajaxData = {
+                csrf_token: this.config.csrfToken,
+                ...data
+            };
 
             // Mantener filtro de tipo_planilla_id si existe en la URL
             const urlParams = new URLSearchParams(window.location.search);
             const tipoPlanillaId = urlParams.get("tipo_planilla_id");
             if (tipoPlanillaId) {
-                form.append($("<input>", {
-                    type: "hidden",
-                    name: "tipo_planilla_id",
-                    value: tipoPlanillaId
-                }));
+                ajaxData.tipo_planilla_id = tipoPlanillaId;
             }
 
-            // Add additional data
-            for (const [key, value] of Object.entries(data)) {
-                form.append($("<input>", {
-                    type: "hidden",
-                    name: key,
-                    value: value
-                }));
+            // Determine which modal to close based on action
+            let modalToClose = '';
+            let successMessage = 'Operación completada exitosamente';
+            let successTitle = 'Éxito';
+
+            switch(action) {
+                case 'reopen':
+                    modalToClose = '#reopenModal';
+                    successMessage = 'Planilla reabierta exitosamente';
+                    successTitle = 'Planilla Reabierta';
+                    break;
+                case 'toPending':
+                    modalToClose = '#markPendingModal';
+                    successMessage = 'Planilla marcada como pendiente exitosamente';
+                    successTitle = 'Estado Actualizado';
+                    break;
+                case 'delete':
+                    modalToClose = '#deleteModal';
+                    successMessage = 'Planilla eliminada exitosamente';
+                    successTitle = 'Planilla Eliminada';
+                    break;
             }
 
-            $("body").append(form);
-            form.submit();
+            $.ajax({
+                url: `${this.config.urls.payrolls}/${this.state.currentPayrollId}/${action}`,
+                method: "POST",
+                data: ajaxData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Close modal
+                        if (modalToClose) {
+                            $(modalToClose).modal("hide");
+                        }
+
+                        // Show success notification
+                        toastr.success(response.message || successMessage, successTitle);
+
+                        // Reload DataTable after a short delay
+                        setTimeout(() => {
+                            self.reloadDataTable();
+                            // Unblock user actions after reload
+                            self.unblockUserActions();
+                        }, 500);
+                    } else {
+                        toastr.error(response.message || "Error en la operación", "Error");
+                        // Unblock on error
+                        self.unblockUserActions();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = "Error en la operación";
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    toastr.error(errorMessage, "Error");
+                    // Unblock on error
+                    self.unblockUserActions();
+                }
+            });
         },
 
         /**

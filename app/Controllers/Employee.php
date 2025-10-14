@@ -356,11 +356,27 @@ class Employee extends Controller
 
             $employee->update($id, $updateData);
 
-            // ✅ Guardar/actualizar salarios múltiples por tipo de planilla
-            if (!empty($data['salaries']) && is_array($data['salaries'])) {
-                $employeePayrollSalary = $this->model('EmployeePayrollSalary');
-                $userId = $_SESSION['user_id'] ?? null;
+            // ✅ Sincronizar salarios con tipos de planilla seleccionados
+            $employeePayrollSalary = $this->model('EmployeePayrollSalary');
+            $userId = $_SESSION['user_id'] ?? null;
 
+            // Obtener IDs de tipos de planilla actualmente seleccionados
+            $selectedTiposPlanillaIds = [];
+            if (isset($data['edit_tipo_planilla']) && is_array($data['edit_tipo_planilla'])) {
+                $selectedTiposPlanillaIds = array_map('intval', $data['edit_tipo_planilla']);
+            } elseif (!empty($data['edit_tipo_planilla'])) {
+                // Si viene como string separado por comas (fallback)
+                $selectedTiposPlanillaIds = array_map('intval', explode(',', $data['edit_tipo_planilla']));
+            }
+
+            // 🗑️ PASO 1: Eliminar salarios huérfanos (de tipos de planilla ya no seleccionados)
+            $deleteResult = $employeePayrollSalary->deleteOrphanSalaries($id, $selectedTiposPlanillaIds);
+            if ($deleteResult['deleted'] > 0) {
+                error_log("Deleted {$deleteResult['deleted']} orphan salary record(s) for employee {$id}");
+            }
+
+            // 💾 PASO 2: Guardar/actualizar salarios para tipos de planilla seleccionados
+            if (!empty($data['salaries']) && is_array($data['salaries'])) {
                 $salariesResult = $employeePayrollSalary->saveBulkSalaries($id, $data['salaries'], $userId);
 
                 if (!$salariesResult['success']) {
