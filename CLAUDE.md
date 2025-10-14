@@ -1,9 +1,9 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.3.22 Inicialización Automática Calendario**
-- **Fecha**: 6 de Octubre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO EMPRESARIAL + INICIALIZACIÓN AUTOMÁTICA**
-- **Versión**: 3.3.22 - Fix Security namespace + Inicialización automática años completos (interfaz web + scripts CLI) + validaciones + testing completado
+## 📝 **Estado Actual - V3.4.1 Preparación Cálculos Asistencias**
+- **Fecha**: 10 de Octubre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + BD CÁLCULOS**
+- **Versión**: 3.4.1 - Migraciones BD Subfase 7.2 completadas (attendance_calculations + attendance_absence_log + employee_payroll_salaries)
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -58,6 +58,7 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Múltiples Tipos de Planilla V3.3.20**: Empleados ahora pueden pertenecer a múltiples tipos de planilla + migración DB tipo_planilla_id INT→VARCHAR(255) + Select2 múltiple en create/edit + implode/explode conversión array↔string + FIND_IN_SET() queries en Employee/Acumulado/Attendance models + vista show.php muestra badges múltiples + filtros Dashboard/Acumulados actualizados + tabla backup rollback disponible
 - ✅ **Calendario Empresarial V3.3.21**: FASE 4 Subfases 4.1-4.3 completadas (75% total) + tabla business_calendar con 411 registros (feriados Panamá 2024-2025 + fines semana + días laborables) + BusinessCalendar model completo (270 líneas, 14 métodos) + BusinessCalendarController CRUD + vistas index.php/calendar.php + FullCalendar.js 6.1.8 integration + sidebar link + rutas registradas + API AJAX getWorkingDays() + estadísticas visuales + modal agregar días especiales + DataTables listado
 - ✅ **Inicialización Automática Calendario V3.3.22**: Fix Security namespace (App\Core\Security) + Script CLI fill_business_calendar_2025.php standalone + Método BusinessCalendar->initializeYear($year) con 85 líneas + Interfaz web botón "Inicializar Año" + Modal selector años (2024-2030+) + Ruta POST /initializeYear + Validaciones rango + CSRF + Testing script 2026 exitoso (365 días) + Mantiene feriados existentes + Genera días laborables/fines semana automáticamente + Mensajes detallados inserted/skipped/total
+- ✅ **Integración API Asistencias Base44 V3.4.0**: Subfase 7.1 completada + Base44ApiClient (367 líneas) con retry logic + AttendanceSyncService (510 líneas) sincronización automática + 3 tablas BD (api_config, raw_data, sync_log) + AttendanceApiConfigController con interfaz AdminLTE completa + Cron job sincronización cada 15 min + Base44WebhookController para notificaciones tiempo real + Ruta /webhooks/base44/attendance + Logging exhaustivo + Estadísticas visuales + Endpoint test conexión
 
 ## 📄 **Reportes PDF Empresariales**
 - **Planillas**: Layout horizontal + logos empresariales + firmas profesionales
@@ -257,31 +258,89 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - **Mensajes Error Descriptivos**: Incluyen período específico + sugerencias verificación fechas
 - **Logging Trazabilidad**: Conteo empleados antes/después validación + debugging información
 
-## ⏰ **MÓDULO API MARCACIONES Y ASISTENCIAS - PLANIFICADO**
+## ⏰ **MÓDULO API MARCACIONES Y ASISTENCIAS - EN DESARROLLO**
 
 ### **Objetivo General**
 Integración completa con API externa de marcaciones para control automatizado de asistencias, cálculo de horas trabajadas, y generación automática de conceptos en planillas según legislación panameña.
 
-### **Fase 1: Integración API Externa**
+### **Estado Actual**: 🔵 Subfase 7.2 EN PROGRESO - 25% (Migraciones BD completadas)
+
+### **Subfase 7.1: Integración API Externa** ✅ **COMPLETADA (9-Oct-2025)**
 **Objetivo**: Establecer conexión robusta con API de marcaciones y sincronización bidireccional de datos.
 
-**Componentes**:
-- **API Client Service**: Clase PHP para comunicación con API externa (REST/SOAP)
-- **Authentication Handler**: Gestión de tokens, OAuth, o API keys
-- **Data Sync Scheduler**: Cron jobs para sincronización automática periódica
-- **Webhook Receiver**: Endpoint para recibir notificaciones en tiempo real
-- **Error Handling & Retry Logic**: Manejo de fallos de conexión y reintentos automáticos
-- **Logging & Monitoring**: Registro detallado de todas las transacciones API
+**Componentes Implementados**:
+- ✅ **Base44ApiClient** (367 líneas): Cliente HTTP completo con cURL + retry logic (3 intentos) + backoff exponencial + timeout 30s
+- ✅ **AttendanceSyncService** (510 líneas): Sincronización completa/incremental/por empleado + detección duplicados + manejo conflictos
+- ✅ **AttendanceApiConfig Model** (240 líneas): CRUD configuración + validaciones + estadísticas sync + shouldSync() logic
+- ✅ **AttendanceApiConfigController** (300+ líneas): 9 endpoints (save, test, sync-now, enable/disable, logs, clean)
+- ✅ **Vista AdminLTE Completa** (500+ líneas): Formulario config + estadísticas cards + panel control + tabla logs + modales
+- ✅ **Cron Job** (130 líneas): Script CLI sincronización automática cada 15 minutos + validaciones + estadísticas
+- ✅ **Base44WebhookController** (220 líneas): Endpoint público /webhooks/base44/attendance + validación firma HMAC + logging
+- ✅ **Sidebar Integration**: Enlace "Configuración API" en menú Asistencia + icono fas fa-plug
 
-**Tablas BD**:
-- `attendance_api_config`: Configuración conexión API (endpoint, credentials, frequency)
-- `attendance_raw_data`: Datos crudos recibidos desde API (backup/auditoría)
-- `attendance_sync_log`: Historial de sincronizaciones (timestamp, records, status)
+**Tablas BD Creadas**:
+- ✅ `attendance_api_config`: Configuración API (provider, key, app_id, url, sync_enabled, interval, webhook)
+- ✅ `attendance_raw_data`: Backup datos crudos API (external_id, entity_type, raw_json, processed, sync_batch_id)
+- ✅ `attendance_sync_log`: Historial sincronizaciones (type, stats, duration, status, errors, triggered_by)
 
-### **Fase 2: Cálculos Avanzados de Asistencias**
+**Rutas Implementadas**:
+- ✅ `GET /panel/attendance-api-config`: Vista configuración
+- ✅ `POST /panel/attendance-api-config/save`: Guardar config
+- ✅ `POST /panel/attendance-api-config/test-connection`: Test API (AJAX)
+- ✅ `POST /panel/attendance-api-config/sync-now`: Sincronizar manual
+- ✅ `POST /webhooks/base44/attendance`: Webhook receiver (público)
+
+**Estadísticas**: ~2,417 líneas código | 12 archivos nuevos | 2 archivos modificados
+
+---
+
+### **Subfase 7.2: Cálculos Avanzados de Asistencias** 🔵 **EN PROGRESO (25%)**
 **Objetivo**: Procesar marcaciones y calcular métricas de asistencia según reglas empresariales.
 
-**Cálculos Implementados**:
+#### ✅ **Migraciones BD COMPLETADAS (10-Oct-2025)**
+
+**Tabla `attendance_calculations`** (Migración: `2025_10_10_attendance_calculations.sql` - 145 líneas):
+- **Referencias**: attendance_id, employee_id, schedule_id (FKs)
+- **Marcaciones**: time_in, time_out, scheduled_time_in, scheduled_time_out
+- **Horas Trabajadas**: total_hours, regular_hours, overtime_hours, overtime_25_hours, overtime_50_hours, night_hours, holiday_hours
+- **Tardanzas**: tardiness_minutes, is_late, early_departure_minutes
+- **Ausencias**: is_absent, absence_type (JUSTIFIED/UNJUSTIFIED/UNKNOWN)
+- **Tipo Día**: is_working_day, is_holiday, is_weekend, day_type
+- **Métricas**: is_perfect_attendance, punctuality_score (0-100)
+- **Almuerzo**: lunch_time_minutes (descuento configurable)
+- **Auditoría**: calculation_version, calculated_at, recalculated_at
+- **Detalles**: notes, calculation_details (JSON)
+- **Índices**: unique_attendance_calc + 7 índices optimizados
+
+**Tabla `attendance_absence_log`** (Migración: `2025_10_10_attendance_calculations.sql`):
+- **Ausencia**: absence_date, absence_type (JUSTIFIED/UNJUSTIFIED/PENDING)
+- **Justificación**: justified, justification_type (MEDICAL/PERMISSION/VACATION/OTHER)
+- **Documentación**: justification_document (ruta), justification_notes
+- **Día**: is_working_day, day_type
+- **Detección**: detected_at, detection_method (AUTO/MANUAL/SYNC)
+- **Resolución**: resolved, resolved_at, resolved_by (FK users)
+- **Índices**: unique_employee_absence + 5 índices
+
+**Tabla `employee_payroll_salaries`** (Migración: `2025_10_10_employee_payroll_salaries.sql` - 153 líneas):
+- **Objetivo**: Salarios diferenciados por tipo de planilla con histórico de vigencias
+- **Campos**: employee_id, tipo_planilla_id, sueldo_base, gastos_representacion
+- **Vigencia**: fecha_inicio, fecha_fin (NULL = indefinido), is_active
+- **Auditoría**: created_by, updated_by, notes
+- **Script Migración Automática**: Migra datos desde `employees.sueldo_individual` usando COALESCE
+- **Soporta**: Hasta 10 tipos de planilla por empleado
+- **Estadísticas**: Reporte automático salarios por tipo (promedio/mínimo/máximo)
+- **Índices**: unique_employee_payroll_active + 4 índices
+
+**Estadísticas Migraciones**: 298 líneas SQL | 3 tablas | 14 Foreign Keys | 22 Índices
+
+#### 🔲 **Componentes PHP Pendientes**:
+- [ ] **AttendanceCalculator**: Clase principal de cálculos
+- [ ] **WorkScheduleResolver**: Determina horario aplicable por empleado/día
+- [ ] **OvertimeCalculator**: Cálculo horas extras (normales/nocturnas/feriados)
+- [ ] **AbsenceDetector**: Identifica ausencias y clasifica tipos
+- [ ] **Reports Generator**: Reportes diarios/semanales/mensuales de asistencias
+
+#### 🔲 **Cálculos a Implementar**:
 - **Marcaciones Perfectas**: Entrada/salida dentro de horario sin tardanzas
 - **Horas Trabajadas**: Cálculo exacto entre entrada/salida con redondeos configurables
 - **Ausencias**: Detección automática días sin marcación (justificadas/injustificadas)
@@ -289,18 +348,6 @@ Integración completa con API externa de marcaciones para control automatizado d
 - **Horas Extras**: Cálculo automático tiempo adicional después de jornada normal
 - **Salidas Anticipadas**: Detección de salidas antes de hora programada
 - **Tiempo de Almuerzo**: Descuento automático según políticas empresa
-
-**Componentes**:
-- **AttendanceCalculator**: Clase principal de cálculos
-- **WorkScheduleResolver**: Determina horario aplicable por empleado/día
-- **OvertimeCalculator**: Cálculo horas extras (normales/nocturnas/feriados)
-- **AbsenceDetector**: Identifica ausencias y clasifica tipos
-- **Reports Generator**: Reportes diarios/semanales/mensuales de asistencias
-
-**Tablas BD**:
-- `attendance_records`: Registros procesados de asistencias
-- `attendance_calculations`: Resultados de cálculos (horas, tardanzas, extras)
-- `attendance_exceptions`: Excepciones y justificaciones (permisos, incapacidades)
 
 ### **Fase 3: Consideraciones Legales Panamá**
 **Objetivo**: Aplicar normativa laboral panameña al control de asistencias.
@@ -367,7 +414,7 @@ Integración completa con API externa de marcaciones para control automatizado d
 - **Reportes**: TCPDF + diseño empresarial profesional
 - **Estado**: Producción estable + arquitectura escalable
 
-## 📅 **Calendario Empresarial Panamá - V3.3.22 (80% COMPLETADO)**
+## 📅 **Calendario Empresarial Panamá - V3.3.22 (COMPLETADO)**
 
 ### ✅ **Subfases Completadas**:
 - **Subfase 4.1 - Base de Datos** ✅ 100%
@@ -411,22 +458,19 @@ Integración completa con API externa de marcaciones para control automatizado d
   - **Resultados**: 2025 (365 días), 2026 (365 días) completados automáticamente
   - **Fix Bug**: Corregido namespace `App\Helpers\Security` → `App\Core\Security`
 
-### ⏳ **Pendiente**:
-- **Subfase 4.4 - Integración Cálculos Legales** (20% faltante)
-  - Actualizar liquidaciones: usar días laborables exactos para preaviso
-  - Integrar vacaciones: validar solo días hábiles
-  - XIII Mes: calcular proporcional con días trabajados reales
-  - PlanillaConceptCalculator: integrar BusinessCalendar
+### 📝 **Nota Importante**:
+- **Subfase 4.4 - Integración Cálculos Legales**: CANCELADA
+  - La integración del calendario empresarial con los cálculos de liquidaciones, vacaciones y XIII Mes se implementará como parte del **Módulo de Integración API Marcaciones y Asistencias**
+  - El modelo BusinessCalendar permanece disponible para uso futuro según necesidades del proyecto
 
 ## 🔑 **Próximas Fases**
-1. **📅 CALENDARIO EMPRESARIAL - SUBFASE 4.4**: Integración cálculos legales con días laborables (1 semana)
-2. **🏖️ MÓDULO VACACIONES PANAMÁ**: 4 subfases planificadas (VacationCalculator + CRUD + Aprobaciones + Integración)
-3. **🏢 MULTITENANCY**: Wizard empresas + BD automática
-4. **⏰ INTEGRACIÓN API MARCACIONES Y ASISTENCIAS**: Sistema completo de control de asistencias con API externa
+1. **⏰ INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** (PRIORIDAD ALTA): Sistema completo de control de asistencias con API externa
    - **Fase 1 - Integración API Externa**: Conexión con API de marcaciones + sincronización automática datos
    - **Fase 2 - Cálculos Avanzados**: Marcaciones perfectas + horas trabajadas + ausencias + tardanzas + horas extras
-   - **Fase 3 - Consideraciones Legales**: Aplicación normativa panameña trabajo + jornadas laborales + límites legales
+   - **Fase 3 - Consideraciones Legales**: Aplicación normativa panameña trabajo + jornadas laborales + límites legales + integración BusinessCalendar
    - **Fase 4 - Integración Planillas**: Cálculo horas trabajadas en generación de planillas + conceptos automáticos + validaciones
+2. **🏖️ MÓDULO VACACIONES PANAMÁ**: 4 subfases planificadas (VacationCalculator + CRUD + Aprobaciones + Integración)
+3. **🏢 MULTITENANCY**: Wizard empresas + BD automática
 
 ---
 
@@ -481,12 +525,24 @@ Cuando el usuario solicite cualquier tipo de análisis (usando palabras como "an
 ## 📁 **Estructura de Documentación**
 - **CLAUDE.md**: Memoria principal del proyecto (raíz)
 - **documentation/**: Directorio para archivos de documentación del proyecto
-  - **ROADMAP.md**: Hoja de ruta y planificación  
-  - **CHANGELOG.md**: Historial de cambios y versiones
+  - **ROADMAP.md**: Hoja de ruta y planificación
+  - **CHANGELOG.md**: Índice principal de versiones
+  - **changelog/**: Directorio de changelogs individuales por versión
+    - **v3.4.1.md**: Migraciones BD Cálculos Asistencias (10-Oct-2025)
+    - **v3.4.0.md**: Integración API Base44 (9-Oct-2025)
+    - **README.md**: Guía de estructura y convenciones
   - **TODO.md**: Lista de tareas pendientes
 - **docs/**: Directorio de AdminLTE (NO MODIFICAR)
 
 IMPORTANTE: Todos los archivos de documentación del proyecto deben guardarse en `/documentation` para no confundirlos con `/docs` que pertenece a la plantilla AdminLTE.
+
+### **Sistema de Changelogs Modularizados (V3.4.1+)**
+A partir de la versión 3.4.1, cada versión tiene su propio archivo en `documentation/changelog/`:
+- **Propósito**: Evitar que CHANGELOG.md se vuelva demasiado extenso
+- **Formato**: `vX.Y.Z.md` (ejemplo: `v3.4.1.md`)
+- **Índice**: `CHANGELOG.md` sirve como índice con enlaces a archivos individuales
+- **Template**: Copiar estructura de versiones existentes para nuevas versiones
+- **Convenciones**: Incluir fecha, tipo, componentes, estadísticas y referencias cruzadas
 
       
       IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.

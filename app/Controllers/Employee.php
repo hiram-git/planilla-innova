@@ -371,21 +371,19 @@ class Employee extends Controller
 
             // 🗑️ PASO 1: Eliminar salarios huérfanos (de tipos de planilla ya no seleccionados)
             $deleteResult = $employeePayrollSalary->deleteOrphanSalaries($id, $selectedTiposPlanillaIds);
-            if ($deleteResult['deleted'] > 0) {
-                error_log("Deleted {$deleteResult['deleted']} orphan salary record(s) for employee {$id}");
-            }
 
             // 💾 PASO 2: Guardar/actualizar salarios para tipos de planilla seleccionados
             if (!empty($data['salaries']) && is_array($data['salaries'])) {
                 $salariesResult = $employeePayrollSalary->saveBulkSalaries($id, $data['salaries'], $userId);
 
                 if (!$salariesResult['success']) {
-                    error_log("Warning: Some salaries failed to save for employee {$id}. Errors: {$salariesResult['errors']}");
+                    error_log("[Employee::update] ⚠️ Warning: Some salaries failed to save for employee {$id}. Errors: " . ($salariesResult['errors'] ?? 0) . ", Details: " . json_encode($salariesResult['error_details'] ?? []));
                 }
             }
 
+            // ✅ Redirigir al formulario de edición con mensaje de éxito
             $_SESSION['success'] = 'Colaborador actualizado exitosamente';
-            $this->redirect(\App\Core\UrlHelper::employee());
+            $this->redirect(\App\Core\UrlHelper::employee("edit/$id"));
         } catch (\Exception $e) {
             $_SESSION['error'] = 'Error al actualizar colaborador: ' . $e->getMessage();
             error_log("Error updating employee: " . $e->getMessage());

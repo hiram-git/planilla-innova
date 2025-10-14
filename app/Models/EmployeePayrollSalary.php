@@ -95,14 +95,20 @@ class EmployeePayrollSalary extends Model
 
             if ($existing) {
                 // Actualizar existente
-                return $this->update($existing['id'], $data);
+                $result = $this->update($existing['id'], $data);
+                return $result;
             }
 
             // Insertar nuevo
-            return $this->create($data);
+            $result = $this->create($data);
+            return $result;
 
         } catch (PDOException $e) {
-            error_log("Error saving salary: " . $e->getMessage());
+            error_log("[EmployeePayrollSalary::saveSalary] ❌ PDOException for employee {$data['employee_id']}, tipo {$data['tipo_planilla_id']}: " . $e->getMessage());
+            error_log("[EmployeePayrollSalary::saveSalary] SQL State: " . $e->getCode());
+            return false;
+        } catch (\Exception $e) {
+            error_log("[EmployeePayrollSalary::saveSalary] ❌ Exception for employee {$data['employee_id']}, tipo {$data['tipo_planilla_id']}: " . $e->getMessage());
             return false;
         }
     }
@@ -120,11 +126,13 @@ class EmployeePayrollSalary extends Model
         $saved = 0;
         $errors = 0;
         $skipped = 0;
+        $errorDetails = [];
 
         foreach ($salaries as $tipoPlanillaId => $salaryData) {
             // Validar que tenga al menos sueldo_base
             if (empty($salaryData['sueldo_base']) || $salaryData['sueldo_base'] <= 0) {
                 $skipped++;
+                $errorDetails[] = "Tipo {$tipoPlanillaId}: sueldo_base vacío o inválido";
                 continue;
             }
 
@@ -147,16 +155,25 @@ class EmployeePayrollSalary extends Model
                 $saved++;
             } else {
                 $errors++;
+                $errorDetails[] = "Tipo {$tipoPlanillaId}: Error al guardar";
             }
         }
 
-        return [
+        $result = [
             'success' => $errors == 0,
             'saved' => $saved,
             'errors' => $errors,
             'skipped' => $skipped,
-            'total' => count($salaries)
+            'total' => count($salaries),
+            'error_details' => $errorDetails
         ];
+
+        // Solo registrar si hay errores
+        if ($errors > 0 || $skipped > 0) {
+            error_log("[EmployeePayrollSalary] saveBulkSalaries() - Employee {$employeeId}: {$errors} errors, {$skipped} skipped. Details: " . json_encode($errorDetails));
+        }
+
+        return $result;
     }
 
     /**
