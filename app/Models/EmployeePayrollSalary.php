@@ -90,37 +90,26 @@ class EmployeePayrollSalary extends Model
     public function saveSalary($data)
     {
         try {
-            error_log("[EmployeePayrollSalary::saveSalary] Employee: {$data['employee_id']}, Tipo: {$data['tipo_planilla_id']}");
-            error_log("[EmployeePayrollSalary::saveSalary] Data: " . json_encode($data));
-
             // Verificar si ya existe un registro activo
             $existing = $this->getSalaryForPayroll($data['employee_id'], $data['tipo_planilla_id']);
 
             if ($existing) {
                 // Actualizar existente
-                error_log("[EmployeePayrollSalary::saveSalary] Found existing record ID: {$existing['id']}, updating...");
-                error_log("[EmployeePayrollSalary::saveSalary] Existing data: " . json_encode($existing));
-
                 $result = $this->update($existing['id'], $data);
-
-                error_log("[EmployeePayrollSalary::saveSalary] Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
                 return $result;
             }
 
             // Insertar nuevo
-            error_log("[EmployeePayrollSalary::saveSalary] No existing record, creating new...");
             $result = $this->create($data);
-            error_log("[EmployeePayrollSalary::saveSalary] Create result: " . ($result ? "ID {$result}" : 'FAILED'));
             return $result;
 
         } catch (PDOException $e) {
-            error_log("[EmployeePayrollSalary::saveSalary] ❌ PDOException: " . $e->getMessage());
+            error_log("[EmployeePayrollSalary::saveSalary] ❌ PDOException for employee {$data['employee_id']}, tipo {$data['tipo_planilla_id']}: " . $e->getMessage());
             error_log("[EmployeePayrollSalary::saveSalary] SQL State: " . $e->getCode());
-            error_log("[EmployeePayrollSalary::saveSalary] Trace: " . $e->getTraceAsString());
             error_log("[EmployeePayrollSalary::saveSalary] Failed data: " . json_encode($data));
             return false;
         } catch (\Exception $e) {
-            error_log("[EmployeePayrollSalary::saveSalary] ❌ Exception: " . $e->getMessage());
+            error_log("[EmployeePayrollSalary::saveSalary] ❌ Exception for employee {$data['employee_id']}, tipo {$data['tipo_planilla_id']}: " . $e->getMessage());
             error_log("[EmployeePayrollSalary::saveSalary] Failed data: " . json_encode($data));
             return false;
         }
@@ -141,16 +130,9 @@ class EmployeePayrollSalary extends Model
         $skipped = 0;
         $errorDetails = [];
 
-        error_log("[EmployeePayrollSalary] saveBulkSalaries() - Employee ID: {$employeeId}, User ID: " . ($userId ?? 'NULL'));
-        error_log("[EmployeePayrollSalary] Received salaries count: " . count($salaries));
-
         foreach ($salaries as $tipoPlanillaId => $salaryData) {
-            error_log("[EmployeePayrollSalary] Processing tipo_planilla_id: {$tipoPlanillaId}");
-            error_log("[EmployeePayrollSalary] Salary data: " . json_encode($salaryData));
-
             // Validar que tenga al menos sueldo_base
             if (empty($salaryData['sueldo_base']) || $salaryData['sueldo_base'] <= 0) {
-                error_log("[EmployeePayrollSalary] ⚠️ SKIPPED tipo {$tipoPlanillaId}: sueldo_base empty or <= 0");
                 $skipped++;
                 $errorDetails[] = "Tipo {$tipoPlanillaId}: sueldo_base vacío o inválido";
                 continue;
@@ -175,14 +157,11 @@ class EmployeePayrollSalary extends Model
                 'updated_by' => $userId
             ];
 
-            error_log("[EmployeePayrollSalary] Calling saveSalary() with data: " . json_encode($data));
             $result = $this->saveSalary($data);
 
             if ($result) {
-                error_log("[EmployeePayrollSalary] ✅ SUCCESS tipo {$tipoPlanillaId}: Record ID = {$result}");
                 $saved++;
             } else {
-                error_log("[EmployeePayrollSalary] ❌ ERROR tipo {$tipoPlanillaId}: saveSalary() returned false");
                 $errors++;
                 $errorDetails[] = "Tipo {$tipoPlanillaId}: Error al guardar";
             }
@@ -197,7 +176,11 @@ class EmployeePayrollSalary extends Model
             'error_details' => $errorDetails
         ];
 
-        error_log("[EmployeePayrollSalary] saveBulkSalaries() RESULT: " . json_encode($result));
+        // Solo registrar si hay errores o salarios omitidos
+        if ($errors > 0 || $skipped > 0) {
+            error_log("[EmployeePayrollSalary] saveBulkSalaries() - Employee {$employeeId}: {$errors} errors, {$skipped} skipped. Details: " . json_encode($errorDetails));
+        }
+
         return $result;
     }
 

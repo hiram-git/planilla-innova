@@ -122,8 +122,7 @@ class Payroll extends Model
                            pt.partida as partida_codigo, pt.descripcion as partida_nombre,
                            s.nombre as schedule_nombre,
                            sit.descripcion as situacion_nombre,
-                           tp.descripcion as tipo_planilla_nombre,
-                           et.termination_date
+                           tp.descripcion as tipo_planilla_nombre
                     FROM employees e
                     LEFT JOIN position p ON p.id = e.position_id
                     LEFT JOIN cargos c ON c.id = e.cargo_id
@@ -132,44 +131,20 @@ class Payroll extends Model
                     LEFT JOIN schedules s ON s.id = e.schedule_id
                     LEFT JOIN situaciones sit ON sit.id = e.situacion_id
                     LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id
-                    LEFT JOIN employee_terminations et ON et.employee_id = e.id
-                    WHERE FIND_IN_SET(?, e.tipo_planilla_id)
-                      AND e.situacion_id IN (
-                          SELECT DISTINCT cs.situacion_id
-                          FROM concepto_situaciones cs
-                      )
-                      AND (
-                          -- Validación fecha de ingreso: debe ser anterior o igual a la fecha fin del período
-                          e.fecha_ingreso IS NULL OR e.fecha_ingreso <= ?
-                      )
-                      AND (
-                          -- Validación fecha de salida: si existe, debe ser posterior o igual a la fecha inicio del período
-                          (et.termination_date IS NULL) OR
-                          (et.termination_date >= ?)
-                      )";
+                    WHERE FIND_IN_SET(?, e.tipo_planilla_id)";
             
             $stmt = $this->db->prepare($sql);
             // Usar el tipo de planilla del parámetro si se proporciona, sino el de la planilla original
             $tipoId = $tipoPlanillaId ?: $payroll['tipo_planilla_id'];
 
-            // Preparar parámetros para validación de fechas del período
-            // Si no hay período definido, usar fechas amplias para no filtrar por fecha
-            $periodoFin = $periodo_fin ?: '2099-12-31';   // Fecha fin del período (o muy lejana si no existe)
-            $periodoInicio = $periodo_inicio ?: '1900-01-01'; // Fecha inicio del período (o muy antigua si no existe)
-
-            error_log("Validando empleados para período: $periodoInicio al $periodoFin");
-            $stmt->execute([$tipoId, $periodoFin, $periodoInicio]);
+            error_log("Obteniendo empleados para tipo de planilla: $tipoId");
+            $stmt->execute([$tipoId]);
             $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            error_log("Empleados encontrados después de validación de fechas: " . count($employees));
+            error_log("Empleados encontrados: " . count($employees));
 
             if (empty($employees)) {
-                $errorMessage = 'No hay empleados activos para procesar en el período especificado';
-                if ($periodo_inicio && $periodo_fin) {
-                    $errorMessage .= " ($periodo_inicio al $periodo_fin)";
-                }
-                $errorMessage .= '. Verifique que los empleados tengan fechas de ingreso válidas y estén activos durante el período.';
-                throw new \Exception($errorMessage);
+                throw new \Exception('No hay empleados asignados a este tipo de planilla. Verifique que existan empleados con el tipo de planilla seleccionado.');
             }
 
             // Obtener conceptos con todos sus condicionales
