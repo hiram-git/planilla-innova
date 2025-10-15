@@ -8,6 +8,28 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.4.2]** - 2025-10-10 - *Checkbox Validación Situación + Análisis Reproceso Histórico*
+**Tipo**: Mejora + Análisis
+**Fase**: Sistema Reprocesamiento Planillas
+
+**Componentes Principales**:
+- ✅ **Checkbox Validación Situación Empleado** (COMPLETADO)
+  - Checkbox condicional en modal reprocesar planilla
+  - Parámetro `validate_situacion` flujo completo (Vista→JS→Controller→Model)
+  - Validación condicional `validateConceptConditions()` en Payroll.php
+  - Default checked + logging detallado
+- 📋 **Análisis Reprocesamiento Histórico** (PROPUESTO)
+  - Documento técnico `ANALISIS_REPROCESO_HISTORICO.md` (400+ líneas)
+  - 5 fases planificadas: Detección + Queries Históricas + Modal + JavaScript + Testing
+  - Query empleados históricos con cálculo situación por fechas
+  - Query salarios históricos con validación vigencias
+  - Modal 3 opciones: Histórico/Actual/Cancelar
+- 📈 **Estadísticas**: 4 archivos modificados | 57 líneas código agregadas
+
+**[📄 Ver detalles completos →](./changelog/v3.4.2.md)**
+
+---
+
 ### **[v3.4.1]** - 2025-10-10 - *Preparación BD Cálculos Asistencias*
 **Tipo**: Infraestructura Base de Datos
 **Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (25%)

@@ -553,106 +553,25 @@ function initializeConceptForm() {
     }
     
     function renderAcumuladosForm(tiposAcumulados) {
-        let html = '<div class="row">';
-        
+        let html = '';
+
         tiposAcumulados.forEach(function(tipo, index) {
-            const colClass = index % 2 === 0 ? 'col-md-6' : 'col-md-6';
-            
             html += `
-                <div class="${colClass}">
-                    <div class="card card-outline card-light mb-3">
-                        <div class="card-body p-3">
-                            <div class="form-check">
-                                <input class="form-check-input acumulado-checkbox" 
-                                       type="checkbox" 
-                                       name="acumulados[${tipo.id}][incluir]" 
-                                       id="acumulado_${tipo.id}" 
-                                       value="1"
-                                       onchange="toggleAcumuladoConfig(${tipo.id})">
-                                <label class="form-check-label font-weight-bold" for="acumulado_${tipo.id}">
-                                    ${tipo.text}
-                                </label>
-                            </div>
-                            
-                            <div id="config_${tipo.id}" class="acumulado-config mt-3" style="display: none;">
-                                <div class="row">
-                                    <div class="col-8">
-                                        <label class="form-label text-sm">Referencia de Acumulación (%)</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" 
-                                                   class="form-control" 
-                                                   name="acumulados[${tipo.id}][factor]" 
-                                                   value="100" 
-                                                   min="0" 
-                                                   max="999" 
-                                                   step="0.01"
-                                                   placeholder="100">
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <label class="form-label text-sm">&nbsp;</label>
-                                        <div class="form-check">
-                                            <input class="form-check-input" 
-                                                   type="checkbox" 
-                                                   name="acumulados[${tipo.id}][activo]" 
-                                                   value="1" 
-                                                   checked>
-                                            <label class="form-check-label text-sm">Activo</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row mt-2">
-                                    <div class="col-12">
-                                        <label class="form-label text-sm">Observaciones</label>
-                                        <textarea class="form-control" 
-                                                  name="acumulados[${tipo.id}][observaciones]" 
-                                                  rows="2" 
-                                                  placeholder="Observaciones opcionales sobre este acumulado..."></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-check form-check-sm">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="acumulados[${tipo.id}][incluir]"
+                           id="acumulado_${tipo.id}"
+                           value="1">
+                    <label class="form-check-label" for="acumulado_${tipo.id}">
+                        ${tipo.text}
+                    </label>
                 </div>
             `;
         });
-        
-        html += '</div>';
-        
-        // Agregar botón de ayuda
-        html += `
-            <div class="row mt-3">
-                <div class="col-12">
-                    <div class="alert alert-light">
-                        <h6><i class="fas fa-lightbulb text-warning"></i> Ejemplos de Referencias:</h6>
-                        <ul class="mb-0 text-sm">
-                            <li><strong>100%:</strong> El concepto se acumula completamente (salario base, comisiones)</li>
-                            <li><strong>50%:</strong> Solo se acumula la mitad del concepto</li>
-                            <li><strong>150%:</strong> Se acumula el concepto más recargos (horas extra con recargo)</li>
-                            <li><strong>0%:</strong> El concepto no contribuye a este acumulado</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-        
+
         $('#acumulados-container').html(html);
     }
-    
-    // Mostrar/ocultar configuración de acumulado
-    window.toggleAcumuladoConfig = function(tipoId) {
-        const checkbox = document.getElementById(`acumulado_${tipoId}`);
-        const config = document.getElementById(`config_${tipoId}`);
-        
-        if (checkbox.checked) {
-            $(config).slideDown();
-        } else {
-            $(config).slideUp();
-        }
-    };
     
     // Cargar tipos de acumulados al cargar la página
     $(document).ready(function() {

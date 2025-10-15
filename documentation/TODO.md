@@ -24,6 +24,29 @@
 
 ## 📅 **PRÓXIMAS TAREAS PRIORIZADAS**
 
+### 🔄 **SISTEMA REPROCESAMIENTO HISTÓRICO PLANILLAS** *(PRIORIDAD MEDIA - En Análisis)*
+**Objetivo**: Reprocesar planillas con empleados y salarios históricos (activos en fecha original de la planilla)
+**Tiempo Estimado**: 1-2 semanas
+**Progreso**: ✅ Checkbox validación situación COMPLETADO | 📋 Feature histórica en análisis
+
+- [x] **Checkbox Validación Situación Empleado** ✅ **COMPLETADO (10-Oct-2025)**
+  - [x] Checkbox "Validar situación del empleado" en modal reprocesar planilla
+  - [x] Parámetro `validate_situacion` en flujo completo (Vista → JavaScript → Controller → Model)
+  - [x] Validación condicional en `Payroll.php->validateConceptConditions()`
+  - [x] Default checked (comportamiento por defecto mantiene validación)
+  - [x] Logging detallado estado validación
+  - [x] **Archivos Modificados**: index.php, index.js, PayrollController.php (líneas 560-581), Payroll.php (líneas 91, 716-762, 794)
+
+- [ ] **Sistema Reprocesamiento Histórico** *(1-2 semanas)* 📋 **EN ANÁLISIS**
+  - [ ] **Análisis Completo**: Documento `ANALISIS_REPROCESO_HISTORICO.md` creado con especificación técnica
+  - [ ] **Fase 1: Detección Ausencia Empleados**: Excepción NoValidEmployeesException + mensaje descriptivo
+  - [ ] **Fase 2: Query Empleados Históricos**: Método `getHistoricalEmployees($fecha, $tipoPlanillaId)` con cálculo situación histórica
+  - [ ] **Fase 3: Query Salarios Históricos**: Método `getHistoricalSalaries($employeeId, $fecha)` con validación vigencias
+  - [ ] **Fase 4: Modal Confirmación**: 3 opciones (Histórico/Actual/Cancelar) con HTML informativo
+  - [ ] **Fase 5: JavaScript Workflow**: Captura excepción + modal + callback procesamiento
+  - [ ] **Testing Completo**: Casos edge + validaciones + rollback + performance
+  - [ ] **Documentación**: Guía usuario + changelog + roadmap update
+
 ### ⏰ **INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(PRIORIDAD ALTA - En Desarrollo 25%)*
 **Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
 **Tiempo Estimado**: 6-8 semanas

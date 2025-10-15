@@ -188,6 +188,27 @@ $csrf_token = $data['csrf_token'] ?? '';
                         <h5><i class="fas fa-exclamation-triangle"></i> Advertencia</h5>
                         <p>Esto eliminará los datos actuales y recalculará todos los conceptos.</p>
                     </div>
+
+                    <!-- Opciones de Reprocesamiento -->
+                    <div class="card mt-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cogs"></i> Opciones de Reprocesamiento
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="validateSituacion" name="validateSituacion" checked>
+                                <label class="custom-control-label" for="validateSituacion">
+                                    <strong>Validar situación del empleado</strong>
+                                </label>
+                                <small class="form-text text-muted">
+                                    Si está marcado, solo se procesarán empleados cuya situación coincida con los conceptos configurados.
+                                    Si está desmarcado, se procesarán todos los empleados sin validar su situación.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Fase de procesamiento -->

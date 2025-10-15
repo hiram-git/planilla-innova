@@ -157,6 +157,28 @@
 
 ## 🎯 **SIGUIENTES FASES PRIORIZADAS**
 
+### 🔄 **MEJORA: SISTEMA REPROCESAMIENTO HISTÓRICO PLANILLAS** *(Q4 2025 - En Análisis)*
+**Objetivo**: Reprocesar planillas antiguas con empleados y salarios históricos (activos en fecha original)
+**Tiempo Estimado**: 1-2 semanas
+**Estado**: ✅ Checkbox Validación Situación COMPLETADO | 📋 Feature Histórica en Análisis
+
+- [x] **Checkbox Validación Situación** *(Completado 10-Oct-2025)*
+  - [x] Checkbox "Validar situación del empleado" en modal reprocesar
+  - [x] Parámetro `validate_situacion` flujo completo (Vista→JS→Controller→Model)
+  - [x] Validación condicional en `Payroll->validateConceptConditions()`
+  - [x] Default checked (mantiene comportamiento actual)
+  - [x] Logging detallado + compatibilidad retroactiva
+
+- [ ] **Sistema Reprocesamiento Histórico** *(1-2 semanas)* 📋 **EN ANÁLISIS**
+  - [ ] Documento `ANALISIS_REPROCESO_HISTORICO.md` creado (400+ líneas)
+  - [ ] **Fase 1**: Detección ausencia empleados + excepción NoValidEmployeesException
+  - [ ] **Fase 2**: Query empleados históricos (`getHistoricalEmployees()`)
+  - [ ] **Fase 3**: Query salarios históricos (`getHistoricalSalaries()`)
+  - [ ] **Fase 4**: Modal confirmación con 3 opciones (Histórico/Actual/Cancelar)
+  - [ ] **Fase 5**: JavaScript workflow + captura excepción + callbacks
+  - [ ] Testing completo + casos edge + performance
+  - [ ] Auditoría: registro payroll_history cuando usa datos históricos
+
 ### 📅 **FASE 4: CALENDARIO EMPRESARIAL PANAMÁ** *(Q4 2025 - ✅ 100% COMPLETADO)*
 **Objetivo**: Sistema calendario empresarial con días laborables según legislación panameña
 **Tiempo Estimado**: 3-4 semanas
@@ -409,7 +431,9 @@
 
 ### 📅 **Q4 2025** *(Oct - Dic 2025)*
 - ✅ **Calendario Empresarial Panamá**: Sistema completo días laborables (COMPLETADO)
-- **API Marcaciones y Asistencias**: Inicio implementación (Subfases 7.1 y 7.2) (4 semanas)
+- ✅ **Checkbox Validación Situación**: Reprocesamiento condicional planillas (COMPLETADO)
+- 📋 **Sistema Reproceso Histórico**: Análisis técnico completado, pendiente aprobación (1-2 semanas)
+- **API Marcaciones y Asistencias**: Subfase 7.2 componentes PHP + Subfase 7.3 legislación (4 semanas)
 - **Módulo Vacaciones Básico**: CRUD + calculadora + integración (4-5 semanas)
 
 ### 📅 **Q1 2026** *(Ene - Mar 2026)*

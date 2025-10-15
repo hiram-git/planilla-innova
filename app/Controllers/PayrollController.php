@@ -557,24 +557,28 @@ class PayrollController extends Controller
                 }
             }
             
+            // Obtener parámetro de validación de situación (por defecto true)
+            $validateSituacion = isset($_POST['validate_situacion']) ? (bool)$_POST['validate_situacion'] : true;
+
             // CRÍTICO: Liberar la sesión ANTES del reprocesamiento para permitir requests concurrentes
             session_write_close();
-            
+
             // Enviar respuesta inmediata al cliente antes del procesamiento
             header('Content-Type: application/json');
             echo json_encode([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Reprocesamiento iniciado',
-                'payroll_id' => $id
+                'payroll_id' => $id,
+                'validate_situacion' => $validateSituacion
             ]);
-            
+
             // Forzar el envío de la respuesta al cliente
             if (ob_get_level()) ob_end_flush();
             flush();
-            
+
             // Ahora procesar en background sin bloquear más requests
             $userId = $_SESSION['admin_id'] ?? null;
-            $result = $this->payrollModel->reprocessPayroll($id, $userId, $tipoPlanillaId);
+            $result = $this->payrollModel->reprocessPayroll($id, $userId, $tipoPlanillaId, $validateSituacion);
 
 
         } catch (\Exception $e) {

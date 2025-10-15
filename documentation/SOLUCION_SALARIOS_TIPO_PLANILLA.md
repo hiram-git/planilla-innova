@@ -8,7 +8,7 @@
 
 ## 🔍 Problema Identificado
 
-Al editar empleados y cambiar tipos de planilla, los salarios no se guardaban correctamente. El problema tenía dos componentes:
+Al editar empleados y cambiar tipos de planilla, los salarios no se guardaban correctamente. El problema tenía **tres componentes**:
 
 ### 1. ❌ Colisión Frontend: Dropdown Navbar vs Multiselect Formulario
 
@@ -28,11 +28,38 @@ Cuando debería haber sido:
 Tipos planilla recibidos: Array ( [0] => 1 [1] => 2 [2] => 5 )
 ```
 
-### 2. ✅ Backend Funcionando Correctamente
+### 2. ❌ MySQL 8.0 Strict Mode: Campos DECIMAL vs String Vacío
 
-El backend (Controller + Model) estaba funcionando perfectamente:
+**Descripción**: MySQL 8.0 es más estricto que MariaDB 10.4.32 al manejar tipos de datos.
+
+**Efecto**: Campo `gastos_representacion` enviado como string vacío `""` en lugar de `0` o `NULL`.
+
+**Error MySQL 8.0**:
+```
+[EmployeePayrollSalary::saveSalary] ❌ PDOException: ...
+INSERT INTO employee_payroll_salaries (..., gastos_representacion, ...)
+VALUES (..., :gastos_representacion, ...)
+```
+
+**Comportamiento por BD**:
+- **MariaDB 10.4.32**: Convierte automáticamente `""` → `0.00` (modo permisivo)
+- **MySQL 8.0**: Rechaza string vacío en campo `DECIMAL(10,2)` (modo estricto)
+
+**Evidencia del Log**:
+```
+Salarios recibidos: Array (
+    [1] => Array (
+        [sueldo_base] => 100
+        [gastos_representacion] =>    <--- STRING VACÍO
+    )
+)
+```
+
+### 3. ✅ Backend Core Funcionando Correctamente
+
+El backend (Controller + Model + Database) está funcionando perfectamente:
 - Eliminación de salarios huérfanos: ✅ Funciona
-- Guardado de nuevos salarios: ✅ Funciona
+- Guardado de nuevos salarios: ✅ Funciona (después del fix)
 - Actualización de salarios existentes: ✅ Funciona
 
 **Evidencia del Log**:
@@ -47,7 +74,24 @@ El backend (Controller + Model) estaba funcionando perfectamente:
 
 ### Cambios Realizados
 
-1. **Redirección Mejorada** (`app/Controllers/Employee.php:411`)
+1. **Fix MySQL 8.0 Strict Mode** (`app/Models/EmployeePayrollSalary.php:159-163`)
+   ```php
+   // ✅ FIX MySQL 8.0: Convertir strings vacíos a 0 para campos numéricos
+   $gastosRepresentacion = $salaryData['gastos_representacion'] ?? 0;
+   if ($gastosRepresentacion === '' || $gastosRepresentacion === null) {
+       $gastosRepresentacion = 0;
+   }
+
+   $data = [
+       'employee_id' => $employeeId,
+       'tipo_planilla_id' => $tipoPlanillaId,
+       'sueldo_base' => $salaryData['sueldo_base'],
+       'gastos_representacion' => $gastosRepresentacion, // <--- VALIDADO
+       // ...
+   ];
+   ```
+
+2. **Redirección Mejorada** (`app/Controllers/Employee.php:407`)
    ```php
    // ANTES: Redirigía al listado
    $this->redirect(\App\Core\UrlHelper::employee());
@@ -57,8 +101,9 @@ El backend (Controller + Model) estaba funcionando perfectamente:
    ```
 
 2. **Logging Detallado** (Para debug en producción)
-   - `app/Controllers/Employee.php` (líneas 305-407)
-   - `app/Models/EmployeePayrollSalary.php` (líneas 90-177)
+   - `app/Controllers/Employee.php` (líneas 304-403)
+   - `app/Models/EmployeePayrollSalary.php` (líneas 93-195)
+   - `app/Core/Database.php` (líneas 77-149) - Logging INSERT/UPDATE con versión BD
 
 3. **Eliminación Automática de Salarios Huérfanos**
    - Método `deleteOrphanSalaries()` implementado
@@ -249,17 +294,25 @@ Salarios a procesar: {"1":{...},"2":{...},"5":{...}}
 ## 📝 Archivos Modificados
 
 1. **app/Controllers/Employee.php**
-   - Líneas 305-311: Logging de datos recibidos
-   - Líneas 379-407: Logging de proceso de guardado
-   - Línea 411: Redirección al formulario de edición
+   - Líneas 304-309: Logging de datos recibidos (debug producción)
+   - Líneas 380-403: Logging de proceso eliminación/guardado
+   - Línea 407: Redirección al formulario de edición
 
 2. **app/Models/EmployeePayrollSalary.php**
-   - Líneas 90-121: Logging en `saveSalary()`
-   - Líneas 118-177: Logging en `saveBulkSalaries()`
-   - Líneas 162-224: Método `deleteOrphanSalaries()`
+   - **Líneas 159-163**: ✅ **FIX MySQL 8.0** - Validación `gastos_representacion` string vacío → 0
+   - Líneas 93-127: Logging en `saveSalary()`
+   - Líneas 144-195: Logging en `saveBulkSalaries()`
+   - Líneas 205-261: Método `deleteOrphanSalaries()`
 
-3. **documentation/DEBUG_EMPLOYEE_SALARIES.md**
+3. **app/Core/Database.php**
+   - Líneas 77-91: Logging detallado `insert()` con versión BD
+   - Líneas 105-149: Logging detallado `update()` con versión BD
+
+4. **documentation/DEBUG_EMPLOYEE_SALARIES.md**
    - Guía de debug para producción
+
+5. **documentation/SOLUCION_SALARIOS_TIPO_PLANILLA.md**
+   - Documentación completa problema + solución MySQL 8.0
 
 ---
 
@@ -308,9 +361,23 @@ HAVING salarios_count = 0;
 El sistema de salarios por tipo de planilla está funcionando correctamente:
 
 - ✅ **Backend**: Eliminación y guardado funcionan perfectamente
-- ✅ **Frontend**: Una vez resuelto el conflicto navbar/multiselect, envía datos correctos
+- ✅ **Frontend**: Conflicto navbar/multiselect resuelto, envía datos correctos
+- ✅ **MySQL 8.0 Compatibility**: Fix implementado para strict mode (string vacío → 0)
 - ✅ **UX**: Usuario se queda en el formulario después de guardar
 - ✅ **Debug**: Logging detallado permite identificar problemas rápidamente
-- ✅ **Producción**: Compatible con MySQL 8.0
+- ✅ **Cross-DB**: Compatible con MySQL 8.0 y MariaDB 10.4.32
 
 **Estado**: ✅ **RESUELTO**
+
+---
+
+## 🔬 Diferencias MySQL 8.0 vs MariaDB 10.4.32
+
+| Aspecto | MariaDB 10.4.32 | MySQL 8.0 |
+|---------|----------------|-----------|
+| **Strict Mode** | Permisivo por defecto | Estricto por defecto |
+| **String → DECIMAL** | `""` → `0.00` automático | ❌ Error: Invalid value |
+| **NULL Coercion** | Más flexible | Más estricto |
+| **Validación Tipos** | Runtime casting | Strict typing |
+
+**Lección Aprendida**: Siempre validar y convertir strings vacíos a valores numéricos explícitos (`0`, `NULL`) antes de operaciones BD para garantizar compatibilidad cross-database.

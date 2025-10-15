@@ -88,7 +88,7 @@ class Payroll extends Model
      * Procesar planilla - generar detalles para todos los empleados activos
      * Incluye validación de condicionales y datos transaccionales completos
      */
-    public function processPayroll($payrollId, $userId = null, $tipoPlanillaId = null)
+    public function processPayroll($payrollId, $userId = null, $tipoPlanillaId = null, $validateSituacion = true)
     {
         try {
             $this->db->beginTransaction();
@@ -178,10 +178,11 @@ class Payroll extends Model
                 $employeeSituacion = $employee['situacion_id'] ?? 1;
                 
                 
-                
+
+
                 foreach ($conceptos as $concepto) {
                     // Validar condicionales del concepto
-                    if (!$this->validateConceptConditions($concepto, $payroll, $employeeSituacion)) {
+                    if (!$this->validateConceptConditions($concepto, $payroll, $employeeSituacion, $validateSituacion)) {
                         continue; // Saltar este concepto para este empleado
                     }
 
@@ -709,16 +710,17 @@ class Payroll extends Model
      * @param array $concepto - Datos del concepto con tipos_planilla, frecuencias, situaciones
      * @param array $payroll - Datos de la planilla con tipo_planilla_id
      * @param int $employeeSituacion - ID de situación del empleado (1=activo, etc.)
+     * @param bool $validateSituacion - Si debe validar o no la situación del empleado (por defecto true)
      * @return bool - true si el concepto aplica, false si no
      */
-    public function validateConceptConditions($concepto, $payroll, $employeeSituacion)
+    public function validateConceptConditions($concepto, $payroll, $employeeSituacion, $validateSituacion = true)
     {
         try {
-            
+
             $conceptoId = $concepto['id'];
             $tipoPlanillaId = $payroll['tipo_planilla_id'] ?? null;
             $situacionEmpleadoId = $employeeSituacion;
-            
+
             // Verificar restricciones de TIPO DE PLANILLA usando tabla relacional
             $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_tipos_planilla WHERE concepto_id = ?");
             $stmt->execute([$conceptoId]);
@@ -729,31 +731,35 @@ class Payroll extends Model
                 $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_tipos_planilla WHERE concepto_id = ? AND tipo_planilla_id = ?");
                 $stmt->execute([$conceptoId, $tipoPlanillaId]);
                 $validTipoPlanilla = $stmt->fetch()['count'] > 0;
-                
+
                 if (!$validTipoPlanilla) {
                     return false;
                 }
             } else {
                     return false;
             }
-            
-            // Verificar restricciones de SITUACIÓN using tabla relacional
-            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_situaciones WHERE concepto_id = ?");
-            $stmt->execute([$conceptoId]);
-            $situacionesCount = $stmt->fetch()['count'];
 
-            if ($situacionesCount > 0) {
-                // Hay restricciones de situación, verificar si el empleado actual es válido
-                $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_situaciones WHERE concepto_id = ? AND situacion_id = ?");
-                $stmt->execute([$conceptoId, $situacionEmpleadoId]);
-                $validSituacion = $stmt->fetch()['count'] > 0;
-                
-                if (!$validSituacion) {
-                    return false;
+            // Verificar restricciones de SITUACIÓN using tabla relacional
+            // SOLO si el parámetro $validateSituacion es true
+            if ($validateSituacion) {
+                $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_situaciones WHERE concepto_id = ?");
+                $stmt->execute([$conceptoId]);
+                $situacionesCount = $stmt->fetch()['count'];
+
+                if ($situacionesCount > 0) {
+                    // Hay restricciones de situación, verificar si el empleado actual es válido
+                    $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_situaciones WHERE concepto_id = ? AND situacion_id = ?");
+                    $stmt->execute([$conceptoId, $situacionEmpleadoId]);
+                    $validSituacion = $stmt->fetch()['count'] > 0;
+
+                    if (!$validSituacion) {
+                        return false;
+                    }
+                } else {
+                        return false;
                 }
-            } else {
-                    return false;
             }
+            // Si $validateSituacion es false, se salta la validación de situación completamente
             
             // Verificar restricciones de FRECUENCIA using tabla relacional
             $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_frecuencias WHERE concepto_id = ?");
@@ -791,7 +797,7 @@ class Payroll extends Model
     /**
      * Reprocesar una planilla existente (limpiar y volver a procesar)
      */
-    public function reprocessPayroll($payrollId, $userId = null, $tipoPlanillaId = null)
+    public function reprocessPayroll($payrollId, $userId = null, $tipoPlanillaId = null, $validateSituacion = true)
     {
         try {
             // Verificar que la planilla esté en estado PROCESADA
@@ -800,11 +806,12 @@ class Payroll extends Model
                 throw new \Exception('La planilla debe estar en estado PROCESADA para ser reprocesada');
             }
 
+            error_log("Reprocesando planilla con validación de situación: " . ($validateSituacion ? 'SÍ' : 'NO'));
 
             // 1. Limpiar datos existentes de planilla_detalle (sin transacción)
             $deleteStmt = $this->db->prepare("DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?");
             $deleteStmt->execute([$payrollId]);
-            
+
             $deletedCount = $deleteStmt->rowCount();
 
             // 2. Cambiar estado temporalmente a PENDIENTE (sin transacción)
@@ -812,14 +819,14 @@ class Payroll extends Model
             $updateStmt->execute([$payrollId]);
 
             // 3. Usar la lógica existente de procesamiento (que maneja su propia transacción)
-            $processedCount = $this->processPayroll($payrollId, $userId, $tipoPlanillaId);
+            $processedCount = $this->processPayroll($payrollId, $userId, $tipoPlanillaId, $validateSituacion);
 
 
             return $processedCount;
 
         } catch (\Exception $e) {
             error_log("Error reprocesando planilla: " . $e->getMessage());
-            
+
             // Intentar restaurar el estado a PROCESADA si algo falló
             try {
                 $restoreStmt = $this->db->prepare("UPDATE planilla_cabecera SET estado = 'PROCESADA' WHERE id = ?");
@@ -827,7 +834,7 @@ class Payroll extends Model
             } catch (\Exception $restoreError) {
                 error_log("Error restaurando estado de planilla: " . $restoreError->getMessage());
             }
-            
+
             throw $e;
         }
     }

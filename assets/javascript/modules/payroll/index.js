@@ -1234,11 +1234,11 @@
          * Start payroll reprocessing with progress tracking
          */
         startPayrollReprocessing: function(payrollId) {
-            
+
             // Get selected payroll type from sessionStorage
             let tipoPlanillaId = null;
             let payrollTypeData = null;
-            
+
             try {
                 const selectedPayrollType = sessionStorage.getItem("selectedPayrollType");
                 if (selectedPayrollType) {
@@ -1249,7 +1249,7 @@
             } catch (e) {
                 console.error("Error parsing selected payroll type from sessionStorage for reprocess:", e);
             }
-            
+
             // If not found in sessionStorage, try using global navbar function
             if (!tipoPlanillaId && typeof window.getSelectedPayrollType === "function") {
                 try {
@@ -1262,33 +1262,36 @@
                     console.error("Error getting payroll type from global function for reprocess:", e);
                 }
             }
-            
+
             // If still no payroll type, show error
             if (!tipoPlanillaId) {
                 toastr.error("No se ha seleccionado un tipo de planilla. Por favor seleccione un tipo en el dropdown de la barra de navegación y vuelva a intentar.", "Error de Configuración");
                 return;
             }
-            
-            
+
+            // Get checkbox value for validateSituacion
+            const validateSituacion = $("#validateSituacion").is(":checked") ? 1 : 0;
+            console.log("Validar situación del empleado:", validateSituacion ? "SÍ" : "NO");
+
             // Switch to processing phase
             $("#reprocessConfirmationPhase").hide();
             $("#reprocessConfirmationButtons").hide();
             $("#reprocessProcessingPhase").show();
             $("#reprocessProcessingButtons").show();
-            
+
             // Disable modal close
             $("#reprocessModalCloseBtn").prop("disabled", true);
-            
+
             // Start timer
             this.state.reprocessStartTime = Date.now();
             this.updateReprocessTimer();
-            
+
             // Start asynchronous reprocessing with payroll type
             const self = this;
             const reprocessUrl = `${this.config.urls.payrolls}/${payrollId}/reprocess/${tipoPlanillaId}`;
-            
-            
-            
+
+
+
             // Last resort: try to get token from meta tag with jQuery
             if (!this.config.csrfToken || this.config.csrfToken === '') {
                 const metaToken = $('meta[name="csrf-token"]').attr('content');
@@ -1296,17 +1299,18 @@
                     this.config.csrfToken = metaToken;
                 }
             }
-            
+
             const ajaxData = {
-                csrf_token: this.config.csrfToken
+                csrf_token: this.config.csrfToken,
+                validate_situacion: validateSituacion
             };
-            
+
             $.ajax({
                 url: reprocessUrl,
                 method: "POST",
                 data: ajaxData,
                 success: function(response) {
-                    
+
                     // Server returns immediately, processing continues in background
                     if (response.success) {
                         // Continue with polling - DON'T call handleReprocessingComplete yet
@@ -1318,7 +1322,7 @@
                     self.handleReprocessingError(xhr, status, error);
                 }
             });
-            
+
             // Start progress polling immediately after async call
             this.state.lastReprocessProgressPercentage = -1; // Reset progress counter
             this.state.reprocessProgressStallCounter = 0;
