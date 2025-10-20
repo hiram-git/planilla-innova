@@ -96,14 +96,19 @@
             </div>
         </div>
 
+        <!-- SECCIÓN 1: CONFIGURACIÓN API -->
         <div class="row">
-            <!-- Formulario de Configuración -->
-            <div class="col-md-6">
-                <div class="card card-primary">
+            <div class="col-12">
+                <div class="card card-primary collapsed-card">
                     <div class="card-header">
                         <h3 class="card-title"><i class="fas fa-cog"></i> Configuración API Base44</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
-                    <form action="<?= \App\Core\UrlHelper::route('/panel/attendance/api-config/save') ?>" method="POST">
+                    <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/save') ?>" method="POST">
                         <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
 
                         <div class="card-body">
@@ -192,12 +197,15 @@
                     </form>
                 </div>
             </div>
+        </div>
 
-            <!-- Panel de Control -->
+        <!-- SECCIÓN 2: OPCIONES DE SINCRONIZACIÓN -->
+        <div class="row">
+            <!-- Panel de Estado -->
             <div class="col-md-6">
-                <div class="card card-success">
+                <div class="card card-info">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-tasks"></i> Control de Sincronización</h3>
+                        <h3 class="card-title"><i class="fas fa-info-circle"></i> Estado de Sincronización</h3>
                     </div>
                     <div class="card-body">
                         <?php if ($data['config']): ?>
@@ -239,15 +247,8 @@
 
                             <hr>
 
-                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance/api-config/sync-now') ?>" method="POST" style="display: inline;">
-                                <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
-                                <button type="submit" class="btn btn-success btn-block" id="btnSyncNow">
-                                    <i class="fas fa-sync-alt"></i> Sincronizar Ahora
-                                </button>
-                            </form>
-
                             <?php if ($data['config']['sync_enabled']): ?>
-                                <form action="<?= \App\Core\UrlHelper::route('/panel/attendance/api-config/disable-sync') ?>" method="POST" style="margin-top: 10px;">
+                                <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/disable-sync') ?>" method="POST">
                                     <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
                                     <input type="hidden" name="config_id" value="<?= $data['config']['id'] ?>">
                                     <button type="submit" class="btn btn-warning btn-block">
@@ -255,7 +256,7 @@
                                     </button>
                                 </form>
                             <?php else: ?>
-                                <form action="<?= \App\Core\UrlHelper::route('/panel/attendance/api-config/enable-sync') ?>" method="POST" style="margin-top: 10px;">
+                                <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/enable-sync') ?>" method="POST">
                                     <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
                                     <input type="hidden" name="config_id" value="<?= $data['config']['id'] ?>">
                                     <button type="submit" class="btn btn-success btn-block">
@@ -267,7 +268,71 @@
                         <?php else: ?>
                             <div class="alert alert-info">
                                 <i class="icon fas fa-info-circle"></i>
-                                No hay configuración guardada. Complete el formulario para comenzar.
+                                No hay configuración guardada. Complete el formulario arriba para comenzar.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Control -->
+            <div class="col-md-6">
+                <div class="card card-success">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-sync-alt"></i> Control de Sincronización Manual</h3>
+                    </div>
+                    <div class="card-body">
+                        <?php if ($data['config']): ?>
+                            <!-- Sincronizar Todo -->
+                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/sync-now') ?>" method="POST" class="mb-2">
+                                <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
+                                <input type="hidden" name="sync_type" value="full">
+                                <button type="submit" class="btn btn-success btn-block">
+                                    <i class="fas fa-sync-alt"></i> Sincronizar Todo
+                                </button>
+                            </form>
+
+                            <!-- Sincronizar Día Actual -->
+                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/sync-now') ?>" method="POST" class="mb-2">
+                                <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
+                                <input type="hidden" name="sync_type" value="today">
+                                <button type="submit" class="btn btn-info btn-block">
+                                    <i class="fas fa-calendar-day"></i> Sincronizar Día Actual
+                                </button>
+                            </form>
+
+                            <!-- Sincronizar Por Rango de Fechas -->
+                            <button type="button" class="btn btn-primary btn-block" data-toggle="collapse" data-target="#dateRangeForm">
+                                <i class="fas fa-calendar-alt"></i> Sincronizar por Rango de Fechas
+                            </button>
+
+                            <div class="collapse mt-2" id="dateRangeForm">
+                                <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/sync-now') ?>" method="POST" class="border p-3 rounded bg-light">
+                                    <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
+                                    <input type="hidden" name="sync_type" value="daterange">
+
+                                    <div class="form-group">
+                                        <label for="start_date">Fecha Inicio:</label>
+                                        <input type="date" class="form-control" id="start_date" name="start_date"
+                                               value="<?= date('Y-m-01') ?>" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="end_date">Fecha Fin:</label>
+                                        <input type="date" class="form-control" id="end_date" name="end_date"
+                                               value="<?= date('Y-m-d') ?>" required>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary btn-block">
+                                        <i class="fas fa-sync-alt"></i> Sincronizar Rango
+                                    </button>
+                                </form>
+                            </div>
+
+                        <?php else: ?>
+                            <div class="alert alert-warning">
+                                <i class="icon fas fa-exclamation-triangle"></i>
+                                Configure primero la API antes de sincronizar.
                             </div>
                         <?php endif; ?>
                     </div>
@@ -275,14 +340,14 @@
             </div>
         </div>
 
-        <!-- Tabla de Logs de Sincronización -->
+        <!-- SECCIÓN 3: HISTORIAL DE SINCRONIZACIONES (Más recientes primero) -->
         <div class="row">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title"><i class="fas fa-history"></i> Historial de Sincronizaciones (Últimas 20)</h3>
                         <div class="card-tools">
-                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance/api-config/clean-logs') ?>" method="POST" style="display: inline;">
+                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/clean-logs') ?>" method="POST" style="display: inline;">
                                 <input type="hidden" name="csrf_token" value="<?= $data['csrf_token'] ?>">
                                 <input type="hidden" name="days" value="30">
                                 <button type="submit" class="btn btn-tool" title="Limpiar logs > 30 días"
@@ -396,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const apiKey = document.getElementById('api_key').value;
         const appId = document.getElementById('app_id').value;
         const apiUrl = document.getElementById('api_url').value;
+        const csrfToken = '<?= $data['csrf_token'] ?>';
 
         if (!apiKey || !appId || !apiUrl) {
             alert('Complete todos los campos requeridos');
@@ -405,12 +471,12 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Probando...';
 
-        fetch('<?= \App\Core\UrlHelper::route('/panel/attendance/api-config/test-connection') ?>', {
+        fetch('<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/test-connection') ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `api_key=${encodeURIComponent(apiKey)}&app_id=${encodeURIComponent(appId)}&api_url=${encodeURIComponent(apiUrl)}`
+            body: `csrf_token=${encodeURIComponent(csrfToken)}&api_key=${encodeURIComponent(apiKey)}&app_id=${encodeURIComponent(appId)}&api_url=${encodeURIComponent(apiUrl)}`
         })
         .then(response => response.json())
         .then(data => {
@@ -433,13 +499,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.btn-view-log').forEach(btn => {
         btn.addEventListener('click', function() {
             const logId = this.dataset.logId;
+            const csrfToken = '<?= $data['csrf_token'] ?>';
 
-            fetch('<?= \App\Core\UrlHelper::route('/panel/attendance/api-config/log-details') ?>', {
+            fetch('<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/log-details') ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `log_id=${logId}`
+                body: `csrf_token=${encodeURIComponent(csrfToken)}&log_id=${logId}`
             })
             .then(response => response.json())
             .then(data => {

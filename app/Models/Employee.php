@@ -9,7 +9,7 @@ class Employee extends Model
     public $table = 'employees';
     public $fillable = [
         'employee_id', 'firstname', 'lastname', 'address', 'birthdate',
-        'fecha_ingreso', 'contact_info', 'gender', 'position_id', 'schedule_id',
+        'fecha_ingreso', 'contact_info', 'email', 'gender', 'position_id', 'schedule_id',
         'photo', 'organigrama_id', 'document_id', 'clave_seguro_social',
         'situacion_id', 'tipo_planilla_id', 'cargo_id', 'funcion_id', 'partida_id',
         'sueldo_individual', 'gastos_representacion', 'created_on',
@@ -75,6 +75,7 @@ class Employee extends Model
             'lastname' => 'required|min:2|max:50',
             'document_id' => 'required|min:5|max:20',
             'clave_seguro_social' => 'required|min:5|max:20',
+            'email' => 'required|email|max:100',
             'birthdate' => 'required|date',
             'gender' => 'required',
             'schedule' => 'required',
@@ -123,6 +124,7 @@ class Employee extends Model
             'edit_lastname' => 'required|min:2|max:50',
             'edit_document_id' => 'required|min:5|max:20',
             'edit_clave_seguro_social' => 'required|min:5|max:20',
+            'edit_email' => 'required|email|max:100',
             'edit_birthdate' => 'required|date',
             'edit_gender' => 'required',
             'edit_schedule' => 'required',
@@ -177,12 +179,26 @@ class Employee extends Model
     {
         $sql = "SELECT COUNT(*) as count FROM employees WHERE document_id = ?";
         $params = [$documentId];
-        
+
         if ($excludeId) {
             $sql .= " AND id != ?";
             $params[] = $excludeId;
         }
-        
+
+        $result = $this->db->find($sql, $params);
+        return $result['count'] == 0;
+    }
+
+    public function isEmailUnique($email, $excludeId = null)
+    {
+        $sql = "SELECT COUNT(*) as count FROM employees WHERE email = ?";
+        $params = [$email];
+
+        if ($excludeId) {
+            $sql .= " AND id != ?";
+            $params[] = $excludeId;
+        }
+
         $result = $this->db->find($sql, $params);
         return $result['count'] == 0;
     }

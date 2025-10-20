@@ -137,6 +137,11 @@ class Employee extends Controller
             $errors['document_id'] = 'El número de cédula ya está registrado';
         }
 
+        // Validar unicidad de email
+        if (isset($data['email']) && !$employee->isEmailUnique($data['email'])) {
+            $errors['email'] = 'El email ya está registrado';
+        }
+
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
             $_SESSION['old_data'] = $data;
@@ -170,6 +175,7 @@ class Employee extends Controller
                 'birthdate' => !empty(trim($data['birthdate'] ?? '')) ? trim($data['birthdate']) : null,
                 'fecha_ingreso' => !empty(trim($data['fecha_ingreso'] ?? '')) ? trim($data['fecha_ingreso']) : date('Y-m-d'),
                 'contact_info' => $data['contact'] ?? '',
+                'email' => $data['email'] ?? null,
                 'gender' => $data['gender'],
                 'position_id' => !empty($data['position']) ? $data['position'] : null,
                 'schedule_id' => $data['schedule'],
@@ -287,12 +293,17 @@ class Employee extends Controller
             $this->redirect(\App\Core\UrlHelper::employee());
         }
 
-        // Validación con campos de edición  
+        // Validación con campos de edición
         $errors = $employee->validateEmployeeUpdateData($data);
 
         // Validar unicidad de documento (excluyendo el actual)
         if (isset($data['edit_document_id']) && !$employee->isDocumentIdUnique($data['edit_document_id'], $id)) {
             $errors['edit_document_id'] = 'El número de cédula ya está registrado';
+        }
+
+        // Validar unicidad de email (excluyendo el actual)
+        if (isset($data['edit_email']) && !$employee->isEmailUnique($data['edit_email'], $id)) {
+            $errors['edit_email'] = 'El email ya está registrado';
         }
 
         if (!empty($errors)) {
@@ -328,6 +339,7 @@ class Employee extends Controller
                 'birthdate' => !empty(trim($data['edit_birthdate'] ?? '')) ? trim($data['edit_birthdate']) : null,
                 'fecha_ingreso' => !empty(trim($data['edit_fecha_ingreso'] ?? '')) ? trim($data['edit_fecha_ingreso']) : $employeeData['fecha_ingreso'],
                 'contact_info' => $data['edit_contact'] ?? '',
+                'email' => $data['edit_email'] ?? null,
                 'gender' => $data['edit_gender'],
                 'position_id' => !empty($data['edit_position']) ? $data['edit_position'] : null,
                 'schedule_id' => $data['edit_schedule'],

@@ -2,9 +2,11 @@
 
 namespace App\Services\Attendance\Calculators;
 
+use App\Core\Database;
 use App\Models\Attendance;
 use App\Models\BusinessCalendar;
 use DateTime;
+use Exception;
 
 /**
  * AttendanceCalculator
@@ -22,6 +24,7 @@ class AttendanceCalculator
     private $overtimeCalculator;
     private $attendanceModel;
     private $businessCalendar;
+    private $db;
 
     public function __construct()
     {
@@ -29,6 +32,7 @@ class AttendanceCalculator
         $this->overtimeCalculator = new OvertimeCalculator();
         $this->attendanceModel = new Attendance();
         $this->businessCalendar = new BusinessCalendar();
+        $this->db = Database::getInstance()->getConnection();
     }
 
     /**
@@ -407,5 +411,298 @@ class AttendanceCalculator
         }
 
         return $this->calculate($attendance);
+    }
+
+    /**
+     * Guardar o actualizar cálculo en la tabla attendance_calculations
+     *
+     * @param array $calculation Array con todos los datos calculados
+     * @return int ID del registro insertado/actualizado
+     * @throws Exception Si falla la operación
+     */
+    public function saveCalculation(array $calculation): int
+    {
+        try {
+            // Verificar si ya existe un cálculo para esta marcación
+            $existing = $this->getExistingCalculation($calculation['attendance_id']);
+
+            if ($existing) {
+                // Actualizar (recalcular)
+                return $this->updateCalculation($existing['id'], $calculation);
+            } else {
+                // Insertar nuevo
+                return $this->insertCalculation($calculation);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error guardando cálculo de asistencia: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Guardar cálculo y retornar cálculo completo con ID
+     *
+     * @param array $calculation Array del cálculo
+     * @return array Cálculo con el ID agregado
+     */
+    public function calculateAndSave($attendance): array
+    {
+        // Calcular
+        $calculation = $this->calculate($attendance);
+
+        // Guardar en BD
+        $calculationId = $this->saveCalculation($calculation);
+
+        // Agregar ID al resultado
+        $calculation['calculation_id'] = $calculationId;
+
+        return $calculation;
+    }
+
+    /**
+     * Inserta un nuevo cálculo en la BD
+     *
+     * @param array $calculation
+     * @return int ID insertado
+     */
+    private function insertCalculation(array $calculation): int
+    {
+        $sql = "INSERT INTO attendance_calculations (
+            attendance_id, employee_id, schedule_id, date,
+            time_in, time_out, scheduled_time_in, scheduled_time_out,
+            total_hours, regular_hours, overtime_hours,
+            overtime_25_hours, overtime_50_hours, night_hours, holiday_hours,
+            tardiness_minutes, is_late, early_departure_minutes,
+            is_absent, absence_type,
+            is_working_day, is_holiday, is_weekend, day_type,
+            is_perfect_attendance, punctuality_score,
+            lunch_time_minutes, calculation_version, calculated_at,
+            notes, calculation_details
+        ) VALUES (
+            ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?,
+            ?, ?, ?, ?,
+            ?, ?,
+            ?, ?, ?,
+            ?, ?
+        )";
+
+        $params = [
+            $calculation['attendance_id'],
+            $calculation['employee_id'],
+            $calculation['schedule_id'],
+            $calculation['date'],
+            $calculation['time_in'],
+            $calculation['time_out'],
+            $calculation['scheduled_time_in'],
+            $calculation['scheduled_time_out'],
+            $calculation['total_hours'],
+            $calculation['regular_hours'],
+            $calculation['overtime_hours'],
+            $calculation['overtime_25_hours'],
+            $calculation['overtime_50_hours'],
+            $calculation['night_hours'],
+            $calculation['holiday_hours'],
+            $calculation['tardiness_minutes'],
+            $calculation['is_late'],
+            $calculation['early_departure_minutes'],
+            $calculation['is_absent'],
+            $calculation['absence_type'],
+            $calculation['is_working_day'],
+            $calculation['is_holiday'],
+            $calculation['is_weekend'],
+            $calculation['day_type'],
+            $calculation['is_perfect_attendance'],
+            $calculation['punctuality_score'],
+            $calculation['lunch_time_minutes'],
+            $calculation['calculation_version'],
+            $calculation['calculated_at'],
+            $calculation['notes'] ?? null,
+            $calculation['calculation_details'] ?? null,
+        ];
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Actualiza un cálculo existente (recalcular)
+     *
+     * @param int $id ID del registro a actualizar
+     * @param array $calculation Datos del cálculo
+     * @return int ID actualizado
+     */
+    private function updateCalculation(int $id, array $calculation): int
+    {
+        $sql = "UPDATE attendance_calculations SET
+            time_in = ?, time_out = ?,
+            scheduled_time_in = ?, scheduled_time_out = ?,
+            total_hours = ?, regular_hours = ?, overtime_hours = ?,
+            overtime_25_hours = ?, overtime_50_hours = ?,
+            night_hours = ?, holiday_hours = ?,
+            tardiness_minutes = ?, is_late = ?, early_departure_minutes = ?,
+            is_absent = ?, absence_type = ?,
+            is_working_day = ?, is_holiday = ?, is_weekend = ?, day_type = ?,
+            is_perfect_attendance = ?, punctuality_score = ?,
+            lunch_time_minutes = ?, calculation_version = ?,
+            recalculated_at = ?,
+            notes = ?, calculation_details = ?
+        WHERE id = ?";
+
+        $params = [
+            $calculation['time_in'],
+            $calculation['time_out'],
+            $calculation['scheduled_time_in'],
+            $calculation['scheduled_time_out'],
+            $calculation['total_hours'],
+            $calculation['regular_hours'],
+            $calculation['overtime_hours'],
+            $calculation['overtime_25_hours'],
+            $calculation['overtime_50_hours'],
+            $calculation['night_hours'],
+            $calculation['holiday_hours'],
+            $calculation['tardiness_minutes'],
+            $calculation['is_late'],
+            $calculation['early_departure_minutes'],
+            $calculation['is_absent'],
+            $calculation['absence_type'],
+            $calculation['is_working_day'],
+            $calculation['is_holiday'],
+            $calculation['is_weekend'],
+            $calculation['day_type'],
+            $calculation['is_perfect_attendance'],
+            $calculation['punctuality_score'],
+            $calculation['lunch_time_minutes'],
+            $calculation['calculation_version'],
+            date('Y-m-d H:i:s'), // recalculated_at
+            $calculation['notes'] ?? null,
+            $calculation['calculation_details'] ?? null,
+            $id,
+        ];
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $id;
+    }
+
+    /**
+     * Obtiene un cálculo existente por attendance_id
+     *
+     * @param int $attendanceId
+     * @return array|null
+     */
+    private function getExistingCalculation(int $attendanceId): ?array
+    {
+        $sql = "SELECT * FROM attendance_calculations WHERE attendance_id = ? LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$attendanceId]);
+
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+
+    /**
+     * Procesar y guardar cálculos para múltiples asistencias en batch
+     *
+     * @param array $attendances Array de registros de asistencia
+     * @param bool $saveToDb Si debe guardar en BD (default: true)
+     * @return array Array de cálculos con IDs
+     */
+    public function calculateAndSaveBulk(array $attendances, bool $saveToDb = true): array
+    {
+        $calculations = [];
+        $savedCount = 0;
+        $errors = [];
+
+        foreach ($attendances as $attendance) {
+            try {
+                if ($saveToDb) {
+                    $calculation = $this->calculateAndSave($attendance);
+                    $savedCount++;
+                } else {
+                    $calculation = $this->calculate($attendance);
+                }
+
+                $calculations[] = $calculation;
+
+            } catch (Exception $e) {
+                $errors[] = [
+                    'attendance_id' => $attendance['id'] ?? 'unknown',
+                    'error' => $e->getMessage(),
+                ];
+                error_log("Error procesando asistencia ID {$attendance['id']}: " . $e->getMessage());
+            }
+        }
+
+        // Log de resultados
+        $totalProcessed = count($attendances);
+        error_log("AttendanceCalculator Bulk: Procesados {$totalProcessed}, Guardados {$savedCount}, Errores: " . count($errors));
+
+        return [
+            'calculations' => $calculations,
+            'stats' => [
+                'total_processed' => $totalProcessed,
+                'saved' => $savedCount,
+                'errors' => count($errors),
+            ],
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Obtiene el cálculo guardado de una marcación
+     *
+     * @param int $attendanceId
+     * @return array|null
+     */
+    public function getCalculation(int $attendanceId): ?array
+    {
+        return $this->getExistingCalculation($attendanceId);
+    }
+
+    /**
+     * Elimina un cálculo de la BD
+     *
+     * @param int $attendanceId
+     * @return bool
+     */
+    public function deleteCalculation(int $attendanceId): bool
+    {
+        try {
+            $sql = "DELETE FROM attendance_calculations WHERE attendance_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$attendanceId]);
+
+            return $stmt->rowCount() > 0;
+
+        } catch (Exception $e) {
+            error_log("Error eliminando cálculo: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene la configuración actual del calculador
+     *
+     * @return array Configuraciones
+     */
+    public function getConfig(): array
+    {
+        return [
+            'version' => 'v1.0',
+            'tardiness_tolerance' => 'Delegado a WorkScheduleResolver',
+            'lunch_time' => 60,
+            'working_day_classifier' => 'Integrado',
+            'overtime_calculator' => 'Integrado',
+            'schedule_resolver' => 'Integrado',
+        ];
     }
 }

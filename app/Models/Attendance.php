@@ -188,7 +188,95 @@ class Attendance extends Model
     {
         $startDate = "$year-$month-01";
         $endDate = date('Y-m-t', strtotime($startDate));
-        
+
         return $this->getAttendanceByDateRange($startDate, $endDate, $employeeId);
+    }
+
+    /**
+     * Obtener resumen de marcaciones agrupadas por día
+     * Devuelve una cabecera con estadísticas por fecha
+     */
+    public function getAttendanceSummaryByMonth($year, $month)
+    {
+        $startDate = "$year-$month-01";
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        return $this->getAttendanceSummaryByDateRange($startDate, $endDate);
+    }
+
+    /**
+     * Obtener resumen de marcaciones por rango de fechas
+     */
+    public function getAttendanceSummaryByDateRange($startDate, $endDate)
+    {
+        $sql = "SELECT
+                    a.date,
+                    COUNT(DISTINCT a.employee_id) as total_employees,
+                    COUNT(a.id) as total_records,
+                    SUM(CASE WHEN a.status = 1 THEN 1 ELSE 0 END) as on_time,
+                    SUM(CASE WHEN a.status = 0 THEN 1 ELSE 0 END) as late,
+                    SUM(CASE WHEN a.time_out IS NOT NULL THEN 1 ELSE 0 END) as with_checkout
+                FROM attendance a
+                WHERE a.date BETWEEN ? AND ?
+                GROUP BY a.date
+                ORDER BY a.date DESC";
+
+        return $this->db->findAll($sql, [$startDate, $endDate]);
+    }
+
+    /**
+     * Obtener todas las marcaciones de un día específico con información del empleado
+     */
+    public function getAttendancesByDate($date)
+    {
+        $sql = "SELECT
+                    a.*,
+                    e.firstname,
+                    e.lastname,
+                    e.employee_id as employee_code,
+                    e.document_id,
+                    s.time_in as scheduled_time_in,
+                    s.time_out as scheduled_time_out,
+                    s.nombre as schedule_name
+                FROM attendance a
+                LEFT JOIN employees e ON a.employee_id = e.id
+                LEFT JOIN schedules s ON e.schedule_id = s.id
+                WHERE a.date = ?
+                ORDER BY a.time_in ASC, e.lastname, e.firstname";
+
+        return $this->db->findAll($sql, [$date]);
+    }
+
+    /**
+     * Obtener estadísticas de un día específico
+     */
+    public function getDayStatistics($date)
+    {
+        $sql = "SELECT
+                    COUNT(DISTINCT a.employee_id) as total_employees,
+                    COUNT(a.id) as total_records,
+                    SUM(CASE WHEN a.status = 1 THEN 1 ELSE 0 END) as on_time,
+                    SUM(CASE WHEN a.status = 0 THEN 1 ELSE 0 END) as late,
+                    SUM(CASE WHEN a.time_out IS NOT NULL THEN 1 ELSE 0 END) as with_checkout,
+                    SUM(CASE WHEN a.time_out IS NULL THEN 1 ELSE 0 END) as without_checkout,
+                    AVG(a.num_hr) as avg_hours,
+                    SUM(a.num_hr) as total_hours
+                FROM attendance a
+                WHERE a.date = ?";
+
+        return $this->db->find($sql, [$date]);
+    }
+
+    /**
+     * Obtener años disponibles en la tabla de marcaciones
+     */
+    public function getAvailableYears()
+    {
+        $sql = "SELECT DISTINCT YEAR(date) as year
+                FROM attendance
+                ORDER BY year DESC";
+
+        $results = $this->db->findAll($sql);
+        return array_column($results, 'year');
     }
 }

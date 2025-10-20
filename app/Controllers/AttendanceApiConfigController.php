@@ -160,14 +160,50 @@ class AttendanceApiConfigController extends Controller
             if (!$config) {
                 $this->setFlashMessage('error', 'No hay configuración activa');
                 $this->redirect('/panel/attendance/api-config');
+                return;
             }
 
-            // Iniciar sincronización
+            // Obtener tipo de sincronización
+            $syncType = $_POST['sync_type'] ?? 'full';
             $syncService = new AttendanceSyncService($config['id']);
-            $stats = $syncService->syncAll();
+            $stats = [];
+
+            // Ejecutar sincronización según el tipo
+            switch ($syncType) {
+                case 'today':
+                    // Sincronizar solo el día actual
+                    $today = date('Y-m-d');
+                    $stats = $syncService->syncByDateRange($today, $today);
+                    $syncLabel = 'día actual (' . date('d/m/Y') . ')';
+                    break;
+
+                case 'daterange':
+                    // Sincronizar por rango de fechas
+                    $startDate = $_POST['start_date'] ?? date('Y-m-d');
+                    $endDate = $_POST['end_date'] ?? date('Y-m-d');
+
+                    // Validar fechas
+                    if (strtotime($startDate) > strtotime($endDate)) {
+                        $this->setFlashMessage('error', 'La fecha de inicio no puede ser mayor que la fecha de fin');
+                        $this->redirect('/panel/attendance/api-config');
+                        return;
+                    }
+
+                    $stats = $syncService->syncByDateRange($startDate, $endDate);
+                    $syncLabel = "rango " . date('d/m/Y', strtotime($startDate)) . " - " . date('d/m/Y', strtotime($endDate));
+                    break;
+
+                case 'full':
+                default:
+                    // Sincronizar todo
+                    $stats = $syncService->syncAll();
+                    $syncLabel = 'completa';
+                    break;
+            }
 
             $message = sprintf(
-                'Sincronización completada: %d obtenidos, %d insertados, %d actualizados, %d omitidos, %d errores',
+                'Sincronización %s: %d obtenidos, %d insertados, %d actualizados, %d omitidos, %d errores',
+                $syncLabel,
                 $stats['fetched'],
                 $stats['inserted'],
                 $stats['updated'],

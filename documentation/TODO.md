@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.4.1** *(10 Oct 2025)*
+## 🎯 **ESTADO ACTUAL V3.4.5** *(17 Oct 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -18,7 +18,11 @@
 - **Sidebar Toggle Fix**: ✅ 100% Completado *(V3.3.14)*
 - **Calendario Empresarial**: ✅ 100% Completado *(V3.3.21-22)*
 - **API Asistencias Base44**: ✅ Subfase 7.1 Completada *(V3.4.0)*
-- **🆕 Migraciones BD Asistencias**: ✅ Migraciones Subfase 7.2 Completadas *(V3.4.1)*
+- **Migraciones BD Asistencias**: ✅ Subfase 7.2 Completada *(V3.4.1)*
+- **Sistema Reproceso Mejorado**: ✅ Checkbox Validación Completado *(V3.4.2)*
+- **Vistas Separadas Asistencias**: ✅ Subfase 7.2 Completada *(V3.4.3)*
+- **Calculadores Core**: ✅ Subfase 7.2 Completada *(V3.4.4)*
+- **🆕 Integración UI Calculadores**: ✅ Subfase 7.2 (75%) Completada *(V3.4.5)*
 
 ---
 
@@ -64,7 +68,7 @@
   - [x] Rutas registradas + sidebar integration
   - [x] **Resultado**: ~2,417 líneas código | 12 archivos nuevos | 2 modificados
 
-- [~] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* 🔵 **EN PROGRESO (25%)**
+- [~] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* 🔵 **EN PROGRESO (75%)**
   - [x] **Migraciones BD** ✅ **COMPLETADAS (10-Oct-2025)**:
     - [x] Tabla `attendance_calculations` (total_hours, overtime_hours, tardiness, perfect_attendance, etc.)
     - [x] Tabla `attendance_absence_log` (ausencias con justificaciones MEDICAL/PERMISSION/VACATION)
@@ -73,21 +77,100 @@
     - [x] Migración `2025_10_10_attendance_calculations.sql` (145 líneas)
     - [x] Migración `2025_10_10_employee_payroll_salaries.sql` (153 líneas) con script migración datos
     - [x] **Total**: 298 líneas SQL | 3 tablas nuevas
-  - [ ] AttendanceCalculator: marcaciones perfectas + horas trabajadas + ausencias
-  - [ ] Tardanzas con tolerancia configurable + salidas anticipadas
-  - [ ] OvertimeCalculator: horas extras automáticas (normales/nocturnas/feriados)
-  - [ ] WorkScheduleResolver: horarios por empleado/día + turnos rotativos
-  - [ ] AbsenceDetector: identificación y clasificación ausencias justificadas/injustificadas
+  - [x] **Vistas Separadas Sistema Asistencias** ✅ **COMPLETADAS (16-Oct-2025)**:
+    - [x] AttendanceController completo (135 líneas) con métodos index/detail/sync/export
+    - [x] Vista `list.php` - Listado marcaciones por día con filtros año/mes/rango
+    - [x] Vista `detail.php` - Detalle completo marcaciones de un día específico
+    - [x] Vista `sync.php` - Panel sincronización manual (Todo/Día Actual/Rango)
+    - [x] Attendance Model: 5 métodos nuevos (getAttendanceSummaryByMonth, getAttendancesByDate, getDayStatistics, etc.)
+    - [x] Rutas configuradas App.php líneas 130-163 (/attendance, /attendance/detail/{date}, /attendance/sync)
+    - [x] Sidebar actualizado con 5 opciones separadas (Marcaciones por Día, Sincronizar, Reportes, Config API, Timeclock)
+    - [x] **Total**: 4 vistas nuevas | 1 controller | 5 métodos modelo | 4 rutas
+  - [x] **AttendanceCalculator Mejorado** ✅ **COMPLETADO (16-Oct-2025)** - 708 líneas
+    - [x] Método `calculate()` orquesta todos los calculadores (WorkScheduleResolver, OvertimeCalculator)
+    - [x] Método `saveCalculation()` guarda en tabla `attendance_calculations` (INSERT/UPDATE automático)
+    - [x] Método `calculateAndSave()` all-in-one (calcula + guarda + retorna con ID)
+    - [x] Método `calculateAndSaveBulk()` procesamiento batch con estadísticas
+    - [x] Métodos `getCalculation()`, `deleteCalculation()` para CRUD completo
+    - [x] Cálculo marcaciones perfectas (sin tardanza + horario completo)
+    - [x] Cálculo horas trabajadas (total/regular/overtime con descuento almuerzo)
+    - [x] Detección tardanzas delegada a WorkScheduleResolver
+    - [x] Detección salidas anticipadas
+    - [x] Score puntualidad 0-100 con penalizaciones
+    - [x] Integración completa con OvertimeCalculator (horas extras 25%/50%)
+    - [x] Integración WorkingDayClassifier (tipo de día)
+    - [x] Generación notas descriptivas automáticas
+    - [x] Script testing `test_attendance_calculator.php` con 22 tests (90.9% éxito)
+  - [x] **AbsenceDetector Mejorado** ✅ **COMPLETADO (16-Oct-2025)** - 693 líneas
+    - [x] Método `detectAbsences()` identifica ausencias en días laborables sin marcación
+    - [x] Método `saveAbsence()` guarda en tabla `attendance_absence_log` (INSERT/UPDATE automático)
+    - [x] Método `detectAndSaveAbsences()` detecta y guarda con estadísticas tracking
+    - [x] Método `detectAndSaveBulk()` procesamiento batch múltiples empleados
+    - [x] Método `justifyAbsence()` marca ausencia como justificada (MEDICAL/PERMISSION/VACATION/OTHER)
+    - [x] Método `rejectJustification()` rechaza justificación y marca como UNJUSTIFIED
+    - [x] Método `getPendingAbsences()` obtiene ausencias sin resolver con info empleado
+    - [x] Método `getEmployeeAbsences()` historial completo ausencias de un empleado
+    - [x] Método `getAbsenceStatistics()` estadísticas agregadas (total/justified/unjustified/pending)
+    - [x] Métodos CRUD: `insertAbsence()`, `updateAbsence()`, `getExistingAbsence()`, `deleteAbsence()`
+    - [x] Integración completa BusinessCalendar para días laborables
+    - [x] Estados: JUSTIFIED, UNJUSTIFIED, PENDING con workflow completo
+    - [x] **Total**: +385 líneas agregadas | 11 métodos nuevos
+  - [x] **Integración UI Calculadores** ✅ **COMPLETADA (17-Oct-2025)**
+    - [x] AttendanceController: 7 métodos AJAX (calculateAttendance, detectAbsences, processCalculations, etc.)
+    - [x] Vista detail.php: Botón batch + columna puntualidad + badges coloreados (verde/amarillo/rojo)
+    - [x] Vista list.php: Modal detectar ausencias + validaciones + confirmación SweetAlert2
+    - [x] Vista pending-absences.php NUEVA: 4 estadísticas cards + filtros Select2 + DataTable + modal justificación
+    - [x] 6 rutas nuevas en App.php (calculate, detect-absences, process-calculations, justify, etc.)
+    - [x] Fix crítico routing: 'Attendance' → 'AttendanceController' (línea 60)
+    - [x] Fix jQuery/DataTables en sync-history/index.php
+    - [x] **Total**: ~850 líneas código UI | 7 endpoints AJAX | 1 vista nueva | 2 fixes críticos
+  - [ ] WorkScheduleResolver: EXISTENTE - tolerancia tardanzas + turnos rotativos
+  - [ ] OvertimeCalculator: EXISTENTE - horas extras (normales/nocturnas/feriados)
   - [ ] Reports Generator: reportes diarios/semanales/mensuales asistencias
 
-- [ ] **Fase 3: Consideraciones Legales Panamá** *(1-2 semanas)*
-  - [ ] LegalComplianceChecker: jornada ordinaria (8h/día, 48h/semana - Art. 31)
-  - [ ] Jornada nocturna (6PM-6AM) +50% según Art. 38 Código Trabajo
-  - [ ] Horas extras: primeras 3h +25%, siguientes +50% (Art. 39)
-  - [ ] Trabajo domingos/feriados +50% (Art. 48) + tiempo comida (Art. 35)
-  - [ ] WorkingDayClassifier: clasificación días ordinarios/festivos/descanso
-  - [ ] **Integración BusinessCalendar**: Usar días laborables para cálculos legales
-  - [ ] Alerts System: notificaciones excesos jornada + faltas graves (3+ ausencias)
+- [~] **Subfase 7.3: Consideraciones Legales Panamá** *(1-2 semanas)* 🔵 **EN PROGRESO (75%)**
+  - [x] **LegalComplianceChecker** ✅ **COMPLETADO (10-Oct-2025)** - 604 líneas
+    - [x] Validación jornada ordinaria (8h/día, 48h/semana - Art. 31)
+    - [x] Validación jornada nocturna (6PM-6AM, máx 7h - Art. 38)
+    - [x] Validación tiempo comida (mín 30 min para >4h - Art. 35)
+    - [x] Validación días consecutivos (máx 6 días - Art. 48)
+    - [x] Validación ausencias graves (3+ ausencias = falta grave - Art. 213)
+    - [x] Sistema risk levels: NINGUNO, BAJO, MEDIO, ALTO, CRÍTICO
+    - [x] Método `generateComplianceReport()` con reporte completo
+  - [x] **OvertimeRateCalculator** ✅ **COMPLETADO (10-Oct-2025)** - 408 líneas
+    - [x] Cálculo tarifa horaria desde salario mensual
+    - [x] Horas extras +25% primeras 3h (Art. 39)
+    - [x] Horas extras +50% adicionales (Art. 39)
+    - [x] Horas nocturnas +50% (Art. 38)
+    - [x] Horas feriado/domingo +50% (Art. 48)
+    - [x] Doble recargo +100% (nocturno + feriado)
+    - [x] Método `calculateCompleteAmounts()` desglose completo
+    - [x] Método `calculatePeriodPayment()` resumen período
+  - [x] **WorkingDayClassifier** ✅ **COMPLETADO (10-Oct-2025)** - 472 líneas
+    - [x] Integración completa BusinessCalendar
+    - [x] Clasificación días: LABORAL, FERIADO, DUELO_NACIONAL, FIN_SEMANA, ESPECIAL, MEDIO_DIA
+    - [x] Método `classifyDay()` con 15+ campos
+    - [x] Método `getPeriodStatistics()` estadísticas completas
+    - [x] Métodos `getWorkingDays()`, `getNonWorkingDays()`, `getHolidays()`
+    - [x] Métodos `getNextWorkingDay()`, `getPreviousWorkingDay()`
+    - [x] Método `generateClassificationReport()` reporte legible
+  - [ ] **AlertsSystem** ⏳ **PENDIENTE** - Sistema notificaciones
+    - [ ] Alertas excesos jornada diaria/semanal
+    - [ ] Alertas ausencias injustificadas acumuladas
+    - [ ] Alertas tardanzas recurrentes
+    - [ ] Niveles severidad: INFO, WARNING, CRITICAL
+    - [ ] Almacenamiento tabla `attendance_alerts`
+    - [ ] Notificaciones tiempo real + email
+  - [ ] **Script Testing Subfase 7.3** ⏳ **PENDIENTE**
+    - [ ] Tests LegalComplianceChecker con casos edge
+    - [ ] Tests OvertimeRateCalculator cálculos precisos
+    - [ ] Tests WorkingDayClassifier integración BusinessCalendar
+    - [ ] Casos prueba legislación panameña
+  - [x] **Fix Routing attendance-api-config** ✅ **COMPLETADO (10-Oct-2025)**
+    - [x] URLs corregidas en vista api_config.php (7 URLs)
+    - [x] CSRF tokens agregados a fetch() calls
+    - [x] Routing especial App.php líneas 98-128
+    - [x] Mapeo submétodos test-connection → testConnection(), etc.
 
 - [ ] **Fase 4: Integración con Generación de Planillas** *(1-2 semanas)*
   - [ ] PayrollAttendanceIntegrator: asistencias → planillas automático

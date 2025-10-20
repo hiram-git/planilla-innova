@@ -102,12 +102,28 @@ $content = '
                         <textarea class="form-control" id="address" name="address" rows="2">' . ($_SESSION['old_data']['address'] ?? '') . '</textarea>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="contact">Información de Contacto</label>
-                        <input type="text" class="form-control" id="contact" name="contact" 
-                               placeholder="Teléfono, email, etc." value="' . ($_SESSION['old_data']['contact'] ?? '') . '">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="contact">Información de Contacto</label>
+                                <input type="text" class="form-control" id="contact" name="contact"
+                                       placeholder="Teléfono, celular, etc." value="' . ($_SESSION['old_data']['contact'] ?? '') . '">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="email">Email *</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       placeholder="ejemplo@empresa.com"
+                                       value="' . ($_SESSION['old_data']['email'] ?? 'empleado' . rand(1000,9999) . '@empresa.local') . '" required>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Email corporativo del empleado (requerido para sincronización de marcaciones)
+                                </small>
+                                ' . (isset($_SESSION['errors']['email']) ? '<small class="text-danger">' . $_SESSION['errors']['email'] . '</small>' : '') . '
+                            </div>
+                        </div>
                     </div>
-                    
+
                     <!-- Campos condicionales según tipo de empresa -->
                     <div id="public-institution-fields" style="display: none;">
                         <div class="row">

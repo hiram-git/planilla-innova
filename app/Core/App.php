@@ -57,7 +57,7 @@ class App
                     'partidas' => ['controller' => 'Partida', 'method' => null],
                     'funciones' => ['controller' => 'Funcion', 'method' => null],
                     'schedules' => ['controller' => 'Schedule', 'method' => null],
-                    'attendance' => ['controller' => 'Attendance', 'method' => null],
+                    'attendance' => ['controller' => 'AttendanceController', 'method' => null],
                     'attendance-api-config' => ['controller' => 'AttendanceApiConfigController', 'method' => 'index'],
                     'marcaciones' => ['controller' => 'Timeclock', 'method' => 'index'],
                     'payrolls' => ['controller' => 'PayrollController', 'method' => null],
@@ -93,8 +93,217 @@ class App
                 if (isset($routeMapping[$url[1]])) {
                     $mapping = $routeMapping[$url[1]];
                     $controllerName = 'App\\Controllers\\' . $mapping['controller'];
-                    
+
                     if (class_exists($controllerName)) {
+                        // ✅ MANEJO ESPECIAL: attendance-api-config submethods
+                        if ($url[1] === 'attendance-api-config' && isset($url[2])) {
+                            $this->controller = new $controllerName();
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            if ($httpMethod === 'POST') {
+                                // Mapear submétodos para attendance-api-config
+                                $submethodMap = [
+                                    'save' => 'save',
+                                    'test-connection' => 'testConnection',
+                                    'sync-now' => 'syncNow',
+                                    'enable-sync' => 'enableSync',
+                                    'disable-sync' => 'disableSync',
+                                    'log-details' => 'getLogDetails',
+                                    'clean-logs' => 'cleanOldLogs'
+                                ];
+
+                                if (isset($submethodMap[$url[2]]) && method_exists($this->controller, $submethodMap[$url[2]])) {
+                                    $this->method = $submethodMap[$url[2]];
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                }
+                            }
+
+                            // Si no es POST o no matchea, usar método por defecto
+                            $this->method = $mapping['method'] ?? 'index';
+                            $this->params = array_slice($url, 2);
+                            call_user_func_array([$this->controller, $this->method], $this->params);
+                            return;
+                        }
+
+                        // ✅ MANEJO ESPECIAL: attendance submethods
+                        if ($url[1] === 'attendance' && isset($url[2])) {
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            // Manejo de dispositivos (/panel/attendance/devices)
+                            if ($url[2] === 'devices') {
+                                $deviceController = new \App\Controllers\AttendanceDeviceController();
+
+                                if ($httpMethod === 'GET') {
+                                    if (!isset($url[3])) {
+                                        // GET /panel/attendance/devices
+                                        $deviceController->index();
+                                    } elseif ($url[3] === 'create') {
+                                        // GET /panel/attendance/devices/create
+                                        $deviceController->create();
+                                    } elseif (isset($url[4]) && $url[4] === 'edit') {
+                                        // GET /panel/attendance/devices/{id}/edit
+                                        $deviceController->edit($url[3]);
+                                    }
+                                } elseif ($httpMethod === 'POST') {
+                                    if ($url[3] === 'store') {
+                                        // POST /panel/attendance/devices/store
+                                        $deviceController->store();
+                                    } elseif (isset($url[4])) {
+                                        if ($url[4] === 'update') {
+                                            // POST /panel/attendance/devices/{id}/update
+                                            $deviceController->update($url[3]);
+                                        } elseif ($url[4] === 'delete') {
+                                            // POST /panel/attendance/devices/{id}/delete
+                                            $deviceController->delete($url[3]);
+                                        } elseif ($url[4] === 'test') {
+                                            // POST /panel/attendance/devices/{id}/test
+                                            $deviceController->testConnection($url[3]);
+                                        } elseif ($url[4] === 'toggle') {
+                                            // POST /panel/attendance/devices/{id}/toggle
+                                            $deviceController->toggle($url[3]);
+                                        }
+                                    }
+                                }
+                                return;
+                            }
+
+                            // Manejo de historial de sincronización
+                            if ($url[2] === 'sync-history') {
+                                $this->controller = new $controllerName();
+
+                                if (!isset($url[3])) {
+                                    // GET /panel/attendance/sync-history
+                                    $this->method = 'syncHistory';
+                                    $this->params = [];
+                                } else {
+                                    // GET /panel/attendance/sync-history/{id}
+                                    $this->method = 'syncHistoryDetail';
+                                    $this->params = [$url[3]];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            }
+
+                            $this->controller = new $controllerName();
+
+                            // Rutas GET para attendance
+                            if ($httpMethod === 'GET') {
+                                if ($url[2] === 'sync' && method_exists($this->controller, 'sync')) {
+                                    // Ruta: /panel/attendance/sync
+                                    $this->method = 'sync';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'detail' && isset($url[3]) && method_exists($this->controller, 'detail')) {
+                                    // Ruta: /panel/attendance/detail/2025-10-16
+                                    $this->method = 'detail';
+                                    $this->params = [$url[3]]; // date
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'export-excel' && isset($url[3]) && method_exists($this->controller, 'exportExcel')) {
+                                    // Ruta: /panel/attendance/export-excel/2025-10-16
+                                    $this->method = 'exportExcel';
+                                    $this->params = [$url[3]]; // date
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'export-pdf' && isset($url[3]) && method_exists($this->controller, 'exportPDF')) {
+                                    // Ruta: /panel/attendance/export-pdf/2025-10-16
+                                    $this->method = 'exportPDF';
+                                    $this->params = [$url[3]]; // date
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                }
+                            } elseif ($httpMethod === 'POST') {
+                                // Rutas POST
+                                if ($url[2] === 'sync-now' && method_exists($this->controller, 'syncNow')) {
+                                    // POST: /panel/attendance/sync-now
+                                    $this->method = 'syncNow';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'import-file' && method_exists($this->controller, 'importFile')) {
+                                    // POST: /panel/attendance/import-file
+                                    $this->method = 'importFile';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'manual-entry' && method_exists($this->controller, 'manualEntry')) {
+                                    // POST: /panel/attendance/manual-entry
+                                    $this->method = 'manualEntry';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'detail' && isset($url[3])) {
+                                    // POST: /panel/attendance/detail/{id}/{action}
+                                    if (isset($url[4])) {
+                                        if ($url[4] === 'update' && method_exists($this->controller, 'updateDetail')) {
+                                            $this->method = 'updateDetail';
+                                            $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'delete' && method_exists($this->controller, 'deleteDetail')) {
+                                            $this->method = 'deleteDetail';
+                                            $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'justify' && method_exists($this->controller, 'justifyAbsence')) {
+                                            $this->method = 'justifyAbsence';
+                                            $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'calculate' && method_exists($this->controller, 'calculateAttendance')) {
+                                            // POST: /panel/attendance/detail/{id}/calculate
+                                            $this->method = 'calculateAttendance';
+                                            $this->params = [$url[3]];
+                                        }
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    }
+                                } elseif ($url[2] === 'detect-absences' && method_exists($this->controller, 'detectAbsences')) {
+                                    // POST: /panel/attendance/detect-absences
+                                    $this->method = 'detectAbsences';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'process-calculations' && method_exists($this->controller, 'processCalculations')) {
+                                    // POST: /panel/attendance/process-calculations
+                                    $this->method = 'processCalculations';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'absence' && isset($url[3]) && isset($url[4]) && $url[4] === 'justify' && method_exists($this->controller, 'justifyAbsenceFromLog')) {
+                                    // POST: /panel/attendance/absence/{id}/justify
+                                    $this->method = 'justifyAbsenceFromLog';
+                                    $this->params = [$url[3]]; // absence_id
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                }
+                            } elseif ($httpMethod === 'GET') {
+                                // Rutas GET adicionales para calculadores
+                                if ($url[2] === 'absence-report' && method_exists($this->controller, 'getAbsenceReport')) {
+                                    // GET: /panel/attendance/absence-report?employee_id=X&start_date=Y&end_date=Z
+                                    $this->method = 'getAbsenceReport';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'pending-absences-view' && method_exists($this->controller, 'pendingAbsencesView')) {
+                                    // GET: /panel/attendance/pending-absences-view (vista HTML)
+                                    $this->method = 'pendingAbsencesView';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'pending-absences' && method_exists($this->controller, 'getPendingAbsences')) {
+                                    // GET: /panel/attendance/pending-absences (AJAX endpoint JSON)
+                                    $this->method = 'getPendingAbsences';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                }
+                            }
+
+                            // Si no matchea ninguna ruta especial, usar routing normal
+                            $this->method = 'index';
+                            $this->params = array_slice($url, 2);
+                            call_user_func_array([$this->controller, $this->method], $this->params);
+                            return;
+                        }
+
                         // ✅ MIDDLEWARE DE PERMISOS - Verificar acceso antes de instanciar controlador
                         $currentRoute = implode('/', array_slice($url, 0, 3)); // panel/module/action
                         

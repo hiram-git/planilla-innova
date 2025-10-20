@@ -321,12 +321,21 @@ class AttendanceSyncService
      */
     private function findExistingRecord($data)
     {
-        // Buscar por employee_email + date
+        // Buscar por external_id (más confiable que email/nombre)
+        if (isset($data['id'])) {
+            $sql = "SELECT ar.* FROM attendance_raw_data ar
+                    WHERE ar.external_id = ?
+                      AND ar.api_provider = ?
+                      AND ar.processed = 1
+                    LIMIT 1";
+
+            return $this->db->find($sql, [$data['id'], $this->config['api_provider']]);
+        }
+
+        // Fallback: buscar por employee_email + date (sin JOIN complejo)
         $date = date('Y-m-d', strtotime($data['timestamp']));
 
-        $sql = "SELECT ar.*, e.id as employee_id
-                FROM attendance_raw_data ar
-                LEFT JOIN employees e ON JSON_EXTRACT(ar.raw_json, '$.employee_email') = e.email
+        $sql = "SELECT ar.* FROM attendance_raw_data ar
                 WHERE ar.api_provider = ?
                   AND ar.entity_type = 'Attendance'
                   AND DATE(JSON_EXTRACT(ar.raw_json, '$.timestamp')) = ?
@@ -366,11 +375,28 @@ class AttendanceSyncService
      */
     private function insertRecord($data, $rawDataId)
     {
-        // Buscar employee_id por email
+        // Buscar employee_id por email o nombre completo
         $employee = $this->db->find("SELECT id FROM employees WHERE email = ?", [$data['employee_email']]);
 
+        // Si no se encuentra por email, intentar por nombre completo
+        if (!$employee && isset($data['employee_name'])) {
+            $nameParts = explode(' ', trim($data['employee_name']));
+            if (count($nameParts) >= 2) {
+                // Extraer primer nombre y primer apellido de la API
+                $firstName = strtoupper($nameParts[0]);
+                $lastName = strtoupper($nameParts[count($nameParts) - 1]);
+
+                // Buscar por primer nombre Y primer apellido
+                $sql = "SELECT id FROM employees
+                        WHERE UPPER(firstname) LIKE ?
+                          AND UPPER(lastname) LIKE ?
+                        LIMIT 1";
+                $employee = $this->db->find($sql, ["%{$firstName}%", "%{$lastName}%"]);
+            }
+        }
+
         if (!$employee) {
-            throw new Exception("Empleado no encontrado: {$data['employee_email']}");
+            throw new Exception("Empleado no encontrado: {$data['employee_email']} / {$data['employee_name']}");
         }
 
         $date = date('Y-m-d', strtotime($data['timestamp']));

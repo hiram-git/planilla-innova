@@ -102,10 +102,26 @@ $content = '
                         <textarea class="form-control" id="edit_address" name="edit_address" rows="2">' . ($_SESSION['old_data']['edit_address'] ?? $employee['address']) . '</textarea>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="edit_contact">Información de Contacto</label>
-                        <input type="text" class="form-control" id="edit_contact" name="edit_contact" 
-                               placeholder="Teléfono, email, etc." value="' . ($_SESSION['old_data']['edit_contact'] ?? $employee['contact_info']) . '">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_contact">Información de Contacto</label>
+                                <input type="text" class="form-control" id="edit_contact" name="edit_contact"
+                                       placeholder="Teléfono, celular, etc." value="' . ($_SESSION['old_data']['edit_contact'] ?? $employee['contact_info']) . '">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_email">Email *</label>
+                                <input type="email" class="form-control" id="edit_email" name="edit_email"
+                                       placeholder="ejemplo@empresa.com"
+                                       value="' . ($_SESSION['old_data']['edit_email'] ?? ($employee['email'] ?? '')) . '" required>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Email corporativo del empleado (requerido para sincronización de marcaciones)
+                                </small>
+                                ' . (isset($_SESSION['errors']['edit_email']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_email'] . '</small>' : '') . '
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Campos condicionales según tipo de empresa -->

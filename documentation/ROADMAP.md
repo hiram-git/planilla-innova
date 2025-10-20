@@ -1,8 +1,8 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 10 de Octubre, 2025
-**Versión**: 3.4.1 - Preparación Cálculos Avanzados Asistencias (Migraciones BD Subfase 7.2)
+**Fecha**: 17 de Octubre, 2025
+**Versión**: 3.4.5 - Integración UI Calculadores Asistencias (Subfase 7.2 - 75%)
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -281,7 +281,7 @@
   - [x] Logging exhaustivo (API, sync, webhooks)
   - [x] **Estadísticas**: ~2,417 líneas código | 12 archivos nuevos
 
-- [~] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* 🔵 **EN PROGRESO (25%)**
+- [~] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* 🔵 **EN PROGRESO (75%)**
   - [x] **Migraciones BD** ✅ **COMPLETADAS (10-Oct-2025)**:
     - [x] Tabla `attendance_calculations` (total_hours, overtime_hours, tardiness, perfect_attendance)
     - [x] Tabla `attendance_absence_log` (ausencias con justificaciones y resolución)
@@ -289,13 +289,33 @@
     - [x] 14 Foreign Keys + 22 Índices optimizados
     - [x] **Migración**: `2025_10_10_attendance_calculations.sql` (145 líneas)
     - [x] **Migración**: `2025_10_10_employee_payroll_salaries.sql` (153 líneas)
-  - [ ] AttendanceCalculator: marcaciones perfectas + horas trabajadas + ausencias
-  - [ ] Tardanzas con tolerancia configurable (ej: 5 min gratis) + salidas anticipadas
-  - [ ] OvertimeCalculator: horas extras automáticas (normales/nocturnas/feriados)
-  - [ ] WorkScheduleResolver: determina horario aplicable por empleado/día + turnos rotativos
-  - [ ] AbsenceDetector: identifica ausencias y clasifica tipos (justificadas/injustificadas)
-  - [ ] Tiempo de Almuerzo: descuento automático según políticas empresa
-  - [ ] Reports Generator: reportes diarios/semanales/mensuales asistencias
+  - [x] **Vistas Separadas Sistema Asistencias** ✅ **COMPLETADAS (16-Oct-2025)**:
+    - [x] AttendanceController completo (135 líneas) con 4 métodos (index, detail, sync, export)
+    - [x] Vista list.php: Listado marcaciones por día + filtros año/mes/rango (230 líneas)
+    - [x] Vista detail.php: Detalle completo día específico + estadísticas + tabla empleados (260 líneas)
+    - [x] Vista sync.php: Panel sincronización manual (Full/Hoy/Rango) (180 líneas)
+    - [x] Attendance Model: 5 métodos nuevos (getAttendanceSummaryByMonth, getAttendanceSummaryByDateRange, getAttendancesByDate, getDayStatistics, getAvailableYears)
+    - [x] Rutas configuradas en App.php líneas 130-163 (routing especial para attendance)
+    - [x] Sidebar actualizado con 5 opciones separadas (Marcaciones, Sincronizar, Reportes, Config API, Sistema Marcaciones)
+    - [x] Total: 4 vistas nuevas | 1 controller | 5 métodos modelo | ~968 líneas código
+  - [x] **AttendanceCalculator Core** ✅ **COMPLETADO (16-Oct-2025)** - 708 líneas
+    - [x] Persistencia BD completa (saveCalculation, calculateAndSave, calculateAndSaveBulk)
+    - [x] Marcaciones perfectas + horas trabajadas + score puntualidad 0-100
+    - [x] Integración completa WorkScheduleResolver + OvertimeCalculator + WorkingDayClassifier
+    - [x] Suite testing 22 tests (90.9% éxito)
+  - [x] **AbsenceDetector Core** ✅ **COMPLETADO (16-Oct-2025)** - 693 líneas
+    - [x] Persistencia BD completa (saveAbsence, detectAndSaveAbsences, detectAndSaveBulk)
+    - [x] Workflow justificaciones completo (justifyAbsence, rejectJustification)
+    - [x] Estados JUSTIFIED/UNJUSTIFIED/PENDING + consultas pendientes + estadísticas
+  - [x] **Integración UI Calculadores** ✅ **COMPLETADA (17-Oct-2025)**
+    - [x] AttendanceController: 7 métodos AJAX endpoints (calculateAttendance, detectAbsences, processCalculations, etc.)
+    - [x] Vista detail.php mejorada: Botón batch + columna puntualidad + badges coloreados (verde/amarillo/rojo) + modal detalles
+    - [x] Vista list.php mejorada: Botón "Detectar Ausencias" + modal con validaciones + confirmación SweetAlert2
+    - [x] Vista pending-absences.php NUEVA: 4 estadísticas cards + filtros Select2 + DataTable + modal justificación (410 líneas)
+    - [x] 6 rutas nuevas en App.php + Fix crítico routing + Fix jQuery/DataTables sync-history
+    - [x] **Total**: ~850 líneas código UI | 7 endpoints AJAX | 1 vista nueva | 2 fixes críticos
+  - [ ] **Reports Generator**: reportes diarios/semanales/mensuales asistencias
+  - [ ] **Sidebar Integration**: Link "Ausencias Pendientes" en menú Asistencia
 
 - [ ] **Subfase 7.3: Consideraciones Legales Panamá + Integración BusinessCalendar** *(1-2 semanas)*
   - [ ] LegalComplianceChecker: validación cumplimiento normativa laboral panameña

@@ -228,9 +228,27 @@ class SidebarComponent
                             </a>
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <a href="' . \App\Core\UrlHelper::attendance() . '" class="nav-link ' . ($this->isActive('panel/attendance') && !$this->isActive('panel/attendance/reports') ? 'active' : '') . '">
-                                        <i class="fas fa-list-ul nav-icon"></i>
-                                        <p>Registros de Asistencia</p>
+                                    <a href="' . \App\Core\UrlHelper::route('/panel/attendance/devices') . '" class="nav-link ' . ($this->isActive('panel/attendance/devices') ? 'active' : '') . '">
+                                        <i class="fas fa-desktop nav-icon"></i>
+                                        <p>Dispositivos</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('/panel/attendance/sync') . '" class="nav-link ' . ($this->isActive('panel/attendance/sync') ? 'active' : '') . '">
+                                        <i class="fas fa-sync-alt nav-icon"></i>
+                                        <p>Sincronizar</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('/panel/attendance/sync-history') . '" class="nav-link ' . ($this->isActive('panel/attendance/sync-history') ? 'active' : '') . '">
+                                        <i class="fas fa-history nav-icon"></i>
+                                        <p>Historial Sync</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('/panel/attendance') . '" class="nav-link ' . ($this->isActive('panel/attendance') && !$this->isActive('panel/attendance/reports') && !$this->isActive('panel/attendance/sync') && !$this->isActive('panel/attendance/devices') && !$this->isActive('panel/attendance/detail') ? 'active' : '') . '">
+                                        <i class="fas fa-calendar-check nav-icon"></i>
+                                        <p>Marcaciones por Día</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">

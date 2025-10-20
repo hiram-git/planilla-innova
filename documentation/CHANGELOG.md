@@ -8,6 +8,88 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.4.5]** - 2025-10-17 - *Integración UI Calculadores Asistencias*
+**Tipo**: Mejora - Integración UI + Endpoints AJAX
+**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (75%)
+
+**Componentes Principales**:
+- ✅ **AttendanceController Integración** (+370 líneas):
+  - 7 métodos AJAX: calculateAttendance(), detectAbsences(), processCalculations(), etc.
+  - Integración completa calculadores con interfaz visual
+  - Validación CSRF + manejo errores robusto
+- ✅ **Vista detail.php Mejorada** (+120 líneas):
+  - Botón "Procesar Cálculos Día" para batch processing
+  - Nueva columna "Puntualidad" con badges coloreados (verde ≥80%, amarillo 50-79%, rojo <50%)
+  - Icono estrella dorada para asistencia perfecta
+  - Modal detalles cálculo completo (horas, tardanzas, extras, score)
+- ✅ **Vista list.php Mejorada** (+100 líneas):
+  - Botón "Detectar Ausencias" con modal completo
+  - Validaciones JavaScript + confirmación SweetAlert2
+  - Checkbox "Guardar en BD" + estadísticas resultados
+- ✅ **Vista pending-absences.php NUEVA** (410 líneas):
+  - 4 estadísticas cards (total pendientes, injustificadas, por revisar, empleados afectados)
+  - Filtros avanzados con Select2 (empleado, fecha inicio/fin)
+  - DataTable con listado completo + ordenamiento español
+  - Modal justificación con 6 tipos (MEDICAL, PERMISSION, VACATION, BEREAVEMENT, MATERNITY, OTHER)
+- ✅ **Routing + Fixes Críticos**:
+  - 6 rutas nuevas en App.php (calculate, detect-absences, justify, etc.)
+  - Fix controller mapping: 'Attendance' → 'AttendanceController' (línea 60)
+  - Fix jQuery/DataTables en sync-history/index.php
+- 📈 **Estadísticas**: 4 archivos modificados | 1 vista nueva | ~850 líneas código UI | 7 endpoints AJAX | 2 fixes críticos
+
+**[📄 Ver detalles completos →](./changelog/v3.4.5.md)**
+
+---
+
+### **[v3.4.4]** - 2025-10-16 - *AttendanceCalculator + AbsenceDetector con Persistencia BD*
+**Tipo**: Mejora - Implementación Core Calculators
+**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (60%)
+
+**Componentes Principales**:
+- ✅ **AttendanceCalculator Mejorado** (+280 líneas, total 708):
+  - Método `saveCalculation()` - Guarda en attendance_calculations (INSERT/UPDATE automático)
+  - Método `calculateAndSave()` - All-in-one (calcula + guarda + retorna con ID)
+  - Método `calculateAndSaveBulk()` - Procesamiento batch con estadísticas
+  - Métodos CRUD: `getCalculation()`, `deleteCalculation()`, `getConfig()`
+  - Integración completa con WorkScheduleResolver, OvertimeCalculator, WorkingDayClassifier
+- ✅ **AbsenceDetector Mejorado** (+385 líneas, total 693):
+  - Método `saveAbsence()` - Guarda en attendance_absence_log (INSERT/UPDATE automático)
+  - Método `detectAndSaveAbsences()` - Detecta y guarda con estadísticas por empleado
+  - Método `detectAndSaveBulk()` - Procesamiento batch múltiples empleados
+  - Workflow justificaciones: `justifyAbsence()`, `rejectJustification()`
+  - Consultas: `getPendingAbsences()`, `getEmployeeAbsences()`, `getAbsenceStatistics()`
+  - Estados: JUSTIFIED, UNJUSTIFIED, PENDING con resolución tracking
+- ✅ **Suite Testing Completa** (370+ líneas):
+  - 22 tests organizados en 6 módulos temáticos
+  - 90.9% tasa de éxito (20/22 tests pasaron)
+  - Módulos: Cálculos Básicos, Tardanzas, Asistencia Perfecta, Jornadas Especiales, BD, Batch
+- 📈 **Estadísticas**: 3 archivos (2 modificados + 1 creado) | ~1,035 líneas código
+
+**[📄 Ver detalles completos →](./changelog/v3.4.4.md)**
+
+---
+
+### **[v3.4.3]** - 2025-10-16 - *Vistas Separadas Sistema Asistencias*
+**Tipo**: Mejora - Refactorización Arquitectura
+**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (35%)
+
+**Componentes Principales**:
+- ✅ **AttendanceController Completo** (135 líneas): Controlador dedicado con 4 métodos (index, detail, sync, export)
+- ✅ **3 Vistas Separadas**:
+  - `list.php` (230 líneas): Listado marcaciones agrupadas por día + filtros año/mes/rango
+  - `detail.php` (260 líneas): Detalle completo día específico + estadísticas + tabla empleados
+  - `sync.php` (180 líneas): Panel sincronización manual (Full/Hoy/Rango)
+- ✅ **Attendance Model Extendido**: 5 métodos nuevos para estadísticas
+  - getAttendanceSummaryByMonth(), getAttendanceSummaryByDateRange()
+  - getAttendancesByDate(), getDayStatistics(), getAvailableYears()
+- ✅ **Routing Mejorado**: App.php con rutas específicas attendance (líneas 130-163)
+- ✅ **Sidebar Reorganizado**: 5 opciones separadas (Marcaciones, Sincronizar, Reportes, Config API, Sistema Marcaciones)
+- 📈 **Estadísticas**: 4 vistas nuevas | 1 controller | 5 métodos modelo | ~968 líneas código
+
+**[📄 Ver detalles completos →](./changelog/v3.4.3.md)**
+
+---
+
 ### **[v3.4.2]** - 2025-10-10 - *Checkbox Validación Situación + Análisis Reproceso Histórico*
 **Tipo**: Mejora + Análisis
 **Fase**: Sistema Reprocesamiento Planillas
@@ -154,6 +236,6 @@ Al crear una nueva versión:
 
 ---
 
-**Última Actualización**: 10 de Octubre, 2025
-**Sistema**: Planillas MVC v3.4.1
-**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 25%
+**Última Actualización**: 16 de Octubre, 2025
+**Sistema**: Planillas MVC v3.4.4
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 60%
