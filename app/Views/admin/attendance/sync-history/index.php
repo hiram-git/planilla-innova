@@ -6,23 +6,6 @@
  */
 ?>
 
-<!-- Content Header -->
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0"><?= $page_title ?? 'Historial de Sincronizaciones' ?></h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/panel/dashboard">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="/panel/attendance">Asistencia</a></li>
-                    <li class="breadcrumb-item active">Historial Sincronizaciones</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Main content -->
 <div class="content">
@@ -146,11 +129,6 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Historial de Sincronizaciones</h3>
-                        <div class="card-tools">
-                            <a href="/panel/attendance/sync" class="btn btn-primary btn-sm">
-                                <i class="fas fa-sync-alt"></i> Nueva Sincronización
-                            </a>
-                        </div>
                     </div>
                     <div class="card-body">
                         <table id="sync-history-table" class="table table-bordered table-striped">

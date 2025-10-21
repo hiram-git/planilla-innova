@@ -20,7 +20,7 @@ class AttendanceDetail
      */
     public function getByHeader($headerId, $filters = [])
     {
-        $sql = "SELECT d.*, e.firstname, e.lastname, e.employee_number,
+        $sql = "SELECT d.*, e.firstname, e.lastname, e.employee_id,
                        s.time_in as schedule_time_in, s.time_out as schedule_time_out,
                        dev.device_name
                 FROM {$this->table} d

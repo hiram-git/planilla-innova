@@ -8,6 +8,45 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.4.7]** - 2025-10-20 - *Integración Completa Planillas-Asistencias*
+**Tipo**: Feature - Subfase 7.4 Integración Planillas-Asistencias
+**Fase**: Subfase 7.4 - Mapeo Automático Asistencias → Conceptos (100%)
+
+**Componentes Principales**:
+- ✅ **Migración BD Integración** (342 líneas SQL):
+  - Tabla `payroll_attendance_summary` (38 campos) - resumen por empleado/planilla
+  - Tabla `attendance_concepts_mapping` (22 campos) - configuración mapeos
+  - Tabla `payroll_attendance_details` (16 campos) - detalles día por día
+  - 3 vistas útiles + 10 Foreign Keys + 15 índices optimizados
+- ✅ **PeriodAttendanceSummary Service** (349 líneas):
+  - Generación resúmenes: horas trabajadas, overtime, tardanzas, ausencias, puntualidad
+  - Integración LegalComplianceChecker para compliance
+  - Cálculos monetarios: regular_pay, overtime_pay, night_pay, holiday_pay
+- ✅ **AttendanceConceptMapper Service** (636 líneas):
+  - 10 métodos especializados mapeo (regular, overtime25/50, night, holidays, etc.)
+  - Soporte fórmulas dinámicas: {SUELDO}, {TARIFA_HORA}, {CANTIDAD}
+  - Evaluación segura con MathExecutor (sin eval())
+  - Mapeo configurable por tipo_planilla_id + situacion_id
+- ✅ **PayrollAttendanceIntegrator Service** (415 líneas):
+  - Procesamiento batch con transacciones
+  - Métodos: processPayrollAttendance(), processEmployeeAttendance()
+  - Persistencia completa: summary + details
+  - Estadísticas: processed, summaries_created, concepts_generated, errors
+- ✅ **Integración PayrollController** (+217 líneas):
+  - 4 endpoints AJAX: process-attendance, attendance-summary, attendance-details, delete-attendance-data
+  - Método getEmployeesByPayroll() agregado a PayrollDetail
+  - Rutas configuradas en App.php
+- ✅ **Script Testing Completo** (481 líneas):
+  - 5 fases testing (preparación, summary, mapper, integrator, batch)
+  - Color-coded output + auto-detección datos test
+  - Verbose mode + success rate calculation
+- ✅ **Fixes**: AttendanceDeviceController layout (render() vs view()) + sync-history navigation
+- 📈 **Estadísticas**: 3 servicios nuevos | 3 tablas BD | ~2,600 líneas código | 80% módulo asistencias completado
+
+**[📄 Ver detalles completos →](./changelog/v3.4.7.md)**
+
+---
+
 ### **[v3.4.6]** - 2025-10-20 - *Sistema de Alertas Legales Automáticas*
 **Tipo**: Feature - Subfase 7.3 Consideraciones Legales Panamá
 **Fase**: Subfase 7.3 - Sistema de Alertas (100%)

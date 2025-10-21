@@ -24,7 +24,7 @@ class AttendanceDeviceController extends Controller
         $devices = $this->deviceModel->getAll();
         $stats = $this->deviceModel->getStats();
 
-        $this->view('admin/attendance/devices/index', [
+        $this->render('admin/attendance/devices/index', [
             'devices' => $devices,
             'stats' => $stats,
             'title' => 'Dispositivos de Marcación'
@@ -36,7 +36,7 @@ class AttendanceDeviceController extends Controller
      */
     public function create()
     {
-        $this->view('admin/attendance/devices/form', [
+        $this->render('admin/attendance/devices/form', [
             'device' => null,
             'action' => 'create',
             'title' => 'Crear Dispositivo'
@@ -92,7 +92,7 @@ class AttendanceDeviceController extends Controller
             return $this->redirect('/panel/attendance/devices');
         }
 
-        $this->view('admin/attendance/devices/form', [
+        $this->render('admin/attendance/devices/form', [
             'device' => $device,
             'action' => 'edit',
             'title' => 'Editar Dispositivo'

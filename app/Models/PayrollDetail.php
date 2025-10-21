@@ -885,7 +885,7 @@ class PayrollDetail extends Model
 
     /**
      * Obtener metadatos de edición manual
-     * 
+     *
      * @param int $detailId ID del registro
      * @return array|null
      */
@@ -902,6 +902,35 @@ class PayrollDetail extends Model
         } catch (\Exception $e) {
             error_log("Error obteniendo metadatos: " . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Obtener lista de empleados de una planilla (para integración asistencias)
+     *
+     * @param int $payrollId ID de la planilla
+     * @return array Lista de empleados con sus IDs
+     */
+    public function getEmployeesByPayroll($payrollId)
+    {
+        try {
+            $sql = "SELECT DISTINCT
+                        e.id as employee_id,
+                        e.employee_id as employee_code,
+                        CONCAT(e.firstname, ' ', e.lastname) as employee_name,
+                        e.firstname,
+                        e.lastname
+                    FROM planilla_detalle pd
+                    INNER JOIN employees e ON pd.employee_id = e.id
+                    WHERE pd.planilla_cabecera_id = ?
+                    ORDER BY e.lastname, e.firstname";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payrollId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error obteniendo empleados por planilla: " . $e->getMessage());
+            return [];
         }
     }
 

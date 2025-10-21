@@ -8,24 +8,7 @@ $isEdit = isset($device) && $device;
 $formAction = $isEdit ? "/panel/attendance/devices/{$device['id']}/update" : "/panel/attendance/devices/store";
 ?>
 
-<!-- Content Header -->
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0"><?= $title ?? ($isEdit ? 'Editar Dispositivo' : 'Crear Dispositivo') ?></h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/panel/dashboard">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="/panel/attendance">Asistencia</a></li>
-                    <li class="breadcrumb-item"><a href="/panel/attendance/devices">Dispositivos</a></li>
-                    <li class="breadcrumb-item active"><?= $isEdit ? 'Editar' : 'Crear' ?></li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Main content -->
 <div class="content">

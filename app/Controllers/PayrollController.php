@@ -2781,4 +2781,222 @@ class PayrollController extends Controller
                 return 1;
         }
     }
+
+    /**
+     * ==========================================
+     * INTEGRACIÓN CON SISTEMA DE ASISTENCIAS
+     * ==========================================
+     */
+
+    /**
+     * Procesar asistencias para una planilla (AJAX)
+     * Genera conceptos automáticos basados en marcaciones
+     *
+     * @param int $planillaId ID de la planilla
+     * @return JSON response
+     */
+    public function processAttendance($planillaId)
+    {
+        try {
+            if (!$this->isAjax()) {
+                throw new \Exception('Método no permitido');
+            }
+
+            // Validar que la planilla exista
+            $payroll = $this->payrollModel->getById($planillaId);
+            if (!$payroll) {
+                return $this->json(['success' => false, 'message' => 'Planilla no encontrada'], 404);
+            }
+
+            // Validar estado
+            if ($payroll['estado'] === 'CERRADA') {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'No se puede procesar asistencias en planilla CERRADA'
+                ], 400);
+            }
+
+            // Obtener empleados de la planilla
+            $employees = $this->payrollDetailModel->getEmployeesByPayroll($planillaId);
+            if (empty($employees)) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'No hay empleados en la planilla para procesar'
+                ], 400);
+            }
+
+            $employeeIds = array_column($employees, 'employee_id');
+
+            // Instanciar integrador de asistencias
+            $integrator = new \App\Services\Attendance\PayrollAttendanceIntegrator();
+
+            // Procesar asistencias para todos los empleados
+            $result = $integrator->processPayrollAttendance(
+                $planillaId,
+                $employeeIds,
+                $payroll['tipo_planilla_id']
+            );
+
+            if ($result['success']) {
+                $stats = $result['stats'];
+
+                // TODO: Insertar conceptos generados en planilla_detalle
+                // Esto se implementará en una fase posterior
+
+                return $this->json([
+                    'success' => true,
+                    'message' => 'Asistencias procesadas exitosamente',
+                    'data' => [
+                        'total_employees' => $stats['total_employees'],
+                        'processed' => $stats['processed'],
+                        'summaries_created' => $stats['summaries_created'],
+                        'concepts_generated' => $stats['concepts_generated'],
+                        'errors' => $stats['errors'],
+                        'error_messages' => $stats['error_messages']
+                    ]
+                ]);
+            } else {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Error procesando asistencias: ' . ($result['error'] ?? 'Error desconocido'),
+                    'data' => $result['stats'] ?? []
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en PayrollController@processAttendance: " . $e->getMessage());
+            return $this->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener resumen de asistencias de una planilla (AJAX)
+     *
+     * @param int $planillaId ID de la planilla
+     * @return JSON response
+     */
+    public function getAttendanceSummary($planillaId)
+    {
+        try {
+            if (!$this->isAjax()) {
+                throw new \Exception('Método no permitido');
+            }
+
+            // Validar que la planilla exista
+            $payroll = $this->payrollModel->getById($planillaId);
+            if (!$payroll) {
+                return $this->json(['success' => false, 'message' => 'Planilla no encontrada'], 404);
+            }
+
+            // Obtener resumen de asistencias
+            $integrator = new \App\Services\Attendance\PayrollAttendanceIntegrator();
+            $summaries = $integrator->getPayrollAttendanceSummary($planillaId);
+
+            return $this->json([
+                'success' => true,
+                'data' => $summaries
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error en PayrollController@getAttendanceSummary: " . $e->getMessage());
+            return $this->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener detalles de asistencias de un empleado en una planilla (AJAX)
+     *
+     * @param int $planillaId ID de la planilla
+     * @param int $employeeId ID del empleado
+     * @return JSON response
+     */
+    public function getEmployeeAttendanceDetails($planillaId, $employeeId)
+    {
+        try {
+            if (!$this->isAjax()) {
+                throw new \Exception('Método no permitido');
+            }
+
+            // Validar que la planilla exista
+            $payroll = $this->payrollModel->getById($planillaId);
+            if (!$payroll) {
+                return $this->json(['success' => false, 'message' => 'Planilla no encontrada'], 404);
+            }
+
+            // Obtener detalles de asistencias del empleado
+            $integrator = new \App\Services\Attendance\PayrollAttendanceIntegrator();
+            $details = $integrator->getEmployeeAttendanceDetails($planillaId, $employeeId);
+
+            return $this->json([
+                'success' => true,
+                'data' => $details
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error en PayrollController@getEmployeeAttendanceDetails: " . $e->getMessage());
+            return $this->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar datos de asistencias de una planilla (AJAX)
+     * Útil para reprocesamiento o corrección de errores
+     *
+     * @param int $planillaId ID de la planilla
+     * @return JSON response
+     */
+    public function deleteAttendanceData($planillaId)
+    {
+        try {
+            if (!$this->isAjax()) {
+                throw new \Exception('Método no permitido');
+            }
+
+            // Validar que la planilla exista
+            $payroll = $this->payrollModel->getById($planillaId);
+            if (!$payroll) {
+                return $this->json(['success' => false, 'message' => 'Planilla no encontrada'], 404);
+            }
+
+            // Validar estado
+            if ($payroll['estado'] === 'CERRADA') {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar datos de asistencias en planilla CERRADA'
+                ], 400);
+            }
+
+            // Eliminar datos de asistencias
+            $integrator = new \App\Services\Attendance\PayrollAttendanceIntegrator();
+            $result = $integrator->deletePayrollAttendanceData($planillaId);
+
+            if ($result) {
+                return $this->json([
+                    'success' => true,
+                    'message' => 'Datos de asistencias eliminados exitosamente'
+                ]);
+            } else {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Error al eliminar datos de asistencias'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en PayrollController@deleteAttendanceData: " . $e->getMessage());
+            return $this->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

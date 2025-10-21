@@ -6,22 +6,7 @@
  */
 ?>
 
-<!-- Content Header -->
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0"><?= $page_title ?? 'Marcaciones de Asistencia' ?></h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/panel/dashboard">Dashboard</a></li>
-                    <li class="breadcrumb-item active">Marcaciones</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Main content -->
 <div class="content">
@@ -280,7 +265,7 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="/panel/attendance/detail/<?= $date ?>"
+                                                    <a  href="<?= \App\Core\UrlHelper::panel('attendance/detail/' . $date ) ?>"
                                                        class="btn btn-info" title="Ver Detalle">
                                                         <i class="fas fa-eye"></i>
                                                     </a>

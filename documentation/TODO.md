@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.4.6** *(20 Oct 2025)*
+## 🎯 **ESTADO ACTUAL V3.4.7** *(20 Oct 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -23,7 +23,8 @@
 - **Vistas Separadas Asistencias**: ✅ Subfase 7.2 Completada *(V3.4.3)*
 - **Calculadores Core**: ✅ Subfase 7.2 Completada *(V3.4.4)*
 - **Integración UI Calculadores**: ✅ Subfase 7.2 Completada *(V3.4.5)*
-- **🆕 Sistema Alertas Legales**: ✅ Subfase 7.3 Completada *(V3.4.6)*
+- **Sistema Alertas Legales**: ✅ Subfase 7.3 Completada *(V3.4.6)*
+- **🆕 Integración Planillas-Asistencias**: ✅ Subfase 7.4 Completada *(V3.4.7)*
 
 ---
 
@@ -52,10 +53,10 @@
   - [ ] **Testing Completo**: Casos edge + validaciones + rollback + performance
   - [ ] **Documentación**: Guía usuario + changelog + roadmap update
 
-### ⏰ **INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(PRIORIDAD ALTA - En Desarrollo 25%)*
+### ⏰ **INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(PRIORIDAD ALTA - 80% Completado)*
 **Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
 **Tiempo Estimado**: 6-8 semanas
-**Progreso**: Subfase 7.1 ✅ COMPLETADA | Subfase 7.2 ✅ COMPLETADA | Subfase 7.3 ✅ COMPLETADA | Subfases 7.4-7.5 Pendientes
+**Progreso**: Subfase 7.1-7.4 ✅ COMPLETADAS | Fase 7.5 (Interfaz/Reportes) Pendiente
 
 - [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
   - [x] Base44ApiClient (367 líneas) + retry logic + backoff exponencial
@@ -186,18 +187,57 @@
     - [x] Tests Integración: 3 tests (compliance, calculator)
     - [x] **Total**: 21/22 tests funcionales (95.5%)
 
-- [ ] **Fase 4: Integración con Generación de Planillas** *(1-2 semanas)*
-  - [ ] PayrollAttendanceIntegrator: asistencias → planillas automático
-  - [ ] AttendanceConceptMapper: mapeo cálculos asistencias → conceptos planilla
-  - [ ] Conceptos automáticos: HORAS_TRABAJADAS, HORAS_EXTRAS_25, HORAS_EXTRAS_50
-  - [ ] Conceptos adicionales: HORAS_NOCTURNAS, HORAS_DOMINICALES, DESCUENTO_TARDANZAS
-  - [ ] Conceptos bonificación: BONO_PUNTUALIDAD por asistencia perfecta
-  - [ ] PeriodAttendanceSummary: resumen asistencias por período de planilla
-  - [ ] Tablas BD: `payroll_attendance_summary`, `attendance_concepts_mapping`, `payroll_attendance_details`
-  - [ ] ValidationRules: validaciones cruce datos asistencias/planillas
-  - [ ] Flujo completo: consulta período → cálculo conceptos → revisión manual → reporte adjunto
+- [x] **Subfase 7.4: Integración Planillas-Asistencias** *(1-2 semanas)* ✅ **COMPLETADA (20-Oct-2025)**
+  - [x] **Migración BD Integración** ✅ **COMPLETADA** - 342 líneas SQL
+    - [x] Tabla `payroll_attendance_summary` (38 campos) - resumen asistencias por empleado y planilla
+    - [x] Tabla `attendance_concepts_mapping` (22 campos) - configuración mapeo asistencias → conceptos
+    - [x] Tabla `payroll_attendance_details` (16 campos) - detalles granulares día por día
+    - [x] 3 vistas útiles (summary_with_employees, concepts_with_names, alerts_pending)
+    - [x] 10 Foreign Keys + 15 índices optimizados
+    - [x] 10 tipos de mapeo soportados (regular hours, overtime, tardiness, bonuses, etc.)
+  - [x] **PeriodAttendanceSummary** ✅ **COMPLETADO** - 349 líneas
+    - [x] Método `generateSummary()` agregación completa métricas período
+    - [x] Método `aggregateMetrics()` suma horas/días/tardanzas/ausencias
+    - [x] Método `checkLegalCompliance()` integración LegalComplianceChecker
+    - [x] Resumen incluye: horas trabajadas, overtime, tardanzas, ausencias, puntualidad
+    - [x] Cálculos monetarios: regular_pay, overtime_pay, night_pay, holiday_pay
+    - [x] Compliance legal: violations, warnings, risk_level, compliance_notes
+  - [x] **AttendanceConceptMapper** ✅ **COMPLETADO** - 636 líneas
+    - [x] Método `mapAttendanceToConcepts()` orquestador principal
+    - [x] 10 métodos especializados mapeo por tipo (regular, overtime25, overtime50, etc.)
+    - [x] Soporte fórmulas dinámicas con variables: {SUELDO}, {TARIFA_HORA}, {CANTIDAD}
+    - [x] Evaluación segura fórmulas usando MathExecutor (sin eval())
+    - [x] Mapeo configurable por tipo_planilla_id + situacion_id
+    - [x] Generación conceptos INGRESO/DESCUENTO según configuración
+    - [x] Cálculo tarifa horaria automático (salario / 30 / 8)
+  - [x] **PayrollAttendanceIntegrator** ✅ **COMPLETADO** - 415 líneas
+    - [x] Método `processPayrollAttendance()` procesamiento batch con transacciones
+    - [x] Método `processEmployeeAttendance()` procesamiento individual completo
+    - [x] Método `saveSummary()` persistencia resumen (INSERT/UPDATE automático)
+    - [x] Método `saveDetails()` guardado detalles granulares
+    - [x] Métodos consulta: `getPayrollAttendanceSummary()`, `getEmployeeAttendanceDetails()`
+    - [x] Método `deletePayrollAttendanceData()` limpieza para reprocesamiento
+    - [x] Estadísticas procesamiento: processed, summaries_created, concepts_generated, errors
+  - [x] **Integración PayrollController** ✅ **COMPLETADA** - +217 líneas
+    - [x] Endpoint POST `/payrolls/{id}/process-attendance` - procesar asistencias planilla
+    - [x] Endpoint GET `/payrolls/{id}/attendance-summary` - obtener resúmenes
+    - [x] Endpoint GET `/payrolls/{id}/attendance-details/{employeeId}` - detalles empleado
+    - [x] Endpoint POST `/payrolls/{id}/delete-attendance-data` - eliminar datos
+    - [x] Método `getEmployeesByPayroll()` agregado a PayrollDetail model
+    - [x] Rutas configuradas en App.php (4 rutas nuevas)
+  - [x] **Script Testing Completo** ✅ **COMPLETADO** - 481 líneas
+    - [x] Fase 1: Preparación datos test (auto-detección empleado/planilla)
+    - [x] Fase 2: Tests PeriodAttendanceSummary (generación + validación)
+    - [x] Fase 3: Tests AttendanceConceptMapper (mapeo + fórmulas)
+    - [x] Fase 4: Tests PayrollAttendanceIntegrator (persistencia BD)
+    - [x] Fase 5: Tests batch processing (múltiples empleados)
+    - [x] Color-coded output + verbose mode + success rate
+  - [x] **Fixes Varios** ✅ **COMPLETADOS**
+    - [x] Fix AttendanceDeviceController: render() en vez de view() (3 métodos)
+    - [x] Fix sync-history view: removido botón navegación a /sync
+    - [x] **Total**: 2 vistas corregidas
 
-- [ ] **Fase 5: Interfaz y Reportes** *(1 semana)*
+- [ ] **Fase 7.5: Interfaz y Reportes** *(1 semana)*
   - [ ] Vista empleados: consulta asistencias propias en tiempo real
   - [ ] Vista gerencial: dashboard asistencias por departamento/equipo
   - [ ] Reportes ejecutivos: puntualidad, ausentismo, horas extras

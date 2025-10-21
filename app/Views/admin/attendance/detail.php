@@ -4,25 +4,13 @@
  * Ruta: /panel/attendance/detail/{date}
  * REFACTORIZADO: Usa AttendanceHeader y AttendanceDetail
  */
+if (isset($header['processed_at']) && is_string($header['processed_at']) && strtotime($header['processed_at']) !== false) {
+    $fecha = date('d/m/Y H:i', strtotime($header['processed_at']));
+} else {
+    $fecha = 'Fecha no disponible o inválida';
+}
 ?>
 
-<!-- Content Header -->
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0"><?= $page_title ?? 'Detalle de Marcaciones' ?></h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/panel/dashboard">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="/panel/attendance">Marcaciones</a></li>
-                    <li class="breadcrumb-item active">Detalle</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Main content -->
 <div class="content">
@@ -45,7 +33,7 @@
                             ?>)
                         </h3>
                         <div class="card-tools">
-                            <a href="/panel/attendance" class="btn btn-tool" title="Volver al listado">
+                            <a href="<?= \App\Core\UrlHelper::panel('attendance') ?>" class="btn btn-tool" title="Volver al listado">
                                 <i class="fas fa-arrow-left"></i> Volver
                             </a>
                         </div>
@@ -69,7 +57,7 @@
                                 <?php if ($header['is_processed']): ?>
                                     <span class="badge badge-success">Procesado</span>
                                     <small class="text-muted">
-                                        (<?= date('d/m/Y H:i', strtotime($header['processed_at'])) ?>)
+                                        (<?= $fecha ?>)
                                     </small>
                                 <?php else: ?>
                                     <span class="badge badge-warning">Pendiente</span>
