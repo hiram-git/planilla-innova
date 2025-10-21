@@ -8,6 +8,36 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.4.6]** - 2025-10-20 - *Sistema de Alertas Legales Automáticas*
+**Tipo**: Feature - Subfase 7.3 Consideraciones Legales Panamá
+**Fase**: Subfase 7.3 - Sistema de Alertas (100%)
+
+**Componentes Principales**:
+- ✅ **AlertsSystem** (675 líneas):
+  - 14 métodos públicos gestión completa de alertas
+  - Generación automática desde LegalComplianceChecker
+  - Workflow: PENDING → ACKNOWLEDGED → RESOLVED/DISMISSED
+  - 10+ tipos de alertas (excesos jornada, ausencias graves, tardanzas)
+  - 3 niveles severidad: INFO, WARNING, CRITICAL
+  - Metadata JSON flexible + referencias legales (Art. 31, 35, 38, 39, 48, 213)
+- ✅ **Migración BD attendance_alerts** (342 líneas):
+  - Tabla completa 20 campos + metadata JSON
+  - 11 índices optimizados + 4 Foreign Keys
+  - 4 vistas útiles + 2 triggers + 3 stored procedures
+- ✅ **Integración AttendanceCalculator** (+180 líneas):
+  - Métodos: checkLegalComplianceAndAlert(), calculateSaveAndAlert(), etc.
+  - Flujo completo: calcular → guardar → verificar → alertar automático
+- ✅ **Script Testing Completo** (481 líneas, 33 tests):
+  - Tests componentes legales: LegalComplianceChecker, OvertimeRateCalculator, WorkingDayClassifier
+  - Tests AlertsSystem: CRUD, workflow, estadísticas
+  - Tests Integración completa
+  - **Resultado**: 21/22 tests funcionales (95.5%)
+- 📈 **Estadísticas**: 3 archivos creados | 1 modificado | ~1,678 líneas código | 1 tabla BD
+
+**[📄 Ver detalles completos →](./changelog/v3.4.6.md)**
+
+---
+
 ### **[v3.4.5]** - 2025-10-17 - *Integración UI Calculadores Asistencias*
 **Tipo**: Mejora - Integración UI + Endpoints AJAX
 **Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (75%)

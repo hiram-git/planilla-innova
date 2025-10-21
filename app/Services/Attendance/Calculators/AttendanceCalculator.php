@@ -5,6 +5,7 @@ namespace App\Services\Attendance\Calculators;
 use App\Core\Database;
 use App\Models\Attendance;
 use App\Models\BusinessCalendar;
+use App\Services\Attendance\AlertsSystem;
 use DateTime;
 use Exception;
 
@@ -24,6 +25,8 @@ class AttendanceCalculator
     private $overtimeCalculator;
     private $attendanceModel;
     private $businessCalendar;
+    private $complianceChecker;
+    private $alertsSystem;
     private $db;
 
     public function __construct()
@@ -32,6 +35,8 @@ class AttendanceCalculator
         $this->overtimeCalculator = new OvertimeCalculator();
         $this->attendanceModel = new Attendance();
         $this->businessCalendar = new BusinessCalendar();
+        $this->complianceChecker = new LegalComplianceChecker();
+        $this->alertsSystem = new AlertsSystem();
         $this->db = Database::getInstance()->getConnection();
     }
 
@@ -703,6 +708,181 @@ class AttendanceCalculator
             'working_day_classifier' => 'Integrado',
             'overtime_calculator' => 'Integrado',
             'schedule_resolver' => 'Integrado',
+            'alerts_system' => 'Integrado',
         ];
+    }
+
+    /**
+     * Verificar cumplimiento legal y generar alertas automáticas
+     *
+     * @param array $calculation Cálculo de asistencia
+     * @param bool $generateAlerts Si debe generar alertas automáticamente (default: true)
+     * @return array Resultado del chequeo de cumplimiento con estadísticas de alertas
+     */
+    public function checkLegalComplianceAndAlert(array $calculation, bool $generateAlerts = true): array
+    {
+        // Preparar datos para el LegalComplianceChecker
+        $attendanceData = [
+            'date' => $calculation['date'],
+            'daily_hours' => $calculation['total_hours'],
+            'total_hours' => $calculation['total_hours'],
+            'lunch_minutes' => $calculation['lunch_time_minutes'],
+            'time_in' => $calculation['time_in'],
+            'time_out' => $calculation['time_out'],
+            'night_hours' => $calculation['night_hours'],
+            'hours_worked' => $calculation['total_hours'],
+        ];
+
+        // Ejecutar validación de cumplimiento legal
+        $complianceResult = $this->complianceChecker->performFullCompliance($attendanceData);
+
+        // Si hay violaciones o warnings y se solicita generar alertas
+        if ($generateAlerts && ($complianceResult['total_violations'] > 0 || $complianceResult['total_warnings'] > 0)) {
+            // Generar alertas automáticamente
+            $alertsStats = $this->alertsSystem->generateAlertsFromCompliance(
+                $calculation['employee_id'],
+                $complianceResult
+            );
+
+            $complianceResult['alerts_generated'] = $alertsStats;
+
+            error_log(sprintf(
+                "AlertsSystem: Generadas %d alertas para empleado %d (Fecha: %s)",
+                $alertsStats['total_generated'],
+                $calculation['employee_id'],
+                $calculation['date']
+            ));
+        } else {
+            $complianceResult['alerts_generated'] = [
+                'total_generated' => 0,
+                'skipped_duplicates' => 0,
+                'reason' => 'no_violations_or_warnings'
+            ];
+        }
+
+        return $complianceResult;
+    }
+
+    /**
+     * Calcular, guardar y generar alertas automáticas (flujo completo)
+     *
+     * @param array $attendance Registro de asistencia
+     * @param bool $generateAlerts Si debe generar alertas (default: true)
+     * @return array Cálculo completo con resultado de cumplimiento y alertas
+     */
+    public function calculateSaveAndAlert(array $attendance, bool $generateAlerts = true): array
+    {
+        // 1. Calcular asistencia
+        $calculation = $this->calculate($attendance);
+
+        // 2. Guardar en BD
+        $calculationId = $this->saveCalculation($calculation);
+        $calculation['calculation_id'] = $calculationId;
+
+        // 3. Verificar cumplimiento legal y generar alertas
+        $complianceResult = $this->checkLegalComplianceAndAlert($calculation, $generateAlerts);
+
+        // Agregar información de cumplimiento al resultado
+        $calculation['legal_compliance'] = [
+            'overall_compliant' => $complianceResult['overall_compliant'],
+            'total_violations' => $complianceResult['total_violations'],
+            'total_warnings' => $complianceResult['total_warnings'],
+            'risk_level' => $complianceResult['summary']['risk_level'] ?? 'NINGUNO',
+            'alerts_generated' => $complianceResult['alerts_generated']['total_generated'] ?? 0,
+        ];
+
+        return $calculation;
+    }
+
+    /**
+     * Procesar bulk con alertas automáticas
+     *
+     * @param array $attendances Array de asistencias
+     * @param bool $saveToDb Si debe guardar en BD
+     * @param bool $generateAlerts Si debe generar alertas
+     * @return array Resultado con estadísticas
+     */
+    public function calculateSaveAndAlertBulk(array $attendances, bool $saveToDb = true, bool $generateAlerts = true): array
+    {
+        $calculations = [];
+        $savedCount = 0;
+        $errors = [];
+        $totalAlerts = 0;
+        $totalViolations = 0;
+
+        foreach ($attendances as $attendance) {
+            try {
+                if ($saveToDb && $generateAlerts) {
+                    // Flujo completo con alertas
+                    $calculation = $this->calculateSaveAndAlert($attendance, $generateAlerts);
+                    $savedCount++;
+                    $totalAlerts += $calculation['legal_compliance']['alerts_generated'] ?? 0;
+                    $totalViolations += $calculation['legal_compliance']['total_violations'] ?? 0;
+                } elseif ($saveToDb) {
+                    // Solo calcular y guardar, sin alertas
+                    $calculation = $this->calculateAndSave($attendance);
+                    $savedCount++;
+                } else {
+                    // Solo calcular, sin guardar ni alertas
+                    $calculation = $this->calculate($attendance);
+                }
+
+                $calculations[] = $calculation;
+
+            } catch (Exception $e) {
+                $errors[] = [
+                    'attendance_id' => $attendance['id'] ?? 'unknown',
+                    'error' => $e->getMessage(),
+                ];
+                error_log("Error procesando asistencia ID {$attendance['id']}: " . $e->getMessage());
+            }
+        }
+
+        // Log de resultados
+        $totalProcessed = count($attendances);
+        error_log(sprintf(
+            "AttendanceCalculator Bulk: Procesados %d, Guardados %d, Alertas %d, Violaciones %d, Errores: %d",
+            $totalProcessed,
+            $savedCount,
+            $totalAlerts,
+            $totalViolations,
+            count($errors)
+        ));
+
+        return [
+            'calculations' => $calculations,
+            'stats' => [
+                'total_processed' => $totalProcessed,
+                'saved' => $savedCount,
+                'errors' => count($errors),
+                'total_alerts_generated' => $totalAlerts,
+                'total_violations' => $totalViolations,
+            ],
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Obtener alertas de un empleado
+     *
+     * @param int $employeeId ID del empleado
+     * @param string|null $severity Filtrar por severidad
+     * @return array Lista de alertas
+     */
+    public function getEmployeeAlerts(int $employeeId, ?string $severity = null): array
+    {
+        return $this->alertsSystem->getEmployeePendingAlerts($employeeId, $severity);
+    }
+
+    /**
+     * Obtener estadísticas de alertas de un empleado
+     *
+     * @param int $employeeId ID del empleado
+     * @param int $days Días hacia atrás
+     * @return array Estadísticas
+     */
+    public function getEmployeeAlertStats(int $employeeId, int $days = 30): array
+    {
+        return $this->alertsSystem->getEmployeeAlertStats($employeeId, $days);
     }
 }

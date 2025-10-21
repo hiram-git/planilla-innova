@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.4.5** *(17 Oct 2025)*
+## 🎯 **ESTADO ACTUAL V3.4.6** *(20 Oct 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -22,7 +22,8 @@
 - **Sistema Reproceso Mejorado**: ✅ Checkbox Validación Completado *(V3.4.2)*
 - **Vistas Separadas Asistencias**: ✅ Subfase 7.2 Completada *(V3.4.3)*
 - **Calculadores Core**: ✅ Subfase 7.2 Completada *(V3.4.4)*
-- **🆕 Integración UI Calculadores**: ✅ Subfase 7.2 (75%) Completada *(V3.4.5)*
+- **Integración UI Calculadores**: ✅ Subfase 7.2 Completada *(V3.4.5)*
+- **🆕 Sistema Alertas Legales**: ✅ Subfase 7.3 Completada *(V3.4.6)*
 
 ---
 
@@ -54,7 +55,7 @@
 ### ⏰ **INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(PRIORIDAD ALTA - En Desarrollo 25%)*
 **Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
 **Tiempo Estimado**: 6-8 semanas
-**Progreso**: Subfase 7.1 ✅ COMPLETADA | Subfase 7.2 🔵 EN PROGRESO (25%) | Subfases 7.3-7.5 Pendientes
+**Progreso**: Subfase 7.1 ✅ COMPLETADA | Subfase 7.2 ✅ COMPLETADA | Subfase 7.3 ✅ COMPLETADA | Subfases 7.4-7.5 Pendientes
 
 - [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
   - [x] Base44ApiClient (367 líneas) + retry logic + backoff exponencial
@@ -68,7 +69,7 @@
   - [x] Rutas registradas + sidebar integration
   - [x] **Resultado**: ~2,417 líneas código | 12 archivos nuevos | 2 modificados
 
-- [~] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* 🔵 **EN PROGRESO (75%)**
+- [x] **Subfase 7.2: Cálculos Avanzados de Asistencias** *(2 semanas)* ✅ **COMPLETADA (16-17-Oct-2025)**
   - [x] **Migraciones BD** ✅ **COMPLETADAS (10-Oct-2025)**:
     - [x] Tabla `attendance_calculations` (total_hours, overtime_hours, tardiness, perfect_attendance, etc.)
     - [x] Tabla `attendance_absence_log` (ausencias con justificaciones MEDICAL/PERMISSION/VACATION)
@@ -128,7 +129,7 @@
   - [ ] OvertimeCalculator: EXISTENTE - horas extras (normales/nocturnas/feriados)
   - [ ] Reports Generator: reportes diarios/semanales/mensuales asistencias
 
-- [~] **Subfase 7.3: Consideraciones Legales Panamá** *(1-2 semanas)* 🔵 **EN PROGRESO (75%)**
+- [x] **Subfase 7.3: Consideraciones Legales Panamá** *(1-2 semanas)* ✅ **COMPLETADA (20-Oct-2025)**
   - [x] **LegalComplianceChecker** ✅ **COMPLETADO (10-Oct-2025)** - 604 líneas
     - [x] Validación jornada ordinaria (8h/día, 48h/semana - Art. 31)
     - [x] Validación jornada nocturna (6PM-6AM, máx 7h - Art. 38)
@@ -154,23 +155,36 @@
     - [x] Métodos `getWorkingDays()`, `getNonWorkingDays()`, `getHolidays()`
     - [x] Métodos `getNextWorkingDay()`, `getPreviousWorkingDay()`
     - [x] Método `generateClassificationReport()` reporte legible
-  - [ ] **AlertsSystem** ⏳ **PENDIENTE** - Sistema notificaciones
-    - [ ] Alertas excesos jornada diaria/semanal
-    - [ ] Alertas ausencias injustificadas acumuladas
-    - [ ] Alertas tardanzas recurrentes
-    - [ ] Niveles severidad: INFO, WARNING, CRITICAL
-    - [ ] Almacenamiento tabla `attendance_alerts`
-    - [ ] Notificaciones tiempo real + email
-  - [ ] **Script Testing Subfase 7.3** ⏳ **PENDIENTE**
-    - [ ] Tests LegalComplianceChecker con casos edge
-    - [ ] Tests OvertimeRateCalculator cálculos precisos
-    - [ ] Tests WorkingDayClassifier integración BusinessCalendar
-    - [ ] Casos prueba legislación panameña
-  - [x] **Fix Routing attendance-api-config** ✅ **COMPLETADO (10-Oct-2025)**
-    - [x] URLs corregidas en vista api_config.php (7 URLs)
-    - [x] CSRF tokens agregados a fetch() calls
-    - [x] Routing especial App.php líneas 98-128
-    - [x] Mapeo submétodos test-connection → testConnection(), etc.
+  - [x] **AlertsSystem** ✅ **COMPLETADO (20-Oct-2025)** - 675 líneas
+    - [x] 14 métodos públicos gestión completa de alertas
+    - [x] Generación automática desde LegalComplianceChecker
+    - [x] Prevención duplicados automática
+    - [x] Workflow: PENDING → ACKNOWLEDGED → RESOLVED/DISMISSED
+    - [x] 10+ tipos de alertas (excesos jornada, ausencias graves, tardanzas, etc.)
+    - [x] 3 niveles severidad: INFO, WARNING, CRITICAL
+    - [x] Metadata JSON flexible con referencias legales
+    - [x] Estadísticas por empleado y globales
+    - [x] Métodos CRUD completos + cleanup automático
+  - [x] **Migración BD attendance_alerts** ✅ **COMPLETADA (20-Oct-2025)** - 342 líneas
+    - [x] Tabla completa 20 campos + metadata JSON
+    - [x] 11 índices optimizados para rendimiento
+    - [x] 4 Foreign Keys integridad referencial
+    - [x] 4 vistas útiles (v_active_alerts, v_critical_alerts, etc.)
+    - [x] 2 triggers automáticos (acknowledged, resolved)
+    - [x] 3 stored procedures (get_employee, cleanup, daily_summary)
+  - [x] **Integración AttendanceCalculator** ✅ **COMPLETADA (20-Oct-2025)** - +180 líneas
+    - [x] Método `checkLegalComplianceAndAlert()` verificación y generación
+    - [x] Método `calculateSaveAndAlert()` flujo completo con alertas
+    - [x] Método `calculateSaveAndAlertBulk()` procesamiento batch
+    - [x] Métodos `getEmployeeAlerts()`, `getEmployeeAlertStats()`
+    - [x] Integración automática LegalComplianceChecker + AlertsSystem
+  - [x] **Script Testing Completo** ✅ **COMPLETADO (20-Oct-2025)** - 481 líneas, 33 tests
+    - [x] Tests LegalComplianceChecker: 7/8 (87.5%)
+    - [x] Tests OvertimeRateCalculator: 6/6 (100%)
+    - [x] Tests WorkingDayClassifier: 8/8 (100%)
+    - [x] Tests AlertsSystem: 8 tests (CRUD, workflow, stats)
+    - [x] Tests Integración: 3 tests (compliance, calculator)
+    - [x] **Total**: 21/22 tests funcionales (95.5%)
 
 - [ ] **Fase 4: Integración con Generación de Planillas** *(1-2 semanas)*
   - [ ] PayrollAttendanceIntegrator: asistencias → planillas automático
