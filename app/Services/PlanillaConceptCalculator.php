@@ -171,6 +171,17 @@ class PlanillaConceptCalculator
     }
 
     /**
+     * Establecer o sobrescribir una variable específica del colaborador
+     *
+     * @param string $nombre Nombre de la variable
+     * @param mixed $valor Valor de la variable
+     */
+    public function setVariable(string $nombre, $valor): void
+    {
+        $this->variablesColaborador[$nombre] = $valor;
+    }
+
+    /**
      * Evaluar fórmula directamente (recibe la fórmula, no el nombre del concepto)
      */
     public function evaluarFormula(string $formula): float

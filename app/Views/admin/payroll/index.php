@@ -197,7 +197,7 @@ $csrf_token = $data['csrf_token'] ?? '';
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="custom-control custom-checkbox">
+                            <div class="custom-control custom-checkbox mb-3">
                                 <input type="checkbox" class="custom-control-input" id="validateSituacion" name="validateSituacion" checked>
                                 <label class="custom-control-label" for="validateSituacion">
                                     <strong>Validar situación del empleado</strong>
@@ -205,6 +205,17 @@ $csrf_token = $data['csrf_token'] ?? '';
                                 <small class="form-text text-muted">
                                     Si está marcado, solo se procesarán empleados cuya situación coincida con los conceptos configurados.
                                     Si está desmarcado, se procesarán todos los empleados sin validar su situación.
+                                </small>
+                            </div>
+
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="usarSalarioPlanilla" name="usarSalarioPlanilla">
+                                <label class="custom-control-label" for="usarSalarioPlanilla">
+                                    <strong>Usar salario de la planilla procesada</strong>
+                                </label>
+                                <small class="form-text text-muted">
+                                    Si está marcado, se utilizará el salario que estaba en el concepto de sueldo de la planilla original.
+                                    Si está desmarcado, se obtendrá el salario actual del empleado desde las tablas de salarios.
                                 </small>
                             </div>
                         </div>

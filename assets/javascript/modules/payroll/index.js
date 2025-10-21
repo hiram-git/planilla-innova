@@ -1273,6 +1273,10 @@
             const validateSituacion = $("#validateSituacion").is(":checked") ? 1 : 0;
             console.log("Validar situación del empleado:", validateSituacion ? "SÍ" : "NO");
 
+            // Get checkbox value for usarSalarioPlanilla
+            const usarSalarioPlanilla = $("#usarSalarioPlanilla").is(":checked") ? 1 : 0;
+            console.log("Usar salario de planilla procesada:", usarSalarioPlanilla ? "SÍ" : "NO");
+
             // Switch to processing phase
             $("#reprocessConfirmationPhase").hide();
             $("#reprocessConfirmationButtons").hide();
@@ -1302,7 +1306,8 @@
 
             const ajaxData = {
                 csrf_token: this.config.csrfToken,
-                validate_situacion: validateSituacion
+                validate_situacion: validateSituacion,
+                usar_salario_planilla: usarSalarioPlanilla
             };
 
             $.ajax({

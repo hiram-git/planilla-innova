@@ -88,7 +88,7 @@ class Payroll extends Model
      * Procesar planilla - generar detalles para todos los empleados activos
      * Incluye validación de condicionales y datos transaccionales completos
      */
-    public function processPayroll($payrollId, $userId = null, $tipoPlanillaId = null, $validateSituacion = true)
+    public function processPayroll($payrollId, $userId = null, $tipoPlanillaId = null, $validateSituacion = true, $usarSalarioPlanilla = false)
     {
         try {
             $this->db->beginTransaction();
@@ -191,6 +191,14 @@ class Payroll extends Model
                     // Establecer variables del colaborador en la calculadora
                     $calculadora->setVariablesColaborador($employee['id'] , $tipoId);
 
+                    // Si se debe usar salario de planilla procesada, obtenerlo y sobrescribir
+                    if ($usarSalarioPlanilla) {
+                        $salarioOriginal = $this->getSalarioFromPlanillaDetalle($payrollId, $employee['id']);
+                        if ($salarioOriginal > 0) {
+                            $calculadora->setVariable('SUELDO', $salarioOriginal);
+                            error_log("Usando salario de planilla original para empleado {$employee['id']}: $salarioOriginal");
+                        }
+                    }
 
                     // Calcular monto según la configuración del concepto
                     if (!empty($concepto['valor_fijo']) && $concepto['valor_fijo'] > 0) {
@@ -797,7 +805,7 @@ class Payroll extends Model
     /**
      * Reprocesar una planilla existente (limpiar y volver a procesar)
      */
-    public function reprocessPayroll($payrollId, $userId = null, $tipoPlanillaId = null, $validateSituacion = true)
+    public function reprocessPayroll($payrollId, $userId = null, $tipoPlanillaId = null, $validateSituacion = true, $usarSalarioPlanilla = false)
     {
         try {
             // Verificar que la planilla esté en estado PROCESADA
@@ -807,6 +815,7 @@ class Payroll extends Model
             }
 
             error_log("Reprocesando planilla con validación de situación: " . ($validateSituacion ? 'SÍ' : 'NO'));
+            error_log("Usar salario de planilla procesada: " . ($usarSalarioPlanilla ? 'SÍ' : 'NO'));
 
             // 1. Limpiar datos existentes de planilla_detalle (sin transacción)
             $deleteStmt = $this->db->prepare("DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?");
@@ -819,7 +828,7 @@ class Payroll extends Model
             $updateStmt->execute([$payrollId]);
 
             // 3. Usar la lógica existente de procesamiento (que maneja su propia transacción)
-            $processedCount = $this->processPayroll($payrollId, $userId, $tipoPlanillaId, $validateSituacion);
+            $processedCount = $this->processPayroll($payrollId, $userId, $tipoPlanillaId, $validateSituacion, $usarSalarioPlanilla);
 
 
             return $processedCount;
@@ -1351,6 +1360,57 @@ class Payroll extends Model
                 'total_dias_descontados' => 0,
                 'observaciones' => 'Error en cálculo'
             ];
+        }
+    }
+
+    /**
+     * Obtener salario del concepto de sueldo en planilla_detalle
+     * Busca el concepto configurado como "sueldo" en la planilla procesada
+     *
+     * @param int $payrollId ID de la planilla
+     * @param int $employeeId ID del empleado
+     * @return float Salario del concepto de sueldo, 0 si no se encuentra
+     */
+    private function getSalarioFromPlanillaDetalle($payrollId, $employeeId)
+    {
+        try {
+            // Buscar el concepto que tiene como código 'SUELDO' o similar
+            // Primero intentamos buscar por el concepto más común de sueldo
+            $sql = "SELECT pd.monto
+                    FROM planilla_detalle pd
+                    INNER JOIN concepto c ON pd.concepto_id = c.id
+                    WHERE pd.planilla_cabecera_id = ?
+                      AND pd.employee_id = ?
+                      AND (c.concepto LIKE 'SUELDO%' OR c.concepto LIKE 'SALARIO%'
+                           OR c.descripcion LIKE '%sueldo%' OR c.descripcion LIKE '%salario%')
+                      AND c.tipo_concepto = 'A'
+                    ORDER BY pd.monto DESC
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payrollId, $employeeId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result && isset($result['monto'])) {
+                return (float) $result['monto'];
+            }
+
+            // Si no se encuentra, intentar obtener el mayor monto de asignaciones
+            $sqlFallback = "SELECT MAX(monto) as monto
+                           FROM planilla_detalle
+                           WHERE planilla_cabecera_id = ?
+                             AND employee_id = ?
+                             AND tipo = 'A'";
+
+            $stmtFallback = $this->db->prepare($sqlFallback);
+            $stmtFallback->execute([$payrollId, $employeeId]);
+            $resultFallback = $stmtFallback->fetch(PDO::FETCH_ASSOC);
+
+            return $resultFallback && isset($resultFallback['monto']) ? (float) $resultFallback['monto'] : 0.0;
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo salario de planilla_detalle: " . $e->getMessage());
+            return 0.0;
         }
     }
 }

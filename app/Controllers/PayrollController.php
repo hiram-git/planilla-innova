@@ -560,6 +560,9 @@ class PayrollController extends Controller
             // Obtener parámetro de validación de situación (por defecto true)
             $validateSituacion = isset($_POST['validate_situacion']) ? (bool)$_POST['validate_situacion'] : true;
 
+            // Obtener parámetro para usar salario de planilla procesada (por defecto false)
+            $usarSalarioPlanilla = isset($_POST['usar_salario_planilla']) ? (bool)$_POST['usar_salario_planilla'] : false;
+
             // CRÍTICO: Liberar la sesión ANTES del reprocesamiento para permitir requests concurrentes
             session_write_close();
 
@@ -569,7 +572,8 @@ class PayrollController extends Controller
                 'success' => true,
                 'message' => 'Reprocesamiento iniciado',
                 'payroll_id' => $id,
-                'validate_situacion' => $validateSituacion
+                'validate_situacion' => $validateSituacion,
+                'usar_salario_planilla' => $usarSalarioPlanilla
             ]);
 
             // Forzar el envío de la respuesta al cliente
@@ -578,7 +582,7 @@ class PayrollController extends Controller
 
             // Ahora procesar en background sin bloquear más requests
             $userId = $_SESSION['admin_id'] ?? null;
-            $result = $this->payrollModel->reprocessPayroll($id, $userId, $tipoPlanillaId, $validateSituacion);
+            $result = $this->payrollModel->reprocessPayroll($id, $userId, $tipoPlanillaId, $validateSituacion, $usarSalarioPlanilla);
 
 
         } catch (\Exception $e) {
@@ -2687,18 +2691,10 @@ class PayrollController extends Controller
                         <i class="fas fa-edit"></i>
                      </a>';
 
-        // Ver acumulados (si está PROCESADA o CERRADA)
-        if (in_array($payroll['estado'], ['PROCESADA', 'CERRADA'])) {
-            $actions .= '<a href="' . \App\Core\UrlHelper::route('panel/acumulados/byPayroll/' . $payroll['id']) . '"
-                           class="btn btn-info btn-sm" title="Ver acumulados de esta planilla">
-                            <i class="fas fa-calculator"></i>
-                         </a>';
-        }
-
         // Dropdown de Reportes (si está PROCESADA o CERRADA)
         if (in_array($payroll['estado'], ['PROCESADA', 'CERRADA'])) {
             $actions .= '<div class="btn-group" role="group">
-                            <button type="button" class="btn btn-secondary btn-sm dropdown-toggle"
+                            <button type="button" class="btn btn-primary btn-sm dropdown-toggle"
                                     data-toggle="dropdown"
                                     aria-haspopup="true"
                                     aria-expanded="false"
