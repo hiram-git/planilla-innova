@@ -99,13 +99,17 @@ class PDFReportController extends Controller
         
         // Crear instancia de TCPDF
         $pdf = new TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-        
+
+        // Desactivar header y footer por defecto (elimina línea negra superior)
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
         // Configuración del documento
         $pdf->SetCreator('Sistema de Planillas MVC');
         $pdf->SetAuthor($companyInfo['company_name']);
         $pdf->SetTitle('Planilla de Sueldos - ' . $payroll['descripcion']);
         $pdf->SetSubject('Reporte de Planilla');
-        
+
         // Configuración de la página
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(TRUE, 10);
@@ -333,6 +337,10 @@ class PDFReportController extends Controller
     private function generatePaySlipPDFDocument($data)
     {
         $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+        // Desactivar header y footer por defecto (elimina línea negra superior)
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
 
         // Configuración del documento
         $pdf->SetCreator('Sistema de Planillas MVC');
