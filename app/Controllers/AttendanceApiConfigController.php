@@ -75,6 +75,23 @@ class AttendanceApiConfigController extends Controller
         }
 
         try {
+            // Validar y limpiar config_json si se proporciona
+            $configJson = null;
+            if (!empty($data['config_json'])) {
+                $trimmedJson = trim($data['config_json']);
+                if (!empty($trimmedJson)) {
+                    // Validar que sea JSON válido
+                    $decoded = json_decode($trimmedJson, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $_SESSION['errors']['config_json'] = 'El JSON de configuración no es válido: ' . json_last_error_msg();
+                        $_SESSION['old_data'] = $data;
+                        $this->redirect('/panel/attendance/api-config');
+                        return;
+                    }
+                    $configJson = $trimmedJson;
+                }
+            }
+
             $configData = [
                 'api_provider' => $data['api_provider'] ?? 'base44',
                 'api_key' => $data['api_key'],
@@ -83,7 +100,8 @@ class AttendanceApiConfigController extends Controller
                 'sync_enabled' => isset($data['sync_enabled']) ? 1 : 0,
                 'sync_interval_minutes' => (int) ($data['sync_interval_minutes'] ?? 15),
                 'webhook_url' => $data['webhook_url'] ?? null,
-                'webhook_secret' => $data['webhook_secret'] ?? null
+                'webhook_secret' => $data['webhook_secret'] ?? null,
+                'config_json' => $configJson
             ];
 
             // Verificar si existe configuración

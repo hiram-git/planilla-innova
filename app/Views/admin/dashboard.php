@@ -407,36 +407,80 @@ if ($tipo_seleccionado) {
 $content .= '
                         <div class="row">
                             <div class="col-12">
-                                <h5>Resumen por Tipos de Acumulados - Año ' . ($acumulados_data['year'] ?? date('Y')) . '</h5>
+                                <h5>Resumen por Conceptos - Año ' . ($acumulados_data['year'] ?? date('Y')) . '</h5>
                             </div>
                         </div>
 
                         <div class="row">';
 
-// Mostrar tipos de acumulados
+// Mostrar conceptos de acumulados ordenados y coloreados por tipo
 if (!empty($acumulados_data['tipos_acumulados'])) {
-    $colors = ['info', 'success', 'warning', 'danger', 'primary', 'secondary'];
-    $index = 0;
-    foreach ($acumulados_data['tipos_acumulados'] as $tipo) {
-        $color = $colors[$index % count($colors)];
-        $index++;
+    // Ordenar conceptos: Asignaciones (A) primero, luego Deducciones (D), luego Patronales (P)
+    $conceptosOrdenados = $acumulados_data['tipos_acumulados'];
+    usort($conceptosOrdenados, function($a, $b) {
+        $orden = ['A' => 1, 'D' => 2, 'P' => 3];
+        $tipoA = $a['tipo_concepto'] ?? 'Z';
+        $tipoB = $b['tipo_concepto'] ?? 'Z';
+        $orderA = $orden[$tipoA] ?? 999;
+        $orderB = $orden[$tipoB] ?? 999;
+        if ($orderA === $orderB) {
+            return strcmp($a['descripcion'] ?? '', $b['descripcion'] ?? '');
+        }
+        return $orderA - $orderB;
+    });
+
+    foreach ($conceptosOrdenados as $concepto) {
+        // Asignar color según tipo de concepto
+        $tipoConcepto = $concepto['tipo_concepto'] ?? '';
+        switch ($tipoConcepto) {
+            case 'A': // Asignación
+                $color = 'success'; // Verde
+                $icon = 'fa-plus-circle';
+                $tipoBadge = '<span class="badge badge-light">Asignación</span>';
+                break;
+            case 'D': // Deducción
+                $color = 'danger'; // Rojo
+                $icon = 'fa-minus-circle';
+                $tipoBadge = '<span class="badge badge-light">Deducción</span>';
+                break;
+            case 'P': // Patronal
+                $color = 'info'; // Azul
+                $icon = 'fa-building';
+                $tipoBadge = '<span class="badge badge-light">Patronal</span>';
+                break;
+            default:
+                $color = 'secondary'; // Gris por defecto
+                $icon = 'fa-receipt';
+                $tipoBadge = '';
+                break;
+        }
+
+        // Construir URL con parámetros
+        $urlParams = [
+            'concepto_id' => $concepto['concepto_id'] ?? '',
+            'year' => $acumulados_data['year'] ?? date('Y'),
+            'month' => '',
+            'group_by' => 'empleado',
+            'tipo_planilla' => $tipo_seleccionado ?? ''
+        ];
+        $detailUrl = \App\Core\UrlHelper::route('panel/acumulados/byConcepto') . '?' . http_build_query($urlParams);
 
         $content .= '
                             <div class="col-md-4 mb-3">
                                 <div class="small-box bg-' . $color . '">
                                     <div class="inner">
-                                        <h3>' . currency_symbol() . number_format($tipo['total_acumulado'] ?? 0, 2) . '</h3>
-                                        <p>' . htmlspecialchars($tipo['descripcion'] ?? 'N/A') . $filtroActivo . '</p>
+                                        <h3>' . currency_symbol() . number_format($concepto['total_acumulado'] ?? 0, 2) . '</h3>
+                                        <p>' . htmlspecialchars($concepto['descripcion'] ?? 'N/A') . ' ' . $tipoBadge . $filtroActivo . '</p>
                                         <small class="d-block">
-                                            <i class="fas fa-users"></i> ' . ($tipo['total_empleados'] ?? 0) . ' empleados |
-                                            <i class="fas fa-list"></i> ' . ($tipo['total_conceptos_incluidos'] ?? 0) . ' conceptos
+                                            <i class="fas fa-users"></i> ' . ($concepto['total_empleados'] ?? 0) . ' empleados |
+                                            <i class="fas fa-file-invoice"></i> ' . ($concepto['total_planillas'] ?? 0) . ' planillas
                                         </small>
                                     </div>
                                     <div class="icon">
-                                        <i class="fas fa-piggy-bank"></i>
+                                        <i class="fas ' . $icon . '"></i>
                                     </div>
                                     <div class="small-box-footer">
-                                        <a href="' . \App\Core\UrlHelper::route('panel/acumulados/by-type/' . urlencode($tipo['tipo_codigo'] ?? '')) . '" class="text-white">
+                                        <a href="' . $detailUrl . '" class="text-white">
                                             <i class="fas fa-eye"></i> Ver Detalles
                                         </a>
                                     </div>
@@ -468,15 +512,20 @@ $content .= '
                                     <div class="card-body">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <h6><i class="fas fa-check-circle text-success"></i> Tipos Activos</h6>
+                                                <h6><i class="fas fa-check-circle text-success"></i> Conceptos Activos</h6>
                                                 <ul>';
 
 if (!empty($acumulados_data['tipos_acumulados'])) {
-    foreach ($acumulados_data['tipos_acumulados'] as $tipo) {
-        $content .= '<li>' . htmlspecialchars($tipo['descripcion'] ?? 'N/A') . '</li>';
+    $conceptosUnicos = [];
+    foreach ($acumulados_data['tipos_acumulados'] as $concepto) {
+        $conceptoId = $concepto['concepto_id'] ?? '';
+        if ($conceptoId && !isset($conceptosUnicos[$conceptoId])) {
+            $conceptosUnicos[$conceptoId] = $concepto['descripcion'] ?? 'N/A';
+            $content .= '<li>' . htmlspecialchars($concepto['descripcion'] ?? 'N/A') . '</li>';
+        }
     }
 } else {
-    $content .= '<li>No hay tipos de acumulados configurados</li>';
+    $content .= '<li>No hay conceptos de acumulados configurados</li>';
 }
 
 $content .= '

@@ -334,8 +334,8 @@ class Admin extends Controller
             $acumuladoModel = $this->model('Acumulado');
             $currentYear = date('Y');
 
-            // Obtener resumen por tipos de acumulados
-            $tiposAcumulados = $acumuladoModel->getAcumuladosByTipoAndYear($currentYear, $tipoSeleccionado);
+            // Obtener resumen por conceptos (en lugar de tipos)
+            $tiposAcumulados = $acumuladoModel->getAcumuladosByConceptoAndYear($currentYear, $tipoSeleccionado);
 
             // Obtener empleados con acumulados
             $empleadosAcumulados = $acumuladoModel->getEmployeesWithAcumulados($currentYear, $tipoSeleccionado);

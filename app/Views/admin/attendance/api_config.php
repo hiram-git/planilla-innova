@@ -83,12 +83,12 @@
         <!-- SECCIÓN 1: CONFIGURACIÓN API -->
         <div class="row">
             <div class="col-12">
-                <div class="card card-primary collapsed-card">
+                <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title"><i class="fas fa-cog"></i> Configuración API Base44</h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                <i class="fas fa-plus"></i>
+                                <i class="fas fa-minus"></i>
                             </button>
                         </div>
                     </div>
@@ -167,6 +167,23 @@
                                 <input type="text" class="form-control" id="webhook_secret" name="webhook_secret"
                                        value="<?= $data['config']['webhook_secret'] ?? '' ?>"
                                        placeholder="Secret para validar webhooks">
+                            </div>
+
+                            <hr>
+
+                            <div class="form-group">
+                                <label for="config_json">Parámetros de Configuración Adicionales (JSON)</label>
+                                <textarea class="form-control <?= isset($_SESSION['errors']['config_json']) ? 'is-invalid' : '' ?>"
+                                          id="config_json" name="config_json"
+                                          rows="6"
+                                          placeholder='{"parametro1": "valor1", "parametro2": "valor2"}'><?= $_SESSION['old_data']['config_json'] ?? $data['config']['config_json'] ?? '' ?></textarea>
+                                <small class="form-text text-muted">
+                                    Configuraciones adicionales en formato JSON.
+                                    Ejemplo: {"timeout": 30, "retry_attempts": 3, "debug_mode": false}
+                                </small>
+                                <?php if (isset($_SESSION['errors']['config_json'])): ?>
+                                    <span class="invalid-feedback"><?= $_SESSION['errors']['config_json'] ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -439,6 +456,27 @@ unset($_SESSION['old_data']);
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Validar JSON de configuración antes de enviar el formulario
+    const configForm = document.querySelector('form[action*="attendance-api-config/save"]');
+    if (configForm) {
+        configForm.addEventListener('submit', function(e) {
+            const configJsonField = document.getElementById('config_json');
+            const jsonValue = configJsonField.value.trim();
+
+            if (jsonValue) {
+                try {
+                    JSON.parse(jsonValue);
+                    // JSON válido
+                } catch (error) {
+                    e.preventDefault();
+                    alert('Error en JSON de configuración: ' + error.message);
+                    configJsonField.focus();
+                    return false;
+                }
+            }
+        });
+    }
+
     // Probar conexión
     document.getElementById('btnTestConnection').addEventListener('click', function() {
         const btn = this;

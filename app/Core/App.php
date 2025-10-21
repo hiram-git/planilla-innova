@@ -408,22 +408,6 @@ class App
                                             } elseif ($url[3] === 'update-notice-days' && method_exists($this->controller, 'updateNoticeDays')) {
                                                 $this->method = 'updateNoticeDays';
                                                 $this->params = [$url[2]]; // termination_id
-                                            } elseif ($url[3] === 'process-attendance' && method_exists($this->controller, 'processAttendance')) {
-                                                // POST /panel/payrolls/{id}/process-attendance
-                                                $this->method = 'processAttendance';
-                                                $this->params = [$url[2]]; // payrollId
-                                            } elseif ($url[3] === 'attendance-summary' && method_exists($this->controller, 'getAttendanceSummary')) {
-                                                // POST/GET /panel/payrolls/{id}/attendance-summary
-                                                $this->method = 'getAttendanceSummary';
-                                                $this->params = [$url[2]]; // payrollId
-                                            } elseif ($url[3] === 'attendance-details' && isset($url[4]) && method_exists($this->controller, 'getEmployeeAttendanceDetails')) {
-                                                // POST/GET /panel/payrolls/{id}/attendance-details/{employeeId}
-                                                $this->method = 'getEmployeeAttendanceDetails';
-                                                $this->params = [$url[2], $url[4]]; // payrollId, employeeId
-                                            } elseif ($url[3] === 'delete-attendance-data' && method_exists($this->controller, 'deleteAttendanceData')) {
-                                                // POST /panel/payrolls/{id}/delete-attendance-data
-                                                $this->method = 'deleteAttendanceData';
-                                                $this->params = [$url[2]]; // payrollId
                                             }
                                         } else {
                                             // POST con solo ID (sin submétodo) - llamar a update

@@ -75,6 +75,60 @@ class Acumulado
     }
 
     /**
+     * Obtener acumulados agrupados por concepto para un año específico
+     *
+     * @param int $year Año a consultar
+     * @param int|null $tipoPlanillaId ID del tipo de planilla para filtrar empleados (opcional)
+     * @return array
+     */
+    public function getAcumuladosByConceptoAndYear($year, $tipoPlanillaId = null)
+    {
+        try {
+            $whereConditions = ["ape.ano = ?"];
+            $params = [$year];
+
+            // Filtrar por tipo de planilla del empleado si se proporciona
+            // Soporte para múltiples tipos de planilla separados por comas
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
+            $whereClause = implode(" AND ", $whereConditions);
+
+            $sql = "
+                SELECT
+                    ape.concepto_id,
+                    c.concepto AS concepto_codigo,
+                    c.descripcion,
+                    c.tipo_concepto,
+                    SUM(ape.monto) AS total_acumulado,
+                    COUNT(DISTINCT ape.employee_id) AS total_empleados,
+                    COUNT(DISTINCT ape.planilla_id) AS total_planillas,
+                    ape.tipo_acumulado
+                FROM {$this->table} ape
+                INNER JOIN employees e ON ape.employee_id = e.id
+                INNER JOIN concepto c ON ape.concepto_id = c.id
+                WHERE {$whereClause}
+                  AND ape.concepto_id IS NOT NULL
+                GROUP BY ape.concepto_id, c.concepto, c.descripcion, c.tipo_concepto, ape.tipo_acumulado
+                ORDER BY c.descripcion
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            error_log("getAcumuladosByConceptoAndYear - Year: $year, TipoPlanillaId: " . ($tipoPlanillaId ?? 'null') . ", Results: " . count($results));
+
+            return $results;
+        } catch (\PDOException $e) {
+            error_log("Error en getAcumuladosByConceptoAndYear: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Obtener empleados con acumulados en un año específico
      *
      * @param int $year Año a consultar
