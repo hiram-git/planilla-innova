@@ -494,8 +494,8 @@ class AcumuladoController extends Controller
         error_log("AcumuladoController@byConcepto - GET params: " . print_r($_GET, true));
 
         try {
-            // Obtener conceptos disponibles
-            $conceptos = $this->getConceptosForFilter();
+            // Obtener conceptos disponibles (filtrados por tipo de planilla si aplica)
+            $conceptos = $this->getConceptosForFilter($tipoPlanillaId);
 
             // Si se especifica un concepto, filtrar por concepto_id
             $acumulados = [];
@@ -678,9 +678,20 @@ class AcumuladoController extends Controller
     /**
      * Obtener conceptos para filtro
      */
-    private function getConceptosForFilter()
+    private function getConceptosForFilter($tipoPlanillaId = null)
     {
         try {
+            // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+            // Lógica: mostrar conceptos que están asociados al tipo O que no tienen asociaciones (aplican a todos)
+            $conceptoJoin = "";
+            $conceptoFilter = "";
+            $params = [];
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+                $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
             $sql = "SELECT DISTINCT
                         c.id,
                         c.descripcion,
@@ -699,10 +710,13 @@ class AcumuladoController extends Controller
                         END as orden_tipo
                     FROM concepto c
                     INNER JOIN acumulados_por_empleado ape ON c.id = ape.concepto_id
+                    {$conceptoJoin}
+                    WHERE 1=1
+                    {$conceptoFilter}
                     ORDER BY orden_tipo, c.descripcion";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($params);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log("Error obteniendo conceptos para filtro: " . $e->getMessage());
@@ -924,8 +938,16 @@ class AcumuladoController extends Controller
                 error_log("getAcumuladosByConcepto - NO se aplica filtro tipo_planilla (valor: " . ($tipoPlanillaId ?? 'NULL') . ", is_numeric: " . (is_numeric($tipoPlanillaId) ? 'true' : 'false') . ")");
             }
 
-
             $whereClause = implode(" AND ", $whereConditions);
+
+            // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+            $conceptoJoin = "";
+            $conceptoFilter = "";
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+                $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+                $params[] = (int)$tipoPlanillaId;
+            }
 
             $sql = "SELECT
                         ape.id,
@@ -950,9 +972,11 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
+                    {$conceptoFilter}
                     ORDER BY ape.ano DESC, ape.mes DESC, e.lastname, e.firstname";
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
@@ -986,6 +1010,15 @@ class AcumuladoController extends Controller
             }
 
             $whereClause = implode(" AND ", $whereConditions);
+
+            // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+            $conceptoJoin = "";
+            $conceptoFilter = "";
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+                $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+                $params[] = (int)$tipoPlanillaId;
+            }
 
             // Determinar agrupación y campos SELECT
             switch ($groupBy) {
@@ -1030,9 +1063,11 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
                     WHERE {$whereClause}
+                    {$conceptoFilter}
                     GROUP BY {$groupByClause}
                     ORDER BY {$orderByClause}";
 
@@ -1566,6 +1601,15 @@ class AcumuladoController extends Controller
 
             $whereClause = implode(" AND ", $whereConditions);
 
+            // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+            $conceptoJoin = "";
+            $conceptoFilter = "";
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+                $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
             $sql = "SELECT
                         ape.id,
                         ape.employee_id,
@@ -1589,9 +1633,11 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
+                    {$conceptoFilter}
                     ORDER BY ape.ano DESC, ape.mes DESC, c.descripcion, e.lastname, e.firstname";
 
             $stmt = $this->db->prepare($sql);
@@ -1626,6 +1672,15 @@ class AcumuladoController extends Controller
 
             $whereClause = implode(" AND ", $whereConditions);
 
+            // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+            $conceptoJoin = "";
+            $conceptoFilter = "";
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+                $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
             // En este caso especial, siempre agrupamos por concepto sin importar el filtro
             $sql = "SELECT
                         c.id as grupo_clave,
@@ -1646,7 +1701,9 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$conceptoJoin}
                     WHERE {$whereClause}
+                    {$conceptoFilter}
                     GROUP BY c.id, c.descripcion, c.tipo_concepto
                     ORDER BY
                         CASE c.tipo_concepto

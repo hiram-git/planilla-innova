@@ -96,6 +96,16 @@ class Acumulado
 
             $whereClause = implode(" AND ", $whereConditions);
 
+            // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+            // Lógica: mostrar conceptos que están asociados al tipo O que no tienen asociaciones (aplican a todos)
+            $conceptoJoin = "";
+            $conceptoFilter = "";
+            if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+                $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+                $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+                $params[] = (int)$tipoPlanillaId;
+            }
+
             $sql = "
                 SELECT
                     ape.concepto_id,
@@ -109,8 +119,10 @@ class Acumulado
                 FROM {$this->table} ape
                 INNER JOIN employees e ON ape.employee_id = e.id
                 INNER JOIN concepto c ON ape.concepto_id = c.id
+                {$conceptoJoin}
                 WHERE {$whereClause}
                   AND ape.concepto_id IS NOT NULL
+                  {$conceptoFilter}
                 GROUP BY ape.concepto_id, c.concepto, c.descripcion, c.tipo_concepto, ape.tipo_acumulado
                 ORDER BY c.descripcion
             ";
@@ -118,6 +130,7 @@ class Acumulado
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
 
             error_log("getAcumuladosByConceptoAndYear - Year: $year, TipoPlanillaId: " . ($tipoPlanillaId ?? 'null') . ", Results: " . count($results));
 
