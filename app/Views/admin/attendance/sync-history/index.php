@@ -259,13 +259,25 @@
     </div>
 </div>
 
-<!-- Scripts -->
+<?php
+// Iniciar captura de estilos
+ob_start();
+?>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
+<?php
+$styles = ob_get_clean();
+
+// Iniciar captura de scripts
+ob_start();
+?>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
 
 <script>
 $(document).ready(function() {
+    // Base URL del proyecto (ruta relativa)
+    const baseUrl = '<?= url("", false) ?>';
+
     // Inicializar DataTable
     $('#sync-history-table').DataTable({
         language: {
@@ -285,7 +297,7 @@ $(document).ready(function() {
 
         // Cargar detalle via AJAX
         $.ajax({
-            url: `/panel/attendance/sync-history/${syncId}`,
+            url: `${baseUrl}/panel/attendance/sync-history/${syncId}`,
             method: 'GET',
             success: function(response) {
                 if (response.success && response.data) {
@@ -501,3 +513,6 @@ $(document).ready(function() {
     }
 });
 </script>
+<?php
+$scripts = ob_get_clean();
+?>

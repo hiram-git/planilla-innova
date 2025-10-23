@@ -5,7 +5,7 @@
  */
 
 $isEdit = isset($device) && $device;
-$formAction = $isEdit ? "/panel/attendance/devices/{$device['id']}/update" : "/panel/attendance/devices/store";
+$formAction = $isEdit ? \App\Core\UrlHelper::route("/panel/attendance/devices/{$device['id']}/update") : \App\Core\UrlHelper::route("/panel/attendance/devices/store");
 ?>
 
 
@@ -194,7 +194,7 @@ $formAction = $isEdit ? "/panel/attendance/devices/{$device['id']}/update" : "/p
                         <div class="card-footer">
                             <div class="row">
                                 <div class="col-6">
-                                    <a href="/panel/attendance/devices" class="btn btn-default">
+                                    <a href="<?= \App\Core\UrlHelper::route('/panel/attendance/devices') ?>" class="btn btn-default">
                                         <i class="fas fa-arrow-left"></i> Volver
                                     </a>
                                 </div>

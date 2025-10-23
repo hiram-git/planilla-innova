@@ -184,7 +184,7 @@
                             <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#detectAbsencesModal">
                                 <i class="fas fa-user-times"></i> Detectar Ausencias
                             </button>
-                            <a href="/panel/attendance/sync" class="btn btn-success btn-sm">
+                            <a href="<?= \App\Core\UrlHelper::route('/panel/attendance/sync') ?>" class="btn btn-success btn-sm">
                                 <i class="fas fa-sync-alt"></i> Sincronizar
                             </a>
                         </div>
@@ -352,9 +352,15 @@
     </div>
 </div>
 
-<!-- Scripts -->
+<?php
+// Iniciar captura de scripts
+ob_start();
+?>
 <script>
 $(document).ready(function() {
+    // Base URL del proyecto (ruta relativa)
+    const baseUrl = '<?= url("", false) ?>';
+
     // Si se ingresa fecha de rango, limpiar mes/año
     const startDate = $('#start_date');
     const endDate = $('#end_date');
@@ -393,7 +399,7 @@ $(document).ready(function() {
     // Exportar a Excel
     $('.btn-export').on('click', function() {
         const date = $(this).data('date');
-        window.location.href = `/panel/attendance/export-excel/${date}`;
+        window.location.href = `${baseUrl}/panel/attendance/export-excel/${date}`;
     });
 
     // Reprocesar
@@ -457,7 +463,7 @@ $(document).ready(function() {
                 submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
 
                 $.ajax({
-                    url: '/panel/attendance/detect-absences',
+                    url: `${baseUrl}/panel/attendance/detect-absences`,
                     method: 'POST',
                     data: form.serialize(),
                     success: function(response) {
@@ -505,3 +511,6 @@ $(document).ready(function() {
     });
 });
 </script>
+<?php
+$scripts = ob_get_clean();
+?>

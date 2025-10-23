@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\AttendanceDevice;
 use App\Core\Security;
+use App\Middleware\AuthMiddleware;
 
 class AttendanceDeviceController extends Controller
 {
@@ -39,7 +40,8 @@ class AttendanceDeviceController extends Controller
         $this->render('admin/attendance/devices/form', [
             'device' => null,
             'action' => 'create',
-            'title' => 'Crear Dispositivo'
+            'title' => 'Crear Dispositivo',
+            'csrf_token' => Security::generateToken()
         ]);
     }
 
@@ -49,11 +51,20 @@ class AttendanceDeviceController extends Controller
     public function store()
     {
         try {
+            error_log("AttendanceDeviceController@store - Iniciando guardado de dispositivo");
+            error_log("POST data: " . print_r($_POST, true));
+
+            // Validar CSRF token
+            AuthMiddleware::validateCSRF();
+            error_log("AttendanceDeviceController@store - CSRF validado");
+
             // Validar datos
             $this->validateDeviceData($_POST);
+            error_log("AttendanceDeviceController@store - Datos validados");
 
             // Verificar que el código no exista
             if ($this->deviceModel->codeExists($_POST['device_code'])) {
+                error_log("AttendanceDeviceController@store - Código ya existe: " . $_POST['device_code']);
                 $this->setFlashMessage('El código de dispositivo ya existe.', 'error');
                 return $this->redirect('/panel/attendance/devices/create');
             }
@@ -61,20 +72,24 @@ class AttendanceDeviceController extends Controller
             // Preparar datos
             $data = $this->prepareDeviceData($_POST);
             $data['created_by'] = $_SESSION['admin_id'] ?? null;
+            error_log("AttendanceDeviceController@store - Datos preparados: " . print_r($data, true));
 
             // Crear dispositivo
             $deviceId = $this->deviceModel->create($data);
+            error_log("AttendanceDeviceController@store - deviceId retornado: " . ($deviceId ? $deviceId : 'FALSE'));
 
             if ($deviceId) {
                 $this->setFlashMessage('Dispositivo creado exitosamente.', 'success');
                 return $this->redirect('/panel/attendance/devices');
             } else {
+                error_log("AttendanceDeviceController@store - ERROR: create() retornó FALSE");
                 $this->setFlashMessage('Error al crear el dispositivo.', 'error');
                 return $this->redirect('/panel/attendance/devices/create');
             }
 
         } catch (\Exception $e) {
             error_log("Error creating device: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             $this->setFlashMessage('Error: ' . $e->getMessage(), 'error');
             return $this->redirect('/panel/attendance/devices/create');
         }
@@ -95,7 +110,8 @@ class AttendanceDeviceController extends Controller
         $this->render('admin/attendance/devices/form', [
             'device' => $device,
             'action' => 'edit',
-            'title' => 'Editar Dispositivo'
+            'title' => 'Editar Dispositivo',
+            'csrf_token' => Security::generateToken()
         ]);
     }
 
@@ -105,6 +121,9 @@ class AttendanceDeviceController extends Controller
     public function update($id)
     {
         try {
+            // Validar CSRF token
+            AuthMiddleware::validateCSRF();
+
             // Validar que el dispositivo exista
             $device = $this->deviceModel->getById($id);
             if (!$device) {
@@ -311,11 +330,11 @@ class AttendanceDeviceController extends Controller
         }
 
         // Validaciones específicas por tipo
-        if ($data['device_type'] === 'API') {
+        /*if ($data['device_type'] === 'API') {
             if (empty($data['api_url'])) {
                 $errors[] = 'La URL del API es requerida para dispositivos tipo API.';
             }
-        }
+        }*/
 
         if ($data['device_type'] === 'TEXT_FILE') {
             if (empty($data['file_format'])) {

@@ -210,6 +210,17 @@ class AttendanceDetail
     }
 
     /**
+     * Elimina todos los registros de detalle de una cabecera
+     * Útil para reprocesar un día completo
+     */
+    public function deleteByHeader($headerId)
+    {
+        $sql = "DELETE FROM {$this->table} WHERE header_id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$headerId]);
+    }
+
+    /**
      * Inserta múltiples registros en batch
      */
     public function bulkInsert($records)

@@ -69,7 +69,7 @@
                     <div class="card-header">
                         <h3 class="card-title">Listado de Dispositivos</h3>
                         <div class="card-tools">
-                            <a href="/panel/attendance/devices/create" class="btn btn-primary btn-sm">
+                            <a href="<?= \App\Core\UrlHelper::route('/panel/attendance/devices/create') ?>" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus"></i> Agregar Dispositivo
                             </a>
                         </div>

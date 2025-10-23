@@ -117,10 +117,10 @@
                                 <h4 class="mb-3"><i class="fas fa-sync-alt"></i> Sincronizar desde API Externa</h4>
 
                                 <?php if (empty($api_devices)): ?>
-                                    <div class="alert alert-warning">
+                                    <div class="callout callout-warning">
                                         <i class="fas fa-exclamation-triangle"></i>
                                         No hay dispositivos API configurados.
-                                        <a href="/panel/attendance/devices/create" class="alert-link">Crear dispositivo API</a>
+                                        <a href="<?= \App\Core\UrlHelper::route('/panel/attendance/devices/create') ?>" class="callout-link">Crear dispositivo API</a>
                                     </div>
                                 <?php else: ?>
 
@@ -183,6 +183,156 @@
                                     <div class="alert alert-info">
                                         <i class="fas fa-info-circle"></i>
                                         <strong>Nota:</strong> La sincronización puede tardar varios minutos dependiendo de la cantidad de registros.
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <!-- OPCIONES DE SINCRONIZACIÓN -->
+                                    <div class="row mt-4">
+                                        <!-- Panel de Estado -->
+                                        <div class="col-md-6">
+                                            <div class="card card-info">
+                                                <div class="card-header">
+                                                    <h3 class="card-title"><i class="fas fa-info-circle"></i> Estado de Sincronización</h3>
+                                                </div>
+                                                <div class="card-body">
+                                                    <?php
+                                                    // Obtener configuración API si está disponible
+                                                    $apiConfig = $api_config ?? null;
+                                                    $syncStats = $sync_stats ?? [];
+                                                    ?>
+                                                    <?php if ($apiConfig): ?>
+                                                        <dl class="row">
+                                                            <dt class="col-sm-5">Estado:</dt>
+                                                            <dd class="col-sm-7">
+                                                                <?php if ($apiConfig['sync_enabled']): ?>
+                                                                    <span class="badge badge-success">Activa</span>
+                                                                <?php else: ?>
+                                                                    <span class="badge badge-secondary">Deshabilitada</span>
+                                                                <?php endif; ?>
+                                                            </dd>
+
+                                                            <dt class="col-sm-5">Última Sincronización:</dt>
+                                                            <dd class="col-sm-7">
+                                                                <?php if ($apiConfig['last_sync_at']): ?>
+                                                                    <?= date('d/m/Y H:i:s', strtotime($apiConfig['last_sync_at'])) ?>
+                                                                    <br>
+                                                                    <span class="badge badge-<?= $apiConfig['last_sync_status'] === 'SUCCESS' ? 'success' : ($apiConfig['last_sync_status'] === 'FAILED' ? 'danger' : 'warning') ?>">
+                                                                        <?= $apiConfig['last_sync_status'] ?>
+                                                                    </span>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">Nunca</span>
+                                                                <?php endif; ?>
+                                                            </dd>
+
+                                                            <dt class="col-sm-5">Intervalo:</dt>
+                                                            <dd class="col-sm-7">Cada <?= $apiConfig['sync_interval_minutes'] ?> minutos</dd>
+
+                                                            <dt class="col-sm-5">Duración Promedio:</dt>
+                                                            <dd class="col-sm-7">
+                                                                <?php if (!empty($syncStats['avg_duration_seconds'])): ?>
+                                                                    <?= round($syncStats['avg_duration_seconds'], 2) ?> segundos
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">N/A</span>
+                                                                <?php endif; ?>
+                                                            </dd>
+                                                        </dl>
+
+                                                        <hr>
+
+                                                        <?php if ($apiConfig['sync_enabled']): ?>
+                                                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/disable-sync') ?>" method="POST">
+                                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                                <input type="hidden" name="config_id" value="<?= $apiConfig['id'] ?>">
+                                                                <button type="submit" class="btn btn-warning btn-block">
+                                                                    <i class="fas fa-pause"></i> Deshabilitar Sincronización Automática
+                                                                </button>
+                                                            </form>
+                                                        <?php else: ?>
+                                                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/enable-sync') ?>" method="POST">
+                                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                                <input type="hidden" name="config_id" value="<?= $apiConfig['id'] ?>">
+                                                                <button type="submit" class="btn btn-success btn-block">
+                                                                    <i class="fas fa-play"></i> Habilitar Sincronización Automática
+                                                                </button>
+                                                            </form>
+                                                        <?php endif; ?>
+
+                                                    <?php else: ?>
+                                                        <div class="alert alert-info">
+                                                            <i class="icon fas fa-info-circle"></i>
+                                                            No hay configuración API guardada.
+                                                            <a href="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config') ?>" class="alert-link">Configurar API</a>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Panel de Control Manual Adicional -->
+                                        <div class="col-md-6">
+                                            <div class="card card-success">
+                                                <div class="card-header">
+                                                    <h3 class="card-title"><i class="fas fa-sync-alt"></i> Sincronización Manual Avanzada</h3>
+                                                </div>
+                                                <div class="card-body">
+                                                    <?php if (!empty($api_devices)): ?>
+                                                        <!-- Sincronizar Todo -->
+                                                        <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/sync-now') ?>" method="POST" class="mb-2">
+                                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                            <input type="hidden" name="sync_type" value="full">
+                                                            <button type="submit" class="btn btn-success btn-block">
+                                                                <i class="fas fa-sync-alt"></i> Sincronizar Todo (API)
+                                                            </button>
+                                                        </form>
+
+                                                        <!-- Sincronizar Día Actual -->
+                                                        <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/sync-now') ?>" method="POST" class="mb-2">
+                                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                            <input type="hidden" name="sync_type" value="today">
+                                                            <button type="submit" class="btn btn-info btn-block">
+                                                                <i class="fas fa-calendar-day"></i> Sincronizar Día Actual (API)
+                                                            </button>
+                                                        </form>
+
+                                                        <!-- Sincronizar Por Rango de Fechas -->
+                                                        <button type="button" class="btn btn-primary btn-block" data-toggle="collapse" data-target="#dateRangeFormAPI">
+                                                            <i class="fas fa-calendar-alt"></i> Sincronizar por Rango (API)
+                                                        </button>
+
+                                                        <div class="collapse mt-2" id="dateRangeFormAPI">
+                                                            <form action="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config/sync-now') ?>" method="POST" class="border p-3 rounded bg-light">
+                                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                                <input type="hidden" name="sync_type" value="daterange">
+
+                                                                <div class="form-group">
+                                                                    <label for="start_date_api">Fecha Inicio:</label>
+                                                                    <input type="date" class="form-control" id="start_date_api" name="start_date"
+                                                                           value="<?= date('Y-m-01') ?>" required>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label for="end_date_api">Fecha Fin:</label>
+                                                                    <input type="date" class="form-control" id="end_date_api" name="end_date"
+                                                                           value="<?= date('Y-m-d') ?>" required>
+                                                                </div>
+
+                                                                <button type="submit" class="btn btn-primary btn-block">
+                                                                    <i class="fas fa-sync-alt"></i> Sincronizar Rango
+                                                                </button>
+                                                            </form>
+                                                        </div>
+
+                                                    <?php else: ?>
+                                                        <div class="alert alert-warning">
+                                                            <i class="icon fas fa-exclamation-triangle"></i>
+                                                            Configure primero la API antes de sincronizar.
+                                                            <a href="<?= \App\Core\UrlHelper::route('/panel/attendance-api-config') ?>" class="alert-link">Ir a Configuración</a>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 <?php endif; ?>
                             </div>

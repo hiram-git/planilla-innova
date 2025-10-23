@@ -267,6 +267,12 @@ class App
                                     $this->params = [];
                                     call_user_func_array([$this->controller, $this->method], $this->params);
                                     return;
+                                } elseif ($url[2] === 'process-day' && method_exists($this->controller, 'processDay')) {
+                                    // POST: /panel/attendance/process-day
+                                    $this->method = 'processDay';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
                                 } elseif ($url[2] === 'absence' && isset($url[3]) && isset($url[4]) && $url[4] === 'justify' && method_exists($this->controller, 'justifyAbsenceFromLog')) {
                                     // POST: /panel/attendance/absence/{id}/justify
                                     $this->method = 'justifyAbsenceFromLog';

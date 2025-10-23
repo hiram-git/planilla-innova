@@ -202,39 +202,40 @@ class AttendanceHeader
 
     /**
      * Actualiza un registro de cabecera
+     * Solo actualiza los campos que se pasan en $data
      */
     public function update($id, $data)
     {
-        $sql = "UPDATE {$this->table} SET
-                    attendance_date = ?,
-                    device_id = ?,
-                    total_records = ?,
-                    total_employees = ?,
-                    total_on_time = ?,
-                    total_late = ?,
-                    total_absent = ?,
-                    is_processed = ?,
-                    processed_at = ?,
-                    processed_by = ?,
-                    notes = ?
-                WHERE id = ?";
+        // Construir SQL dinámico basado en los campos presentes
+        $fields = [];
+        $values = [];
+
+        $allowedFields = [
+            'attendance_date', 'device_id', 'total_records', 'total_employees',
+            'total_on_time', 'total_late', 'total_absent', 'is_processed',
+            'processed_at', 'processed_by', 'sync_batch_id', 'synced_from',
+            'file_import_id', 'notes'
+        ];
+
+        foreach ($allowedFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = "$field = ?";
+                $values[] = $data[$field];
+            }
+        }
+
+        if (empty($fields)) {
+            // No hay campos para actualizar
+            return true;
+        }
+
+        // Agregar el ID al final
+        $values[] = $id;
+
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE id = ?";
 
         $stmt = $this->db->prepare($sql);
-
-        return $stmt->execute([
-            $data['attendance_date'],
-            $data['device_id'] ?? null,
-            $data['total_records'] ?? 0,
-            $data['total_employees'] ?? 0,
-            $data['total_on_time'] ?? 0,
-            $data['total_late'] ?? 0,
-            $data['total_absent'] ?? 0,
-            $data['is_processed'] ?? 0,
-            $data['processed_at'] ?? null,
-            $data['processed_by'] ?? null,
-            $data['notes'] ?? null,
-            $id
-        ]);
+        return $stmt->execute($values);
     }
 
     /**

@@ -175,8 +175,11 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                     <div class="card-header">
                         <h3 class="card-title"><i class="fas fa-list"></i> Detalle de Marcaciones (<?= count($details) ?>)</h3>
                         <div class="card-tools">
-                            <button type="button" class="btn btn-warning btn-sm btn-process-all-calculations" title="Procesar cálculos de todo el día">
-                                <i class="fas fa-calculator"></i> Procesar Cálculos Día
+                            <button type="button" class="btn btn-danger btn-sm btn-process-day" title="Procesar marcaciones completas del día">
+                                <i class="fas fa-cogs"></i> Procesar Marcaciones
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm btn-process-all-calculations" title="Procesar solo cálculos de marcaciones existentes">
+                                <i class="fas fa-calculator"></i> Procesar Cálculos
                             </button>
                             <button type="button" class="btn btn-success btn-sm" onclick="window.print()">
                                 <i class="fas fa-print"></i> Imprimir
@@ -199,6 +202,7 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                     <th>Hora Salida</th>
                                     <th>Tardanza</th>
                                     <th>Horas Trabajadas</th>
+                                    <th>Horas Extras</th>
                                     <th>Puntualidad</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
@@ -248,12 +252,17 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                             }
                                         }
 
-                                        // Indicador de cálculo procesado
+                                        // Indicador de cálculo procesado y horas extras
                                         $punctualityDisplay = '';
+                                        $overtimeDisplay = '-';
+
                                         if (!empty($detail['calculation'])) {
                                             $calc = $detail['calculation'];
                                             $score = $calc['punctuality_score'] ?? 0;
                                             $isPerfect = $calc['is_perfect_attendance'] ?? 0;
+                                            $overtimeHours = $calc['overtime_hours'] ?? 0;
+                                            $overtime25 = $calc['overtime_25_hours'] ?? 0;
+                                            $overtime50 = $calc['overtime_50_hours'] ?? 0;
 
                                             // Color del badge según score
                                             $scoreColor = 'success';
@@ -266,6 +275,41 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
 
                                             if ($isPerfect) {
                                                 $punctualityDisplay .= ' <i class="fas fa-star text-warning" title="Asistencia Perfecta"></i>';
+                                            }
+
+                                            // Mostrar horas extras
+                                            if ($overtimeHours > 0) {
+                                                $overtimeDisplay = '<span class="badge badge-primary" title="Horas extras totales">';
+                                                $overtimeDisplay .= number_format($overtimeHours, 2) . 'h';
+                                                $overtimeDisplay .= '</span>';
+
+                                                // Desglose de horas extras
+                                                if ($overtime25 > 0 || $overtime50 > 0) {
+                                                    $overtimeDisplay .= '<br><small class="text-muted">';
+                                                    if ($overtime25 > 0) {
+                                                        $overtimeDisplay .= '+25%: ' . number_format($overtime25, 2) . 'h ';
+                                                    }
+                                                    if ($overtime50 > 0) {
+                                                        $overtimeDisplay .= '+50%: ' . number_format($overtime50, 2) . 'h';
+                                                    }
+                                                    $overtimeDisplay .= '</small>';
+                                                }
+                                            } else {
+                                                $overtimeDisplay = '<span class="badge badge-secondary">0h</span>';
+                                            }
+
+                                            // Actualizar horas trabajadas con el cálculo
+                                            if (isset($calc['total_hours'])) {
+                                                $hoursWorked = number_format($calc['total_hours'], 2) . 'h';
+                                            }
+
+                                            // Actualizar tardanza con el cálculo
+                                            if (isset($calc['tardiness_minutes'])) {
+                                                if ($calc['tardiness_minutes'] > 0) {
+                                                    $tardiness = '<span class="badge badge-danger">' . $calc['tardiness_minutes'] . ' min</span>';
+                                                } else {
+                                                    $tardiness = '<span class="badge badge-success">0</span>';
+                                                }
                                             }
                                         } else {
                                             $punctualityDisplay = '<span class="badge badge-secondary" title="Cálculo pendiente">';
@@ -294,6 +338,9 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                             <td><?= $timeOut ?></td>
                                             <td><?= $tardiness ?></td>
                                             <td><?= $hoursWorked ?></td>
+                                            <td class="overtime-hours" data-detail-id="<?= $detail['id'] ?>">
+                                                <?= $overtimeDisplay ?>
+                                            </td>
                                             <td class="punctuality-score" data-detail-id="<?= $detail['id'] ?>">
                                                 <?= $punctualityDisplay ?>
                                             </td>
@@ -336,7 +383,7 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="8" class="text-center text-muted">
+                                        <td colspan="10" class="text-center text-muted">
                                             <i class="fas fa-info-circle"></i> No hay marcaciones registradas para esta fecha
                                         </td>
                                     </tr>
@@ -387,13 +434,24 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
     </div>
 </div>
 
-<!-- Scripts -->
+<?php
+// Iniciar captura de estilos
+ob_start();
+?>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
+<?php
+$styles = ob_get_clean();
+
+// Iniciar captura de scripts
+ob_start();
+?>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
 
 <script>
 $(document).ready(function() {
+    // Base URL del proyecto (ruta relativa)
+    const baseUrl = '<?= url("", false) ?>';
     // DataTable
     $('#attendanceDetailTable').DataTable({
         language: {
@@ -416,7 +474,7 @@ $(document).ready(function() {
         const detailId = $('#edit_detail_id').val();
 
         $.ajax({
-            url: `/panel/attendance/detail/${detailId}/update`,
+            url: `${baseUrl}/panel/attendance/detail/${detailId}/update`,
             method: 'POST',
             data: $(this).serialize(),
             success: function(response) {
@@ -461,7 +519,7 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: `/panel/attendance/detail/${detailId}/justify`,
+                    url: `${baseUrl}/panel/attendance/detail/${detailId}/justify`,
                     method: 'POST',
                     data: {
                         csrf_token: '<?= $csrf_token ?? '' ?>',
@@ -500,7 +558,7 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: `/panel/attendance/detail/${detailId}/delete`,
+                    url: `${baseUrl}/panel/attendance/detail/${detailId}/delete`,
                     method: 'POST',
                     data: {
                         csrf_token: '<?= $csrf_token ?? '' ?>'
@@ -534,7 +592,7 @@ $(document).ready(function() {
         btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
         $.ajax({
-            url: `/panel/attendance/detail/${detailId}/calculate`,
+            url: `${baseUrl}/panel/attendance/detail/${detailId}/calculate`,
             method: 'POST',
             data: {
                 csrf_token: '<?= $csrf_token ?? '' ?>'
@@ -553,7 +611,7 @@ $(document).ready(function() {
                     else if (score < 80) badgeClass = 'warning';
 
                     let html = `<span class="badge badge-${badgeClass}" title="Score: ${score}">
-                                    ${score}%
+                                    <i class="fas fa-check-circle"></i> ${score}%
                                 </span>`;
 
                     if (isPerfect) {
@@ -561,6 +619,32 @@ $(document).ready(function() {
                     }
 
                     scoreCell.html(html);
+
+                    // Actualizar columna de horas extras
+                    const overtimeCell = $(`.overtime-hours[data-detail-id="${detailId}"]`);
+                    const overtimeHours = response.data.overtime_hours || 0;
+                    const overtime25 = response.data.overtime_25_hours || 0;
+                    const overtime50 = response.data.overtime_50_hours || 0;
+
+                    let overtimeHtml = '';
+                    if (overtimeHours > 0) {
+                        overtimeHtml = `<span class="badge badge-primary" title="Horas extras totales">${overtimeHours.toFixed(2)}h</span>`;
+
+                        if (overtime25 > 0 || overtime50 > 0) {
+                            overtimeHtml += '<br><small class="text-muted">';
+                            if (overtime25 > 0) {
+                                overtimeHtml += `+25%: ${overtime25.toFixed(2)}h `;
+                            }
+                            if (overtime50 > 0) {
+                                overtimeHtml += `+50%: ${overtime50.toFixed(2)}h`;
+                            }
+                            overtimeHtml += '</small>';
+                        }
+                    } else {
+                        overtimeHtml = '<span class="badge badge-secondary">0h</span>';
+                    }
+
+                    overtimeCell.html(overtimeHtml);
 
                     // Mostrar modal con detalles
                     showCalculationDetails(response.data);
@@ -578,7 +662,142 @@ $(document).ready(function() {
         });
     });
 
-    // Procesar cálculos de todo el día
+    // Procesar marcaciones completas del día (ausencias + omisiones + cálculos)
+    $('.btn-process-day').on('click', function() {
+        const btn = $(this);
+        const originalHtml = btn.html();
+
+        // Obtener tipo de planilla desde sessionStorage (navbar)
+        const selectedPayrollType = sessionStorage.getItem("selectedPayrollType");
+
+        if (!selectedPayrollType) {
+            Swal.fire({
+                title: 'Tipo de Planilla Requerido',
+                text: 'Debe seleccionar un tipo de planilla desde el menú superior antes de procesar.',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        let tipoPlanillaData;
+        try {
+            tipoPlanillaData = JSON.parse(selectedPayrollType);
+        } catch (e) {
+            console.error("Error parsing selectedPayrollType:", e);
+            Swal.fire({
+                title: 'Error',
+                text: 'Error al leer el tipo de planilla seleccionado.',
+                icon: 'error'
+            });
+            return;
+        }
+
+        const tipoPlanillaId = tipoPlanillaData.id;
+        const tipoPlanillaText = tipoPlanillaData.descripcion || tipoPlanillaData.nombre || 'Tipo de Planilla';
+
+        Swal.fire({
+            title: '¿Procesar Marcaciones del Día?',
+            html: `
+                <div class="text-left">
+                    <p><strong>Tipo de Planilla: <span class="badge badge-primary">${tipoPlanillaText}</span></strong></p>
+                    <p><strong>Este proceso realizará:</strong></p>
+                    <ul>
+                        <li>✓ Detectará empleados sin marcación y creará registros de AUSENCIA</li>
+                        <li>✓ Detectará marcaciones incompletas (solo entrada o salida) y las marcará como OMISIÓN</li>
+                        <li>✓ Calculará horas trabajadas, extras, tardanzas para marcaciones completas</li>
+                    </ul>
+                    <p class="text-warning mt-3"><i class="fas fa-exclamation-triangle"></i> Este proceso puede tomar varios minutos.</p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-cogs"></i> Sí, procesar',
+            cancelButtonText: 'Cancelar',
+            width: '600px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+
+                $.ajax({
+                    url: `${baseUrl}/panel/attendance/process-day`,
+                    method: 'POST',
+                    data: {
+                        csrf_token: '<?= $csrf_token ?? '' ?>',
+                        date: '<?= $date ?>',
+                        tipo_planilla_id: tipoPlanillaId
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: '¡Procesamiento Completado!',
+                                html: `
+                                    <div class="text-left">
+                                        <h5 class="mb-3">Resumen del Procesamiento:</h5>
+
+                                        <div class="alert alert-info">
+                                            <strong><i class="fas fa-user-times"></i> Ausencias:</strong><br>
+                                            <ul class="mb-0 mt-1">
+                                                <li>Detectadas: <strong>${response.data.absences_detected || 0}</strong></li>
+                                                <li>Creadas: <strong>${response.data.absences_created || 0}</strong></li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="alert alert-warning">
+                                            <strong><i class="fas fa-exclamation-triangle"></i> Omisiones:</strong><br>
+                                            <ul class="mb-0 mt-1">
+                                                <li>Detectadas: <strong>${response.data.omissions_detected || 0}</strong></li>
+                                                <li>Marcadas: <strong>${response.data.omissions_marked || 0}</strong></li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="alert alert-success">
+                                            <strong><i class="fas fa-calculator"></i> Cálculos:</strong><br>
+                                            <ul class="mb-0 mt-1">
+                                                <li>Procesadas: <strong>${response.data.calculations_processed || 0}</strong></li>
+                                                <li>Guardadas: <strong>${response.data.calculations_saved || 0}</strong></li>
+                                                <li>Errores: <strong class="text-danger">${response.data.calculations_errors || 0}</strong></li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="alert alert-primary">
+                                            <strong><i class="fas fa-chart-bar"></i> Total:</strong><br>
+                                            Empleados procesados: <strong>${response.data.total_employees || 0}</strong>
+                                        </div>
+                                    </div>
+                                `,
+                                icon: 'success',
+                                confirmButtonText: 'Aceptar',
+                                width: '700px'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: response.message || 'Error al procesar marcaciones',
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Error al procesar marcaciones del día';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        Swal.fire('Error', errorMessage, 'error');
+                        console.error('Error al procesar día:', xhr);
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalHtml);
+                    }
+                });
+            }
+        });
+    });
+
+    // Procesar cálculos de todo el día (solo cálculos)
     $('.btn-process-all-calculations').on('click', function() {
         const btn = $(this);
         const originalHtml = btn.html();
@@ -597,7 +816,7 @@ $(document).ready(function() {
                 btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
 
                 $.ajax({
-                    url: '/panel/attendance/process-calculations',
+                    url: `${baseUrl}/panel/attendance/process-calculations`,
                     method: 'POST',
                     data: {
                         csrf_token: '<?= $csrf_token ?? '' ?>',
@@ -641,6 +860,19 @@ $(document).ready(function() {
         const overtimeColor = data.overtime_hours > 0 ? 'text-primary' : 'text-muted';
         const lateColor = data.is_late ? 'text-danger' : 'text-success';
 
+        // Desglose de horas extras
+        let overtimeBreakdown = '';
+        if (data.overtime_25_hours > 0 || data.overtime_50_hours > 0) {
+            overtimeBreakdown = '<br><small class="text-muted">';
+            if (data.overtime_25_hours > 0) {
+                overtimeBreakdown += `+25%: ${data.overtime_25_hours}h `;
+            }
+            if (data.overtime_50_hours > 0) {
+                overtimeBreakdown += `+50%: ${data.overtime_50_hours}h`;
+            }
+            overtimeBreakdown += '</small>';
+        }
+
         Swal.fire({
             title: '<i class="fas fa-chart-bar"></i> Métricas Calculadas',
             html: `
@@ -651,12 +883,23 @@ $(document).ready(function() {
                             <td>${data.total_hours}h</td>
                         </tr>
                         <tr>
+                            <td><strong>Horas Trabajadas:</strong></td>
+                            <td>${data.regular_hours || data.total_hours}h</td>
+                        </tr>
+                        <tr>
                             <td><strong>Horas Extras:</strong></td>
-                            <td class="${overtimeColor}">${data.overtime_hours}h</td>
+                            <td class="${overtimeColor}">
+                                ${data.overtime_hours}h
+                                ${overtimeBreakdown}
+                            </td>
                         </tr>
                         <tr>
                             <td><strong>Tardanza:</strong></td>
                             <td class="${lateColor}">${data.tardiness_minutes} min</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Salida Anticipada:</strong></td>
+                            <td>${data.early_departure_minutes || 0} min</td>
                         </tr>
                         <tr>
                             <td><strong>Score de Puntualidad:</strong></td>
@@ -675,7 +918,7 @@ $(document).ready(function() {
             `,
             icon: 'info',
             confirmButtonText: 'Cerrar',
-            width: '500px'
+            width: '600px'
         });
     }
 });
@@ -689,3 +932,6 @@ $(document).ready(function() {
         margin-left: 0 !important;
     }
 </style>
+<?php
+$scripts = ob_get_clean();
+?>

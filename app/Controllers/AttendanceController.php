@@ -10,6 +10,7 @@ use App\Models\AttendanceHeader;
 use App\Models\AttendanceDetail;
 use App\Models\AttendanceSyncLog;
 use App\Models\AttendanceDevice;
+use App\Models\AttendanceApiConfig;
 use App\Models\Employee;
 use App\Services\Attendance\Calculators\AttendanceCalculator;
 use App\Services\Attendance\Calculators\AbsenceDetector;
@@ -179,12 +180,23 @@ class AttendanceController extends Controller
         // Obtener últimas sincronizaciones
         $recentSyncs = $this->syncLogModel->getRecent(5);
 
+        // Obtener configuración API y estadísticas
+        $apiConfigModel = new AttendanceApiConfig();
+        $apiConfig = $apiConfigModel->getActiveConfig();
+        $syncStats = null;
+
+        if ($apiConfig) {
+            $syncStats = $apiConfigModel->getSyncStats($apiConfig['id'], 7);
+        }
+
         $data = [
             'title' => 'Sincronización de Marcaciones',
             'page_title' => 'Control de Sincronización',
             'api_devices' => $apiDevices,
             'file_devices' => $fileDevices,
             'recent_syncs' => $recentSyncs,
+            'api_config' => $apiConfig,
+            'sync_stats' => $syncStats,
             'csrf_token' => Security::generateToken()
         ];
 
@@ -903,6 +915,267 @@ class AttendanceController extends Controller
             return $this->jsonResponse([
                 'success' => false,
                 'message' => 'Error al justificar ausencia: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Procesar día completo: detectar ausencias, omisiones y calcular métricas (AJAX)
+     * Proceso integral que:
+     * 1. Detecta empleados sin marcación y crea registros de AUSENCIA
+     * 2. Detecta marcaciones incompletas (solo entrada o salida) y las marca como OMISIÓN
+     * 3. Calcula métricas para marcaciones completas
+     *
+     * @return array JSON response
+     */
+    public function processDay()
+    {
+        try {
+            $date = $_POST['date'] ?? null;
+            $tipoPlanillaId = $_POST['tipo_planilla_id'] ?? null;
+
+            if (!$date) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe especificar una fecha.'
+                ]);
+            }
+
+            if (!$tipoPlanillaId) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe seleccionar un tipo de planilla.'
+                ]);
+            }
+
+            // Estadísticas del procesamiento
+            $stats = [
+                'absences_detected' => 0,
+                'absences_created' => 0,
+                'omissions_detected' => 0,
+                'omissions_marked' => 0,
+                'calculations_processed' => 0,
+                'calculations_saved' => 0,
+                'calculations_errors' => 0,
+                'total_employees' => 0
+            ];
+
+            // 1. Obtener o crear header del día
+            $header = $this->headerModel->getByDate($date);
+
+            if (!$header) {
+                // Crear header si no existe
+                $headerId = $this->headerModel->create([
+                    'attendance_date' => $date,
+                    'device_id' => null,
+                    'synced_from' => 'MANUAL_PROCESSING',
+                    'total_records' => 0,
+                    'total_employees' => 0
+                ]);
+
+                if (!$headerId) {
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Error al crear cabecera del día.'
+                    ]);
+                }
+
+                $header = $this->headerModel->getById($headerId);
+            }
+
+            // 1.5. LIMPIAR detalles existentes para reprocesar desde cero
+            error_log("AttendanceController@processDay - Eliminando detalles existentes para header_id: " . $header['id']);
+            $deletedCount = $this->detailModel->deleteByHeader($header['id']);
+            error_log("AttendanceController@processDay - Detalles eliminados: " . ($deletedCount ? 'Sí' : 'No'));
+
+            // 2. Obtener empleados activos filtrados por tipo de planilla
+            // Usar FIND_IN_SET para soportar empleados con múltiples tipos de planilla
+            $activeEmployees = $this->employeeModel->getEmployeesByTipoPlanilla($tipoPlanillaId);
+
+            $stats['total_employees'] = count($activeEmployees);
+
+            if (empty($activeEmployees)) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'No hay empleados activos para el tipo de planilla seleccionado.'
+                ]);
+            }
+
+            // 3. RECARGAR marcaciones desde tabla original attendance para este día
+            $sql = "SELECT a.*, e.schedule_id
+                    FROM attendance a
+                    INNER JOIN employees e ON a.employee_id = e.id
+                    WHERE DATE(a.date) = ?
+                    AND FIND_IN_SET(?, e.tipo_planilla_id)
+                    ORDER BY a.employee_id, a.date";
+
+            $stmt = $this->employeeModel->db->prepare($sql);
+            $stmt->execute([$date, $tipoPlanillaId]);
+            $rawAttendances = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            error_log("AttendanceController@processDay - Marcaciones encontradas en tabla attendance: " . count($rawAttendances));
+
+            // 4. RECREAR detalles desde las marcaciones originales
+            $employeesWithAttendance = [];
+            foreach ($rawAttendances as $attendance) {
+                try {
+                    $detailData = [
+                        'header_id' => $header['id'],
+                        'employee_id' => $attendance['employee_id'],
+                        'schedule_id' => $attendance['schedule_id'],
+                        'date' => $date,
+                        'time_in' => $attendance['time_in'],
+                        'time_out' => $attendance['time_out'],
+                        'device_id' => null,
+                        'status' => 'PRESENT',
+                        'notes' => 'Reprocesado desde tabla attendance'
+                    ];
+
+                    $detailId = $this->detailModel->create($detailData);
+                    if ($detailId) {
+                        $employeesWithAttendance[$attendance['employee_id']] = true;
+                    }
+                } catch (Exception $e) {
+                    error_log("Error recreando detalle from attendance: " . $e->getMessage());
+                }
+            }
+
+            // 5. PASO 1: Detectar empleados SIN marcación y crear registros de AUSENCIA
+            foreach ($activeEmployees as $employee) {
+                if (!isset($employeesWithAttendance[$employee['id']])) {
+                    // Empleado sin marcación - crear registro de ausencia
+                    try {
+                        $absenceData = [
+                            'header_id' => $header['id'],
+                            'employee_id' => $employee['id'],
+                            'date' => $date,
+                            'time_in' => null,
+                            'time_out' => null,
+                            'status' => 'ABSENT',
+                            'is_late' => 0,
+                            'tardiness_minutes' => 0,
+                            'hours_worked' => 0,
+                            'notes' => 'Ausencia detectada automáticamente - Sin marcación'
+                        ];
+
+                        $detailId = $this->detailModel->create($absenceData);
+
+                        if ($detailId) {
+                            $stats['absences_created']++;
+
+                            // Registrar ausencia en el log
+                            $this->absenceDetector->saveAbsence([
+                                'employee_id' => $employee['id'],
+                                'date' => $date,
+                                'absence_type' => 'UNJUSTIFIED',
+                                'attendance_detail_id' => $detailId,
+                                'detected_at' => date('Y-m-d H:i:s')
+                            ]);
+                        }
+
+                        $stats['absences_detected']++;
+                    } catch (Exception $e) {
+                        error_log("Error creating absence for employee {$employee['id']}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Recargar detalles después de crear ausencias
+            $existingDetails = $this->detailModel->getByHeader($header['id']);
+
+            // 5. PASO 2: Detectar marcaciones INCOMPLETAS y marcarlas como OMISIÓN
+            foreach ($existingDetails as $detail) {
+                $hasTimeIn = !empty($detail['time_in']);
+                $hasTimeOut = !empty($detail['time_out']);
+
+                // Marcación incompleta: solo entrada O solo salida
+                if (($hasTimeIn && !$hasTimeOut) || (!$hasTimeIn && $hasTimeOut)) {
+                    $stats['omissions_detected']++;
+
+                    try {
+                        // Actualizar estado a INCOMPLETE (OMISIÓN)
+                        $this->detailModel->update($detail['id'], [
+                            'status' => 'INCOMPLETE',
+                            'notes' => 'Omisión de marcación: ' . ($hasTimeIn ? 'Falta salida' : 'Falta entrada')
+                        ]);
+
+                        $stats['omissions_marked']++;
+                    } catch (Exception $e) {
+                        error_log("Error marking omission for detail {$detail['id']}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // 6. PASO 3: Calcular métricas para marcaciones COMPLETAS
+            $completeAttendances = [];
+            foreach ($existingDetails as $detail) {
+                // Solo procesar si tiene entrada Y salida
+                if (!empty($detail['time_in']) && !empty($detail['time_out'])) {
+                    $completeAttendances[] = [
+                        'id' => $detail['id'],
+                        'employee_id' => $detail['employee_id'],
+                        'date' => $date,
+                        'time_in' => $detail['time_in'],
+                        'time_out' => $detail['time_out']
+                    ];
+                }
+            }
+
+            if (!empty($completeAttendances)) {
+                $calcResult = $this->attendanceCalculator->calculateAndSaveBulk($completeAttendances, true);
+
+                $stats['calculations_processed'] = $calcResult['stats']['total_processed'];
+                $stats['calculations_saved'] = $calcResult['stats']['saved'];
+                $stats['calculations_errors'] = $calcResult['stats']['errors'];
+            }
+
+            // 7. Actualizar estadísticas del header
+            $finalDetails = $this->detailModel->getByHeader($header['id']);
+
+            $totalOnTime = 0;
+            $totalLate = 0;
+            $totalAbsent = 0;
+
+            foreach ($finalDetails as $detail) {
+                switch ($detail['status']) {
+                    case 'PRESENT':
+                        if ($detail['is_late']) {
+                            $totalLate++;
+                        } else {
+                            $totalOnTime++;
+                        }
+                        break;
+                    case 'LATE':
+                        $totalLate++;
+                        break;
+                    case 'ABSENT':
+                        $totalAbsent++;
+                        break;
+                }
+            }
+
+            $this->headerModel->update($header['id'], [
+                'total_records' => count($finalDetails),
+                'total_employees' => count($finalDetails),
+                'total_on_time' => $totalOnTime,
+                'total_late' => $totalLate,
+                'total_absent' => $totalAbsent,
+                'is_processed' => 1,
+                'processed_at' => date('Y-m-d H:i:s')
+            ]);
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => 'Procesamiento completado exitosamente.',
+                'data' => $stats
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error processing day: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al procesar el día: ' . $e->getMessage()
             ]);
         }
     }

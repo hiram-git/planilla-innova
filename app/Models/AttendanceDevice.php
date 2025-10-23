@@ -62,33 +62,55 @@ class AttendanceDevice
      */
     public function create($data)
     {
-        $sql = "INSERT INTO {$this->table} (
-                    device_code, device_name, device_type, location, is_active,
-                    config_json, api_url, api_key,
-                    file_format, delimiter, date_format, time_format, column_mapping,
-                    created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try {
+            $sql = "INSERT INTO {$this->table} (
+                        device_code, device_name, device_type, location, is_active,
+                        config_json, api_url, api_key,
+                        file_format, delimiter, date_format, time_format, column_mapping,
+                        created_by
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        $stmt = $this->db->prepare($sql);
+            error_log("AttendanceDevice@create - SQL: " . $sql);
 
-        $result = $stmt->execute([
-            $data['device_code'],
-            $data['device_name'],
-            $data['device_type'],
-            $data['location'] ?? null,
-            $data['is_active'] ?? 1,
-            $data['config_json'] ?? null,
-            $data['api_url'] ?? null,
-            $data['api_key'] ?? null,
-            $data['file_format'] ?? null,
-            $data['delimiter'] ?? ',',
-            $data['date_format'] ?? 'Y-m-d',
-            $data['time_format'] ?? 'H:i:s',
-            $data['column_mapping'] ?? null,
-            $data['created_by'] ?? null
-        ]);
+            $stmt = $this->db->prepare($sql);
 
-        return $result ? $this->db->lastInsertId() : false;
+            $params = [
+                $data['device_code'],
+                $data['device_name'],
+                $data['device_type'],
+                $data['location'] ?? null,
+                $data['is_active'] ?? 1,
+                $data['config_json'] ?? null,
+                $data['api_url'] ?? null,
+                $data['api_key'] ?? null,
+                $data['file_format'] ?? null,
+                $data['delimiter'] ?? ',',
+                $data['date_format'] ?? 'Y-m-d',
+                $data['time_format'] ?? 'H:i:s',
+                $data['column_mapping'] ?? null,
+                $data['created_by'] ?? null
+            ];
+
+            error_log("AttendanceDevice@create - Params: " . print_r($params, true));
+
+            $result = $stmt->execute($params);
+
+            if (!$result) {
+                $errorInfo = $stmt->errorInfo();
+                error_log("AttendanceDevice@create - SQL Error: " . print_r($errorInfo, true));
+                return false;
+            }
+
+            $lastId = $this->db->lastInsertId();
+            error_log("AttendanceDevice@create - Last insert ID: " . $lastId);
+
+            return $lastId;
+
+        } catch (\PDOException $e) {
+            error_log("AttendanceDevice@create - PDO Exception: " . $e->getMessage());
+            error_log("AttendanceDevice@create - Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
     }
 
     /**
