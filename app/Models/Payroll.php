@@ -364,14 +364,14 @@ class Payroll extends Model
             $this->db->commit();
 
             // Limpiar tabla temporal si se usó en modo especial
-            if ($usarSalarioPlanilla && !$validateSituacion) {
+            /*if ($usarSalarioPlanilla && !$validateSituacion) {
                 try {
                     $this->db->query("TRUNCATE TABLE temp_planilla_detalle");
                     error_log("Tabla temporal temp_planilla_detalle limpiada exitosamente");
                 } catch (\Exception $e) {
                     error_log("Error limpiando tabla temporal (no crítico): " . $e->getMessage());
                 }
-            }
+            }*/
 
             // Planilla procesada exitosamente
             return true;
@@ -381,14 +381,14 @@ class Payroll extends Model
             error_log("Error procesando planilla: " . $e->getMessage());
 
             // Limpiar tabla temporal si se usó en modo especial (incluso en caso de error)
-            if ($usarSalarioPlanilla && !$validateSituacion) {
+            /*if ($usarSalarioPlanilla && !$validateSituacion) {
                 try {
                     $this->db->query("TRUNCATE TABLE temp_planilla_detalle");
                     error_log("Tabla temporal temp_planilla_detalle limpiada después de error");
                 } catch (\Exception $cleanupError) {
                     error_log("Error limpiando tabla temporal después de error (no crítico): " . $cleanupError->getMessage());
                 }
-            }
+            }*/
 
             return false;
         }
