@@ -103,43 +103,133 @@ class Payroll extends Model
                 throw new \Exception('La planilla no está en estado PENDIENTE');
             }
 
-            // Limpiar detalles existentes
-            $sql = "DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$payrollId]);
+            // CASO ESPECIAL: Usar salario de planilla procesada SIN validar situación
+            // En este caso, solo procesamos los empleados que YA estaban en la planilla
+            if ($usarSalarioPlanilla && !$validateSituacion) {
+                error_log("MODO ESPECIAL: Usando empleados y salario de planilla procesada sin validar situación");
 
-            // Obtener empleados con todas sus relaciones (posición, cargo, función, partida, horario)
-            // Filtrar por empleados activos, con situación activa y que correspondan al tipo de planilla
-            // VALIDACIÓN PERÍODO: Solo empleados activos durante el período de la planilla
-            // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
-            $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
-                           e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
-                           e.cargo_id, e.funcion_id, e.partida_id,
-                           e.fecha_ingreso,
-                           p.description as position_nombre, p.rate as position_sueldo,
-                           c.descripcion as cargo_nombre,
-                           f.descripcion as funcion_nombre,
-                           pt.partida as partida_codigo, pt.descripcion as partida_nombre,
-                           s.nombre as schedule_nombre,
-                           sit.descripcion as situacion_nombre,
-                           tp.descripcion as tipo_planilla_nombre
-                    FROM employees e
-                    LEFT JOIN position p ON p.id = e.position_id
-                    LEFT JOIN cargos c ON c.id = e.cargo_id
-                    LEFT JOIN funciones f ON f.id = e.funcion_id
-                    LEFT JOIN partidas pt ON pt.id = e.partida_id
-                    LEFT JOIN schedules s ON s.id = e.schedule_id
-                    LEFT JOIN situaciones sit ON sit.id = e.situacion_id
-                    LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id
-                    WHERE FIND_IN_SET(?, e.tipo_planilla_id)";
-            
-            $stmt = $this->db->prepare($sql);
-            // Usar el tipo de planilla del parámetro si se proporciona, sino el de la planilla original
-            $tipoId = $tipoPlanillaId ?: $payroll['tipo_planilla_id'];
+                // 1. PRIMERO: Crear tabla temporal ANTES de eliminar
+                // NOTA: CREATE TABLE hace commit implícito, así que lo hacemos FUERA de la transacción
+                $this->db->commit(); // Cerrar transacción actual
 
-            error_log("Obteniendo empleados para tipo de planilla: $tipoId");
-            $stmt->execute([$tipoId]);
-            $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $sqlBackup = "CREATE TABLE IF NOT EXISTS temp_planilla_detalle AS
+                             SELECT * FROM planilla_detalle WHERE planilla_cabecera_id = ?";
+                $stmtBackup = $this->db->prepare($sqlBackup);
+                $stmtBackup->execute([$payrollId]);
+
+                error_log("Tabla temporal creada con registros de planilla $payrollId");
+
+                // Reiniciar transacción después del CREATE TABLE
+                $this->db->beginTransaction();
+
+                // Verificar cuántos registros hay en la temporal
+                $sqlCount = "SELECT COUNT(*) as total,
+                                    COUNT(DISTINCT employee_id) as total_empleados,
+                                    GROUP_CONCAT(DISTINCT employee_id) as employee_ids
+                             FROM temp_planilla_detalle";
+                $stmtCount = $this->db->prepare($sqlCount);
+                $stmtCount->execute();
+                $tempCount = $stmtCount->fetch(PDO::FETCH_ASSOC);
+                error_log("Registros en tabla temporal: {$tempCount['total']} registros, {$tempCount['total_empleados']} empleados únicos (IDs: {$tempCount['employee_ids']})");
+
+                // 2. SEGUNDO: Limpiar detalles existentes
+                $sqlDelete = "DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?";
+                $stmtDelete = $this->db->prepare($sqlDelete);
+                $stmtDelete->execute([$payrollId]);
+
+                error_log("Detalles de planilla eliminados");
+
+                // 3. TERCERO: Obtener empleados de la temporal con su salario original
+                $sqlEmps = "SELECT DISTINCT
+                                   e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
+                                   e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
+                                   e.cargo_id, e.funcion_id, e.partida_id,
+                                   e.fecha_ingreso,
+                                   p.description as position_nombre, p.rate as position_sueldo,
+                                   c.descripcion as cargo_nombre,
+                                   f.descripcion as funcion_nombre,
+                                   pt.partida as partida_codigo, pt.descripcion as partida_nombre,
+                                   s.nombre as schedule_nombre,
+                                   sit.descripcion as situacion_nombre,
+                                   tp.descripcion as tipo_planilla_nombre,
+                                   -- Obtener salario de la planilla original
+                                   (SELECT (pd_sal.monto*2) as monto
+                                    FROM temp_planilla_detalle pd_sal
+                                    INNER JOIN concepto c_sal ON pd_sal.concepto_id = c_sal.id
+                                    WHERE pd_sal.employee_id = e.id
+                                      AND (c_sal.concepto LIKE 'SUELDO%' OR c_sal.concepto LIKE 'SALARIO%'
+                                           OR c_sal.descripcion LIKE '%sueldo%' OR c_sal.descripcion LIKE '%salario%')
+                                      AND c_sal.tipo_concepto = 'A'
+                                    ORDER BY pd_sal.monto DESC
+                                    LIMIT 1
+                                   ) as salario_planilla_original
+                            FROM temp_planilla_detalle pd
+                            INNER JOIN employees e ON pd.employee_id = e.id
+                            LEFT JOIN position p ON p.id = e.position_id
+                            LEFT JOIN cargos c ON c.id = e.cargo_id
+                            LEFT JOIN funciones f ON f.id = e.funcion_id
+                            LEFT JOIN partidas pt ON pt.id = e.partida_id
+                            LEFT JOIN schedules s ON s.id = e.schedule_id
+                            LEFT JOIN situaciones sit ON sit.id = e.situacion_id
+                            LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id";
+
+                $stmt = $this->db->prepare($sqlEmps);
+                $stmt->execute();
+                $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                error_log("Empleados de planilla procesada: " . count($employees));
+
+                // Log salarios encontrados para debug
+                foreach ($employees as $emp) {
+                    if (isset($emp['salario_planilla_original']) && $emp['salario_planilla_original'] > 0) {
+                        error_log("Empleado {$emp['id']} ({$emp['firstname']} {$emp['lastname']}): salario original = {$emp['salario_planilla_original']}");
+                    }
+                }
+                
+                // Usar el tipo de planilla del parámetro si se proporciona, sino el de la planilla original
+                $tipoId = $tipoPlanillaId ?: $payroll['tipo_planilla_id'];
+
+                error_log("Obteniendo empleados para CASO ESPECIAL tipo de planilla: $tipoId");
+            } else {
+                // CASO NORMAL: Obtener todos los empleados del tipo de planilla
+
+                // Limpiar detalles existentes
+                $sql = "DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$payrollId]);
+                // CASO NORMAL: Obtener todos los empleados del tipo de planilla
+                // Filtrar por empleados activos, con situación activa y que correspondan al tipo de planilla
+                // VALIDACIÓN PERÍODO: Solo empleados activos durante el período de la planilla
+                // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
+                $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
+                               e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
+                               e.cargo_id, e.funcion_id, e.partida_id,
+                               e.fecha_ingreso,
+                               p.description as position_nombre, p.rate as position_sueldo,
+                               c.descripcion as cargo_nombre,
+                               f.descripcion as funcion_nombre,
+                               pt.partida as partida_codigo, pt.descripcion as partida_nombre,
+                               s.nombre as schedule_nombre,
+                               sit.descripcion as situacion_nombre,
+                               tp.descripcion as tipo_planilla_nombre
+                        FROM employees e
+                        LEFT JOIN position p ON p.id = e.position_id
+                        LEFT JOIN cargos c ON c.id = e.cargo_id
+                        LEFT JOIN funciones f ON f.id = e.funcion_id
+                        LEFT JOIN partidas pt ON pt.id = e.partida_id
+                        LEFT JOIN schedules s ON s.id = e.schedule_id
+                        LEFT JOIN situaciones sit ON sit.id = e.situacion_id
+                        LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id
+                        WHERE FIND_IN_SET(?, e.tipo_planilla_id)";
+
+                $stmt = $this->db->prepare($sql);
+                // Usar el tipo de planilla del parámetro si se proporciona, sino el de la planilla original
+                $tipoId = $tipoPlanillaId ?: $payroll['tipo_planilla_id'];
+
+                error_log("Obteniendo empleados para tipo de planilla: $tipoId");
+                $stmt->execute([$tipoId]);
+                $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
 
             error_log("Empleados encontrados: " . count($employees));
 
@@ -193,10 +283,18 @@ class Payroll extends Model
 
                     // Si se debe usar salario de planilla procesada, obtenerlo y sobrescribir
                     if ($usarSalarioPlanilla) {
-                        $salarioOriginal = $this->getSalarioFromPlanillaDetalle($payrollId, $employee['id']);
-                        if ($salarioOriginal > 0) {
+                        // En modo especial, el salario ya viene en el array del empleado
+                        if (isset($employee['salario_planilla_original']) && $employee['salario_planilla_original'] > 0) {
+                            $salarioOriginal = (float) $employee['salario_planilla_original'];
                             $calculadora->setVariable('SUELDO', $salarioOriginal);
-                            error_log("Usando salario de planilla original para empleado {$employee['id']}: $salarioOriginal");
+                            error_log("Usando salario de planilla original (modo especial) para empleado {$employee['id']}: $salarioOriginal");
+                        } else {
+                            // En modo normal, buscar en planilla_detalle
+                            $salarioOriginal = $this->getSalarioFromPlanillaDetalle($payrollId, $employee['id']);
+                            if ($salarioOriginal > 0) {
+                                $calculadora->setVariable('SUELDO', $salarioOriginal);
+                                error_log("Usando salario de planilla original para empleado {$employee['id']}: $salarioOriginal");
+                            }
                         }
                     }
 
@@ -264,13 +362,34 @@ class Payroll extends Model
             $stmt->execute([$payrollId]);
 
             $this->db->commit();
-            
+
+            // Limpiar tabla temporal si se usó en modo especial
+            if ($usarSalarioPlanilla && !$validateSituacion) {
+                try {
+                    $this->db->query("TRUNCATE TABLE temp_planilla_detalle");
+                    error_log("Tabla temporal temp_planilla_detalle limpiada exitosamente");
+                } catch (\Exception $e) {
+                    error_log("Error limpiando tabla temporal (no crítico): " . $e->getMessage());
+                }
+            }
+
             // Planilla procesada exitosamente
             return true;
 
         } catch (\Exception $e) {
             $this->db->rollback();
             error_log("Error procesando planilla: " . $e->getMessage());
+
+            // Limpiar tabla temporal si se usó en modo especial (incluso en caso de error)
+            if ($usarSalarioPlanilla && !$validateSituacion) {
+                try {
+                    $this->db->query("TRUNCATE TABLE temp_planilla_detalle");
+                    error_log("Tabla temporal temp_planilla_detalle limpiada después de error");
+                } catch (\Exception $cleanupError) {
+                    error_log("Error limpiando tabla temporal después de error (no crítico): " . $cleanupError->getMessage());
+                }
+            }
+
             return false;
         }
     }
