@@ -112,10 +112,10 @@ class Payroll extends Model
                 // NOTA: CREATE TABLE hace commit implícito, así que lo hacemos FUERA de la transacción
                 $this->db->commit(); // Cerrar transacción actual
 
-                $sqlBackupTemp = "CREATE TABLE IF NOT EXISTS temp_planilla_detalle
+                /*$sqlBackupTemp = "CREATE TABLE IF NOT EXISTS temp_planilla_detalle
                              LIKE planilla_detalle;";
                 $stmtBackupTemp = $this->db->prepare($sqlBackupTemp);
-                $stmtBackupTemp->execute();
+                $stmtBackupTemp->execute();*/
 
                 $sqlBackup = "INSERT INTO temp_planilla_detalle 
                              SELECT * FROM planilla_detalle WHERE planilla_cabecera_id = ?";
