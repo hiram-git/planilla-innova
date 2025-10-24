@@ -108,7 +108,14 @@ class Payroll extends Model
             if ($usarSalarioPlanilla && !$validateSituacion) {
                 error_log("MODO ESPECIAL: Usando empleados y salario de planilla procesada sin validar situación");
 
-                // 1. PRIMERO: Limpiar tabla temporal de ejecuciones anteriores
+                // 1. PRIMERO: Verificar cuántos registros tiene la planilla ANTES de copiar
+                $sqlCheckBefore = "SELECT COUNT(*) as total FROM planilla_detalle WHERE planilla_cabecera_id = ?";
+                $stmtCheckBefore = $this->db->prepare($sqlCheckBefore);
+                $stmtCheckBefore->execute([$payrollId]);
+                $totalBefore = $stmtCheckBefore->fetchColumn();
+                error_log("Planilla $payrollId tiene $totalBefore registros en planilla_detalle ANTES de copiar");
+
+                // 2. SEGUNDO: Limpiar tabla temporal de ejecuciones anteriores
                 try {
                     $this->db->query("TRUNCATE TABLE temp_planilla_detalle");
                     error_log("Tabla temporal limpiada antes de usar");
@@ -116,7 +123,7 @@ class Payroll extends Model
                     error_log("Error limpiando tabla temporal (intentando continuar): " . $e->getMessage());
                 }
 
-                // 2. SEGUNDO: Insertar datos de la planilla actual
+                // 3. TERCERO: Insertar datos de la planilla actual
                 $sqlBackup = "INSERT INTO temp_planilla_detalle
                              SELECT * FROM planilla_detalle WHERE planilla_cabecera_id = ?";
                 $stmtBackup = $this->db->prepare($sqlBackup);
@@ -135,12 +142,12 @@ class Payroll extends Model
                 $tempCount = $stmtCount->fetch(PDO::FETCH_ASSOC);
                 error_log("Registros en tabla temporal: {$tempCount['total']} registros, {$tempCount['total_empleados']} empleados únicos (IDs: {$tempCount['employee_ids']})");
 
-                // 2. SEGUNDO: Limpiar detalles existentes
+                // 3. TERCERO: AHORA SÍ limpiar detalles de planilla_detalle (ya están copiados en temp)
                 $sqlDelete = "DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?";
                 $stmtDelete = $this->db->prepare($sqlDelete);
                 $stmtDelete->execute([$payrollId]);
 
-                error_log("Detalles de planilla eliminados");
+                error_log("Detalles de planilla eliminados (después de copiar a temp)");
 
                 // 3. TERCERO: Obtener empleados de la temporal con su salario original
                 $sqlEmps = "SELECT DISTINCT
@@ -939,11 +946,16 @@ class Payroll extends Model
             error_log("Reprocesando planilla con validación de situación: " . ($validateSituacion ? 'SÍ' : 'NO'));
             error_log("Usar salario de planilla procesada: " . ($usarSalarioPlanilla ? 'SÍ' : 'NO'));
 
-            // 1. Limpiar datos existentes de planilla_detalle (sin transacción)
-            $deleteStmt = $this->db->prepare("DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?");
-            $deleteStmt->execute([$payrollId]);
-
-            $deletedCount = $deleteStmt->rowCount();
+            // 1. SOLO en modo NORMAL: Limpiar datos existentes de planilla_detalle
+            // En modo especial, processPayroll() copiará los datos a temp ANTES de eliminarlos
+            if (!($usarSalarioPlanilla && !$validateSituacion)) {
+                $deleteStmt = $this->db->prepare("DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?");
+                $deleteStmt->execute([$payrollId]);
+                $deletedCount = $deleteStmt->rowCount();
+                error_log("Modo normal: eliminados $deletedCount registros de planilla_detalle");
+            } else {
+                error_log("Modo especial: NO se eliminan datos aquí, processPayroll() los copiará primero");
+            }
 
             // 2. Cambiar estado temporalmente a PENDIENTE (sin transacción)
             $updateStmt = $this->db->prepare("UPDATE planilla_cabecera SET estado = 'PENDIENTE' WHERE id = ?");
