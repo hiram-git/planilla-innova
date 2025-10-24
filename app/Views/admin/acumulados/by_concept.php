@@ -280,7 +280,7 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-sm table-hover" id="acumuladosTable">
+                            <table class="table table-bordered table-striped table-sm table-hover" id="acumuladosTable" style="width:100%">
                                 <thead class="thead-light">
                                     <tr>
                                         <th>Empleado</th>
