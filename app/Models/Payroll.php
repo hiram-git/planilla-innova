@@ -116,11 +116,21 @@ class Payroll extends Model
                 error_log("Planilla $payrollId tiene $totalBefore registros en planilla_detalle ANTES de copiar");
 
                 // 2. SEGUNDO: Limpiar tabla temporal de ejecuciones anteriores
+                // NOTA: TRUNCATE causa implicit commit en MySQL, debemos reabrir la transacción
                 try {
                     $this->db->query("TRUNCATE TABLE temp_planilla_detalle");
                     error_log("Tabla temporal limpiada antes de usar");
+
+                    // TRUNCATE causó un implicit commit, reabrir transacción
+                    $this->db->beginTransaction();
+                    error_log("Transacción reabierta después de TRUNCATE");
                 } catch (\Exception $e) {
                     error_log("Error limpiando tabla temporal (intentando continuar): " . $e->getMessage());
+                    // Asegurar que hay una transacción activa
+                    if (!$this->db->inTransaction()) {
+                        $this->db->beginTransaction();
+                        error_log("Transacción iniciada después de error en TRUNCATE");
+                    }
                 }
 
                 // 3. TERCERO: Insertar datos de la planilla actual
@@ -357,10 +367,11 @@ class Payroll extends Model
                 }
                 
                 // Hacer commit parcial después de cada empleado para que el progress endpoint vea los cambios
-                if ($employeeProcessedCount > 0) {
+                // NOTA: En modo especial NO hacemos commits parciales para evitar problemas de transacciones
+                if ($employeeProcessedCount > 0 && !($usarSalarioPlanilla && !$validateSituacion)) {
                     $this->db->commit();
                     $this->db->beginTransaction();
-                    
+
                     // Pequeña pausa más corta para no ralentizar el proceso
                     usleep(50000); // 0.05 segundos
                 }
