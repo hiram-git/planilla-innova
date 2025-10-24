@@ -28,7 +28,7 @@ class AttendanceSyncService
     {
         $this->db = Database::getInstance();
 
-        // Obtener configuración
+        // Obtener configuración (opcional)
         $configModel = new AttendanceApiConfig();
 
         if ($configId) {
@@ -37,8 +37,17 @@ class AttendanceSyncService
             $this->config = $configModel->getActiveConfig();
         }
 
+        // Si no hay configuración, usar valores por defecto
         if (!$this->config) {
-            throw new Exception('No se encontró configuración activa de API');
+            $this->config = [
+                'id' => null,
+                'api_provider' => 'Base44',
+                'api_key' => getenv('BASE44_API_KEY') ?: '',
+                'app_id' => getenv('BASE44_APP_ID') ?: '',
+                'api_url' => getenv('BASE44_API_URL') ?: 'https://api.base44.com',
+                'sync_interval_minutes' => 15
+            ];
+            error_log("AttendanceSyncService: No se encontró configuración activa, usando valores por defecto");
         }
 
         // Inicializar cliente API
@@ -92,9 +101,11 @@ class AttendanceSyncService
             $message = "Sincronización completada: {$this->stats['inserted']} insertados, {$this->stats['updated']} actualizados, {$this->stats['skipped']} omitidos, {$this->stats['errors']} errores";
             $this->endSyncLog($status, $message);
 
-            // Actualizar configuración
-            $configModel = new AttendanceApiConfig();
-            $configModel->updateLastSync($this->config['id'], $status);
+            // Actualizar configuración si existe
+            if (!empty($this->config['id'])) {
+                $configModel = new AttendanceApiConfig();
+                $configModel->updateLastSync($this->config['id'], $status);
+            }
 
             return $this->stats;
 
@@ -233,8 +244,11 @@ class AttendanceSyncService
             $message = "Sincronización incremental completada: {$this->stats['inserted']} nuevos registros";
             $this->endSyncLog($status, $message);
 
-            $configModel = new AttendanceApiConfig();
-            $configModel->updateLastSync($this->config['id'], $status);
+            // Actualizar configuración si existe
+            if (!empty($this->config['id'])) {
+                $configModel = new AttendanceApiConfig();
+                $configModel->updateLastSync($this->config['id'], $status);
+            }
 
             return $this->stats;
 
@@ -315,35 +329,44 @@ class AttendanceSyncService
     }
 
     /**
-     * Buscar registro existente
+     * Buscar registro existente en attendance_detail
      * @param array $data Datos desde API
      * @return array|null Registro existente o null
      */
     private function findExistingRecord($data)
     {
-        // Buscar por external_id (más confiable que email/nombre)
-        if (isset($data['id'])) {
-            $sql = "SELECT ar.* FROM attendance_raw_data ar
-                    WHERE ar.external_id = ?
-                      AND ar.api_provider = ?
-                      AND ar.processed = 1
-                    LIMIT 1";
-
-            return $this->db->find($sql, [$data['id'], $this->config['api_provider']]);
-        }
-
-        // Fallback: buscar por employee_email + date (sin JOIN complejo)
+        // Buscar por employee_id + fecha en attendance_detail
         $date = date('Y-m-d', strtotime($data['timestamp']));
 
-        $sql = "SELECT ar.* FROM attendance_raw_data ar
-                WHERE ar.api_provider = ?
-                  AND ar.entity_type = 'Attendance'
-                  AND DATE(JSON_EXTRACT(ar.raw_json, '$.timestamp')) = ?
-                  AND JSON_EXTRACT(ar.raw_json, '$.employee_email') = ?
-                  AND ar.processed = 1
+        // Primero buscar el empleado
+        $employee = $this->db->find("SELECT id FROM employees WHERE email = ?", [$data['employee_email']]);
+
+        if (!$employee && isset($data['employee_name'])) {
+            $nameParts = explode(' ', trim($data['employee_name']));
+            if (count($nameParts) >= 2) {
+                $firstName = strtoupper($nameParts[0]);
+                $lastName = strtoupper($nameParts[count($nameParts) - 1]);
+
+                $sql = "SELECT id FROM employees
+                        WHERE UPPER(firstname) LIKE ?
+                          AND UPPER(lastname) LIKE ?
+                        LIMIT 1";
+                $employee = $this->db->find($sql, ["%{$firstName}%", "%{$lastName}%"]);
+            }
+        }
+
+        if (!$employee) {
+            return null;
+        }
+
+        // Buscar en attendance_detail por empleado + fecha
+        $sql = "SELECT d.*, h.id as header_id
+                FROM attendance_detail d
+                INNER JOIN attendance_header h ON d.header_id = h.id
+                WHERE h.attendance_date = ? AND d.employee_id = ?
                 LIMIT 1";
 
-        return $this->db->find($sql, [$this->config['api_provider'], $date, $data['employee_email']]);
+        return $this->db->find($sql, [$date, $employee['id']]);
     }
 
     /**
@@ -369,25 +392,23 @@ class AttendanceSyncService
     }
 
     /**
-     * Insertar nuevo registro en attendance (tabla original)
+     * Insertar nuevo registro en attendance_header + attendance_detail
      * @param array $data Datos desde API
      * @param int $rawDataId ID en attendance_raw_data
      */
     private function insertRecord($data, $rawDataId)
     {
         // Buscar employee_id por email o nombre completo
-        $employee = $this->db->find("SELECT id FROM employees WHERE email = ?", [$data['employee_email']]);
+        $employee = $this->db->find("SELECT id, schedule_id FROM employees WHERE email = ?", [$data['employee_email']]);
 
         // Si no se encuentra por email, intentar por nombre completo
         if (!$employee && isset($data['employee_name'])) {
             $nameParts = explode(' ', trim($data['employee_name']));
             if (count($nameParts) >= 2) {
-                // Extraer primer nombre y primer apellido de la API
                 $firstName = strtoupper($nameParts[0]);
                 $lastName = strtoupper($nameParts[count($nameParts) - 1]);
 
-                // Buscar por primer nombre Y primer apellido
-                $sql = "SELECT id FROM employees
+                $sql = "SELECT id, schedule_id FROM employees
                         WHERE UPPER(firstname) LIKE ?
                           AND UPPER(lastname) LIKE ?
                         LIMIT 1";
@@ -396,36 +417,117 @@ class AttendanceSyncService
         }
 
         if (!$employee) {
-            throw new Exception("Empleado no encontrado: {$data['employee_email']} / {$data['employee_name']}");
+            throw new Exception("Empleado no encontrado: {$data['employee_email']} / " . ($data['employee_name'] ?? 'N/A'));
         }
 
         $date = date('Y-m-d', strtotime($data['timestamp']));
-        $timeIn = date('H:i:s', strtotime($data['timestamp']));
-
-        // Determinar si es entrada o salida según el tipo
+        $time = date('H:i:s', strtotime($data['timestamp']));
         $type = strtoupper($data['type'] ?? 'CHECK_IN');
-        $status = ($data['is_late'] ?? false) ? 0 : 1;
 
-        $sql = "INSERT INTO attendance
-                (employee_id, date, time_in, time_out, num_hr, status)
-                VALUES (?, ?, ?, NULL, 0, ?)";
+        // 1. Obtener o crear header para esta fecha
+        $headerModel = new \App\Models\AttendanceHeader();
+        $header = $headerModel->getByDate($date);
 
-        $this->db->query($sql, [$employee['id'], $date, $timeIn, $status]);
+        if (!$header) {
+            // Crear nuevo header
+            $headerId = $headerModel->create([
+                'attendance_date' => $date,
+                'device_id' => null,
+                'synced_from' => 'API_SYNC',
+                'total_records' => 0,
+                'total_employees' => 0,
+                'is_processed' => 0
+            ]);
+
+            if (!$headerId) {
+                throw new Exception("No se pudo crear cabecera para fecha: {$date}");
+            }
+        } else {
+            $headerId = $header['id'];
+        }
+
+        // 2. Buscar si ya existe un detail para este empleado en este día
+        $detailModel = new \App\Models\AttendanceDetail();
+        $existingDetail = $detailModel->getByDateAndEmployee($date, $employee['id']);
+
+        if ($existingDetail) {
+            // Actualizar: si es CHECK_OUT, actualizar time_out
+            if ($type === 'CHECK_OUT') {
+                $detailModel->update($existingDetail['id'], [
+                    'time_out' => $time,
+                    'notes' => 'Actualizado desde API - Hora salida'
+                ]);
+                error_log("Updated time_out for employee {$employee['id']} on {$date}");
+            }
+        } else {
+            // Crear nuevo detail
+            $detailData = [
+                'header_id' => $headerId,
+                'employee_id' => $employee['id'],
+                'schedule_id' => $employee['schedule_id'] ?? null,
+                'time_in' => ($type === 'CHECK_IN') ? $time : null,
+                'time_out' => ($type === 'CHECK_OUT') ? $time : null,
+                'device_id' => null,
+                'external_id' => $data['id'] ?? null,
+                'status' => 'PRESENT',
+                'is_late' => ($data['is_late'] ?? false) ? 1 : 0,
+                'tardiness_minutes' => 0,
+                'hours_worked' => 0,
+                'notes' => 'Sincronizado desde API ' . $this->config['api_provider']
+            ];
+
+            $detailId = $detailModel->create($detailData);
+
+            if ($detailId) {
+                error_log("Created detail ID {$detailId} for employee {$employee['id']} on {$date}");
+            }
+        }
+
+        // 3. Actualizar estadísticas del header
+        $this->updateHeaderStats($headerId);
     }
 
     /**
-     * Actualizar registro existente
-     * @param int $recordId ID del registro
+     * Actualizar registro existente en attendance_detail
+     * @param int $recordId ID del registro en attendance_detail
      * @param array $data Datos nuevos
      */
     private function updateRecord($recordId, $data)
     {
-        $sql = "UPDATE attendance_raw_data
-                SET raw_json = ?,
-                    processed_at = NOW()
-                WHERE id = ?";
+        $type = strtoupper($data['type'] ?? 'CHECK_IN');
+        $time = date('H:i:s', strtotime($data['timestamp']));
 
-        $this->db->query($sql, [json_encode($data), $recordId]);
+        $detailModel = new \App\Models\AttendanceDetail();
+
+        $updateData = [
+            'notes' => 'Actualizado desde API - ' . date('Y-m-d H:i:s')
+        ];
+
+        // Si es CHECK_OUT, actualizar time_out
+        if ($type === 'CHECK_OUT') {
+            $updateData['time_out'] = $time;
+        } else {
+            $updateData['time_in'] = $time;
+        }
+
+        $detailModel->update($recordId, $updateData);
+        error_log("Updated detail ID {$recordId} with new data from API");
+    }
+
+    /**
+     * Actualizar estadísticas de un header
+     * @param int $headerId ID del header
+     */
+    private function updateHeaderStats($headerId)
+    {
+        $sql = "SELECT COUNT(*) as total FROM attendance_detail WHERE header_id = ?";
+        $result = $this->db->find($sql, [$headerId]);
+
+        $headerModel = new \App\Models\AttendanceHeader();
+        $headerModel->update($headerId, [
+            'total_records' => $result['total'],
+            'total_employees' => $result['total']
+        ]);
     }
 
     /**
@@ -458,7 +560,7 @@ class AttendanceSyncService
         $this->db->query($sql, [
             $syncType,
             $triggeredBy,
-            $this->config['api_provider'],
+            $this->config['api_provider'] ?? 'Base44',
             json_encode($filters)
         ]);
 

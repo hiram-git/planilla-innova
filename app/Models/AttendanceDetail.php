@@ -352,4 +352,25 @@ class AttendanceDetail
         $stmt->execute([$headerId, $employeeId]);
         return $stmt->fetchColumn() > 0;
     }
+
+    /**
+     * Obtiene un registro de detalle por ID
+     * Incluye información de la cabecera (fecha) y empleado
+     */
+    public function getById($id)
+    {
+        $sql = "SELECT d.*, h.attendance_date as date,
+                       e.firstname, e.lastname, e.employee_id as employee_code,
+                       s.time_in as schedule_time_in, s.time_out as schedule_time_out
+                FROM {$this->table} d
+                INNER JOIN attendance_header h ON d.header_id = h.id
+                INNER JOIN employees e ON d.employee_id = e.id
+                LEFT JOIN schedules s ON d.schedule_id = s.id
+                WHERE d.id = ?
+                LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }

@@ -113,7 +113,7 @@ class AttendanceCalculator
 
         // Construir resultado completo
         return [
-            'attendance_id' => $attendance['id'],
+            'attendance_detail_id' => $attendance['id'],
             'employee_id' => $employeeId,
             'date' => $date,
             'schedule_id' => $schedule['schedule_id'] ?? null,
@@ -312,7 +312,7 @@ class AttendanceCalculator
     private function getEmptyCalculation()
     {
         return [
-            'attendance_id' => null,
+            'attendance_detail_id' => null,
             'employee_id' => null,
             'date' => null,
             'schedule_id' => null,
@@ -368,7 +368,7 @@ class AttendanceCalculator
         }
 
         return [
-            'attendance_id' => $attendance['id'],
+            'attendance_detail_id' => $attendance['id'],
             'employee_id' => $attendance['employee_id'],
             'date' => $attendance['date'],
             'schedule_id' => $schedule['schedule_id'] ?? null,
@@ -429,7 +429,7 @@ class AttendanceCalculator
     {
         try {
             // Verificar si ya existe un cálculo para esta marcación
-            $existing = $this->getExistingCalculation($calculation['attendance_id']);
+            $existing = $this->getExistingCalculation($calculation['attendance_detail_id']);
 
             if ($existing) {
                 // Actualizar (recalcular)
@@ -474,7 +474,7 @@ class AttendanceCalculator
     private function insertCalculation(array $calculation): int
     {
         $sql = "INSERT INTO attendance_calculations (
-            attendance_id, employee_id, schedule_id, date,
+            attendance_detail_id, employee_id, schedule_id, date,
             time_in, time_out, scheduled_time_in, scheduled_time_out,
             total_hours, regular_hours, overtime_hours,
             overtime_25_hours, overtime_50_hours, night_hours, holiday_hours,
@@ -498,7 +498,7 @@ class AttendanceCalculator
         )";
 
         $params = [
-            $calculation['attendance_id'],
+            $calculation['attendance_detail_id'],
             $calculation['employee_id'],
             $calculation['schedule_id'],
             $calculation['date'],
@@ -599,16 +599,16 @@ class AttendanceCalculator
     }
 
     /**
-     * Obtiene un cálculo existente por attendance_id
+     * Obtiene un cálculo existente por attendance_detail_id
      *
-     * @param int $attendanceId
+     * @param int $attendanceDetailId
      * @return array|null
      */
-    private function getExistingCalculation(int $attendanceId): ?array
+    private function getExistingCalculation(int $attendanceDetailId): ?array
     {
-        $sql = "SELECT * FROM attendance_calculations WHERE attendance_id = ? LIMIT 1";
+        $sql = "SELECT * FROM attendance_calculations WHERE attendance_detail_id = ? LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$attendanceId]);
+        $stmt->execute([$attendanceDetailId]);
 
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $result ?: null;
@@ -640,7 +640,7 @@ class AttendanceCalculator
 
             } catch (Exception $e) {
                 $errors[] = [
-                    'attendance_id' => $attendance['id'] ?? 'unknown',
+                    'attendance_detail_id' => $attendance['id'] ?? 'unknown',
                     'error' => $e->getMessage(),
                 ];
                 error_log("Error procesando asistencia ID {$attendance['id']}: " . $e->getMessage());
@@ -665,26 +665,26 @@ class AttendanceCalculator
     /**
      * Obtiene el cálculo guardado de una marcación
      *
-     * @param int $attendanceId
+     * @param int $attendanceDetailId
      * @return array|null
      */
-    public function getCalculation(int $attendanceId): ?array
+    public function getCalculation(int $attendanceDetailId): ?array
     {
-        return $this->getExistingCalculation($attendanceId);
+        return $this->getExistingCalculation($attendanceDetailId);
     }
 
     /**
      * Elimina un cálculo de la BD
      *
-     * @param int $attendanceId
+     * @param int $attendanceDetailId
      * @return bool
      */
-    public function deleteCalculation(int $attendanceId): bool
+    public function deleteCalculation(int $attendanceDetailId): bool
     {
         try {
-            $sql = "DELETE FROM attendance_calculations WHERE attendance_id = ?";
+            $sql = "DELETE FROM attendance_calculations WHERE attendance_detail_id = ?";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$attendanceId]);
+            $stmt->execute([$attendanceDetailId]);
 
             return $stmt->rowCount() > 0;
 
@@ -831,7 +831,7 @@ class AttendanceCalculator
 
             } catch (Exception $e) {
                 $errors[] = [
-                    'attendance_id' => $attendance['id'] ?? 'unknown',
+                    'attendance_detail_id' => $attendance['id'] ?? 'unknown',
                     'error' => $e->getMessage(),
                 ];
                 error_log("Error procesando asistencia ID {$attendance['id']}: " . $e->getMessage());

@@ -8,6 +8,43 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.4.8]** - 2025-10-23 - *Procesamiento Completo Día Asistencias*
+**Tipo**: Mejora - Procesamiento Batch + Reprocess + Filtros
+**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (80%)
+
+**Componentes Principales**:
+- ✅ **Procesamiento Completo Día** (220+ líneas):
+  - Pipeline 3 pasos: ausencias → omisiones → cálculos completos
+  - Botón "Procesar Marcaciones" con feedback SweetAlert2
+  - Detección automática empleados sin marcación → registro ABSENT
+  - Detección single punch (solo entrada o salida) → estado INCOMPLETE/OMISIÓN
+  - Cálculo completo métricas (horas trabajadas, extras, tardanzas)
+- ✅ **Reprocesamiento con Recarga** (90 líneas):
+  - Método AttendanceDetail->deleteByHeader() para limpiar detalles
+  - Recarga desde tabla attendance (marcaciones originales)
+  - Recreación completa + pipeline detección + cálculos
+- ✅ **Filtrado Tipo Planilla SessionStorage** (50 líneas):
+  - Lectura desde sessionStorage (navbar selection)
+  - Validación frontend + backend con FIND_IN_SET()
+  - Sin duplicación de selectores (reutiliza infraestructura existente)
+- ✅ **Columna Horas Extras** (40 líneas):
+  - Badge azul con total horas extras
+  - Desglose +25% y +50% en tooltip
+  - Formato decimal 2 decimales
+- ✅ **Fixes jQuery Loading** (30 líneas):
+  - Output buffering (ob_start/ob_get_clean) en sync-history y list views
+  - Scripts renderizados al final de página
+  - Variable baseUrl para URLs relativas
+- ✅ **Fixes Errores Críticos**:
+  - Undefined array key "date" en AbsenceDetector
+  - Undefined array key "attendance_date" en AttendanceHeader
+  - Refactor AttendanceHeader->update() para campos dinámicos
+- 📈 **Estadísticas**: 7 archivos modificados | ~500 líneas código | 2 métodos nuevos | 1 ruta nueva | 4 bugs fixed
+
+**[📄 Ver detalles completos →](./changelog/v3.4.8.md)**
+
+---
+
 ### **[v3.4.7]** - 2025-10-20 - *Integración Completa Planillas-Asistencias*
 **Tipo**: Feature - Subfase 7.4 Integración Planillas-Asistencias
 **Fase**: Subfase 7.4 - Mapeo Automático Asistencias → Conceptos (100%)

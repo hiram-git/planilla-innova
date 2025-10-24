@@ -326,23 +326,60 @@ class AttendanceController extends Controller
 
     /**
      * Ejecutar sincronización manual (AJAX)
+     * Sincroniza desde API y crea automáticamente las cabeceras y detalles
      */
     public function syncNow()
     {
         try {
-            // TODO: Implementar lógica de sincronización con API
-            // Por ahora retornar mensaje de desarrollo
+            $syncType = $_POST['sync_type'] ?? 'full';
+            $startDate = $_POST['start_date'] ?? null;
+            $endDate = $_POST['end_date'] ?? null;
+
+            // Importar clase de servicio
+            require_once __DIR__ . '/../Services/Attendance/AttendanceSyncService.php';
+            $syncService = new \App\Services\Attendance\AttendanceSyncService();
+
+            // Ejecutar sincronización según tipo
+            // El servicio ahora crea automáticamente headers y details
+            switch ($syncType) {
+                case 'full':
+                    $stats = $syncService->syncAll();
+                    break;
+
+                case 'today':
+                    $today = date('Y-m-d');
+                    $stats = $syncService->syncByDateRange($today, $today);
+                    break;
+
+                case 'daterange':
+                    if (!$startDate || !$endDate) {
+                        return $this->jsonResponse([
+                            'success' => false,
+                            'message' => 'Debe especificar fechas de inicio y fin.'
+                        ]);
+                    }
+                    $stats = $syncService->syncByDateRange($startDate, $endDate);
+                    break;
+
+                default:
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Tipo de sincronización no válido.'
+                    ]);
+            }
 
             return $this->jsonResponse([
-                'success' => false,
-                'message' => 'Sincronización manual - En desarrollo. Próximamente se integrará con AttendanceSyncService.'
+                'success' => true,
+                'message' => "Sincronización completada. Insertados: {$stats['inserted']}, Actualizados: {$stats['updated']}, Omitidos: {$stats['skipped']}, Errores: {$stats['errors']}",
+                'data' => $stats
             ]);
 
         } catch (Exception $e) {
             error_log("Error in syncNow: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             return $this->jsonResponse([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error en sincronización: ' . $e->getMessage()
             ]);
         }
     }
@@ -572,22 +609,6 @@ class AttendanceController extends Controller
             $this->setFlashMessage('Error al generar PDF: ' . $e->getMessage(), 'error');
             return $this->redirect('/panel/attendance/detail/' . $date);
         }
-    }
-
-    /**
-     * Helper method para obtener detalle de marcación por ID (usado internamente)
-     */
-    private function getById($id)
-    {
-        $sql = "SELECT d.*, h.attendance_date, e.firstname, e.lastname
-                FROM attendance_detail d
-                INNER JOIN attendance_header h ON d.header_id = h.id
-                INNER JOIN employees e ON d.employee_id = e.id
-                WHERE d.id = ?";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$id]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
     // ========================================
