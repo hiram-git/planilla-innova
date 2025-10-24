@@ -108,24 +108,22 @@ class Payroll extends Model
             if ($usarSalarioPlanilla && !$validateSituacion) {
                 error_log("MODO ESPECIAL: Usando empleados y salario de planilla procesada sin validar situación");
 
-                // 1. PRIMERO: Crear tabla temporal ANTES de eliminar
-                // NOTA: CREATE TABLE hace commit implícito, así que lo hacemos FUERA de la transacción
-                $this->db->commit(); // Cerrar transacción actual
+                // 1. PRIMERO: Limpiar tabla temporal de ejecuciones anteriores
+                try {
+                    $this->db->query("TRUNCATE TABLE temp_planilla_detalle");
+                    error_log("Tabla temporal limpiada antes de usar");
+                } catch (\Exception $e) {
+                    error_log("Error limpiando tabla temporal (intentando continuar): " . $e->getMessage());
+                }
 
-                /*$sqlBackupTemp = "CREATE TABLE IF NOT EXISTS temp_planilla_detalle
-                             LIKE planilla_detalle;";
-                $stmtBackupTemp = $this->db->prepare($sqlBackupTemp);
-                $stmtBackupTemp->execute();*/
-
-                $sqlBackup = "INSERT INTO temp_planilla_detalle 
+                // 2. SEGUNDO: Insertar datos de la planilla actual
+                $sqlBackup = "INSERT INTO temp_planilla_detalle
                              SELECT * FROM planilla_detalle WHERE planilla_cabecera_id = ?";
                 $stmtBackup = $this->db->prepare($sqlBackup);
                 $stmtBackup->execute([$payrollId]);
 
-                error_log("Tabla temporal creada con registros de planilla $payrollId");
-
-                // Reiniciar transacción después del CREATE TABLE
-                $this->db->beginTransaction();
+                $insertedRows = $stmtBackup->rowCount();
+                error_log("Insertados $insertedRows registros en tabla temporal desde planilla $payrollId");
 
                 // Verificar cuántos registros hay en la temporal
                 $sqlCount = "SELECT COUNT(*) as total,
