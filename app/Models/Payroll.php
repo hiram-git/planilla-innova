@@ -946,8 +946,8 @@ class Payroll extends Model
             $deletedCount = $deleteStmt->rowCount();
 
             // 2. Cambiar estado temporalmente a PENDIENTE (sin transacción)
-            //$updateStmt = $this->db->prepare("UPDATE planilla_cabecera SET estado = 'PENDIENTE' WHERE id = ?");
-            //$updateStmt->execute([$payrollId]);
+            $updateStmt = $this->db->prepare("UPDATE planilla_cabecera SET estado = 'PENDIENTE' WHERE id = ?");
+            $updateStmt->execute([$payrollId]);
 
             // 3. Usar la lógica existente de procesamiento (que maneja su propia transacción)
             $processedCount = $this->processPayroll($payrollId, $userId, $tipoPlanillaId, $validateSituacion, $usarSalarioPlanilla);
