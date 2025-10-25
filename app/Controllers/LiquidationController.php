@@ -760,6 +760,7 @@ class LiquidationController extends Controller
      */
     private function getOrCreateLiquidationPayrollType()
     {
+        // Primero buscar por código LIQ
         $sql = "SELECT id FROM tipos_planilla WHERE codigo = 'LIQ'";
         $stmt = $this->db->query($sql);
         $tipo = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -768,11 +769,28 @@ class LiquidationController extends Controller
             return $tipo['id'];
         }
 
-        // Crear tipo de planilla de liquidación con código LIQ
-        $sql = "INSERT INTO tipos_planilla (codigo, descripcion, activo) VALUES ('LIQ', 'Planilla de Liquidación', 1)";
+        // Buscar por descripción (puede existir registro incompleto)
+        $sql = "SELECT id, codigo, nombre FROM tipos_planilla WHERE descripcion LIKE '%Liquidación%' OR descripcion LIKE '%Liquidacion%'";
+        $stmt = $this->db->query($sql);
+        $tipo_existente = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($tipo_existente) {
+            // Si existe pero le faltan campos, actualizarlo
+            if (empty($tipo_existente['codigo']) || empty($tipo_existente['nombre'])) {
+                $sql = "UPDATE tipos_planilla SET codigo = 'LIQ', nombre = 'Liquidación', activo = 1 WHERE id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$tipo_existente['id']]);
+                error_log("Tipo de planilla de liquidación actualizado (ID: {$tipo_existente['id']})");
+            }
+            return $tipo_existente['id'];
+        }
+
+        // Crear nuevo tipo de planilla de liquidación con todos los campos requeridos
+        $sql = "INSERT INTO tipos_planilla (codigo, nombre, descripcion, activo) VALUES ('LIQ', 'Liquidación', 'Planilla de Liquidación', 1)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
 
+        error_log("Tipo de planilla de liquidación creado (ID: " . $this->db->lastInsertId() . ")");
         return $this->db->lastInsertId();
     }
 
