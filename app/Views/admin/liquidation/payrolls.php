@@ -1,5 +1,77 @@
 <?php
 $pageTitle = "Planillas de Liquidación";
+
+// Definir scripts que se cargarán al final del layout
+ob_start();
+?>
+<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    if ($("#payrollsTable").length) {
+        $("#payrollsTable").DataTable({
+            "responsive": true,
+            "pageLength": 25,
+            "order": [[0, "desc"]], // Ordenar por ID descendente (más recientes primero)
+            "language": DATATABLES_SPANISH,
+            "columnDefs": [
+                { "orderable": false, "targets": 10 } // Columna acciones no ordenable
+            ]
+        });
+    }
+
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // Manejar botón de revertir planilla
+    $(document).on('click', '.btn-revert-payroll', function(e) {
+        e.preventDefault();
+
+        const terminationId = $(this).data('termination-id');
+        const description = $(this).data('payroll-description');
+
+        Swal.fire({
+            title: '¿Revertir Planilla de Liquidación?',
+            html: `
+                <p class="mb-3">Esta acción eliminará la planilla generada y volverá la liquidación a estado <strong>CALCULADA</strong>.</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <strong>Planilla:</strong> ${description}
+                </div>
+                <p class="mb-0">Podrá generar una nueva planilla después de hacer los ajustes necesarios.</p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f39c12',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-undo mr-2"></i> Sí, Revertir',
+            cancelButtonText: '<i class="fas fa-times mr-2"></i> Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Crear formulario para enviar con CSRF token
+                const form = $('<form>', {
+                    'method': 'POST',
+                    'action': '<?= \App\Core\UrlHelper::route('panel/liquidation/') ?>' + terminationId + '/revertPayroll'
+                });
+
+                // Agregar CSRF token
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'csrf_token',
+                    'value': '<?= $_SESSION['csrf_token'] ?? '' ?>'
+                }));
+
+                // Agregar al body y enviar
+                $('body').append(form);
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+<?php
+$scripts = ob_get_clean();
 ?>
 
 <div class="content-header">
@@ -190,6 +262,15 @@ $pageTitle = "Planillas de Liquidación";
                                                    target="_blank">
                                                     <i class="fas fa-file-pdf"></i>
                                                 </a>
+                                                <?php if ($payroll['liquidation_status'] === 'PROCESADA' && !empty($payroll['termination_id'])): ?>
+                                                    <button type="button"
+                                                            class="btn btn-warning btn-revert-payroll"
+                                                            data-termination-id="<?= $payroll['termination_id'] ?>"
+                                                            data-payroll-description="<?= htmlspecialchars($payroll['descripcion']) ?>"
+                                                            title="Revertir Planilla">
+                                                        <i class="fas fa-undo"></i>
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -213,24 +294,3 @@ $pageTitle = "Planillas de Liquidación";
         </div>
     </div>
 </section>
-
-<script src="<?php echo url('assets/javascript/datatables-spanish.js', false); ?>"></script>
-<script>
-$(document).ready(function() {
-    // Initialize DataTable
-    if ($("#payrollsTable").length) {
-        $("#payrollsTable").DataTable({
-            "responsive": true,
-            "pageLength": 25,
-            "order": [[0, "desc"]], // Ordenar por ID descendente (más recientes primero)
-            "language": DATATABLES_SPANISH,
-            "columnDefs": [
-                { "orderable": false, "targets": 10 } // Columna acciones no ordenable
-            ]
-        });
-    }
-
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-});
-</script>

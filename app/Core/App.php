@@ -411,6 +411,9 @@ class App
                                             } elseif ($url[3] === 'recalculate' && method_exists($this->controller, 'recalculate')) {
                                                 $this->method = 'recalculate';
                                                 $this->params = [$url[2]]; // termination_id
+                                            } elseif ($url[3] === 'revertPayroll' && method_exists($this->controller, 'revertPayroll')) {
+                                                $this->method = 'revertPayroll';
+                                                $this->params = [$url[2]]; // termination_id
                                             } elseif ($url[3] === 'update-notice-days' && method_exists($this->controller, 'updateNoticeDays')) {
                                                 $this->method = 'updateNoticeDays';
                                                 $this->params = [$url[2]]; // termination_id

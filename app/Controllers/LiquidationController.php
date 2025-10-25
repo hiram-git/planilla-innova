@@ -576,6 +576,75 @@ class LiquidationController extends Controller
         }
     }
 
+    /**
+     * Revertir planilla de liquidación procesada a estado CALCULADA
+     * Elimina la planilla generada y vuelve el estado a CALCULADA
+     */
+    public function revertPayroll($termination_id)
+    {
+        try {
+            $this->validateCsrfToken();
+
+            $termination = $this->getTerminationData($termination_id);
+
+            if (!$termination || $termination['status'] !== 'PROCESADA') {
+                $this->setToastrMessage('error', 'Liquidación no encontrada o no está procesada', 'Estado Inválido');
+                $this->redirect('/panel/liquidation');
+                return;
+            }
+
+            $this->db->beginTransaction();
+
+            // 1. Buscar la planilla generada para esta liquidación
+            $sql = "SELECT id FROM planilla_cabecera
+                    WHERE descripcion LIKE ?
+                    AND frecuencia_id = 9
+                    ORDER BY created_at DESC
+                    LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['%Liquidación - ' . $termination['firstname'] . ' ' . $termination['lastname'] . '%']);
+            $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($payroll) {
+                $payroll_id = $payroll['id'];
+
+                // 2. Eliminar detalles de la planilla
+                $sql = "DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$payroll_id]);
+                $deleted_details = $stmt->rowCount();
+
+                // 3. Eliminar cabecera de la planilla
+                $sql = "DELETE FROM planilla_cabecera WHERE id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$payroll_id]);
+
+                error_log("Planilla revertida: ID $payroll_id, $deleted_details detalles eliminados");
+            } else {
+                error_log("No se encontró planilla para revertir (liquidación {$termination_id})");
+            }
+
+            // 4. Cambiar estado de la liquidación a CALCULADA
+            $sql = "UPDATE employee_terminations SET status = 'CALCULADA' WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$termination_id]);
+
+            // 5. Registrar en historial
+            $this->logLiquidationAction($termination_id, 'PLANILLA_REVERTIDA', 'Planilla de liquidación revertida a estado CALCULADA');
+
+            $this->db->commit();
+
+            $this->setToastrMessage('success', 'Planilla de liquidación revertida exitosamente. La liquidación volvió a estado CALCULADA.', 'Reversión Exitosa');
+            $this->redirect('/panel/liquidation/preview/' . $termination_id);
+
+        } catch (PDOException $e) {
+            $this->db->rollback();
+            error_log("Error revirtiendo planilla de liquidación: " . $e->getMessage());
+            $this->setToastrMessage('error', 'Error al revertir planilla: ' . $e->getMessage(), 'Error de Reversión');
+            $this->redirect('/panel/liquidation');
+        }
+    }
+
     // ==========================================
     // MÉTODOS PRIVADOS AUXILIARES
     // ==========================================
@@ -800,20 +869,24 @@ class LiquidationController extends Controller
     public function payrolls()
     {
         try {
-            // Obtener planillas de liquidación (frecuencia_id = 9)
+            // Obtener planillas de liquidación (frecuencia_id = 9) con información de la liquidación
             $sql = "SELECT pc.*, tp.descripcion as tipo_planilla_nombre,
                            f.nombre as frecuencia_nombre,
-                           COUNT(pd.id) as total_empleados,
+                           COUNT(DISTINCT pd.id) as total_empleados,
                            SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) as total_asignaciones,
                            SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END) as total_deducciones,
                            (SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) -
-                            SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END)) as total_neto
+                            SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END)) as total_neto,
+                           et.id as termination_id,
+                           et.status as liquidation_status
                     FROM planilla_cabecera pc
                     LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
                     LEFT JOIN planilla_detalle pd ON pc.id = pd.planilla_cabecera_id
+                    LEFT JOIN employee_terminations et ON pd.employee_id = et.employee_id
+                        AND pc.fecha_hasta = et.termination_date
                     WHERE pc.frecuencia_id = 9
-                    GROUP BY pc.id
+                    GROUP BY pc.id, et.id, et.status
                     ORDER BY pc.created_at DESC";
 
             $stmt = $this->db->query($sql);
