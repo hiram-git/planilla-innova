@@ -760,7 +760,7 @@ class LiquidationController extends Controller
      */
     private function getOrCreateLiquidationPayrollType()
     {
-        $sql = "SELECT id FROM tipos_planilla WHERE descripcion = 'Planilla de Liquidación'";
+        $sql = "SELECT id FROM tipos_planilla WHERE codigo = 'LIQ'";
         $stmt = $this->db->query($sql);
         $tipo = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -768,8 +768,8 @@ class LiquidationController extends Controller
             return $tipo['id'];
         }
 
-        // Crear tipo de planilla de liquidación
-        $sql = "INSERT INTO tipos_planilla (descripcion, activo) VALUES ('Planilla de Liquidación', 1)";
+        // Crear tipo de planilla de liquidación con código LIQ
+        $sql = "INSERT INTO tipos_planilla (codigo, descripcion, activo) VALUES ('LIQ', 'Planilla de Liquidación', 1)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
 
