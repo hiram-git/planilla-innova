@@ -254,14 +254,35 @@ class LiquidationController extends Controller
             // Configurar calculadora con variables del empleado
             $this->calculator->setVariablesLiquidacion($termination['employee_table_id'], $termination_id);
 
-            // Obtener conceptos de liquidación usando frecuencia
-            $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
-                    FROM concepto c
-                    INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                    WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
-                    ORDER BY c.tipo_concepto, c.concepto";
+            // Obtener tipos de planilla del empleado (puede tener múltiples)
+            $employee_tipo_planilla_ids = !empty($termination['tipo_planilla_id'])
+                ? explode(',', $termination['tipo_planilla_id'])
+                : [];
 
-            $stmt = $this->db->query($sql);
+            // Obtener conceptos de liquidación validando frecuencia y tipo de planilla
+            if (!empty($employee_tipo_planilla_ids)) {
+                $placeholders = implode(',', array_fill(0, count($employee_tipo_planilla_ids), '?'));
+                $sql = "SELECT DISTINCT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
+                        FROM concepto c
+                        INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
+                        INNER JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id
+                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        AND ctp.tipo_planilla_id IN ($placeholders)
+                        ORDER BY c.tipo_concepto, c.concepto";
+
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($employee_tipo_planilla_ids);
+            } else {
+                // Si el empleado no tiene tipo de planilla, obtener todos los conceptos de liquidación
+                $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
+                        FROM concepto c
+                        INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
+                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        ORDER BY c.tipo_concepto, c.concepto";
+
+                $stmt = $this->db->query($sql);
+            }
+
             $concepts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $calculations = [];
@@ -419,14 +440,35 @@ class LiquidationController extends Controller
             // Configurar calculadora con variables del empleado
             $this->calculator->setVariablesLiquidacion($termination['employee_table_id'], $termination_id);
 
-            // Obtener conceptos de liquidación usando frecuencia
-            $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
-                    FROM concepto c
-                    INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                    WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
-                    ORDER BY c.tipo_concepto, c.concepto";
+            // Obtener tipos de planilla del empleado (puede tener múltiples)
+            $employee_tipo_planilla_ids = !empty($termination['tipo_planilla_id'])
+                ? explode(',', $termination['tipo_planilla_id'])
+                : [];
 
-            $stmt = $this->db->query($sql);
+            // Obtener conceptos de liquidación validando frecuencia y tipo de planilla
+            if (!empty($employee_tipo_planilla_ids)) {
+                $placeholders = implode(',', array_fill(0, count($employee_tipo_planilla_ids), '?'));
+                $sql = "SELECT DISTINCT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
+                        FROM concepto c
+                        INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
+                        INNER JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id
+                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        AND ctp.tipo_planilla_id IN ($placeholders)
+                        ORDER BY c.tipo_concepto, c.concepto";
+
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($employee_tipo_planilla_ids);
+            } else {
+                // Si el empleado no tiene tipo de planilla, obtener todos los conceptos de liquidación
+                $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
+                        FROM concepto c
+                        INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
+                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        ORDER BY c.tipo_concepto, c.concepto";
+
+                $stmt = $this->db->query($sql);
+            }
+
             $concepts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $calculations = [];
@@ -655,7 +697,7 @@ class LiquidationController extends Controller
     private function getTerminationData($termination_id)
     {
         $sql = "SELECT et.*, e.id as employee_table_id, e.firstname, e.lastname, e.employee_id, e.document_id,
-                       e.fecha_ingreso, e.sueldo_individual, c.nombre as position_name
+                       e.fecha_ingreso, e.sueldo_individual, e.tipo_planilla_id, c.nombre as position_name
                 FROM employee_terminations et
                 INNER JOIN employees e ON et.employee_id = e.id
                 LEFT JOIN posiciones p ON e.position_id = p.id
