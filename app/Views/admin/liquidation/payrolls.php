@@ -256,7 +256,7 @@ $scripts = ob_get_clean();
                                                    title="Ver Detalle">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="<?= \App\Core\UrlHelper::route('panel/reports/payroll/' . $payroll['id']) ?>"
+                                                <a href="<?= \App\Core\UrlHelper::route('panel/reports/planilla-pdf/' . $payroll['id']) ?>"
                                                    class="btn btn-success"
                                                    title="Generar PDF"
                                                    target="_blank">

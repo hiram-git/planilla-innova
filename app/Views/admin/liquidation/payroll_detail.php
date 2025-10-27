@@ -39,7 +39,7 @@ if (!empty($details)) {
                             <i class="fas fa-arrow-left mr-2"></i>
                             Volver a Planillas
                         </a>
-                        <a href="<?= \App\Core\UrlHelper::route('panel/reports/payroll/' . $payroll['id']) ?>"
+                        <a href="<?= \App\Core\UrlHelper::route('panel/reports/planilla-pdf/' . $payroll['id']) ?>"
                            class="btn btn-success btn-sm float-right"
                            target="_blank">
                             <i class="fas fa-file-pdf mr-2"></i>
