@@ -217,6 +217,12 @@ class App
                                         call_user_func_array([$this->controller, $this->method], $this->params);
                                         return;
                                     }
+                                } elseif ($url[2] === 'alerts' && method_exists($this->controller, 'alertsDashboard')) {
+                                    // GET: /panel/attendance/alerts - Dashboard de alertas
+                                    $this->method = 'alertsDashboard';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
                                 } elseif ($url[2] === 'sync' && method_exists($this->controller, 'sync')) {
                                     // Ruta: /panel/attendance/sync
                                     $this->method = 'sync';
@@ -306,6 +312,24 @@ class App
                                     $this->params = [$url[3]]; // absence_id
                                     call_user_func_array([$this->controller, $this->method], $this->params);
                                     return;
+                                } elseif ($url[2] === 'alert' && isset($url[3]) && isset($url[4])) {
+                                    // POST: /panel/attendance/alert/{id}/{action}
+                                    if ($url[4] === 'acknowledge' && method_exists($this->controller, 'acknowledgeAlert')) {
+                                        $this->method = 'acknowledgeAlert';
+                                        $this->params = [$url[3]]; // alert_id
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    } elseif ($url[4] === 'resolve' && method_exists($this->controller, 'resolveAlert')) {
+                                        $this->method = 'resolveAlert';
+                                        $this->params = [$url[3]]; // alert_id
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    } elseif ($url[4] === 'dismiss' && method_exists($this->controller, 'dismissAlert')) {
+                                        $this->method = 'dismissAlert';
+                                        $this->params = [$url[3]]; // alert_id
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    }
                                 }
                             } elseif ($httpMethod === 'GET') {
                                 // Rutas GET adicionales para calculadores

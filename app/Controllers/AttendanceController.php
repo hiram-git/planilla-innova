@@ -1004,15 +1004,8 @@ class AttendanceController extends Controller
                 $header = $this->headerModel->getById($headerId);
             }
 
-            // 1.5. LIMPIAR detalles existentes para reprocesar desde cero
-            error_log("AttendanceController@processDay - Eliminando detalles existentes para header_id: " . $header['id']);
-            $deletedCount = $this->detailModel->deleteByHeader($header['id']);
-            error_log("AttendanceController@processDay - Detalles eliminados: " . ($deletedCount ? 'Sí' : 'No'));
-
             // 2. Obtener empleados activos filtrados por tipo de planilla
-            // Usar FIND_IN_SET para soportar empleados con múltiples tipos de planilla
             $activeEmployees = $this->employeeModel->getEmployeesByTipoPlanilla($tipoPlanillaId);
-
             $stats['total_employees'] = count($activeEmployees);
 
             if (empty($activeEmployees)) {
@@ -1022,42 +1015,29 @@ class AttendanceController extends Controller
                 ]);
             }
 
-            // 3. RECARGAR marcaciones desde tabla original attendance para este día
-            $sql = "SELECT a.*, e.schedule_id
-                    FROM attendance a
-                    INNER JOIN employees e ON a.employee_id = e.id
-                    WHERE DATE(a.date) = ?
-                    AND FIND_IN_SET(?, e.tipo_planilla_id)
-                    ORDER BY a.employee_id, a.date";
-
-            $stmt = $this->employeeModel->db->prepare($sql);
-            $stmt->execute([$date, $tipoPlanillaId]);
-            $rawAttendances = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            error_log("AttendanceController@processDay - Marcaciones encontradas en tabla attendance: " . count($rawAttendances));
-
-            // 4. RECREAR detalles desde las marcaciones originales
+            // 3. Obtener detalles existentes (NO eliminar)
+            $existingDetails = $this->detailModel->getByHeader($header['id']);
             $employeesWithAttendance = [];
-            foreach ($rawAttendances as $attendance) {
-                try {
-                    $detailData = [
-                        'header_id' => $header['id'],
-                        'employee_id' => $attendance['employee_id'],
-                        'schedule_id' => $attendance['schedule_id'],
-                        'date' => $date,
-                        'time_in' => $attendance['time_in'],
-                        'time_out' => $attendance['time_out'],
-                        'device_id' => null,
-                        'status' => 'PRESENT',
-                        'notes' => 'Reprocesado desde tabla attendance'
-                    ];
 
-                    $detailId = $this->detailModel->create($detailData);
-                    if ($detailId) {
-                        $employeesWithAttendance[$attendance['employee_id']] = true;
+            foreach ($existingDetails as $detail) {
+                $employeesWithAttendance[$detail['employee_id']] = true;
+
+                // Actualizar horarios programados si están NULL
+                if (empty($detail['scheduled_time_in']) || empty($detail['scheduled_time_out'])) {
+                    if (!empty($detail['schedule_id'])) {
+                        $sql = "SELECT time_in, time_out FROM schedules WHERE id = ?";
+                        $stmt = $this->employeeModel->db->prepare($sql);
+                        $stmt->execute([$detail['schedule_id']]);
+                        $schedule = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                        if ($schedule) {
+                            $this->detailModel->update($detail['id'], [
+                                'scheduled_time_in' => $schedule['time_in'],
+                                'scheduled_time_out' => $schedule['time_out']
+                            ]);
+                            error_log("Updated scheduled times for detail ID {$detail['id']}");
+                        }
                     }
-                } catch (Exception $e) {
-                    error_log("Error recreando detalle from attendance: " . $e->getMessage());
                 }
             }
 
@@ -1461,6 +1441,225 @@ class AttendanceController extends Controller
             return $this->jsonResponse([
                 'success' => false,
                 'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // ========================================
+    // MÉTODOS DE ALERTAS LEGALES
+    // ========================================
+
+    /**
+     * Vista dashboard de alertas
+     * Dashboard visual con estadísticas y gestión de alertas
+     */
+    public function alertsDashboard()
+    {
+        try {
+            // Importar AlertsSystem
+            require_once __DIR__ . '/../Services/Attendance/AlertsSystem.php';
+            $alertsSystem = new \App\Services\Attendance\AlertsSystem();
+
+            // Obtener resumen global
+            $summary = $alertsSystem->getGlobalAlertsSummary();
+
+            // Obtener alertas críticas
+            $criticalAlerts = $alertsSystem->getCriticalAlerts(10);
+
+            // Obtener todas las alertas activas con filtros
+            $severity = $_GET['severity'] ?? null;
+            $alertType = $_GET['alert_type'] ?? null;
+            $employeeId = $_GET['employee_id'] ?? null;
+
+            // Query base para alertas activas
+            $sql = "SELECT aa.*,
+                           CONCAT(e.firstname, ' ', e.lastname) as employee_name,
+                           e.employee_id as employee_code,
+                           d.name as department_name
+                    FROM attendance_alerts aa
+                    INNER JOIN employees e ON aa.employee_id = e.id
+                    LEFT JOIN departments d ON e.department_id = d.id
+                    WHERE aa.status IN ('PENDING', 'ACKNOWLEDGED')
+                    AND aa.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+
+            $params = [];
+
+            if ($severity) {
+                $sql .= " AND aa.severity = ?";
+                $params[] = $severity;
+            }
+
+            if ($alertType) {
+                $sql .= " AND aa.alert_type = ?";
+                $params[] = $alertType;
+            }
+
+            if ($employeeId) {
+                $sql .= " AND aa.employee_id = ?";
+                $params[] = $employeeId;
+            }
+
+            $sql .= " ORDER BY
+                      FIELD(aa.severity, 'CRITICAL', 'WARNING', 'INFO'),
+                      FIELD(aa.status, 'PENDING', 'ACKNOWLEDGED'),
+                      aa.date DESC
+                      LIMIT 100";
+
+            $stmt = $this->employeeModel->db->prepare($sql);
+            $stmt->execute($params);
+            $alerts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Decodificar metadata JSON
+            foreach ($alerts as &$alert) {
+                if (!empty($alert['metadata'])) {
+                    $alert['metadata'] = json_decode($alert['metadata'], true);
+                }
+            }
+
+            // Obtener estadísticas por tipo de alerta
+            $sqlTypes = "SELECT alert_type,
+                                COUNT(*) as count,
+                                SUM(CASE WHEN severity = 'CRITICAL' THEN 1 ELSE 0 END) as critical_count
+                         FROM attendance_alerts
+                         WHERE status IN ('PENDING', 'ACKNOWLEDGED')
+                         AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                         GROUP BY alert_type
+                         ORDER BY count DESC
+                         LIMIT 10";
+            $stmtTypes = $this->employeeModel->db->prepare($sqlTypes);
+            $stmtTypes->execute();
+            $alertsByType = $stmtTypes->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Obtener empleados para filtro
+            $employees = $this->employeeModel->all();
+            $activeEmployees = array_filter($employees, function($emp) {
+                return $emp['situacion_id'] == 1;
+            });
+
+            $data = [
+                'title' => 'Dashboard de Alertas',
+                'page_title' => 'Dashboard de Alertas Legales',
+                'summary' => $summary,
+                'critical_alerts' => $criticalAlerts,
+                'alerts' => $alerts,
+                'alerts_by_type' => $alertsByType,
+                'employees' => $activeEmployees,
+                'filters' => [
+                    'severity' => $severity,
+                    'alert_type' => $alertType,
+                    'employee_id' => $employeeId
+                ],
+                'csrf_token' => Security::generateToken()
+            ];
+
+            $this->render('admin/attendance/alerts/dashboard', $data);
+
+        } catch (Exception $e) {
+            error_log("Error in alertsDashboard: " . $e->getMessage());
+            $this->setFlashMessage('Error al cargar dashboard de alertas: ' . $e->getMessage(), 'error');
+            $this->redirect('/panel/attendance');
+        }
+    }
+
+    /**
+     * Reconocer una alerta (AJAX)
+     */
+    public function acknowledgeAlert($alertId)
+    {
+        try {
+            require_once __DIR__ . '/../Services/Attendance/AlertsSystem.php';
+            $alertsSystem = new \App\Services\Attendance\AlertsSystem();
+
+            $notes = $_POST['notes'] ?? null;
+            $userId = $_SESSION['user_id'] ?? 1;
+
+            $result = $alertsSystem->acknowledgeAlert($alertId, $userId, $notes);
+
+            if ($result) {
+                return $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Alerta reconocida exitosamente.'
+                ]);
+            } else {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'No se pudo reconocer la alerta.'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error acknowledging alert: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Resolver una alerta (AJAX)
+     */
+    public function resolveAlert($alertId)
+    {
+        try {
+            require_once __DIR__ . '/../Services/Attendance/AlertsSystem.php';
+            $alertsSystem = new \App\Services\Attendance\AlertsSystem();
+
+            $notes = $_POST['notes'] ?? null;
+
+            $result = $alertsSystem->resolveAlert($alertId, $notes);
+
+            if ($result) {
+                return $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Alerta resuelta exitosamente.'
+                ]);
+            } else {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'No se pudo resolver la alerta.'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error resolving alert: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Descartar una alerta (AJAX)
+     */
+    public function dismissAlert($alertId)
+    {
+        try {
+            require_once __DIR__ . '/../Services/Attendance/AlertsSystem.php';
+            $alertsSystem = new \App\Services\Attendance\AlertsSystem();
+
+            $reason = $_POST['reason'] ?? null;
+
+            $result = $alertsSystem->dismissAlert($alertId, $reason);
+
+            if ($result) {
+                return $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Alerta descartada exitosamente.'
+                ]);
+            } else {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'No se pudo descartar la alerta.'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error dismissing alert: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
             ]);
         }
     }

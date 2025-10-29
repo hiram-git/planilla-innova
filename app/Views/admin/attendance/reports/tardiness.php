@@ -46,9 +46,9 @@ $topTardinessEmployees = $report['top_tardiness_employees'] ?? [];
                         <button onclick="window.print()" class="btn btn-primary">
                             <i class="fas fa-print mr-2"></i>Imprimir
                         </button>
-                        <button onclick="exportToExcel()" class="btn btn-success" disabled>
-                            <i class="fas fa-file-excel mr-2"></i>Exportar Excel (Próximamente)
-                        </button>
+                        <a href="<?= $baseUrl ?>/panel/attendance/reports/tardiness?start_date=<?= $period['start_date'] ?>&end_date=<?= $period['end_date'] ?><?= $period['tipo_planilla_id'] ? '&tipo_planilla_id=' . $period['tipo_planilla_id'] : '' ?>&format=excel" class="btn btn-success">
+                            <i class="fas fa-file-excel mr-2"></i>Exportar Excel
+                        </a>
                     </div>
                 </div>
 
@@ -291,10 +291,6 @@ $(document).ready(function() {
         ]
     });
 });
-
-function exportToExcel() {
-    alert('Exportación a Excel estará disponible próximamente');
-}
 </script>
 <?php
 $scripts = ob_get_clean();

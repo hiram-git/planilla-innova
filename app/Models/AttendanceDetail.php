@@ -20,8 +20,11 @@ class AttendanceDetail
      */
     public function getByHeader($headerId, $filters = [])
     {
-        $sql = "SELECT d.*, e.firstname, e.lastname, e.employee_id,
-                       s.time_in as schedule_time_in, s.time_out as schedule_time_out,
+        $sql = "SELECT d.*,
+                       e.firstname, e.lastname,
+                       e.employee_id as employee_number,
+                       COALESCE(d.scheduled_time_in, s.time_in) as scheduled_time_in,
+                       COALESCE(d.scheduled_time_out, s.time_out) as scheduled_time_out,
                        dev.device_name
                 FROM {$this->table} d
                 INNER JOIN employees e ON d.employee_id = e.id
@@ -360,8 +363,11 @@ class AttendanceDetail
     public function getById($id)
     {
         $sql = "SELECT d.*, h.attendance_date as date,
-                       e.firstname, e.lastname, e.employee_id as employee_code,
-                       s.time_in as schedule_time_in, s.time_out as schedule_time_out
+                       e.firstname, e.lastname,
+                       e.employee_id as employee_code,
+                       e.employee_id as employee_number,
+                       COALESCE(d.scheduled_time_in, s.time_in) as scheduled_time_in,
+                       COALESCE(d.scheduled_time_out, s.time_out) as scheduled_time_out
                 FROM {$this->table} d
                 INNER JOIN attendance_header h ON d.header_id = h.id
                 INNER JOIN employees e ON d.employee_id = e.id

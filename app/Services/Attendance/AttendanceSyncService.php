@@ -386,17 +386,50 @@ class AttendanceSyncService
      */
     private function needsUpdate($existing, $newData)
     {
-        // Comparar timestamps de modificación si existen
-        if (isset($newData['updated_at'])) {
-            $existingJson = json_decode($existing['raw_json'], true);
-            $existingUpdated = $existingJson['updated_at'] ?? null;
+        // 1. Siempre actualizar si los horarios programados están NULL
+        if (empty($existing['scheduled_time_in']) || empty($existing['scheduled_time_out'])) {
+            error_log("needsUpdate: TRUE - Horarios programados NULL para detail ID {$existing['id']}");
+            return true;
+        }
 
-            if ($existingUpdated && $newData['updated_at'] > $existingUpdated) {
-                return true;
+        // 2. Determinar tipo de marcación (CHECK_IN o CHECK_OUT)
+        $type = strtoupper($newData['type'] ?? 'CHECK_IN');
+
+        // 3. Si es CHECK_OUT y no existe time_out, actualizar
+        if ($type === 'CHECK_OUT' && empty($existing['time_out'])) {
+            error_log("needsUpdate: TRUE - CHECK_OUT faltante para detail ID {$existing['id']}");
+            return true;
+        }
+
+        // 4. Si es CHECK_IN y no existe time_in, actualizar
+        if ($type === 'CHECK_IN' && empty($existing['time_in'])) {
+            error_log("needsUpdate: TRUE - CHECK_IN faltante para detail ID {$existing['id']}");
+            return true;
+        }
+
+        // 5. Comparar timestamps de modificación si existen
+        if (isset($newData['updated_at'])) {
+            // Buscar el raw_json original en attendance_raw_data
+            $sql = "SELECT raw_json FROM attendance_raw_data
+                    WHERE external_id = ?
+                    AND entity_type = 'Attendance'
+                    ORDER BY received_at DESC
+                    LIMIT 1";
+            $rawRecord = $this->db->find($sql, [$newData['id'] ?? null]);
+
+            if ($rawRecord) {
+                $existingJson = json_decode($rawRecord['raw_json'], true);
+                $existingUpdated = $existingJson['updated_at'] ?? null;
+
+                if ($existingUpdated && $newData['updated_at'] > $existingUpdated) {
+                    error_log("needsUpdate: TRUE - updated_at más reciente para detail ID {$existing['id']}");
+                    return true;
+                }
             }
         }
 
-        // Por defecto, no actualizar si ya está procesado
+        // 6. Por defecto, NO actualizar (registro ya está completo)
+        error_log("needsUpdate: FALSE - Registro completo para detail ID {$existing['id']}");
         return false;
     }
 
@@ -427,6 +460,17 @@ class AttendanceSyncService
 
         if (!$employee) {
             throw new Exception("Empleado no encontrado: {$data['employee_email']} / " . ($data['employee_name'] ?? 'N/A'));
+        }
+
+        // Obtener horario programado del empleado
+        $scheduledTimeIn = null;
+        $scheduledTimeOut = null;
+        if (!empty($employee['schedule_id'])) {
+            $schedule = $this->db->find("SELECT time_in, time_out FROM schedules WHERE id = ?", [$employee['schedule_id']]);
+            if ($schedule) {
+                $scheduledTimeIn = $schedule['time_in'];
+                $scheduledTimeOut = $schedule['time_out'];
+            }
         }
 
         $date = date('Y-m-d', strtotime($data['timestamp']));
@@ -464,6 +508,8 @@ class AttendanceSyncService
             if ($type === 'CHECK_OUT') {
                 $detailModel->update($existingDetail['id'], [
                     'time_out' => $time,
+                    'scheduled_time_in' => $scheduledTimeIn,
+                    'scheduled_time_out' => $scheduledTimeOut,
                     'notes' => 'Actualizado desde API - Hora salida'
                 ]);
                 error_log("Updated time_out for employee {$employee['id']} on {$date}");
@@ -476,6 +522,8 @@ class AttendanceSyncService
                 'schedule_id' => $employee['schedule_id'] ?? null,
                 'time_in' => ($type === 'CHECK_IN') ? $time : null,
                 'time_out' => ($type === 'CHECK_OUT') ? $time : null,
+                'scheduled_time_in' => $scheduledTimeIn,
+                'scheduled_time_out' => $scheduledTimeOut,
                 'device_id' => null,
                 'external_id' => $data['id'] ?? null,
                 'status' => 'PRESENT',
@@ -488,7 +536,7 @@ class AttendanceSyncService
             $detailId = $detailModel->create($detailData);
 
             if ($detailId) {
-                error_log("Created detail ID {$detailId} for employee {$employee['id']} on {$date}");
+                error_log("Created detail ID {$detailId} for employee {$employee['id']} on {$date} with schedule {$scheduledTimeIn} - {$scheduledTimeOut}");
             }
         }
 
@@ -508,7 +556,23 @@ class AttendanceSyncService
 
         $detailModel = new \App\Models\AttendanceDetail();
 
+        // Obtener el registro actual para extraer employee_id
+        $detail = $detailModel->getById($recordId);
+
+        // Obtener horario programado del empleado
+        $scheduledTimeIn = null;
+        $scheduledTimeOut = null;
+        if ($detail && !empty($detail['schedule_id'])) {
+            $schedule = $this->db->find("SELECT time_in, time_out FROM schedules WHERE id = ?", [$detail['schedule_id']]);
+            if ($schedule) {
+                $scheduledTimeIn = $schedule['time_in'];
+                $scheduledTimeOut = $schedule['time_out'];
+            }
+        }
+
         $updateData = [
+            'scheduled_time_in' => $scheduledTimeIn,
+            'scheduled_time_out' => $scheduledTimeOut,
             'notes' => 'Actualizado desde API - ' . date('Y-m-d H:i:s')
         ];
 
@@ -520,7 +584,7 @@ class AttendanceSyncService
         }
 
         $detailModel->update($recordId, $updateData);
-        error_log("Updated detail ID {$recordId} with new data from API");
+        error_log("Updated detail ID {$recordId} with new data from API (schedule: {$scheduledTimeIn} - {$scheduledTimeOut})");
     }
 
     /**
