@@ -1,0 +1,392 @@
+<?php
+/**
+ * Vista de reporte combinado de asistencias
+ * Muestra ausencias + tardanzas con score de desempeño por empleado
+ */
+
+use App\Core\UrlHelper;
+$baseUrl = UrlHelper::base();
+
+// Extraer datos del reporte
+$period = $report['period'] ?? [];
+$summary = $report['summary'] ?? [];
+$byDepartment = $report['by_department'] ?? [];
+$topPerformers = $report['top_performers'] ?? [];
+$bottomPerformers = $report['bottom_performers'] ?? [];
+?>
+
+<!-- Content Header -->
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-chart-line mr-2"></i><?= $page_title ?? 'Reporte Combinado de Asistencias' ?></h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="<?= $baseUrl ?>/panel/dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?= $baseUrl ?>/panel/attendance">Asistencias</a></li>
+                    <li class="breadcrumb-item"><a href="<?= $baseUrl ?>/panel/attendance/reports">Reportes</a></li>
+                    <li class="breadcrumb-item active">Combinado</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main content -->
+<div class="content">
+    <div class="container-fluid">
+
+                <!-- Botones de Acción -->
+                <div class="row mb-3 no-print">
+                    <div class="col-md-12">
+                        <a href="<?= $baseUrl ?>/panel/attendance/reports" class="btn btn-default">
+                            <i class="fas fa-arrow-left mr-2"></i>Volver
+                        </a>
+                        <button onclick="window.print()" class="btn btn-primary">
+                            <i class="fas fa-print mr-2"></i>Imprimir
+                        </button>
+                        <button onclick="exportToExcel()" class="btn btn-success" disabled>
+                            <i class="fas fa-file-excel mr-2"></i>Exportar Excel (Próximamente)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Información del Período -->
+                <div class="card">
+                    <div class="card-header bg-success">
+                        <h3 class="card-title"><i class="fas fa-calendar-alt mr-2"></i>Período del Reporte</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Fecha Inicio:</strong><br>
+                                <?= date('d/m/Y', strtotime($period['start_date'])) ?>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Fecha Fin:</strong><br>
+                                <?= date('d/m/Y', strtotime($period['end_date'])) ?>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Tipo de Planilla:</strong><br>
+                                <?= $period['tipo_planilla_id'] ? "ID: " . $period['tipo_planilla_id'] : 'Todos los tipos' ?>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Fecha Generación:</strong><br>
+                                <?= date('d/m/Y H:i:s') ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen Estadístico General -->
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3><?= number_format($summary['total_employees'] ?? 0) ?></h3>
+                                <p>Empleados</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="small-box bg-danger">
+                            <div class="inner">
+                                <h3><?= number_format($summary['total_absences'] ?? 0) ?></h3>
+                                <p>Ausencias</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-user-times"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                <h3><?= number_format($summary['total_tardiness'] ?? 0) ?></h3>
+                                <p>Tardanzas</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="small-box bg-primary">
+                            <div class="inner">
+                                <h3><?= number_format($summary['total_tardiness_minutes'] ?? 0) ?></h3>
+                                <p>Minutos de Tardanza</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="small-box bg-success">
+                            <div class="inner">
+                                <h3><?= number_format($summary['avg_performance_score'] ?? 0, 1) ?></h3>
+                                <p>Score Promedio</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Performers y Bottom Performers -->
+                <div class="row">
+                    <!-- Top 10 Mejores Desempeños -->
+                    <?php if (!empty($topPerformers)): ?>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-success">
+                                <h3 class="card-title"><i class="fas fa-medal mr-2"></i>Top 10 Mejores Desempeños</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Empleado</th>
+                                                <th>Departamento</th>
+                                                <th class="text-center">Score</th>
+                                                <th class="text-center">Ausencias</th>
+                                                <th class="text-center">Tardanzas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($topPerformers as $index => $emp): ?>
+                                            <tr>
+                                                <td><?= $index + 1 ?></td>
+                                                <td>
+                                                    <strong><?= htmlspecialchars($emp['employee_code']) ?></strong><br>
+                                                    <small><?= htmlspecialchars($emp['full_name']) ?></small>
+                                                </td>
+                                                <td><?= htmlspecialchars($emp['departamento'] ?? 'N/A') ?></td>
+                                                <td class="text-center">
+                                                    <span class="badge badge-success score-badge"><?= number_format($emp['performance_score'], 1) ?></span>
+                                                </td>
+                                                <td class="text-center"><?= $emp['total_absences'] ?></td>
+                                                <td class="text-center"><?= $emp['total_tardiness'] ?></td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Top 10 Peores Desempeños -->
+                    <?php if (!empty($bottomPerformers)): ?>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-danger">
+                                <h3 class="card-title"><i class="fas fa-exclamation-triangle mr-2"></i>Top 10 Necesitan Atención</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Empleado</th>
+                                                <th>Departamento</th>
+                                                <th class="text-center">Score</th>
+                                                <th class="text-center">Ausencias</th>
+                                                <th class="text-center">Tardanzas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($bottomPerformers as $index => $emp): ?>
+                                            <tr>
+                                                <td><?= $index + 1 ?></td>
+                                                <td>
+                                                    <strong><?= htmlspecialchars($emp['employee_code']) ?></strong><br>
+                                                    <small><?= htmlspecialchars($emp['full_name']) ?></small>
+                                                </td>
+                                                <td><?= htmlspecialchars($emp['departamento'] ?? 'N/A') ?></td>
+                                                <td class="text-center">
+                                                    <?php
+                                                    $score = $emp['performance_score'];
+                                                    $badgeClass = $score >= 70 ? 'warning' : 'danger';
+                                                    ?>
+                                                    <span class="badge badge-<?= $badgeClass ?> score-badge"><?= number_format($score, 1) ?></span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge badge-danger"><?= $emp['total_absences'] ?></span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge badge-warning"><?= $emp['total_tardiness'] ?></span>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Desempeño por Departamento -->
+                <?php foreach ($byDepartment as $deptName => $employees): ?>
+                <div class="card department-section">
+                    <div class="card-header bg-secondary">
+                        <h3 class="card-title">
+                            <i class="fas fa-building mr-2"></i>
+                            <?= htmlspecialchars($deptName) ?>
+                            <span class="badge badge-light ml-2"><?= count($employees) ?> empleados</span>
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-hover table-sm datatable">
+                                <thead>
+                                    <tr class="bg-light">
+                                        <th>ID</th>
+                                        <th>Cédula</th>
+                                        <th>Apellidos y Nombres</th>
+                                        <th>Cargo</th>
+                                        <th class="text-center">Ausencias</th>
+                                        <th class="text-center">Injustificadas</th>
+                                        <th class="text-center">Tardanzas</th>
+                                        <th class="text-center">Min. Tarde</th>
+                                        <th class="text-center">Score</th>
+                                        <th class="text-center">Evaluación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($employees as $emp): ?>
+                                    <tr>
+                                        <td><strong><?= htmlspecialchars($emp['employee_code']) ?></strong></td>
+                                        <td><?= htmlspecialchars($emp['cedula']) ?></td>
+                                        <td><?= htmlspecialchars($emp['full_name']) ?></td>
+                                        <td><?= htmlspecialchars($emp['position_name'] ?? 'N/A') ?></td>
+                                        <td class="text-center">
+                                            <span class="badge badge-<?= $emp['total_absences'] > 0 ? 'danger' : 'success' ?>">
+                                                <?= $emp['total_absences'] ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-<?= $emp['unjustified_absences'] > 0 ? 'warning' : 'success' ?>">
+                                                <?= $emp['unjustified_absences'] ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-<?= $emp['total_tardiness'] > 0 ? 'warning' : 'success' ?>">
+                                                <?= $emp['total_tardiness'] ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-center"><?= number_format($emp['total_tardiness_minutes']) ?> min</td>
+                                        <td class="text-center">
+                                            <?php
+                                            $score = $emp['performance_score'];
+                                            if ($score >= 90) {
+                                                $badgeClass = 'success';
+                                            } elseif ($score >= 80) {
+                                                $badgeClass = 'info';
+                                            } elseif ($score >= 70) {
+                                                $badgeClass = 'warning';
+                                            } else {
+                                                $badgeClass = 'danger';
+                                            }
+                                            ?>
+                                            <span class="badge badge-<?= $badgeClass ?> score-badge"><?= number_format($score, 1) ?></span>
+                                        </td>
+                                        <td class="text-center">
+                                            <?php
+                                            if ($score >= 90) {
+                                                echo '<span class="badge badge-success">Excelente</span>';
+                                            } elseif ($score >= 80) {
+                                                echo '<span class="badge badge-info">Bueno</span>';
+                                            } elseif ($score >= 70) {
+                                                echo '<span class="badge badge-warning">Regular</span>';
+                                            } elseif ($score >= 60) {
+                                                echo '<span class="badge badge-orange">Necesita Mejorar</span>';
+                                            } else {
+                                                echo '<span class="badge badge-danger">Crítico</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+
+        <?php if (empty($byDepartment)): ?>
+        <div class="callout callout-info">
+            <h5><i class="fas fa-info-circle"></i> Sin Datos</h5>
+            <p>No se encontraron datos de asistencias para el período y filtros seleccionados.</p>
+        </div>
+        <?php endif; ?>
+
+    </div>
+</div>
+
+<?php
+// Iniciar captura de scripts
+ob_start();
+?>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<style>
+@media print {
+    .no-print { display: none; }
+}
+.department-section {
+    page-break-inside: avoid;
+}
+.score-badge {
+    font-size: 1.1rem;
+    padding: 8px 12px;
+}
+.performance-bar {
+    height: 20px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #dc3545, #ffc107, #28a745);
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // Inicializar DataTables para cada tabla
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        },
+        order: [[8, 'asc']], // Ordenar por score (ascendente para ver primero los más bajos)
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'Todos']],
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+    });
+});
+
+function exportToExcel() {
+    alert('Exportación a Excel estará disponible próximamente');
+}
+</script>
+<?php
+$scripts = ob_get_clean();
+?>

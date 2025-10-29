@@ -90,7 +90,7 @@ $scripts = ob_get_clean();
                             <i class="fas fa-file-excel mr-2"></i>
                             Excel
                         </a>
-                        <a href="<?= \App\Core\UrlHelper::route('panel/reports/planilla-pdf/' . $payroll['id']) ?>"
+                        <a href="<?= \App\Core\UrlHelper::route('panel/liquidation/payroll-pdf/' . $payroll['id']) ?>"
                            class="btn btn-success btn-sm float-right"
                            target="_blank"
                            title="Generar PDF">

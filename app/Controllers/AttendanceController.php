@@ -1201,6 +1201,270 @@ class AttendanceController extends Controller
         }
     }
 
+    // ========================================
+    // MÉTODOS DE REPORTES DETALLADOS
+    // ========================================
+
+    /**
+     * Vista principal de reportes de asistencias
+     * Permite seleccionar tipo de reporte y período
+     */
+    public function reports()
+    {
+        // Obtener tipos de planilla para filtro
+        $sql = "SELECT id, descripcion FROM tipos_planilla WHERE activo = 1 ORDER BY descripcion";
+        $stmt = $this->employeeModel->db->prepare($sql);
+        $stmt->execute();
+        $tiposPlanilla = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $data = [
+            'title' => 'Reportes de Asistencias',
+            'page_title' => 'Generador de Reportes',
+            'tipos_planilla' => $tiposPlanilla,
+            'csrf_token' => Security::generateToken()
+        ];
+
+        $this->render('admin/attendance/reports/index', $data);
+    }
+
+    /**
+     * Generar reporte de ausencias (AJAX o vista)
+     */
+    public function absencesReport()
+    {
+        try {
+            $startDate = $_GET['start_date'] ?? null;
+            $endDate = $_GET['end_date'] ?? null;
+            $tipoPlanillaId = $_GET['tipo_planilla_id'] ?? null;
+            $format = $_GET['format'] ?? 'view'; // view, json, excel, pdf
+
+            if (!$startDate || !$endDate) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe especificar fecha de inicio y fin.'
+                ]);
+            }
+
+            // Generar reporte
+            require_once __DIR__ . '/../Services/Attendance/ReportsGenerator.php';
+            $generator = new \App\Services\Attendance\ReportsGenerator();
+            $report = $generator->generateDetailedAbsencesReport($startDate, $endDate, $tipoPlanillaId);
+
+            if (isset($report['error'])) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => $report['message']
+                ]);
+            }
+
+            // Responder según formato solicitado
+            switch ($format) {
+                case 'json':
+                    return $this->jsonResponse([
+                        'success' => true,
+                        'data' => $report
+                    ]);
+
+                case 'view':
+                    // Renderizar vista
+                    $data = [
+                        'title' => 'Reporte de Ausencias',
+                        'page_title' => 'Reporte Detallado de Ausencias',
+                        'report' => $report,
+                        'csrf_token' => Security::generateToken()
+                    ];
+                    $this->render('admin/attendance/reports/absences', $data);
+                    break;
+
+                case 'excel':
+                    // Exportar a Excel
+                    require_once __DIR__ . '/../Services/Attendance/ExcelExporter.php';
+                    $exporter = new \App\Services\Attendance\ExcelExporter();
+                    $exporter->exportAbsencesReport($report, 'Reporte_Ausencias');
+                    exit; // El exporter ya envía los headers y el archivo
+                    break;
+
+                case 'pdf':
+                    // TODO: Implementar exportación PDF
+                    $this->setFlashMessage('Exportación a PDF - En desarrollo', 'info');
+                    $this->redirect('/panel/attendance/reports');
+                    break;
+
+                default:
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Formato no soportado'
+                    ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error generating absences report: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Generar reporte de tardanzas (AJAX o vista)
+     */
+    public function tardinessReport()
+    {
+        try {
+            $startDate = $_GET['start_date'] ?? null;
+            $endDate = $_GET['end_date'] ?? null;
+            $tipoPlanillaId = $_GET['tipo_planilla_id'] ?? null;
+            $minMinutes = $_GET['min_minutes'] ?? 1;
+            $format = $_GET['format'] ?? 'view'; // view, json, excel, pdf
+
+            if (!$startDate || !$endDate) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe especificar fecha de inicio y fin.'
+                ]);
+            }
+
+            // Generar reporte
+            require_once __DIR__ . '/../Services/Attendance/ReportsGenerator.php';
+            $generator = new \App\Services\Attendance\ReportsGenerator();
+            $report = $generator->generateDetailedTardinessReport($startDate, $endDate, $tipoPlanillaId, $minMinutes);
+
+            if (isset($report['error'])) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => $report['message']
+                ]);
+            }
+
+            // Responder según formato solicitado
+            switch ($format) {
+                case 'json':
+                    return $this->jsonResponse([
+                        'success' => true,
+                        'data' => $report
+                    ]);
+
+                case 'view':
+                    // Renderizar vista
+                    $data = [
+                        'title' => 'Reporte de Tardanzas',
+                        'page_title' => 'Reporte Detallado de Tardanzas',
+                        'report' => $report,
+                        'csrf_token' => Security::generateToken()
+                    ];
+                    $this->render('admin/attendance/reports/tardiness', $data);
+                    break;
+
+                case 'excel':
+                    // Exportar a Excel
+                    require_once __DIR__ . '/../Services/Attendance/ExcelExporter.php';
+                    $exporter = new \App\Services\Attendance\ExcelExporter();
+                    $exporter->exportTardinessReport($report, 'Reporte_Tardanzas');
+                    exit; // El exporter ya envía los headers y el archivo
+                    break;
+
+                case 'pdf':
+                    // TODO: Implementar exportación PDF
+                    $this->setFlashMessage('Exportación a PDF - En desarrollo', 'info');
+                    $this->redirect('/panel/attendance/reports');
+                    break;
+
+                default:
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Formato no soportado'
+                    ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error generating tardiness report: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Generar reporte combinado de ausencias y tardanzas (AJAX o vista)
+     */
+    public function combinedReport()
+    {
+        try {
+            $startDate = $_GET['start_date'] ?? null;
+            $endDate = $_GET['end_date'] ?? null;
+            $tipoPlanillaId = $_GET['tipo_planilla_id'] ?? null;
+            $format = $_GET['format'] ?? 'view'; // view, json, excel, pdf
+
+            if (!$startDate || !$endDate) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe especificar fecha de inicio y fin.'
+                ]);
+            }
+
+            // Generar reporte
+            require_once __DIR__ . '/../Services/Attendance/ReportsGenerator.php';
+            $generator = new \App\Services\Attendance\ReportsGenerator();
+            $report = $generator->generateCombinedAttendanceReport($startDate, $endDate, $tipoPlanillaId);
+
+            if (isset($report['error'])) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => $report['message']
+                ]);
+            }
+
+            // Responder según formato solicitado
+            switch ($format) {
+                case 'json':
+                    return $this->jsonResponse([
+                        'success' => true,
+                        'data' => $report
+                    ]);
+
+                case 'view':
+                    // Renderizar vista
+                    $data = [
+                        'title' => 'Reporte Combinado de Asistencias',
+                        'page_title' => 'Reporte Combinado: Ausencias y Tardanzas',
+                        'report' => $report,
+                        'csrf_token' => Security::generateToken()
+                    ];
+                    $this->render('admin/attendance/reports/combined', $data);
+                    break;
+
+                case 'excel':
+                    // Exportar a Excel
+                    require_once __DIR__ . '/../Services/Attendance/ExcelExporter.php';
+                    $exporter = new \App\Services\Attendance\ExcelExporter();
+                    $exporter->exportCombinedReport($report, 'Reporte_Combinado');
+                    exit; // El exporter ya envía los headers y el archivo
+                    break;
+
+                case 'pdf':
+                    // TODO: Implementar exportación PDF
+                    $this->setFlashMessage('Exportación a PDF - En desarrollo', 'info');
+                    $this->redirect('/panel/attendance/reports');
+                    break;
+
+                default:
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Formato no soportado'
+                    ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error generating combined report: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     protected function requireAuth()
     {
         AuthMiddleware::requireAuth();

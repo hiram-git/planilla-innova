@@ -190,7 +190,34 @@ class App
 
                             // Rutas GET para attendance
                             if ($httpMethod === 'GET') {
-                                if ($url[2] === 'sync' && method_exists($this->controller, 'sync')) {
+                                // ✅ REPORTES: Manejo prioritario antes de sync/detail
+                                if ($url[2] === 'reports' && method_exists($this->controller, 'reports')) {
+                                    // GET: /panel/attendance/reports - Vista principal de reportes
+                                    if (!isset($url[3])) {
+                                        $this->method = 'reports';
+                                        $this->params = [];
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    } elseif ($url[3] === 'absences' && method_exists($this->controller, 'absencesReport')) {
+                                        // GET: /panel/attendance/reports/absences?start_date=X&end_date=Y&tipo_planilla_id=Z&format=view
+                                        $this->method = 'absencesReport';
+                                        $this->params = [];
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    } elseif ($url[3] === 'tardiness' && method_exists($this->controller, 'tardinessReport')) {
+                                        // GET: /panel/attendance/reports/tardiness?start_date=X&end_date=Y&tipo_planilla_id=Z&format=view
+                                        $this->method = 'tardinessReport';
+                                        $this->params = [];
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    } elseif ($url[3] === 'combined' && method_exists($this->controller, 'combinedReport')) {
+                                        // GET: /panel/attendance/reports/combined?start_date=X&end_date=Y&tipo_planilla_id=Z&format=view
+                                        $this->method = 'combinedReport';
+                                        $this->params = [];
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    }
+                                } elseif ($url[2] === 'sync' && method_exists($this->controller, 'sync')) {
                                     // Ruta: /panel/attendance/sync
                                     $this->method = 'sync';
                                     $this->params = [];
@@ -619,6 +646,10 @@ class App
                                     } elseif ($url[2] === 'payroll-excel' && isset($url[3]) && method_exists($this->controller, 'exportPayrollExcel')) {
                                         // Ruta: /panel/liquidation/payroll-excel/{id}
                                         $this->method = 'exportPayrollExcel';
+                                        $this->params = [$url[3]]; // payroll_id
+                                    } elseif ($url[2] === 'payroll-pdf' && isset($url[3]) && method_exists($this->controller, 'exportPayrollPdf')) {
+                                        // Ruta: /panel/liquidation/payroll-pdf/{id}
+                                        $this->method = 'exportPayrollPdf';
                                         $this->params = [$url[3]]; // payroll_id
                                     } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
                                         $this->method = 'edit';

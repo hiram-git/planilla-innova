@@ -1582,4 +1582,210 @@ class LiquidationController extends Controller
             $this->redirect('/panel/liquidation/payroll-detail/' . $payroll_id);
         }
     }
+
+    /**
+     * Exportar planilla de liquidación a PDF
+     */
+    public function exportPayrollPdf($payroll_id)
+    {
+        try {
+            // Obtener datos de la planilla
+            $sql = "SELECT pc.*, tp.descripcion as tipo_planilla_nombre,
+                           f.nombre as frecuencia_nombre
+                    FROM planilla_cabecera pc
+                    LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
+                    LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
+                    WHERE pc.id = ? AND pc.frecuencia_id = 9";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payroll_id]);
+            $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$payroll) {
+                $this->setToastrMessage('error', 'Planilla de liquidación no encontrada', 'Error de Búsqueda');
+                $this->redirect('/panel/liquidation/payrolls');
+                return;
+            }
+
+            // Obtener detalles de la planilla
+            $sql = "SELECT pd.*, c.concepto, c.descripcion as concepto_descripcion,
+                           c.tipo_concepto, e.employee_id as cedula, e.document_id,
+                           e.fecha_ingreso, org.descripcion as departamento
+                    FROM planilla_detalle pd
+                    INNER JOIN concepto c ON pd.concepto_id = c.id
+                    INNER JOIN employees e ON pd.employee_id = e.id
+                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    WHERE pd.planilla_cabecera_id = ?
+                    ORDER BY c.tipo_concepto, c.concepto";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payroll_id]);
+            $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Calcular totales
+            $totals = [
+                'total_asignaciones' => array_sum(array_column(array_filter($details, fn($d) => $d['tipo'] === 'A'), 'monto')),
+                'total_deducciones' => array_sum(array_column(array_filter($details, fn($d) => $d['tipo'] === 'D'), 'monto'))
+            ];
+            $totals['total_neto'] = $totals['total_asignaciones'] - $totals['total_deducciones'];
+
+            // Obtener información del empleado
+            $employee_info = null;
+            if (!empty($details)) {
+                $first_detail = $details[0];
+                $employee_info = [
+                    'name' => $first_detail['firstname'] . ' ' . $first_detail['lastname'],
+                    'cedula' => $first_detail['document_id'] ?? $first_detail['cedula'] ?? 'N/A',
+                    'departamento' => $first_detail['departamento'] ?? 'N/A',
+                    'fecha_ingreso' => $first_detail['fecha_ingreso'] ?? 'N/A'
+                ];
+            }
+
+            // Crear PDF
+            $pdf = new \TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+            // Configuración del documento
+            $pdf->SetCreator('Sistema de Planillas INNOVA');
+            $pdf->SetAuthor('INNOVA PLANILLA');
+            $pdf->SetTitle('Liquidación Laboral - ' . ($employee_info['name'] ?? 'N/A'));
+            $pdf->SetSubject('Liquidación Laboral');
+
+            // Desactivar header y footer automáticos
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+
+            // Márgenes
+            $pdf->SetMargins(15, 15, 15);
+            $pdf->SetAutoPageBreak(TRUE, 15);
+
+            // Agregar página
+            $pdf->AddPage();
+
+            // ===== ENCABEZADO =====
+            $pdf->SetFont('helvetica', 'B', 18);
+            $pdf->Cell(0, 10, 'INNOVA PLANILLA', 0, 1, 'C');
+
+            $pdf->SetFont('helvetica', 'B', 14);
+            $pdf->Cell(0, 8, 'LIQUIDACIÓN LABORAL', 0, 1, 'C');
+
+            $pdf->SetFont('helvetica', '', 10);
+            $periodo_texto = 'DEL ' . strtoupper(date('d \d\e F \d\e Y', strtotime($payroll['fecha_desde']))) .
+                           ' HASTA EL ' . strtoupper(date('d \d\e F \d\e Y', strtotime($payroll['fecha_hasta'])));
+            $pdf->Cell(0, 6, $periodo_texto, 0, 1, 'C');
+            $pdf->Ln(5);
+
+            // ===== INFORMACIÓN DEL EMPLEADO =====
+            if ($employee_info) {
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Nombre:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['name'], 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Cédula:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['cedula'], 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Departamento:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['departamento'], 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Fecha de Ingreso:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, date('d/m/Y', strtotime($employee_info['fecha_ingreso'])), 0, 1);
+                $pdf->Ln(5);
+            }
+
+            // Calcular anchos de columna (ancho disponible: página - márgenes)
+            $pageWidth = $pdf->getPageWidth();
+            $margins = $pdf->getMargins();
+            $availableWidth = $pageWidth - $margins['left'] - $margins['right'];
+
+            // Distribución de columnas: 17% Código, 58% Descripción, 25% Monto
+            $colCodigo = $availableWidth * 0.17;
+            $colDescripcion = $availableWidth * 0.58;
+            $colMonto = $availableWidth * 0.25;
+
+            // ===== ASIGNACIONES =====
+            $pdf->SetFillColor(144, 238, 144); // Verde claro
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, 7, 'ASIGNACIONES', 1, 1, 'L', true);
+
+            // Cabecera de tabla
+            $pdf->SetFillColor(224, 224, 224); // Gris claro
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->Cell($colCodigo, 6, 'Código', 1, 0, 'C', true);
+            $pdf->Cell($colDescripcion, 6, 'Descripción', 1, 0, 'C', true);
+            $pdf->Cell($colMonto, 6, 'Monto', 1, 1, 'C', true);
+
+            // Datos asignaciones
+            $pdf->SetFont('helvetica', '', 9);
+            $asignaciones = array_filter($details, fn($d) => $d['tipo'] === 'A');
+            foreach ($asignaciones as $asignacion) {
+                $pdf->Cell($colCodigo, 6, $asignacion['concepto'], 1, 0, 'L');
+                $pdf->Cell($colDescripcion, 6, $asignacion['concepto_descripcion'], 1, 0, 'L');
+                $pdf->Cell($colMonto, 6, '$' . number_format($asignacion['monto'], 2), 1, 1, 'R');
+            }
+
+            // Total asignaciones
+            $pdf->SetFillColor(204, 255, 204); // Verde muy claro
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL ASIGNACIONES:', 1, 0, 'R', true);
+            $pdf->Cell($colMonto, 6, '$' . number_format($totals['total_asignaciones'], 2), 1, 1, 'R', true);
+            $pdf->Ln(3);
+
+            // ===== DEDUCCIONES =====
+            $pdf->SetFillColor(255, 204, 204); // Rojo claro
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, 7, 'DEDUCCIONES', 1, 1, 'L', true);
+
+            // Cabecera de tabla
+            $pdf->SetFillColor(224, 224, 224); // Gris claro
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->Cell($colCodigo, 6, 'Código', 1, 0, 'C', true);
+            $pdf->Cell($colDescripcion, 6, 'Descripción', 1, 0, 'C', true);
+            $pdf->Cell($colMonto, 6, 'Monto', 1, 1, 'C', true);
+
+            // Datos deducciones
+            $pdf->SetFont('helvetica', '', 9);
+            $deducciones = array_filter($details, fn($d) => $d['tipo'] === 'D');
+            foreach ($deducciones as $deduccion) {
+                $pdf->Cell($colCodigo, 6, $deduccion['concepto'], 1, 0, 'L');
+                $pdf->Cell($colDescripcion, 6, $deduccion['concepto_descripcion'], 1, 0, 'L');
+                $pdf->Cell($colMonto, 6, '$' . number_format($deduccion['monto'], 2), 1, 1, 'R');
+            }
+
+            // Total deducciones
+            $pdf->SetFillColor(255, 221, 221); // Rojo muy claro
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
+            $pdf->Cell($colMonto, 6, '$' . number_format($totals['total_deducciones'], 2), 1, 1, 'R', true);
+            $pdf->Ln(5);
+
+            // ===== TOTAL NETO =====
+            $pdf->SetFillColor(204, 204, 255); // Azul/morado claro
+            $pdf->SetFont('helvetica', 'B', 12);
+            $pdf->Cell($colCodigo + $colDescripcion, 8, 'TOTAL NETO A PAGAR:', 1, 0, 'R', true);
+            $pdf->Cell($colMonto, 8, '$' . number_format($totals['total_neto'], 2), 1, 1, 'R', true);
+
+            // Generar nombre de archivo
+            $filename = 'Liquidacion_' . ($employee_info ? preg_replace('/[^A-Za-z0-9_]/', '_', $employee_info['name']) : 'Planilla') .
+                       '_' . date('Y-m-d', strtotime($payroll['fecha'])) . '.pdf';
+
+            // Salida del PDF
+            $pdf->Output($filename, 'I');
+            exit;
+
+        } catch (PDOException $e) {
+            error_log("Error generating PDF: " . $e->getMessage());
+            $this->setToastrMessage('error', 'Error al generar PDF: ' . $e->getMessage(), 'Error de Exportación');
+            $this->redirect('/panel/liquidation/payroll-detail/' . $payroll_id);
+        } catch (\Exception $e) {
+            error_log("Error generating PDF: " . $e->getMessage());
+            $this->setToastrMessage('error', 'Error al generar PDF: ' . $e->getMessage(), 'Error de Exportación');
+            $this->redirect('/panel/liquidation/payroll-detail/' . $payroll_id);
+        }
+    }
 }

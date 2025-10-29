@@ -405,4 +405,389 @@ class ReportsGenerator
 
         return $ranges;
     }
+
+    // ==================== NUEVOS REPORTES DETALLADOS ====================
+
+    /**
+     * Generar reporte detallado de ausencias
+     * Incluye: ID, cédula, nombres, apellidos, departamento
+     * Filtrado por tipo de planilla y ordenado por departamento
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @param int|null $tipoPlanillaId ID del tipo de planilla (filtro opcional)
+     * @return array
+     */
+    public function generateDetailedAbsencesReport($startDate, $endDate, $tipoPlanillaId = null)
+    {
+        try {
+            // Query con todos los campos necesarios
+            $sql = "SELECT
+                        aal.id as absence_id,
+                        aal.absence_date,
+                        aal.absence_type,
+                        aal.justified,
+                        aal.justification_type,
+                        aal.justification_notes,
+                        aal.is_working_day,
+                        e.id as employee_id,
+                        e.employee_id as employee_code,
+                        e.document_id as cedula,
+                        e.firstname,
+                        e.lastname,
+                        CONCAT(e.firstname, ' ', e.lastname) as full_name,
+                        org.descripcion as departamento,
+                        org.id as departamento_id,
+                        sit.descripcion as situacion,
+                        pos.codigo as position_name
+                    FROM attendance_absence_log aal
+                    INNER JOIN employees e ON aal.employee_id = e.id
+                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                    LEFT JOIN posiciones pos ON e.position_id = pos.id
+                    WHERE aal.absence_date BETWEEN ? AND ?";
+
+            $params = [$startDate, $endDate];
+
+            // Filtro por tipo de planilla si se especifica
+            if ($tipoPlanillaId) {
+                $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = $tipoPlanillaId;
+            }
+
+            // Ordenar por departamento y luego por apellido
+            $sql .= " ORDER BY org.descripcion, e.lastname, e.firstname";
+
+            $stmt = $this->employeeModel->db->prepare($sql);
+            $stmt->execute($params);
+            $absences = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Agrupar por departamento
+            $byDepartment = [];
+            foreach ($absences as $absence) {
+                $dept = $absence['departamento'] ?? 'Sin Departamento';
+                if (!isset($byDepartment[$dept])) {
+                    $byDepartment[$dept] = [];
+                }
+                $byDepartment[$dept][] = $absence;
+            }
+
+            // Estadísticas generales
+            $stats = [
+                'total_absences' => count($absences),
+                'justified' => count(array_filter($absences, fn($a) => $a['absence_type'] === 'JUSTIFIED')),
+                'unjustified' => count(array_filter($absences, fn($a) => $a['absence_type'] === 'UNJUSTIFIED')),
+                'pending' => count(array_filter($absences, fn($a) => $a['absence_type'] === 'PENDING')),
+                'affected_employees' => count(array_unique(array_column($absences, 'employee_id'))),
+                'departments_affected' => count($byDepartment)
+            ];
+
+            // Empleados con más ausencias
+            $byEmployee = [];
+            foreach ($absences as $absence) {
+                $empId = $absence['employee_id'];
+                if (!isset($byEmployee[$empId])) {
+                    $byEmployee[$empId] = [
+                        'employee_id' => $empId,
+                        'employee_code' => $absence['employee_code'],
+                        'cedula' => $absence['cedula'],
+                        'full_name' => $absence['full_name'],
+                        'departamento' => $absence['departamento'],
+                        'position_name' => $absence['position_name'],
+                        'absences' => []
+                    ];
+                }
+                $byEmployee[$empId]['absences'][] = $absence;
+            }
+
+            // Top empleados con más ausencias
+            usort($byEmployee, function($a, $b) {
+                return count($b['absences']) - count($a['absences']);
+            });
+            $topAbsentEmployees = array_slice($byEmployee, 0, 10);
+
+            // Agregar contador total a cada empleado
+            foreach ($topAbsentEmployees as &$emp) {
+                $emp['total_absences'] = count($emp['absences']);
+                $emp['unjustified_count'] = count(array_filter($emp['absences'], fn($a) => $a['absence_type'] === 'UNJUSTIFIED'));
+            }
+
+            return [
+                'period' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'tipo_planilla_id' => $tipoPlanillaId
+                ],
+                'summary' => $stats,
+                'by_department' => $byDepartment,
+                'by_employee' => array_values($byEmployee),
+                'top_absent_employees' => $topAbsentEmployees,
+                'all_absences' => $absences
+            ];
+
+        } catch (\Exception $e) {
+            error_log("Error generating detailed absences report: " . $e->getMessage());
+            return [
+                'error' => true,
+                'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Generar reporte detallado de tardanzas
+     * Incluye: ID, cédula, nombres, apellidos, departamento, minutos de tardanza
+     * Filtrado por tipo de planilla y ordenado por departamento
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @param int|null $tipoPlanillaId ID del tipo de planilla (filtro opcional)
+     * @param int $minTardinessMinutes Mínimo de minutos de tardanza para incluir (default: 1)
+     * @return array
+     */
+    public function generateDetailedTardinessReport($startDate, $endDate, $tipoPlanillaId = null, $minTardinessMinutes = 1)
+    {
+        try {
+            // Query con todos los campos necesarios
+            $sql = "SELECT
+                        ac.id as calculation_id,
+                        ac.attendance_detail_id,
+                        ac.date,
+                        ac.is_late,
+                        ac.tardiness_minutes,
+                        ac.time_in,
+                        ac.expected_time_in,
+                        ac.punctuality_score,
+                        ac.total_hours,
+                        e.id as employee_id,
+                        e.employee_id as employee_code,
+                        e.document_id as cedula,
+                        e.firstname,
+                        e.lastname,
+                        CONCAT(e.firstname, ' ', e.lastname) as full_name,
+                        org.descripcion as departamento,
+                        org.id as departamento_id,
+                        sit.descripcion as situacion,
+                        pos.codigo as position_name,
+                        s.time_in as schedule_time_in
+                    FROM attendance_calculations ac
+                    INNER JOIN employees e ON ac.employee_id = e.id
+                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                    LEFT JOIN posiciones pos ON e.position_id = pos.id
+                    LEFT JOIN schedules s ON e.schedule_id = s.id
+                    WHERE ac.date BETWEEN ? AND ?
+                    AND ac.is_late = 1
+                    AND ac.tardiness_minutes >= ?";
+
+            $params = [$startDate, $endDate, $minTardinessMinutes];
+
+            // Filtro por tipo de planilla si se especifica
+            if ($tipoPlanillaId) {
+                $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = $tipoPlanillaId;
+            }
+
+            // Ordenar por departamento, apellido y fecha
+            $sql .= " ORDER BY org.descripcion, e.lastname, e.firstname, ac.date";
+
+            $stmt = $this->employeeModel->db->prepare($sql);
+            $stmt->execute($params);
+            $tardiness = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Agrupar por departamento
+            $byDepartment = [];
+            foreach ($tardiness as $late) {
+                $dept = $late['departamento'] ?? 'Sin Departamento';
+                if (!isset($byDepartment[$dept])) {
+                    $byDepartment[$dept] = [];
+                }
+                $byDepartment[$dept][] = $late;
+            }
+
+            // Estadísticas generales
+            $totalTardinessMinutes = array_sum(array_column($tardiness, 'tardiness_minutes'));
+            $stats = [
+                'total_late_arrivals' => count($tardiness),
+                'affected_employees' => count(array_unique(array_column($tardiness, 'employee_id'))),
+                'departments_affected' => count($byDepartment),
+                'total_tardiness_minutes' => $totalTardinessMinutes,
+                'total_tardiness_hours' => round($totalTardinessMinutes / 60, 2),
+                'avg_tardiness_minutes' => count($tardiness) > 0 ? round($totalTardinessMinutes / count($tardiness), 2) : 0
+            ];
+
+            // Agrupar por empleado
+            $byEmployee = [];
+            foreach ($tardiness as $late) {
+                $empId = $late['employee_id'];
+                if (!isset($byEmployee[$empId])) {
+                    $byEmployee[$empId] = [
+                        'employee_id' => $empId,
+                        'employee_code' => $late['employee_code'],
+                        'cedula' => $late['cedula'],
+                        'full_name' => $late['full_name'],
+                        'departamento' => $late['departamento'],
+                        'position_name' => $late['position_name'],
+                        'late_arrivals' => [],
+                        'total_tardiness_minutes' => 0,
+                        'avg_tardiness_minutes' => 0
+                    ];
+                }
+                $byEmployee[$empId]['late_arrivals'][] = $late;
+                $byEmployee[$empId]['total_tardiness_minutes'] += $late['tardiness_minutes'];
+            }
+
+            // Calcular promedios
+            foreach ($byEmployee as &$emp) {
+                $emp['total_late_days'] = count($emp['late_arrivals']);
+                $emp['avg_tardiness_minutes'] = round($emp['total_tardiness_minutes'] / $emp['total_late_days'], 2);
+            }
+
+            // Top empleados con más tardanzas
+            usort($byEmployee, function($a, $b) {
+                return $b['total_late_days'] - $a['total_late_days'];
+            });
+            $topLateEmployees = array_slice($byEmployee, 0, 10);
+
+            // Distribución de tardanzas por rangos
+            $tardinessRanges = [
+                '1-5 min' => 0,
+                '6-15 min' => 0,
+                '16-30 min' => 0,
+                '31-60 min' => 0,
+                'Más de 1h' => 0
+            ];
+
+            foreach ($tardiness as $late) {
+                $mins = $late['tardiness_minutes'];
+                if ($mins <= 5) $tardinessRanges['1-5 min']++;
+                elseif ($mins <= 15) $tardinessRanges['6-15 min']++;
+                elseif ($mins <= 30) $tardinessRanges['16-30 min']++;
+                elseif ($mins <= 60) $tardinessRanges['31-60 min']++;
+                else $tardinessRanges['Más de 1h']++;
+            }
+
+            return [
+                'period' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'tipo_planilla_id' => $tipoPlanillaId,
+                    'min_tardiness_minutes' => $minTardinessMinutes
+                ],
+                'summary' => $stats,
+                'by_department' => $byDepartment,
+                'by_employee' => array_values($byEmployee),
+                'top_late_employees' => $topLateEmployees,
+                'tardiness_ranges' => $tardinessRanges,
+                'all_tardiness' => $tardiness
+            ];
+
+        } catch (\Exception $e) {
+            error_log("Error generating detailed tardiness report: " . $e->getMessage());
+            return [
+                'error' => true,
+                'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Generar reporte combinado de ausencias y tardanzas por empleado
+     * Útil para evaluaciones de desempeño
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @param int|null $tipoPlanillaId
+     * @return array
+     */
+    public function generateCombinedAttendanceReport($startDate, $endDate, $tipoPlanillaId = null)
+    {
+        $absencesReport = $this->generateDetailedAbsencesReport($startDate, $endDate, $tipoPlanillaId);
+        $tardinessReport = $this->generateDetailedTardinessReport($startDate, $endDate, $tipoPlanillaId);
+
+        // Validar si hay errores en los reportes
+        if (isset($absencesReport['error'])) {
+            return $absencesReport;
+        }
+        if (isset($tardinessReport['error'])) {
+            return $tardinessReport;
+        }
+
+        // Combinar datos por empleado
+        $employeesMap = [];
+
+        // Agregar ausencias
+        foreach ($absencesReport['by_employee'] ?? [] as $empData) {
+            $empId = $empData['employee_id'];
+            $employeesMap[$empId] = [
+                'employee_id' => $empId,
+                'employee_code' => $empData['employee_code'],
+                'cedula' => $empData['cedula'],
+                'full_name' => $empData['full_name'],
+                'departamento' => $empData['departamento'],
+                'position_name' => $empData['position_name'],
+                'absences_count' => count($empData['absences']),
+                'unjustified_absences' => count(array_filter($empData['absences'], fn($a) => $a['absence_type'] === 'UNJUSTIFIED')),
+                'late_days' => 0,
+                'total_tardiness_minutes' => 0,
+                'attendance_score' => 100
+            ];
+        }
+
+        // Agregar tardanzas
+        foreach ($tardinessReport['by_employee'] ?? [] as $empData) {
+            $empId = $empData['employee_id'];
+            if (!isset($employeesMap[$empId])) {
+                $employeesMap[$empId] = [
+                    'employee_id' => $empId,
+                    'employee_code' => $empData['employee_code'],
+                    'cedula' => $empData['cedula'],
+                    'full_name' => $empData['full_name'],
+                    'departamento' => $empData['departamento'],
+                    'position_name' => $empData['position_name'],
+                    'absences_count' => 0,
+                    'unjustified_absences' => 0,
+                    'late_days' => 0,
+                    'total_tardiness_minutes' => 0,
+                    'attendance_score' => 100
+                ];
+            }
+            $employeesMap[$empId]['late_days'] = $empData['total_late_days'];
+            $employeesMap[$empId]['total_tardiness_minutes'] = $empData['total_tardiness_minutes'];
+        }
+
+        // Calcular score de asistencia (100 - penalizaciones)
+        foreach ($employeesMap as &$emp) {
+            $penalties = 0;
+            $penalties += $emp['unjustified_absences'] * 10; // 10 puntos por ausencia injustificada
+            $penalties += $emp['late_days'] * 2; // 2 puntos por día de tardanza
+            $penalties += floor($emp['total_tardiness_minutes'] / 60) * 5; // 5 puntos por hora de tardanza acumulada
+
+            $emp['attendance_score'] = max(0, 100 - $penalties);
+        }
+
+        // Ordenar por score de asistencia (menor a mayor = peores primero)
+        uasort($employeesMap, function($a, $b) {
+            return $a['attendance_score'] - $b['attendance_score'];
+        });
+
+        return [
+            'period' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'tipo_planilla_id' => $tipoPlanillaId
+            ],
+            'combined_summary' => [
+                'total_employees' => count($employeesMap),
+                'total_absences' => $absencesReport['summary']['total_absences'] ?? 0,
+                'total_late_arrivals' => $tardinessReport['summary']['total_late_arrivals'] ?? 0,
+                'avg_attendance_score' => count($employeesMap) > 0
+                    ? round(array_sum(array_column($employeesMap, 'attendance_score')) / count($employeesMap), 2)
+                    : 100
+            ],
+            'by_employee' => array_values($employeesMap),
+            'absences_detail' => $absencesReport,
+            'tardiness_detail' => $tardinessReport
+        ];
+    }
 }

@@ -380,6 +380,6 @@ Al crear una nueva versión:
 
 ---
 
-**Última Actualización**: 16 de Octubre, 2025
-**Sistema**: Planillas MVC v3.4.4
-**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 60%
+**Última Actualización**: 28 de Octubre, 2025
+**Sistema**: Planillas MVC v3.5.1
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 85%
