@@ -10,6 +10,51 @@ if (!empty($details)) {
         'cedula' => $first_detail['document_id'] ?? $first_detail['cedula'] ?? 'N/A'
     ];
 }
+
+// Scripts específicos de esta página - se cargarán después de jQuery
+ob_start();
+?>
+<script>
+$(document).ready(function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+function exportToCSV() {
+    const payrollId = '<?= $payroll['id'] ?>';
+    const description = '<?= addslashes($payroll['descripcion']) ?>';
+    const employeeName = '<?= $employee_info ? addslashes($employee_info['name']) : 'N/A' ?>';
+
+    // Crear CSV con los datos de la liquidación
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Planilla de Liquidación: " + description + "\n";
+    csvContent += "Empleado: " + employeeName + "\n";
+    csvContent += "Periodo: <?= date('d/m/Y', strtotime($payroll['fecha_desde'])) ?> - <?= date('d/m/Y', strtotime($payroll['fecha_hasta'])) ?>\n\n";
+    csvContent += "Concepto,Descripción,Tipo,Monto\n";
+
+    <?php foreach ($details as $detail): ?>
+    csvContent += "<?= addslashes($detail['concepto']) ?>," +
+                  "<?= addslashes($detail['concepto_descripcion']) ?>," +
+                  "<?= $detail['tipo'] === 'A' ? 'ASIGNACIÓN' : 'DEDUCCIÓN' ?>," +
+                  "<?= $detail['monto'] ?>\n";
+    <?php endforeach; ?>
+
+    csvContent += "\n--- RESUMEN ---\n";
+    csvContent += "Total Asignaciones,<?= $totals['total_asignaciones'] ?>\n";
+    csvContent += "Total Deducciones,<?= $totals['total_deducciones'] ?>\n";
+    csvContent += "Total Neto a Pagar,<?= $totals['total_neto'] ?>\n";
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `liquidacion_${employeeName.replace(/\s+/g, '_')}_${payrollId}_<?= date('Y-m-d', strtotime($payroll['fecha'])) ?>.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+<?php
+$scripts = ob_get_clean();
 ?>
 
 <div class="content-header">
@@ -39,11 +84,18 @@ if (!empty($details)) {
                             <i class="fas fa-arrow-left mr-2"></i>
                             Volver a Planillas
                         </a>
+                        <a href="<?= \App\Core\UrlHelper::route('panel/liquidation/payroll-excel/' . $payroll['id']) ?>"
+                           class="btn btn-info btn-sm float-right ml-2"
+                           title="Descargar Excel">
+                            <i class="fas fa-file-excel mr-2"></i>
+                            Excel
+                        </a>
                         <a href="<?= \App\Core\UrlHelper::route('panel/reports/planilla-pdf/' . $payroll['id']) ?>"
                            class="btn btn-success btn-sm float-right"
-                           target="_blank">
+                           target="_blank"
+                           title="Generar PDF">
                             <i class="fas fa-file-pdf mr-2"></i>
-                            Generar PDF
+                            PDF
                         </a>
                     </div>
                     <div class="col-12">
@@ -327,43 +379,3 @@ if (!empty($details)) {
         </div>
     </div>
 </section>
-
-<script>
-$(document).ready(function() {
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-});
-
-function exportToCSV() {
-    const payrollId = '<?= $payroll['id'] ?>';
-    const description = '<?= addslashes($payroll['descripcion']) ?>';
-    const employeeName = '<?= $employee_info ? addslashes($employee_info['name']) : 'N/A' ?>';
-
-    // Crear CSV con los datos de la liquidación
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Planilla de Liquidación: " + description + "\n";
-    csvContent += "Empleado: " + employeeName + "\n";
-    csvContent += "Periodo: <?= date('d/m/Y', strtotime($payroll['fecha_desde'])) ?> - <?= date('d/m/Y', strtotime($payroll['fecha_hasta'])) ?>\n\n";
-    csvContent += "Concepto,Descripción,Tipo,Monto\n";
-
-    <?php foreach ($details as $detail): ?>
-    csvContent += "<?= addslashes($detail['concepto']) ?>," +
-                  "<?= addslashes($detail['concepto_descripcion']) ?>," +
-                  "<?= $detail['tipo'] === 'A' ? 'ASIGNACIÓN' : 'DEDUCCIÓN' ?>," +
-                  "<?= $detail['monto'] ?>\n";
-    <?php endforeach; ?>
-
-    csvContent += "\n--- RESUMEN ---\n";
-    csvContent += "Total Asignaciones,<?= $totals['total_asignaciones'] ?>\n";
-    csvContent += "Total Deducciones,<?= $totals['total_deducciones'] ?>\n";
-    csvContent += "Total Neto a Pagar,<?= $totals['total_neto'] ?>\n";
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `liquidacion_${employeeName.replace(/\s+/g, '_')}_${payrollId}_<?= date('Y-m-d', strtotime($payroll['fecha'])) ?>.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-</script>

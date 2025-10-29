@@ -265,6 +265,15 @@ class AttendanceSyncService
     private function processAttendanceRecord($rawData)
     {
         try {
+            // Normalizar timestamp (soportar timestamp, actual_timestamp, registered_timestamp)
+            if (!isset($rawData['timestamp'])) {
+                if (isset($rawData['actual_timestamp'])) {
+                    $rawData['timestamp'] = $rawData['actual_timestamp'];
+                } elseif (isset($rawData['registered_timestamp'])) {
+                    $rawData['timestamp'] = $rawData['registered_timestamp'];
+                }
+            }
+
             // Validar que tenga los campos mínimos requeridos
             if (!isset($rawData['employee_email']) || !isset($rawData['timestamp'])) {
                 $this->stats['skipped']++;
@@ -433,7 +442,7 @@ class AttendanceSyncService
             $headerId = $headerModel->create([
                 'attendance_date' => $date,
                 'device_id' => null,
-                'synced_from' => 'API_SYNC',
+                'synced_from' => 'API',
                 'total_records' => 0,
                 'total_employees' => 0,
                 'is_processed' => 0

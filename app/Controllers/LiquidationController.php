@@ -1355,4 +1355,231 @@ class LiquidationController extends Controller
             echo json_encode(['error' => 'Error en cálculo: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Exportar planilla de liquidación a Excel
+     */
+    public function exportPayrollExcel($payroll_id)
+    {
+        try {
+            // Obtener datos de la planilla
+            $sql = "SELECT pc.*, tp.descripcion as tipo_planilla_nombre,
+                           f.nombre as frecuencia_nombre
+                    FROM planilla_cabecera pc
+                    LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
+                    LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
+                    WHERE pc.id = ? AND pc.frecuencia_id = 9";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payroll_id]);
+            $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$payroll) {
+                $this->setToastrMessage('error', 'Planilla de liquidación no encontrada', 'Error de Búsqueda');
+                $this->redirect('/panel/liquidation/payrolls');
+                return;
+            }
+
+            // Obtener detalles de la planilla
+            $sql = "SELECT pd.*, c.concepto, c.descripcion as concepto_descripcion,
+                           c.tipo_concepto, e.employee_id as cedula, e.document_id,
+                           e.fecha_ingreso, org.descripcion as departamento
+                    FROM planilla_detalle pd
+                    INNER JOIN concepto c ON pd.concepto_id = c.id
+                    INNER JOIN employees e ON pd.employee_id = e.id
+                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    WHERE pd.planilla_cabecera_id = ?
+                    ORDER BY c.tipo_concepto, c.concepto";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payroll_id]);
+            $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Calcular totales
+            $totals = [
+                'total_asignaciones' => array_sum(array_column(array_filter($details, fn($d) => $d['tipo'] === 'A'), 'monto')),
+                'total_deducciones' => array_sum(array_column(array_filter($details, fn($d) => $d['tipo'] === 'D'), 'monto'))
+            ];
+            $totals['total_neto'] = $totals['total_asignaciones'] - $totals['total_deducciones'];
+
+            // Obtener información del empleado
+            $employee_info = null;
+            if (!empty($details)) {
+                $first_detail = $details[0];
+                $employee_info = [
+                    'name' => $first_detail['firstname'] . ' ' . $first_detail['lastname'],
+                    'cedula' => $first_detail['document_id'] ?? $first_detail['cedula'] ?? 'N/A',
+                    'departamento' => $first_detail['departamento'] ?? 'N/A',
+                    'fecha_ingreso' => $first_detail['fecha_ingreso'] ?? 'N/A'
+                ];
+            }
+
+            // Crear Excel
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Configurar hoja
+            $sheet->setTitle('Liquidación');
+
+            // ===== ENCABEZADO =====
+            $sheet->mergeCells('A1:E1');
+            $sheet->setCellValue('A1', 'INNOVA PLANILLA');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $sheet->mergeCells('A2:E2');
+            $sheet->setCellValue('A2', 'LIQUIDACIÓN LABORAL');
+            $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $periodo_texto = 'DEL ' . strtoupper(date('d \d\e F \d\e Y', strtotime($payroll['fecha_desde']))) .
+                           ' HASTA EL ' . strtoupper(date('d \d\e F \d\e Y', strtotime($payroll['fecha_hasta'])));
+            $sheet->mergeCells('A3:E3');
+            $sheet->setCellValue('A3', $periodo_texto);
+            $sheet->getStyle('A3')->getFont()->setSize(11);
+            $sheet->getStyle('A3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $row = 5;
+
+            // ===== INFORMACIÓN DEL EMPLEADO =====
+            if ($employee_info) {
+                $sheet->setCellValue('A' . $row, 'Nombre:');
+                $sheet->setCellValue('B' . $row, $employee_info['name']);
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Cédula:');
+                $sheet->setCellValue('B' . $row, $employee_info['cedula']);
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Departamento:');
+                $sheet->setCellValue('B' . $row, $employee_info['departamento']);
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Fecha de Ingreso:');
+                $sheet->setCellValue('B' . $row, date('d/m/Y', strtotime($employee_info['fecha_ingreso'])));
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row += 2;
+            }
+
+            // ===== CONCEPTOS DE ASIGNACIÓN =====
+            $sheet->setCellValue('A' . $row, 'ASIGNACIONES');
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(12);
+            $sheet->getStyle('A' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->getStartColor()->setARGB('FF90EE90');
+            $row++;
+
+            $sheet->setCellValue('A' . $row, 'Código');
+            $sheet->setCellValue('B' . $row, 'Concepto');
+            $sheet->setCellValue('C' . $row, 'Descripción');
+            $sheet->setCellValue('D' . $row, 'Monto');
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->getStartColor()->setARGB('FFE0E0E0');
+            $row++;
+
+            $asignaciones = array_filter($details, fn($d) => $d['tipo'] === 'A');
+            foreach ($asignaciones as $asignacion) {
+                $sheet->setCellValue('A' . $row, $asignacion['concepto']);
+                $sheet->setCellValue('B' . $row, $asignacion['concepto']);
+                $sheet->setCellValue('C' . $row, $asignacion['concepto_descripcion']);
+                $sheet->setCellValue('D' . $row, $asignacion['monto']);
+                $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $row++;
+            }
+
+            $sheet->setCellValue('C' . $row, 'TOTAL ASIGNACIONES:');
+            $sheet->setCellValue('D' . $row, $totals['total_asignaciones']);
+            $sheet->getStyle('C' . $row . ':D' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('C' . $row . ':D' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->getStartColor()->setARGB('FFCCFFCC');
+            $row += 2;
+
+            // ===== CONCEPTOS DE DEDUCCIÓN =====
+            $sheet->setCellValue('A' . $row, 'DEDUCCIONES');
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(12);
+            $sheet->getStyle('A' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->getStartColor()->setARGB('FFFFCCCC');
+            $row++;
+
+            $sheet->setCellValue('A' . $row, 'Código');
+            $sheet->setCellValue('B' . $row, 'Concepto');
+            $sheet->setCellValue('C' . $row, 'Descripción');
+            $sheet->setCellValue('D' . $row, 'Monto');
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->getStartColor()->setARGB('FFE0E0E0');
+            $row++;
+
+            $deducciones = array_filter($details, fn($d) => $d['tipo'] === 'D');
+            foreach ($deducciones as $deduccion) {
+                $sheet->setCellValue('A' . $row, $deduccion['concepto']);
+                $sheet->setCellValue('B' . $row, $deduccion['concepto']);
+                $sheet->setCellValue('C' . $row, $deduccion['concepto_descripcion']);
+                $sheet->setCellValue('D' . $row, $deduccion['monto']);
+                $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $row++;
+            }
+
+            $sheet->setCellValue('C' . $row, 'TOTAL DEDUCCIONES:');
+            $sheet->setCellValue('D' . $row, $totals['total_deducciones']);
+            $sheet->getStyle('C' . $row . ':D' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('C' . $row . ':D' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->getStartColor()->setARGB('FFFFDDDD');
+            $row += 2;
+
+            // ===== TOTAL NETO =====
+            $sheet->mergeCells('A' . $row . ':C' . $row);
+            $sheet->setCellValue('A' . $row, 'TOTAL NETO A PAGAR:');
+            $sheet->setCellValue('D' . $row, $totals['total_neto']);
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('A' . $row . ':D' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                  ->getStartColor()->setARGB('FFCCCCFF');
+
+            // ===== AJUSTAR ANCHOS DE COLUMNA =====
+            $sheet->getColumnDimension('A')->setWidth(15);
+            $sheet->getColumnDimension('B')->setWidth(20);
+            $sheet->getColumnDimension('C')->setWidth(40);
+            $sheet->getColumnDimension('D')->setWidth(15);
+            $sheet->getColumnDimension('E')->setWidth(15);
+
+            // ===== BORDES =====
+            $lastRow = $row;
+            $sheet->getStyle('A5:D' . $lastRow)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'FF000000']
+                    ]
+                ]
+            ]);
+
+            // Generar nombre de archivo
+            $filename = 'Liquidacion_' . ($employee_info ? preg_replace('/[^A-Za-z0-9_]/', '_', $employee_info['name']) : 'Planilla') .
+                       '_' . date('Y-m-d', strtotime($payroll['fecha'])) . '.xlsx';
+
+            // Configurar headers para descarga
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+            exit;
+
+        } catch (PDOException $e) {
+            error_log("Error generating Excel: " . $e->getMessage());
+            $this->setToastrMessage('error', 'Error al generar Excel: ' . $e->getMessage(), 'Error de Exportación');
+            $this->redirect('/panel/liquidation/payroll-detail/' . $payroll_id);
+        } catch (\Exception $e) {
+            error_log("Error generating Excel: " . $e->getMessage());
+            $this->setToastrMessage('error', 'Error al generar Excel: ' . $e->getMessage(), 'Error de Exportación');
+            $this->redirect('/panel/liquidation/payroll-detail/' . $payroll_id);
+        }
+    }
 }

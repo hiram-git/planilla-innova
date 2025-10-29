@@ -616,6 +616,10 @@ class App
                                     } elseif ($url[2] === 'payroll-detail' && isset($url[3]) && method_exists($this->controller, 'payrollDetail')) {
                                         $this->method = 'payrollDetail';
                                         $this->params = [$url[3]];
+                                    } elseif ($url[2] === 'payroll-excel' && isset($url[3]) && method_exists($this->controller, 'exportPayrollExcel')) {
+                                        // Ruta: /panel/liquidation/payroll-excel/{id}
+                                        $this->method = 'exportPayrollExcel';
+                                        $this->params = [$url[3]]; // payroll_id
                                     } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
                                         $this->method = 'edit';
                                         $this->params = [$url[3]];

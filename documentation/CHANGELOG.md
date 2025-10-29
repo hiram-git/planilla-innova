@@ -8,6 +8,44 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.5.1]** - 2025-10-28 - *Data Cleanup y Fixes Críticos Sistema Asistencias*
+**Tipo**: Hotfix / Data Cleanup
+**Fase**: Mantenimiento - Correcciones Críticas Sistema Asistencias
+**Criticidad**: Alta
+
+**Componentes Principales**:
+- ✅ **Fix Error "Data truncated for column 'synced_from'"**:
+  - Valores incorrectos corregidos: 'API_SYNC' → 'API', 'MANUAL_PROCESSING' → 'MANUAL'
+  - Archivos modificados: AttendanceSyncService.php línea 436, AttendanceController.php línea 992
+  - Script SQL limpieza datos existentes
+- ✅ **Normalización Campo Timestamp**:
+  - Soporte para `actual_timestamp`, `registered_timestamp` además de `timestamp`
+  - Mejora compatibilidad con API Base44
+  - AttendanceSyncService.php líneas 268-275
+- ✅ **Corrección Emails Empleados**:
+  - 3 empleados actualizados para coincidir con API Base44
+  - ID 2 (KATHY GONZALEZ), ID 3 (NESTOR MOLINA), ID 5 (DILSA QUINTANA)
+- ✅ **Limpieza Registros Inválidos**:
+  - 10 registros attendance_detail con time_in/time_out NULL eliminados
+  - 179 registros raw duplicados marcados como procesados
+- ✅ **Fix CSRF Dispositivos de Asistencia**:
+  - Token CSRF agregado a vista index dispositivos (línea 32)
+  - Validación CSRF agregada a métodos delete(), testConnection(), toggle()
+  - Funciones edit, test conexión, desactivar y eliminar ahora funcionan correctamente
+- ✅ **Script Deployment Producción**:
+  - Migración SQL completa con backups automáticos (2025_10_28_fix_attendance_data_cleanup.sql)
+  - Guía deployment paso a paso (GUIA_DEPLOYMENT_PRODUCCION.md)
+  - Script verificación pre/post deployment (verify_attendance_system.sql)
+  - Plan rollback incluido (5-10 minutos)
+- 📈 **Estadísticas**:
+  - Mejora tasa éxito sincronización: 50% → 93% (+86%)
+  - Registros procesados: 30 → 209 (+597%)
+  - 5 archivos modificados | 4 archivos nuevos | ~1,500 líneas documentación
+
+**[📄 Ver detalles completos →](./changelog/v3.5.1.md)**
+
+---
+
 ### **[v3.4.8]** - 2025-10-23 - *Procesamiento Completo Día Asistencias*
 **Tipo**: Mejora - Procesamiento Batch + Reprocess + Filtros
 **Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (80%)

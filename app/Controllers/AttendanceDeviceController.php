@@ -28,7 +28,8 @@ class AttendanceDeviceController extends Controller
         $this->render('admin/attendance/devices/index', [
             'devices' => $devices,
             'stats' => $stats,
-            'title' => 'Dispositivos de Marcación'
+            'title' => 'Dispositivos de Marcación',
+            'csrf_token' => Security::generateToken()
         ]);
     }
 
@@ -167,6 +168,9 @@ class AttendanceDeviceController extends Controller
     public function delete($id)
     {
         try {
+            // Validar CSRF token
+            AuthMiddleware::validateCSRF();
+
             $device = $this->deviceModel->getById($id);
 
             if (!$device) {
@@ -205,6 +209,9 @@ class AttendanceDeviceController extends Controller
     public function testConnection($id)
     {
         try {
+            // Validar CSRF token
+            AuthMiddleware::validateCSRF();
+
             $device = $this->deviceModel->getById($id);
 
             if (!$device) {
@@ -276,6 +283,9 @@ class AttendanceDeviceController extends Controller
     public function toggle($id)
     {
         try {
+            // Validar CSRF token
+            AuthMiddleware::validateCSRF();
+
             $device = $this->deviceModel->getById($id);
 
             if (!$device) {

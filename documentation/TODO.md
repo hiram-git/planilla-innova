@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.4.8** *(23 Oct 2025)*
+## 🎯 **ESTADO ACTUAL V3.5.1** *(28 Oct 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -25,7 +25,8 @@
 - **Integración UI Calculadores**: ✅ Subfase 7.2 Completada *(V3.4.5)*
 - **Sistema Alertas Legales**: ✅ Subfase 7.3 Completada *(V3.4.6)*
 - **Integración Planillas-Asistencias**: ✅ Subfase 7.4 Completada *(V3.4.7)*
-- **🆕 Procesamiento Completo Día**: ✅ Subfase 7.2 80% Completada *(V3.4.8)*
+- **Procesamiento Completo Día**: ✅ Subfase 7.2 80% Completada *(V3.4.8)*
+- **🆕 Data Cleanup & Fixes Críticos**: ✅ Hotfix Completado *(V3.5.1)*
 
 ---
 
@@ -422,6 +423,15 @@
 ---
 
 ## 🎯 **TAREAS COMPLETADAS RECIENTES**
+
+### ✅ **V3.5.1 - Data Cleanup y Fixes Críticos Asistencias** *(28 Oct 2025)*
+- [x] **Fix Error synced_from**: Corrección valores ENUM 'API_SYNC' → 'API', 'MANUAL_PROCESSING' → 'MANUAL'
+- [x] **Normalización Timestamp**: Soporte `actual_timestamp`, `registered_timestamp` en API Base44
+- [x] **Corrección Emails**: 3 empleados actualizados para coincidir con API
+- [x] **Limpieza Registros**: 10 registros NULL eliminados + 179 duplicados procesados
+- [x] **Fix CSRF Dispositivos**: Token CSRF + validación en delete/testConnection/toggle
+- [x] **Script Deployment**: Migración SQL + guía paso a paso + script verificación
+- [x] **Mejora Sincronización**: Tasa éxito 50% → 93% (+86%)
 
 ### ✅ **V3.3.14 - Sidebar Menu Toggle Fix** *(4 Oct 2025)*
 - [x] **Fix Toggle Menú**: Corrección expand/collapse sidebar funcionando perfectamente

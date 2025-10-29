@@ -989,7 +989,7 @@ class AttendanceController extends Controller
                 $headerId = $this->headerModel->create([
                     'attendance_date' => $date,
                     'device_id' => null,
-                    'synced_from' => 'MANUAL_PROCESSING',
+                    'synced_from' => 'MANUAL',
                     'total_records' => 0,
                     'total_employees' => 0
                 ]);
