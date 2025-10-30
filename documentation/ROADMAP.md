@@ -1,9 +1,9 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 28 de Octubre, 2025
-**Versión**: 3.5.1 - Data Cleanup y Fixes Críticos Sistema Asistencias (Hotfix - 100%)
-**Versión Anterior**: 3.4.8 - Procesamiento Completo Día Asistencias (Subfase 7.2 - 80%)
+**Fecha**: 30 de Octubre, 2025
+**Versión**: 3.5.2 - Mejora Reportes PDF/Excel Liquidaciones (Mejora UX - 100%)
+**Versión Anterior**: 3.5.1 - Data Cleanup y Fixes Críticos Sistema Asistencias (Hotfix - 100%)
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -269,6 +269,7 @@
 **Tiempo Estimado**: 6-8 semanas
 **Estado**: 🟢 En Desarrollo (85% completado - Subfases 7.1, 7.2, 7.3 y 7.4 completadas)
 **Hotfix v3.5.1**: ✅ Correcciones críticas synced_from + data cleanup + CSRF dispositivos (28-Oct-2025)
+**Mejora v3.5.2**: ✅ Reportes PDF/Excel liquidaciones con campos adicionales y firmas (30-Oct-2025)
 
 - [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
   - [x] Base44ApiClient (367 líneas): Cliente HTTP cURL + retry logic + backoff exponencial

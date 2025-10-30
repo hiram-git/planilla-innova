@@ -1,10 +1,10 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.5.1** *(28 Oct 2025)*
+## 🎯 **ESTADO ACTUAL V3.5.2** *(30 Oct 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
-- **Liquidaciones Panamá**: ✅ 100% Completado
+- **Liquidaciones Panamá**: ✅ 100% Completado (Reportes PDF/Excel Mejorados)
 - **Separación Empleados**: ✅ 100% Completado
 - **JavaScript Modular**: ✅ 100% Completado
 - **AJAX DataTables**: ✅ 100% Completado
@@ -27,6 +27,7 @@
 - **Integración Planillas-Asistencias**: ✅ Subfase 7.4 Completada *(V3.4.7)*
 - **Procesamiento Completo Día**: ✅ Subfase 7.2 80% Completada *(V3.4.8)*
 - **🆕 Data Cleanup & Fixes Críticos**: ✅ Hotfix Completado *(V3.5.1)*
+- **🆕 Mejora Reportes Liquidaciones**: ✅ Completado *(V3.5.2)*
 
 ---
 
@@ -423,6 +424,16 @@
 ---
 
 ## 🎯 **TAREAS COMPLETADAS RECIENTES**
+
+### ✅ **V3.5.2 - Mejora Reportes PDF/Excel Liquidaciones** *(30 Oct 2025)*
+- [x] **Campos Adicionales Reportes**: Fecha Fin Contrato, Posición, Tiempo en Empresa, Salario
+- [x] **Cálculo Automático Tiempo**: DateTime::diff() para calcular "X años, Y meses, Z días"
+- [x] **Sección Firmas Profesionales**: 3 columnas (Autorizado por, Elaborado por, Recibido por)
+- [x] **Query SQL Optimizado**: JOINs adicionales (posiciones, cargos, employee_terminations)
+- [x] **Implementación Dual**: exportPayrollPdf() + exportPayrollExcel() actualizados
+- [x] **Formato Profesional**: Líneas para firma física en PDF + formato centrado en Excel
+- [x] **Archivos Modificados**: LiquidationController.php (~250 líneas agregadas)
+- [x] **Sin Cambios BD**: Solo código, deployment 5-10 minutos
 
 ### ✅ **V3.5.1 - Data Cleanup y Fixes Críticos Asistencias** *(28 Oct 2025)*
 - [x] **Fix Error synced_from**: Corrección valores ENUM 'API_SYNC' → 'API', 'MANUAL_PROCESSING' → 'MANUAL'

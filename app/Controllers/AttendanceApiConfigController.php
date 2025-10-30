@@ -8,6 +8,7 @@ use App\Middleware\AuthMiddleware;
 use App\Models\AttendanceApiConfig;
 use App\Services\Attendance\Base44ApiClient;
 use App\Services\Attendance\AttendanceSyncService;
+use App\Services\Attendance\RecordsProcessor;
 use Exception;
 
 /**
@@ -196,12 +197,16 @@ class AttendanceApiConfigController extends Controller
             $stats = [];
 
             // Ejecutar sincronización según el tipo
+            $dateFrom = null;
+            $dateTo = null;
+
             switch ($syncType) {
                 case 'today':
                     // Sincronizar solo el día actual
                     $today = date('Y-m-d');
                     $stats = $syncService->syncByDateRange($today, $today);
                     $syncLabel = 'día actual (' . date('d/m/Y') . ')';
+                    $dateFrom = $dateTo = $today;
                     break;
 
                 case 'daterange':
@@ -218,6 +223,8 @@ class AttendanceApiConfigController extends Controller
 
                     $stats = $syncService->syncByDateRange($startDate, $endDate);
                     $syncLabel = "rango " . date('d/m/Y', strtotime($startDate)) . " - " . date('d/m/Y', strtotime($endDate));
+                    $dateFrom = $startDate;
+                    $dateTo = $endDate;
                     break;
 
                 case 'full':
@@ -225,20 +232,34 @@ class AttendanceApiConfigController extends Controller
                     // Sincronizar todo
                     $stats = $syncService->syncAll();
                     $syncLabel = 'completa';
+                    // Para full sync, procesar todos los registros pendientes
                     break;
             }
 
+            // PASO 2: Procesar registros a detalles (attendance_records → attendance_detail + header)
+            $processor = new RecordsProcessor();
+            $processStats = [];
+
+            if ($dateFrom && $dateTo) {
+                // Procesar rango específico
+                $processStats = $processor->processToDetails($dateFrom, $dateTo);
+            } else {
+                // Procesar todos los registros pendientes
+                $processStats = $processor->processUpToDate();
+            }
+
             $message = sprintf(
-                'Sincronización %s: %d obtenidos, %d insertados, %d actualizados, %d omitidos, %d errores',
+                'Sincronización %s: %d obtenidos, %d insertados en records, %d omitidos, %d errores | Procesamiento: %d detalles creados, %d actualizados',
                 $syncLabel,
                 $stats['fetched'],
                 $stats['inserted'],
-                $stats['updated'],
                 $stats['skipped'],
-                $stats['errors']
+                $stats['errors'],
+                $processStats['details_created'] ?? 0,
+                $processStats['details_updated'] ?? 0
             );
 
-            if ($stats['errors'] > 0) {
+            if ($stats['errors'] > 0 || ($processStats['errors'] ?? 0) > 0) {
                 $this->setFlashMessage('warning', $message);
             } else {
                 $this->setFlashMessage('success', $message);

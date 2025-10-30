@@ -1,9 +1,10 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.4.8 Procesamiento Completo Día Asistencias**
-- **Fecha**: 23 de Octubre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 85%**
-- **Versión**: 3.4.8 - Procesamiento completo día (pipeline 3 pasos) + reprocess + filtros tipo planilla + fixes críticos
+## 📝 **Estado Actual - V3.5.2 Mejora Reportes Liquidaciones**
+- **Fecha**: 30 de Octubre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 85% + LIQUIDACIONES PROFESIONALES 100%**
+- **Versión**: 3.5.2 - Mejora reportes PDF/Excel liquidaciones con campos adicionales y firmas profesionales
+- **Versión Anterior**: 3.5.1 - Hotfix crítico synced_from + data cleanup + normalización timestamp + CSRF dispositivos
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -23,6 +24,7 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Calendario Empresarial**: BusinessCalendar model + feriados Panamá 2024-2025 + FullCalendar.js
 - ✅ **API Asistencias Base44 V3.4.0**: Cliente API + sincronización automática + webhook + 3 tablas BD
 - ✅ **Sistema Asistencias V3.4.1-3.4.8**: Migraciones BD + Vistas separadas + Calculadores Core + UI integración + AlertsSystem + PayrollAttendanceIntegrator + Mapeo automático + Procesamiento batch día + Reprocess (85% Subfases 7.1-7.4 completadas | 80% Subfase 7.2)
+- ✅ **Hotfix V3.5.1**: Fix crítico synced_from ENUM + data cleanup + normalización timestamp API Base44 + CSRF dispositivos + deployment scripts
 
 ## 📄 **Sistemas Auxiliares Implementados**
 
@@ -127,6 +129,61 @@ Jornada ordinaria 8h/48h semanales (Art.31) | Jornada nocturna 6PM-6AM +50% (Art
 - [ ] Vista gerencial: dashboard asistencias por departamento
 - [ ] Exportación: Excel, PDF, CSV reportes de asistencias
 
+### **Versión V3.5.2: Mejora Reportes Liquidaciones** ✅ (30-Oct-2025)
+
+**Mejoras Implementadas**:
+1. **Campos Adicionales Reportes PDF/Excel** (LiquidationController.php):
+   - Fecha Fin de Contrato (desde employee_terminations.termination_date)
+   - Posición (desde tabla cargos vía posiciones)
+   - Tiempo en Empresa (calculado automáticamente: "X años, Y meses, Z días")
+   - Salario (desde employees.sueldo_individual con formato $X,XXX.XX)
+2. **Sección Firmas Profesionales**:
+   - 3 columnas: Autorizado por (Gerencia) | Elaborado por (RRHH) | Recibido por (Colaborador)
+   - Líneas para firma física en PDF con espaciado optimizado
+   - Formato profesional en Excel con alineación centrada
+3. **Mejoras SQL Queries**:
+   - JOINs adicionales: posiciones, cargos, employee_terminations
+   - Query optimizado para obtener información completa en una consulta
+4. **Cálculo Inteligente Tiempo Empresa**:
+   - Usa DateTime::diff() para precisión
+   - Formato humanizado ("X años, Y meses, Z días")
+   - Maneja casos especiales (0 días, menos de 1 mes, etc.)
+
+**Archivos Modificados**:
+- LiquidationController.php: exportPayrollPdf() (~300 líneas), exportPayrollExcel() (~280 líneas)
+
+**Estadísticas**: 1 archivo | 2 métodos | ~250 líneas agregadas | 4 campos nuevos | 1 sección firmas | 3 JOINs SQL | 0 cambios BD
+
+### **Hotfix V3.5.1: Data Cleanup & Fixes Críticos** ✅ (28-Oct-2025)
+
+**Problema Crítico**: Error "Data truncated for column 'synced_from'" bloqueaba sincronización asistencias.
+
+**Correcciones Aplicadas**:
+1. **Fix synced_from ENUM** (AttendanceSyncService.php línea 436, AttendanceController.php línea 992):
+   - 'API_SYNC' → 'API'
+   - 'MANUAL_PROCESSING' → 'MANUAL'
+2. **Normalización Timestamp** (AttendanceSyncService.php líneas 268-275):
+   - Soporte `actual_timestamp`, `registered_timestamp` además de `timestamp`
+   - Mejora compatibilidad API Base44
+3. **Corrección Emails Empleados**:
+   - 3 empleados actualizados (ID 2, 3, 5) para coincidir con API Base44
+4. **Limpieza Datos**:
+   - 10 registros attendance_detail con NULL/NULL eliminados
+   - 179 registros raw duplicados marcados como procesados
+5. **Fix CSRF Dispositivos** (AttendanceDeviceController.php):
+   - Token CSRF agregado a vista index (línea 32)
+   - Validación CSRF en delete/testConnection/toggle (líneas 172, 213, 287)
+
+**Scripts Deployment**:
+- Migración SQL: `2025_10_28_fix_attendance_data_cleanup.sql`
+- Guía deployment: `GUIA_DEPLOYMENT_PRODUCCION.md` (24-32 min estimado)
+- Script verificación: `verify_attendance_system.sql`
+
+**Resultados**:
+- Tasa éxito sincronización: **50% → 93%** (+86%)
+- Registros procesados: **30 → 209** (+597%)
+- Todas funciones dispositivos (edit, delete, toggle, test) **ahora funcionan correctamente**
+
 ## 📅 **Calendario Empresarial Panamá** ✅ (V3.3.21-22)
 
 **BD**: Tabla business_calendar con 731 registros (2024-2025), 28 feriados nacionales. Tipos: LABORAL/NO_LABORAL/FERIADO/DUELO/ESPECIAL.
@@ -196,6 +253,7 @@ A partir de la versión 3.4.1, cada versión tiene su propio archivo en `documen
 - **Índice**: `CHANGELOG.md` sirve como índice con enlaces a archivos individuales
 - **Template**: Copiar estructura de versiones existentes para nuevas versiones
 - **Convenciones**: Incluir fecha, tipo, componentes, estadísticas y referencias cruzadas
+- **Última Versión**: v3.5.2 (30-Oct-2025) - Mejora reportes liquidaciones PDF/Excel
 
       
       IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.

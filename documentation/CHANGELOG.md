@@ -8,6 +8,38 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.5.2]** - 2025-10-30 - *Mejora Reportes PDF/Excel Liquidaciones*
+**Tipo**: Mejora - Reportes de Liquidación
+**Fase**: Mejora de UX - Documentación Profesional
+**Criticidad**: Media
+
+**Componentes Principales**:
+- ✅ **Campos Adicionales en Reportes** (4 nuevos campos):
+  - Fecha Fin de Contrato (desde employee_terminations)
+  - Posición (desde tabla cargos)
+  - Tiempo en la Empresa (calculado automáticamente: "X años, Y meses, Z días")
+  - Salario (desde employees.sueldo_individual con formato $X,XXX.XX)
+- ✅ **Sección de Firmas Profesionales**:
+  - 3 columnas: Autorizado por (Gerencia), Elaborado por (RRHH), Recibido por (Colaborador)
+  - Líneas para firma física en PDF
+  - Formato profesional en Excel
+  - Espaciado optimizado para impresión
+- ✅ **Mejoras SQL Queries**:
+  - JOINs adicionales a posiciones, cargos, employee_terminations
+  - Query optimizado para obtener toda la información en una sola consulta
+- ✅ **Implementación Dual**:
+  - Método exportPayrollPdf() actualizado (~300 líneas modificadas)
+  - Método exportPayrollExcel() actualizado (~280 líneas modificadas)
+  - Cálculo de tiempo en empresa reutilizable
+- 📈 **Estadísticas**:
+  - 1 archivo modificado | 2 métodos actualizados | ~250 líneas código agregadas
+  - 4 campos nuevos | 1 sección nueva (firmas) | 3 JOINs SQL adicionales
+  - 0 cambios en BD | Deployment: 5-10 minutos
+
+**[📄 Ver detalles completos →](./changelog/v3.5.2.md)**
+
+---
+
 ### **[v3.5.1]** - 2025-10-28 - *Data Cleanup y Fixes Críticos Sistema Asistencias*
 **Tipo**: Hotfix / Data Cleanup
 **Fase**: Mantenimiento - Correcciones Críticas Sistema Asistencias
@@ -380,6 +412,6 @@ Al crear una nueva versión:
 
 ---
 
-**Última Actualización**: 28 de Octubre, 2025
-**Sistema**: Planillas MVC v3.5.1
-**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 85%
+**Última Actualización**: 30 de Octubre, 2025
+**Sistema**: Planillas MVC v3.5.2
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 85% | Liquidaciones 100%

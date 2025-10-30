@@ -308,6 +308,30 @@ class AttendanceSyncService
     }
 
     /**
+     * Mapear tipo de marcación del API a ENUM punch_type
+     * @param string $apiType Tipo desde API (entrada, salida, etc.)
+     * @return string Valor ENUM (CHECK_IN o CHECK_OUT)
+     */
+    private function mapPunchType($apiType)
+    {
+        $apiType = strtolower(trim($apiType));
+
+        // Mapeo de tipos Base44 a ENUM punch_type
+        $mapping = [
+            'entrada' => 'CHECK_IN',
+            'entrada_almuerzo' => 'CHECK_IN',
+            'check_in' => 'CHECK_IN',
+            'in' => 'CHECK_IN',
+            'salida' => 'CHECK_OUT',
+            'salida_almuerzo' => 'CHECK_OUT',
+            'check_out' => 'CHECK_OUT',
+            'out' => 'CHECK_OUT'
+        ];
+
+        return $mapping[$apiType] ?? 'CHECK_IN';
+    }
+
+    /**
      * Guardar marcación en attendance_records (capa intermedia)
      * @param array $rawData Datos del API
      * @param int $rawDataId ID en attendance_raw_data
@@ -341,15 +365,19 @@ class AttendanceSyncService
 
             // 2. Preparar datos para attendance_records
             $timestamp = $rawData['timestamp'];
-            $punchType = strtoupper($rawData['type'] ?? 'CHECK_IN');
+            $punchType = $this->mapPunchType($rawData['type'] ?? 'entrada');
+
+            // Convertir timestamp ISO 8601 a formato MySQL
+            $timestampObj = new \DateTime($timestamp);
+            $mysqlTimestamp = $timestampObj->format('Y-m-d H:i:s');
 
             $recordData = [
                 'raw_data_id' => $rawDataId,
                 'external_id' => $rawData['id'] ?? null,
                 'employee_id' => $employee['id'],
-                'timestamp' => $timestamp,
-                'punch_date' => date('Y-m-d', strtotime($timestamp)),
-                'punch_time' => date('H:i:s', strtotime($timestamp)),
+                'timestamp' => $mysqlTimestamp,
+                'punch_date' => $timestampObj->format('Y-m-d'),
+                'punch_time' => $timestampObj->format('H:i:s'),
                 'punch_type' => $punchType,
                 'device_id' => null,
                 'device_serial' => $rawData['device_serial'] ?? null,
@@ -363,7 +391,6 @@ class AttendanceSyncService
 
             // 4. Verificar si ya existe
             if ($this->recordModel->existsByHash($recordData['record_hash'])) {
-                error_log("Record duplicado detectado: {$recordData['record_hash']}");
                 return false;
             }
 
@@ -371,7 +398,7 @@ class AttendanceSyncService
             $recordId = $this->recordModel->create($recordData);
 
             if ($recordId) {
-                error_log("Record creado ID {$recordId} para empleado {$employee['id']} - {$punchType} {$timestamp}");
+                error_log("Record creado ID {$recordId} para empleado {$employee['id']} - {$punchType} {$mysqlTimestamp}");
                 return true;
             }
 

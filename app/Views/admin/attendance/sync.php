@@ -504,7 +504,10 @@
     </div>
 </div>
 
-<!-- Scripts -->
+<?php
+// Scripts que se cargarán después de jQuery
+ob_start();
+?>
 <script>
 $(document).ready(function() {
     // Select2 para empleados
@@ -648,3 +651,6 @@ $(document).ready(function() {
     });
 });
 </script>
+<?php
+$scripts = ob_get_clean();
+?>
