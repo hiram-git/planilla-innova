@@ -1869,57 +1869,57 @@ class LiquidationController extends Controller
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Nombre:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['name'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['name'], 0, 1);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Cédula:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['cedula'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['cedula'], 0, 0);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Posición:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['position'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['position'], 0, 1);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Departamento:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['departamento'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['departamento'], 0, 0);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Salario:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, '$' . number_format($employee_info['salario'], 2), 0, 1);
+                $pdf->Cell(50, 6, '$' . number_format($employee_info['salario'], 2), 0, 1);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Fecha de Ingreso:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, date('d/m/Y', strtotime($employee_info['fecha_ingreso'])), 0, 1);
+                $pdf->Cell(50, 6, date('d/m/Y', strtotime($employee_info['fecha_ingreso'])), 0, 0);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Fecha Fin Contrato:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, date('d/m/Y', strtotime($employee_info['fecha_terminacion'])), 0, 1);
+                $pdf->Cell(50, 6, date('d/m/Y', strtotime($employee_info['fecha_terminacion'])), 0, 1);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Tiempo en Empresa:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['tiempo_empresa'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['tiempo_empresa'], 0, 0);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Motivo de Liquidación:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['motivo_liquidacion'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['motivo_liquidacion'], 0, 1);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Con Preaviso:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['con_preaviso'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['con_preaviso'], 0, 0);
 
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Días de Preaviso:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, $employee_info['dias_preaviso'], 0, 1);
+                $pdf->Cell(50, 6, $employee_info['dias_preaviso'], 0, 1);
 
                 $pdf->Ln(5);
             }
@@ -1935,7 +1935,7 @@ class LiquidationController extends Controller
             $colMonto = $availableWidth * 0.25;
 
             // ===== ASIGNACIONES =====
-            $pdf->SetFillColor(144, 238, 144); // Verde claro
+            $pdf->SetFillColor(255, 165, 0); // Verde claro
             $pdf->SetFont('helvetica', 'B', 11);
             $pdf->Cell(0, 7, 'ASIGNACIONES', 1, 1, 'L', true);
 
@@ -1956,7 +1956,7 @@ class LiquidationController extends Controller
             }
 
             // Total asignaciones
-            $pdf->SetFillColor(204, 255, 204); // Verde muy claro
+            $pdf->SetFillColor(255, 200, 150); // Verde muy claro
             $pdf->SetFont('helvetica', 'B', 9);
             $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL ASIGNACIONES:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 6, '$' . number_format($totals['total_asignaciones'], 2), 1, 1, 'R', true);
@@ -1991,7 +1991,7 @@ class LiquidationController extends Controller
             $pdf->Ln(5);
 
             // ===== TOTAL NETO =====
-            $pdf->SetFillColor(204, 204, 255); // Azul/morado claro
+            $pdf->SetFillColor(73, 166, 225); // Azul/morado claro
             $pdf->SetFont('helvetica', 'B', 12);
             $pdf->Cell($colCodigo + $colDescripcion, 8, 'TOTAL NETO A PAGAR:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 8, '$' . number_format($totals['total_neto'], 2), 1, 1, 'R', true);
