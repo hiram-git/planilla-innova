@@ -36,6 +36,16 @@ class AttendanceApiConfig extends Model
     }
 
     /**
+     * Obtener la última configuración (independientemente del estado enabled/disabled)
+     * @return array|null
+     */
+    public function getLatestConfig()
+    {
+        $sql = "SELECT * FROM {$this->table} ORDER BY id DESC LIMIT 1";
+        return $this->db->find($sql);
+    }
+
+    /**
      * Obtener configuración por proveedor
      * @param string $provider Nombre del proveedor (base44, clockify, etc.)
      * @return array|null

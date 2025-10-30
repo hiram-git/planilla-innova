@@ -1383,17 +1383,30 @@ class LiquidationController extends Controller
             // Obtener detalles de la planilla
             $sql = "SELECT pd.*, c.concepto, c.descripcion as concepto_descripcion,
                            c.tipo_concepto, e.employee_id as cedula, e.document_id,
-                           e.fecha_ingreso, org.descripcion as departamento
-                    FROM planilla_detalle pd
+                           e.fecha_ingreso, e.sueldo_individual, org.descripcion as departamento,
+                           cargos.nombre as position_name, et.termination_date,
+                           et.termination_type, et.notice_period_days, et.reason as termination_reason
+                    FROM planilla_cabecera pc
+                    INNER JOIN planilla_detalle pd ON pd.planilla_cabecera_id = pc.id
                     INNER JOIN concepto c ON pd.concepto_id = c.id
                     INNER JOIN employees e ON pd.employee_id = e.id
                     LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    LEFT JOIN cargos ON p.id_cargo = cargos.id
+                    LEFT JOIN employee_terminations et ON et.employee_id = e.id
+                        AND pc.fecha_hasta = et.termination_date
                     WHERE pd.planilla_cabecera_id = ?
                     ORDER BY c.tipo_concepto, c.concepto";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$payroll_id]);
             $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Obtener datos de la empresa para las firmas
+            $sql_company = "SELECT legal_representative, jefe_recursos_humanos FROM companies LIMIT 1";
+            $stmt_company = $this->db->prepare($sql_company);
+            $stmt_company->execute();
+            $company_data = $stmt_company->fetch(PDO::FETCH_ASSOC);
 
             // Calcular totales
             $totals = [
@@ -1406,11 +1419,56 @@ class LiquidationController extends Controller
             $employee_info = null;
             if (!empty($details)) {
                 $first_detail = $details[0];
+
+                // Calcular tiempo en la empresa
+                $tiempo_empresa = 'N/A';
+                if (!empty($first_detail['fecha_ingreso']) && !empty($first_detail['termination_date'])) {
+                    $fecha_inicio = new \DateTime($first_detail['fecha_ingreso']);
+                    $fecha_fin = new \DateTime($first_detail['termination_date']);
+                    $intervalo = $fecha_inicio->diff($fecha_fin);
+
+                    $tiempo_empresa = '';
+                    if ($intervalo->y > 0) {
+                        $tiempo_empresa .= $intervalo->y . ($intervalo->y == 1 ? ' año' : ' años');
+                    }
+                    if ($intervalo->m > 0) {
+                        $tiempo_empresa .= ($tiempo_empresa ? ', ' : '') . $intervalo->m . ($intervalo->m == 1 ? ' mes' : ' meses');
+                    }
+                    if ($intervalo->d > 0) {
+                        $tiempo_empresa .= ($tiempo_empresa ? ', ' : '') . $intervalo->d . ($intervalo->d == 1 ? ' día' : ' días');
+                    }
+                    if (empty($tiempo_empresa)) {
+                        $tiempo_empresa = '0 días';
+                    }
+                }
+
+                // Mapear tipo de terminación a texto legible
+                $termination_types = [
+                    'DESPIDO_CON_CAUSA' => 'Despido con Causa Justificada',
+                    'DESPIDO_SIN_CAUSA' => 'Despido sin Causa Justificada',
+                    'RENUNCIA' => 'Renuncia Voluntaria',
+                    'MUTUO_ACUERDO' => 'Mutuo Acuerdo'
+                ];
+                $termination_type_text = isset($first_detail['termination_type']) && isset($termination_types[$first_detail['termination_type']])
+                    ? $termination_types[$first_detail['termination_type']]
+                    : 'N/A';
+
+                $notice_period_days = $first_detail['notice_period_days'] ?? 0;
+                $con_preaviso = $notice_period_days > 0 ? 'Sí' : 'No';
+
                 $employee_info = [
                     'name' => $first_detail['firstname'] . ' ' . $first_detail['lastname'],
                     'cedula' => $first_detail['document_id'] ?? $first_detail['cedula'] ?? 'N/A',
                     'departamento' => $first_detail['departamento'] ?? 'N/A',
-                    'fecha_ingreso' => $first_detail['fecha_ingreso'] ?? 'N/A'
+                    'position' => $first_detail['position_name'] ?? 'N/A',
+                    'fecha_ingreso' => $first_detail['fecha_ingreso'] ?? 'N/A',
+                    'fecha_terminacion' => $first_detail['termination_date'] ?? 'N/A',
+                    'salario' => $first_detail['sueldo_individual'] ?? 0,
+                    'tiempo_empresa' => $tiempo_empresa,
+                    'motivo_liquidacion' => $termination_type_text,
+                    'con_preaviso' => $con_preaviso,
+                    'dias_preaviso' => $notice_period_days,
+                    'razon_terminacion' => $first_detail['termination_reason'] ?? 'N/A'
                 ];
             }
 
@@ -1453,13 +1511,48 @@ class LiquidationController extends Controller
                 $sheet->getStyle('A' . $row)->getFont()->setBold(true);
                 $row++;
 
+                $sheet->setCellValue('A' . $row, 'Posición:');
+                $sheet->setCellValue('B' . $row, $employee_info['position']);
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
                 $sheet->setCellValue('A' . $row, 'Departamento:');
                 $sheet->setCellValue('B' . $row, $employee_info['departamento']);
                 $sheet->getStyle('A' . $row)->getFont()->setBold(true);
                 $row++;
 
+                $sheet->setCellValue('A' . $row, 'Salario:');
+                $sheet->setCellValue('B' . $row, '$' . number_format($employee_info['salario'], 2));
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
                 $sheet->setCellValue('A' . $row, 'Fecha de Ingreso:');
                 $sheet->setCellValue('B' . $row, date('d/m/Y', strtotime($employee_info['fecha_ingreso'])));
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Fecha Fin Contrato:');
+                $sheet->setCellValue('B' . $row, date('d/m/Y', strtotime($employee_info['fecha_terminacion'])));
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Tiempo en Empresa:');
+                $sheet->setCellValue('B' . $row, $employee_info['tiempo_empresa']);
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Motivo de Liquidación:');
+                $sheet->setCellValue('B' . $row, $employee_info['motivo_liquidacion']);
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Con Preaviso:');
+                $sheet->setCellValue('B' . $row, $employee_info['con_preaviso']);
+                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+                $row++;
+
+                $sheet->setCellValue('A' . $row, 'Días de Preaviso:');
+                $sheet->setCellValue('B' . $row, $employee_info['dias_preaviso']);
                 $sheet->getStyle('A' . $row)->getFont()->setBold(true);
                 $row += 2;
             }
@@ -1541,6 +1634,44 @@ class LiquidationController extends Controller
             $sheet->getStyle('A' . $row . ':D' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                   ->getStartColor()->setARGB('FFCCCCFF');
 
+            // ===== SECCIÓN DE FIRMAS =====
+            $row += 4; // Espacio antes de firmas
+
+            // Líneas para firmas
+            $sheet->setCellValue('A' . $row, '____________________');
+            $sheet->setCellValue('B' . $row, '____________________');
+            $sheet->setCellValue('C' . $row, '____________________');
+            $sheet->getStyle('A' . $row . ':C' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $row++;
+
+            // Etiquetas de firmas
+            $sheet->setCellValue('A' . $row, 'Autorizado por');
+            $sheet->setCellValue('B' . $row, 'Elaborado por');
+            $sheet->setCellValue('C' . $row, 'Recibido por');
+            $sheet->getStyle('A' . $row . ':C' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('A' . $row . ':C' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $row++;
+
+            // Nombres de quien firma
+            $gerencia_name = $company_data['legal_representative'] ?? 'N/A';
+            $rrhh_name = $company_data['jefe_recursos_humanos'] ?? 'N/A';
+            $empleado_name = $employee_info ? $employee_info['name'] : 'N/A';
+            $empleado_cedula = $employee_info ? $employee_info['cedula'] : 'N/A';
+
+            $sheet->setCellValue('A' . $row, $gerencia_name);
+            $sheet->setCellValue('B' . $row, $rrhh_name);
+            $sheet->setCellValue('C' . $row, $empleado_name);
+            $sheet->getStyle('A' . $row . ':C' . $row)->getFont()->setSize(9);
+            $sheet->getStyle('A' . $row . ':C' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $row++;
+
+            // Subtextos (cargo/cédula)
+            $sheet->setCellValue('A' . $row, '(Gerencia)');
+            $sheet->setCellValue('B' . $row, '(Recursos Humanos)');
+            $sheet->setCellValue('C' . $row, 'Cédula: ' . $empleado_cedula);
+            $sheet->getStyle('A' . $row . ':C' . $row)->getFont()->setSize(8);
+            $sheet->getStyle('A' . $row . ':C' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
             // ===== AJUSTAR ANCHOS DE COLUMNA =====
             $sheet->getColumnDimension('A')->setWidth(15);
             $sheet->getColumnDimension('B')->setWidth(20);
@@ -1608,19 +1739,32 @@ class LiquidationController extends Controller
             }
 
             // Obtener detalles de la planilla
-            $sql = "SELECT pd.*, c.concepto, c.descripcion as concepto_descripcion,
+           $sql = "SELECT pd.*, c.concepto, c.descripcion as concepto_descripcion,
                            c.tipo_concepto, e.employee_id as cedula, e.document_id,
-                           e.fecha_ingreso, org.descripcion as departamento
-                    FROM planilla_detalle pd
+                           e.fecha_ingreso, e.sueldo_individual, org.descripcion as departamento,
+                           cargos.nombre as position_name, et.termination_date,
+                           et.termination_type, et.notice_period_days, et.reason as termination_reason
+                    FROM planilla_cabecera pc
+                    INNER JOIN planilla_detalle pd ON pd.planilla_cabecera_id = pc.id
                     INNER JOIN concepto c ON pd.concepto_id = c.id
                     INNER JOIN employees e ON pd.employee_id = e.id
                     LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    LEFT JOIN cargos ON p.id_cargo = cargos.id
+                    LEFT JOIN employee_terminations et ON et.employee_id = e.id
+                        AND pc.fecha_hasta = et.termination_date
                     WHERE pd.planilla_cabecera_id = ?
                     ORDER BY c.tipo_concepto, c.concepto";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$payroll_id]);
             $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Obtener datos de la empresa para las firmas
+            $sql_company = "SELECT legal_representative, jefe_recursos_humanos FROM companies LIMIT 1";
+            $stmt_company = $this->db->prepare($sql_company);
+            $stmt_company->execute();
+            $company_data = $stmt_company->fetch(PDO::FETCH_ASSOC);
 
             // Calcular totales
             $totals = [
@@ -1633,11 +1777,56 @@ class LiquidationController extends Controller
             $employee_info = null;
             if (!empty($details)) {
                 $first_detail = $details[0];
+
+                // Calcular tiempo en la empresa
+                $tiempo_empresa = 'N/A';
+                if (!empty($first_detail['fecha_ingreso']) && !empty($first_detail['termination_date'])) {
+                    $fecha_inicio = new \DateTime($first_detail['fecha_ingreso']);
+                    $fecha_fin = new \DateTime($first_detail['termination_date']);
+                    $intervalo = $fecha_inicio->diff($fecha_fin);
+
+                    $tiempo_empresa = '';
+                    if ($intervalo->y > 0) {
+                        $tiempo_empresa .= $intervalo->y . ($intervalo->y == 1 ? ' año' : ' años');
+                    }
+                    if ($intervalo->m > 0) {
+                        $tiempo_empresa .= ($tiempo_empresa ? ', ' : '') . $intervalo->m . ($intervalo->m == 1 ? ' mes' : ' meses');
+                    }
+                    if ($intervalo->d > 0) {
+                        $tiempo_empresa .= ($tiempo_empresa ? ', ' : '') . $intervalo->d . ($intervalo->d == 1 ? ' día' : ' días');
+                    }
+                    if (empty($tiempo_empresa)) {
+                        $tiempo_empresa = '0 días';
+                    }
+                }
+
+                // Mapear tipo de terminación a texto legible
+                $termination_types = [
+                    'DESPIDO_CON_CAUSA' => 'Despido con Causa Justificada',
+                    'DESPIDO_SIN_CAUSA' => 'Despido sin Causa Justificada',
+                    'RENUNCIA' => 'Renuncia Voluntaria',
+                    'MUTUO_ACUERDO' => 'Mutuo Acuerdo'
+                ];
+                $termination_type_text = isset($first_detail['termination_type']) && isset($termination_types[$first_detail['termination_type']])
+                    ? $termination_types[$first_detail['termination_type']]
+                    : 'N/A';
+
+                $notice_period_days = $first_detail['notice_period_days'] ?? 0;
+                $con_preaviso = $notice_period_days > 0 ? 'Sí' : 'No';
+
                 $employee_info = [
                     'name' => $first_detail['firstname'] . ' ' . $first_detail['lastname'],
                     'cedula' => $first_detail['document_id'] ?? $first_detail['cedula'] ?? 'N/A',
                     'departamento' => $first_detail['departamento'] ?? 'N/A',
-                    'fecha_ingreso' => $first_detail['fecha_ingreso'] ?? 'N/A'
+                    'position' => $first_detail['position_name'] ?? 'N/A',
+                    'fecha_ingreso' => $first_detail['fecha_ingreso'] ?? 'N/A',
+                    'fecha_terminacion' => $first_detail['termination_date'] ?? 'N/A',
+                    'salario' => $first_detail['sueldo_individual'] ?? 0,
+                    'tiempo_empresa' => $tiempo_empresa,
+                    'motivo_liquidacion' => $termination_type_text,
+                    'con_preaviso' => $con_preaviso,
+                    'dias_preaviso' => $notice_period_days,
+                    'razon_terminacion' => $first_detail['termination_reason'] ?? 'N/A'
                 ];
             }
 
@@ -1676,6 +1865,7 @@ class LiquidationController extends Controller
 
             // ===== INFORMACIÓN DEL EMPLEADO =====
             if ($employee_info) {
+                // Columna izquierda
                 $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Nombre:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
@@ -1687,14 +1877,50 @@ class LiquidationController extends Controller
                 $pdf->Cell(0, 6, $employee_info['cedula'], 0, 1);
 
                 $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Posición:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['position'], 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Departamento:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
                 $pdf->Cell(0, 6, $employee_info['departamento'], 0, 1);
 
                 $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Salario:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, '$' . number_format($employee_info['salario'], 2), 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
                 $pdf->Cell(40, 6, 'Fecha de Ingreso:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
                 $pdf->Cell(0, 6, date('d/m/Y', strtotime($employee_info['fecha_ingreso'])), 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Fecha Fin Contrato:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, date('d/m/Y', strtotime($employee_info['fecha_terminacion'])), 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Tiempo en Empresa:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['tiempo_empresa'], 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Motivo de Liquidación:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['motivo_liquidacion'], 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Con Preaviso:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['con_preaviso'], 0, 1);
+
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(40, 6, 'Días de Preaviso:', 0, 0);
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, $employee_info['dias_preaviso'], 0, 1);
+
                 $pdf->Ln(5);
             }
 
@@ -1769,6 +1995,65 @@ class LiquidationController extends Controller
             $pdf->SetFont('helvetica', 'B', 12);
             $pdf->Cell($colCodigo + $colDescripcion, 8, 'TOTAL NETO A PAGAR:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 8, '$' . number_format($totals['total_neto'], 2), 1, 1, 'R', true);
+
+            // ===== SECCIÓN DE FIRMAS =====
+            $pdf->Ln(15); // Espacio antes de firmas
+            $availableWidth = ($pageWidth - $margins['left'] - $margins['right']) / 3;
+
+            // Calcular ancho de cada columna de firma (3 columnas)
+            $firmaWidth = $availableWidth; // Restar un poco para espacio entre columnas
+
+            $pdf->SetFont('helvetica', '', 9);
+
+            // Primera línea: espacios para firmar
+            $pdf->Cell($firmaWidth, 5, '', 0, 0, 'C'); // Columna 1
+            $pdf->Cell($firmaWidth, 5, '', 0, 0, 'C'); // Columna 2
+            $pdf->Cell($firmaWidth, 5, '', 0, 1, 'C'); // Columna 3
+
+            $pdf->Ln(10); // Espacio para la firma
+
+            // Segunda línea: líneas de firma
+            $pdf->SetFont('helvetica', '', 9);
+            $lineaPadding = 1; // Padding interno para las líneas
+            $pdf->Cell($firmaWidth - ($lineaPadding * 2), 0, '', 'T', 0, 'C'); // Línea firma 1
+            $pdf->Cell($lineaPadding * 2, 5, '', 0, 0); // Espacio entre columnas
+
+            $pdf->Cell($lineaPadding, 5, '', 0, 0); // Padding izquierdo
+            $pdf->Cell($firmaWidth - ($lineaPadding * 2), 0, '', 'T', 0, 'C'); // Línea firma 2
+            $pdf->Cell($lineaPadding * 2, 5, '', 0, 0); // Espacio entre columnas
+
+            $pdf->Cell($lineaPadding, 5, '', 0, 0); // Padding izquierdo
+            $pdf->Cell($firmaWidth - ($lineaPadding * 2), 0, '', 'T', 1, 'C'); // Línea firma 3
+
+            $pdf->Ln(2);
+
+            // Tercera línea: etiquetas de firmas
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->Cell($firmaWidth, 5, 'Autorizado por', 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, 'Elaborado por', 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, 'Recibido por', 0, 1, 'C');
+
+            $pdf->Ln(2);
+
+            // Cuarta línea: Nombres de quien firma
+            $gerencia_name = $company_data['legal_representative'] ?? 'N/A';
+            $rrhh_name = $company_data['jefe_recursos_humanos'] ?? 'N/A';
+            $empleado_name = $employee_info ? $employee_info['name'] : 'N/A';
+
+            $pdf->SetFont('helvetica', '', 9);
+            $pdf->Cell($firmaWidth, 5, $gerencia_name, 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, $rrhh_name, 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, $empleado_name, 0, 1, 'C');
+
+            $pdf->Ln(1);
+
+            // Quinta línea: subtexto (cargo/cédula)
+            $empleado_cedula = $employee_info ? $employee_info['cedula'] : 'N/A';
+
+            $pdf->SetFont('helvetica', '', 8);
+            $pdf->Cell($firmaWidth, 5, '(Gerencia)', 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, '(Recursos Humanos)', 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, 'Cedula: ' . $empleado_cedula, 0, 1, 'C');
 
             // Generar nombre de archivo
             $filename = 'Liquidacion_' . ($employee_info ? preg_replace('/[^A-Za-z0-9_]/', '_', $employee_info['name']) : 'Planilla') .

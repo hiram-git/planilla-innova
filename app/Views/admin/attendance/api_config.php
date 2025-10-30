@@ -173,13 +173,30 @@
 
                             <div class="form-group">
                                 <label for="config_json">Parámetros de Configuración Adicionales (JSON)</label>
+                                <?php
+                                // Limpiar y validar el JSON antes de mostrarlo
+                                $configJsonValue = $_SESSION['old_data']['config_json'] ?? $data['config']['config_json'] ?? '';
+                                if (!empty($configJsonValue)) {
+                                    $trimmed = trim($configJsonValue);
+                                    // Intentar decodificar para verificar si es válido
+                                    $decoded = @json_decode($trimmed, true);
+                                    if (json_last_error() !== JSON_ERROR_NONE) {
+                                        // Si no es JSON válido, mostrar campo vacío
+                                        $configJsonValue = '';
+                                    } else {
+                                        // Si es válido, formatearlo bonito
+                                        $configJsonValue = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                                    }
+                                }
+                                ?>
                                 <textarea class="form-control <?= isset($_SESSION['errors']['config_json']) ? 'is-invalid' : '' ?>"
                                           id="config_json" name="config_json"
                                           rows="6"
-                                          placeholder='{"parametro1": "valor1", "parametro2": "valor2"}'><?= $_SESSION['old_data']['config_json'] ?? $data['config']['config_json'] ?? '' ?></textarea>
+                                          placeholder='{"parametro1": "valor1", "parametro2": "valor2"}'><?= htmlspecialchars($configJsonValue) ?></textarea>
                                 <small class="form-text text-muted">
-                                    Configuraciones adicionales en formato JSON.
+                                    Configuraciones adicionales en formato JSON (opcional).
                                     Ejemplo: {"timeout": 30, "retry_attempts": 3, "debug_mode": false}
+                                    <br><strong>Dejar vacío si no necesita configuración adicional.</strong>
                                 </small>
                                 <?php if (isset($_SESSION['errors']['config_json'])): ?>
                                     <span class="invalid-feedback"><?= $_SESSION['errors']['config_json'] ?></span>

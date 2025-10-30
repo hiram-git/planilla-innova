@@ -11,10 +11,12 @@ use App\Models\AttendanceDetail;
 use App\Models\AttendanceSyncLog;
 use App\Models\AttendanceDevice;
 use App\Models\AttendanceApiConfig;
+use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Services\Attendance\Calculators\AttendanceCalculator;
 use App\Services\Attendance\Calculators\AbsenceDetector;
 use App\Services\Attendance\Calculators\WorkScheduleResolver;
+use App\Services\Attendance\RecordsProcessor;
 use Exception;
 
 /**
@@ -31,11 +33,13 @@ class AttendanceController extends Controller
     private $syncLogModel;
     private $deviceModel;
     private $employeeModel;
+    private $recordModel;
 
-    // Calculadores
+    // Calculadores y Procesadores
     private $attendanceCalculator;
     private $absenceDetector;
     private $scheduleResolver;
+    private $recordsProcessor;
 
     public function __construct()
     {
@@ -46,11 +50,13 @@ class AttendanceController extends Controller
         $this->syncLogModel = new AttendanceSyncLog();
         $this->deviceModel = new AttendanceDevice();
         $this->employeeModel = new Employee();
+        $this->recordModel = new AttendanceRecord();
 
-        // Inicializar calculadores
+        // Inicializar calculadores y procesadores
         $this->attendanceCalculator = new AttendanceCalculator();
         $this->absenceDetector = new AbsenceDetector();
         $this->scheduleResolver = new WorkScheduleResolver();
+        $this->recordsProcessor = new RecordsProcessor();
     }
 
     /**
@@ -367,7 +373,7 @@ class AttendanceController extends Controller
                         'message' => 'Tipo de sincronización no válido.'
                     ]);
             }
-
+            print_r($stats);exit;
             return $this->jsonResponse([
                 'success' => true,
                 'message' => "Sincronización completada. Insertados: {$stats['inserted']}, Actualizados: {$stats['updated']}, Omitidos: {$stats['skipped']}, Errores: {$stats['errors']}",
@@ -1657,6 +1663,215 @@ class AttendanceController extends Controller
 
         } catch (Exception $e) {
             error_log("Error dismissing alert: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // ========================================
+    // MÉTODOS DE ATTENDANCE_RECORDS (Nueva Capa Intermedia)
+    // ========================================
+
+    /**
+     * Obtener estadísticas de attendance_records sin procesar (AJAX)
+     * @return array JSON response
+     */
+    public function recordsStats()
+    {
+        try {
+            $dateFrom = $_GET['date_from'] ?? null;
+            $dateTo = $_GET['date_to'] ?? null;
+
+            // Estadísticas generales
+            $totalUnprocessed = $this->recordModel->count(['is_processed' => 0, 'is_duplicate' => 0]);
+            $totalDuplicates = $this->recordModel->count(['is_duplicate' => 1]);
+
+            // Estadísticas por fecha
+            $statsByDate = $this->recordModel->getStatsByDate($dateFrom, $dateTo);
+
+            return $this->jsonResponse([
+                'success' => true,
+                'data' => [
+                    'total_unprocessed' => $totalUnprocessed,
+                    'total_duplicates' => $totalDuplicates,
+                    'stats_by_date' => $statsByDate
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error getting records stats: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al obtener estadísticas: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Procesar records a details (AJAX)
+     * Consolida marcaciones de attendance_records → attendance_detail
+     * @return array JSON response
+     */
+    public function processRecords()
+    {
+        try {
+            $dateFrom = $_POST['date_from'] ?? null;
+            $dateTo = $_POST['date_to'] ?? null;
+
+            if (!$dateFrom || !$dateTo) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe especificar fecha de inicio y fin.'
+                ]);
+            }
+
+            // Procesar records usando RecordsProcessor
+            $result = $this->recordsProcessor->processToDetails($dateFrom, $dateTo);
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Procesamiento completado. Grupos: {$result['groups_processed']}, Creados: {$result['details_created']}, Actualizados: {$result['details_updated']}, Errores: {$result['errors']}",
+                'data' => $result
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error processing records: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al procesar records: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Procesar records pendientes hasta hoy (AJAX)
+     * @return array JSON response
+     */
+    public function processRecordsUpToToday()
+    {
+        try {
+            $result = $this->recordsProcessor->processUpToDate();
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Procesamiento completado. Grupos: {$result['groups_processed']}, Creados: {$result['details_created']}, Actualizados: {$result['details_updated']}",
+                'data' => $result
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error processing records up to today: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Reprocesar un día completo (AJAX)
+     * Elimina details existentes y vuelve a procesar desde records
+     * @return array JSON response
+     */
+    public function reprocessDayRecords()
+    {
+        try {
+            $date = $_POST['date'] ?? null;
+
+            if (!$date) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe especificar una fecha.'
+                ]);
+            }
+
+            // Reprocesar día
+            $result = $this->recordsProcessor->reprocessDay($date);
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Día reprocesado exitosamente. Creados: {$result['details_created']}, Actualizados: {$result['details_updated']}",
+                'data' => $result
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error reprocessing day: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al reprocesar día: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Ver registros duplicados (AJAX)
+     * @return array JSON response
+     */
+    public function viewDuplicateRecords()
+    {
+        try {
+            $duplicates = $this->recordModel->getDuplicates();
+
+            return $this->jsonResponse([
+                'success' => true,
+                'total' => count($duplicates),
+                'data' => $duplicates
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error viewing duplicates: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Detectar duplicados manualmente (AJAX)
+     * @return array JSON response
+     */
+    public function detectDuplicates()
+    {
+        try {
+            $duplicatesFound = $this->recordModel->detectDuplicates();
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Se detectaron {$duplicatesFound} duplicados.",
+                'duplicates_found' => $duplicatesFound
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error detecting duplicates: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Ver registros sin procesar agrupados (AJAX)
+     * @return array JSON response
+     */
+    public function viewUnprocessedRecords()
+    {
+        try {
+            $dateFrom = $_GET['date_from'] ?? null;
+            $dateTo = $_GET['date_to'] ?? null;
+
+            $groupedRecords = $this->recordModel->getGroupedByEmployeeAndDate($dateFrom, $dateTo);
+
+            return $this->jsonResponse([
+                'success' => true,
+                'total_groups' => count($groupedRecords),
+                'data' => $groupedRecords
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error viewing unprocessed records: " . $e->getMessage());
             return $this->jsonResponse([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()

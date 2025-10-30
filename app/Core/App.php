@@ -306,6 +306,30 @@ class App
                                     $this->params = [];
                                     call_user_func_array([$this->controller, $this->method], $this->params);
                                     return;
+                                } elseif ($url[2] === 'process-records' && method_exists($this->controller, 'processRecords')) {
+                                    // POST: /panel/attendance/process-records
+                                    $this->method = 'processRecords';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'process-records-today' && method_exists($this->controller, 'processRecordsUpToToday')) {
+                                    // POST: /panel/attendance/process-records-today
+                                    $this->method = 'processRecordsUpToToday';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'reprocess-day-records' && method_exists($this->controller, 'reprocessDayRecords')) {
+                                    // POST: /panel/attendance/reprocess-day-records
+                                    $this->method = 'reprocessDayRecords';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'detect-duplicates' && method_exists($this->controller, 'detectDuplicates')) {
+                                    // POST: /panel/attendance/detect-duplicates
+                                    $this->method = 'detectDuplicates';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
                                 } elseif ($url[2] === 'absence' && isset($url[3]) && isset($url[4]) && $url[4] === 'justify' && method_exists($this->controller, 'justifyAbsenceFromLog')) {
                                     // POST: /panel/attendance/absence/{id}/justify
                                     $this->method = 'justifyAbsenceFromLog';
@@ -348,6 +372,24 @@ class App
                                 } elseif ($url[2] === 'pending-absences' && method_exists($this->controller, 'getPendingAbsences')) {
                                     // GET: /panel/attendance/pending-absences (AJAX endpoint JSON)
                                     $this->method = 'getPendingAbsences';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'records-stats' && method_exists($this->controller, 'recordsStats')) {
+                                    // GET: /panel/attendance/records-stats
+                                    $this->method = 'recordsStats';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'unprocessed-records' && method_exists($this->controller, 'viewUnprocessedRecords')) {
+                                    // GET: /panel/attendance/unprocessed-records
+                                    $this->method = 'viewUnprocessedRecords';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } elseif ($url[2] === 'duplicate-records' && method_exists($this->controller, 'viewDuplicateRecords')) {
+                                    // GET: /panel/attendance/duplicate-records
+                                    $this->method = 'viewDuplicateRecords';
                                     $this->params = [];
                                     call_user_func_array([$this->controller, $this->method], $this->params);
                                     return;

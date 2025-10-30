@@ -76,7 +76,8 @@
                             </div>
 
                             <div class="col-md-3">
-                                <a href="/panel/attendance/sync-history" class="btn btn-info btn-block">
+                                <a href="<?= \App\Core\UrlHelper::route('/panel/attendance/sync-history') ?>" class="btn btn-info btn-block">
+                                
                                     <i class="fas fa-history"></i> Ver Historial Completo
                                 </a>
                             </div>
@@ -139,7 +140,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Botones de Sincronización -->
+                                        <!-- Botones de Sincronización 
                                         <div class="col-md-4">
                                             <div class="info-box bg-success clickable" data-sync-type="full">
                                                 <span class="info-box-icon"><i class="fas fa-sync-alt"></i></span>
@@ -177,14 +178,14 @@
                                                     </button>
                                                 </div>
                                             </div>
+                                        </div>-->
+
+                                        <div class="callout callout-info">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Nota:</strong> La sincronización puede tardar varios minutos dependiendo de la cantidad de registros.
                                         </div>
-                                    </div>
 
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        <strong>Nota:</strong> La sincronización puede tardar varios minutos dependiendo de la cantidad de registros.
                                     </div>
-
                                     <hr class="my-4">
 
                                     <!-- OPCIONES DE SINCRONIZACIÓN -->

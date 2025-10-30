@@ -28,7 +28,12 @@ class AttendanceApiConfigController extends Controller
      */
     public function index()
     {
+        // Intentar obtener configuración activa primero, si no existe, obtener la última configuración
         $config = $this->configModel->getActiveConfig();
+        if (!$config) {
+            $config = $this->configModel->getLatestConfig();
+        }
+
         $syncStats = null;
 
         if ($config) {
@@ -77,9 +82,10 @@ class AttendanceApiConfigController extends Controller
         try {
             // Validar y limpiar config_json si se proporciona
             $configJson = null;
-            if (!empty($data['config_json'])) {
+            if (isset($data['config_json'])) {
                 $trimmedJson = trim($data['config_json']);
-                if (!empty($trimmedJson)) {
+                // Solo validar si hay contenido real (no solo espacios)
+                if (!empty($trimmedJson) && $trimmedJson !== '') {
                     // Validar que sea JSON válido
                     $decoded = json_decode($trimmedJson, true);
                     if (json_last_error() !== JSON_ERROR_NONE) {
@@ -88,7 +94,10 @@ class AttendanceApiConfigController extends Controller
                         $this->redirect('/panel/attendance/api-config');
                         return;
                     }
-                    $configJson = $trimmedJson;
+                    // Solo guardar si es JSON válido y no es un objeto/array vacío
+                    if (!empty($decoded) || $decoded === [] || $decoded === (object)[]) {
+                        $configJson = $trimmedJson;
+                    }
                 }
             }
 
@@ -104,8 +113,8 @@ class AttendanceApiConfigController extends Controller
                 'config_json' => $configJson
             ];
 
-            // Verificar si existe configuración
-            $existingConfig = $this->configModel->getActiveConfig();
+            // Verificar si existe configuración (buscar cualquiera, no solo activa)
+            $existingConfig = $this->configModel->getLatestConfig();
 
             if ($existingConfig) {
                 // Actualizar

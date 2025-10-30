@@ -3,6 +3,7 @@
 namespace App\Services\Attendance;
 
 use App\Models\AttendanceApiConfig;
+use App\Models\AttendanceRecord;
 use App\Core\Database;
 use Exception;
 
@@ -15,18 +16,21 @@ class AttendanceSyncService
     private $db;
     private $config;
     private $syncLogId;
+    private $recordModel;
     private $stats = [
         'fetched' => 0,
         'inserted' => 0,
         'updated' => 0,
         'skipped' => 0,
-        'errors' => 0
+        'errors' => 0,
+        'records_created' => 0
     ];
     private $errors = [];
 
     public function __construct($configId = null)
     {
         $this->db = Database::getInstance();
+        $this->recordModel = new AttendanceRecord();
 
         // Obtener configuración (opcional)
         $configModel = new AttendanceApiConfig();
@@ -260,6 +264,7 @@ class AttendanceSyncService
 
     /**
      * Procesar un registro de marcación individual
+     * NUEVO FLUJO: Guarda en attendance_records en lugar de procesar directamente a detail
      * @param array $rawData Datos crudos desde API
      */
     private function processAttendanceRecord($rawData)
@@ -281,36 +286,101 @@ class AttendanceSyncService
                 return;
             }
 
-            // Guardar datos crudos en attendance_raw_data
+            // 1. Guardar datos crudos en attendance_raw_data
             $rawDataId = $this->saveRawData($rawData);
 
-            // Verificar si ya existe
-            $existing = $this->findExistingRecord($rawData);
+            // 2. NUEVO: Guardar en attendance_records
+            $recordCreated = $this->saveToRecords($rawData, $rawDataId);
 
-            if ($existing) {
-                // Verificar si necesita actualización
-                if ($this->needsUpdate($existing, $rawData)) {
-                    $this->updateRecord($existing['id'], $rawData);
-                    $this->stats['updated']++;
-
-                    // Marcar raw_data como procesado
-                    $this->markRawDataProcessed($rawDataId);
-                } else {
-                    $this->stats['skipped']++;
-                }
-            } else {
-                // Insertar nuevo registro
-                $this->insertRecord($rawData, $rawDataId);
+            if ($recordCreated) {
+                $this->stats['records_created']++;
                 $this->stats['inserted']++;
-
-                // Marcar raw_data como procesado
                 $this->markRawDataProcessed($rawDataId);
+            } else {
+                $this->stats['skipped']++;
             }
 
         } catch (Exception $e) {
             $this->stats['errors']++;
             $this->errors[] = "Error procesando registro: " . $e->getMessage();
             $this->log("Error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Guardar marcación en attendance_records (capa intermedia)
+     * @param array $rawData Datos del API
+     * @param int $rawDataId ID en attendance_raw_data
+     * @return bool True si se creó, False si ya existía
+     */
+    private function saveToRecords($rawData, $rawDataId)
+    {
+        try {
+            // 1. Buscar employee_id por email
+            $employee = $this->db->find("SELECT id FROM employees WHERE email = ?", [$rawData['employee_email']]);
+
+            // Si no se encuentra por email, intentar por nombre completo
+            if (!$employee && isset($rawData['employee_name'])) {
+                $nameParts = explode(' ', trim($rawData['employee_name']));
+                if (count($nameParts) >= 2) {
+                    $firstName = strtoupper($nameParts[0]);
+                    $lastName = strtoupper($nameParts[count($nameParts) - 1]);
+
+                    $sql = "SELECT id FROM employees
+                            WHERE UPPER(firstname) LIKE ?
+                              AND UPPER(lastname) LIKE ?
+                            LIMIT 1";
+                    $employee = $this->db->find($sql, ["%{$firstName}%", "%{$lastName}%"]);
+                }
+            }
+
+            if (!$employee) {
+                $this->errors[] = "Empleado no encontrado: {$rawData['employee_email']} / " . ($rawData['employee_name'] ?? 'N/A');
+                return false;
+            }
+
+            // 2. Preparar datos para attendance_records
+            $timestamp = $rawData['timestamp'];
+            $punchType = strtoupper($rawData['type'] ?? 'CHECK_IN');
+
+            $recordData = [
+                'raw_data_id' => $rawDataId,
+                'external_id' => $rawData['id'] ?? null,
+                'employee_id' => $employee['id'],
+                'timestamp' => $timestamp,
+                'punch_date' => date('Y-m-d', strtotime($timestamp)),
+                'punch_time' => date('H:i:s', strtotime($timestamp)),
+                'punch_type' => $punchType,
+                'device_id' => null,
+                'device_serial' => $rawData['device_serial'] ?? null,
+                'source' => 'API',
+                'metadata' => $rawData,
+                'notes' => 'Sincronizado desde ' . $this->config['api_provider']
+            ];
+
+            // 3. Calcular hash para detectar duplicados
+            $recordData['record_hash'] = $this->recordModel->calculateHash($recordData);
+
+            // 4. Verificar si ya existe
+            if ($this->recordModel->existsByHash($recordData['record_hash'])) {
+                error_log("Record duplicado detectado: {$recordData['record_hash']}");
+                return false;
+            }
+
+            // 5. Crear registro
+            $recordId = $this->recordModel->create($recordData);
+
+            if ($recordId) {
+                error_log("Record creado ID {$recordId} para empleado {$employee['id']} - {$punchType} {$timestamp}");
+                return true;
+            }
+
+            return false;
+
+        } catch (Exception $e) {
+            error_log("Error en saveToRecords: " . $e->getMessage());
+            $this->errors[] = "Error guardando en records: " . $e->getMessage();
+            return false;
         }
     }
 
@@ -337,271 +407,22 @@ class AttendanceSyncService
         return $this->db->lastInsertId();
     }
 
-    /**
-     * Buscar registro existente en attendance_detail
-     * @param array $data Datos desde API
-     * @return array|null Registro existente o null
-     */
-    private function findExistingRecord($data)
-    {
-        // Buscar por employee_id + fecha en attendance_detail
-        $date = date('Y-m-d', strtotime($data['timestamp']));
-
-        // Primero buscar el empleado
-        $employee = $this->db->find("SELECT id FROM employees WHERE email = ?", [$data['employee_email']]);
-
-        if (!$employee && isset($data['employee_name'])) {
-            $nameParts = explode(' ', trim($data['employee_name']));
-            if (count($nameParts) >= 2) {
-                $firstName = strtoupper($nameParts[0]);
-                $lastName = strtoupper($nameParts[count($nameParts) - 1]);
-
-                $sql = "SELECT id FROM employees
-                        WHERE UPPER(firstname) LIKE ?
-                          AND UPPER(lastname) LIKE ?
-                        LIMIT 1";
-                $employee = $this->db->find($sql, ["%{$firstName}%", "%{$lastName}%"]);
-            }
-        }
-
-        if (!$employee) {
-            return null;
-        }
-
-        // Buscar en attendance_detail por empleado + fecha
-        $sql = "SELECT d.*, h.id as header_id
-                FROM attendance_detail d
-                INNER JOIN attendance_header h ON d.header_id = h.id
-                WHERE h.attendance_date = ? AND d.employee_id = ?
-                LIMIT 1";
-
-        return $this->db->find($sql, [$date, $employee['id']]);
-    }
-
-    /**
-     * Verificar si un registro necesita actualización
-     * @param array $existing Registro existente
-     * @param array $newData Datos nuevos
-     * @return bool
-     */
-    private function needsUpdate($existing, $newData)
-    {
-        // 1. Siempre actualizar si los horarios programados están NULL
-        if (empty($existing['scheduled_time_in']) || empty($existing['scheduled_time_out'])) {
-            error_log("needsUpdate: TRUE - Horarios programados NULL para detail ID {$existing['id']}");
-            return true;
-        }
-
-        // 2. Determinar tipo de marcación (CHECK_IN o CHECK_OUT)
-        $type = strtoupper($newData['type'] ?? 'CHECK_IN');
-
-        // 3. Si es CHECK_OUT y no existe time_out, actualizar
-        if ($type === 'CHECK_OUT' && empty($existing['time_out'])) {
-            error_log("needsUpdate: TRUE - CHECK_OUT faltante para detail ID {$existing['id']}");
-            return true;
-        }
-
-        // 4. Si es CHECK_IN y no existe time_in, actualizar
-        if ($type === 'CHECK_IN' && empty($existing['time_in'])) {
-            error_log("needsUpdate: TRUE - CHECK_IN faltante para detail ID {$existing['id']}");
-            return true;
-        }
-
-        // 5. Comparar timestamps de modificación si existen
-        if (isset($newData['updated_at'])) {
-            // Buscar el raw_json original en attendance_raw_data
-            $sql = "SELECT raw_json FROM attendance_raw_data
-                    WHERE external_id = ?
-                    AND entity_type = 'Attendance'
-                    ORDER BY received_at DESC
-                    LIMIT 1";
-            $rawRecord = $this->db->find($sql, [$newData['id'] ?? null]);
-
-            if ($rawRecord) {
-                $existingJson = json_decode($rawRecord['raw_json'], true);
-                $existingUpdated = $existingJson['updated_at'] ?? null;
-
-                if ($existingUpdated && $newData['updated_at'] > $existingUpdated) {
-                    error_log("needsUpdate: TRUE - updated_at más reciente para detail ID {$existing['id']}");
-                    return true;
-                }
-            }
-        }
-
-        // 6. Por defecto, NO actualizar (registro ya está completo)
-        error_log("needsUpdate: FALSE - Registro completo para detail ID {$existing['id']}");
-        return false;
-    }
-
-    /**
-     * Insertar nuevo registro en attendance_header + attendance_detail
-     * @param array $data Datos desde API
-     * @param int $rawDataId ID en attendance_raw_data
-     */
-    private function insertRecord($data, $rawDataId)
-    {
-        // Buscar employee_id por email o nombre completo
-        $employee = $this->db->find("SELECT id, schedule_id FROM employees WHERE email = ?", [$data['employee_email']]);
-
-        // Si no se encuentra por email, intentar por nombre completo
-        if (!$employee && isset($data['employee_name'])) {
-            $nameParts = explode(' ', trim($data['employee_name']));
-            if (count($nameParts) >= 2) {
-                $firstName = strtoupper($nameParts[0]);
-                $lastName = strtoupper($nameParts[count($nameParts) - 1]);
-
-                $sql = "SELECT id, schedule_id FROM employees
-                        WHERE UPPER(firstname) LIKE ?
-                          AND UPPER(lastname) LIKE ?
-                        LIMIT 1";
-                $employee = $this->db->find($sql, ["%{$firstName}%", "%{$lastName}%"]);
-            }
-        }
-
-        if (!$employee) {
-            throw new Exception("Empleado no encontrado: {$data['employee_email']} / " . ($data['employee_name'] ?? 'N/A'));
-        }
-
-        // Obtener horario programado del empleado
-        $scheduledTimeIn = null;
-        $scheduledTimeOut = null;
-        if (!empty($employee['schedule_id'])) {
-            $schedule = $this->db->find("SELECT time_in, time_out FROM schedules WHERE id = ?", [$employee['schedule_id']]);
-            if ($schedule) {
-                $scheduledTimeIn = $schedule['time_in'];
-                $scheduledTimeOut = $schedule['time_out'];
-            }
-        }
-
-        $date = date('Y-m-d', strtotime($data['timestamp']));
-        $time = date('H:i:s', strtotime($data['timestamp']));
-        $type = strtoupper($data['type'] ?? 'CHECK_IN');
-
-        // 1. Obtener o crear header para esta fecha
-        $headerModel = new \App\Models\AttendanceHeader();
-        $header = $headerModel->getByDate($date);
-
-        if (!$header) {
-            // Crear nuevo header
-            $headerId = $headerModel->create([
-                'attendance_date' => $date,
-                'device_id' => null,
-                'synced_from' => 'API',
-                'total_records' => 0,
-                'total_employees' => 0,
-                'is_processed' => 0
-            ]);
-
-            if (!$headerId) {
-                throw new Exception("No se pudo crear cabecera para fecha: {$date}");
-            }
-        } else {
-            $headerId = $header['id'];
-        }
-
-        // 2. Buscar si ya existe un detail para este empleado en este día
-        $detailModel = new \App\Models\AttendanceDetail();
-        $existingDetail = $detailModel->getByDateAndEmployee($date, $employee['id']);
-
-        if ($existingDetail) {
-            // Actualizar: si es CHECK_OUT, actualizar time_out
-            if ($type === 'CHECK_OUT') {
-                $detailModel->update($existingDetail['id'], [
-                    'time_out' => $time,
-                    'scheduled_time_in' => $scheduledTimeIn,
-                    'scheduled_time_out' => $scheduledTimeOut,
-                    'notes' => 'Actualizado desde API - Hora salida'
-                ]);
-                error_log("Updated time_out for employee {$employee['id']} on {$date}");
-            }
-        } else {
-            // Crear nuevo detail
-            $detailData = [
-                'header_id' => $headerId,
-                'employee_id' => $employee['id'],
-                'schedule_id' => $employee['schedule_id'] ?? null,
-                'time_in' => ($type === 'CHECK_IN') ? $time : null,
-                'time_out' => ($type === 'CHECK_OUT') ? $time : null,
-                'scheduled_time_in' => $scheduledTimeIn,
-                'scheduled_time_out' => $scheduledTimeOut,
-                'device_id' => null,
-                'external_id' => $data['id'] ?? null,
-                'status' => 'PRESENT',
-                'is_late' => ($data['is_late'] ?? false) ? 1 : 0,
-                'tardiness_minutes' => 0,
-                'hours_worked' => 0,
-                'notes' => 'Sincronizado desde API ' . $this->config['api_provider']
-            ];
-
-            $detailId = $detailModel->create($detailData);
-
-            if ($detailId) {
-                error_log("Created detail ID {$detailId} for employee {$employee['id']} on {$date} with schedule {$scheduledTimeIn} - {$scheduledTimeOut}");
-            }
-        }
-
-        // 3. Actualizar estadísticas del header
-        $this->updateHeaderStats($headerId);
-    }
-
-    /**
-     * Actualizar registro existente en attendance_detail
-     * @param int $recordId ID del registro en attendance_detail
-     * @param array $data Datos nuevos
-     */
-    private function updateRecord($recordId, $data)
-    {
-        $type = strtoupper($data['type'] ?? 'CHECK_IN');
-        $time = date('H:i:s', strtotime($data['timestamp']));
-
-        $detailModel = new \App\Models\AttendanceDetail();
-
-        // Obtener el registro actual para extraer employee_id
-        $detail = $detailModel->getById($recordId);
-
-        // Obtener horario programado del empleado
-        $scheduledTimeIn = null;
-        $scheduledTimeOut = null;
-        if ($detail && !empty($detail['schedule_id'])) {
-            $schedule = $this->db->find("SELECT time_in, time_out FROM schedules WHERE id = ?", [$detail['schedule_id']]);
-            if ($schedule) {
-                $scheduledTimeIn = $schedule['time_in'];
-                $scheduledTimeOut = $schedule['time_out'];
-            }
-        }
-
-        $updateData = [
-            'scheduled_time_in' => $scheduledTimeIn,
-            'scheduled_time_out' => $scheduledTimeOut,
-            'notes' => 'Actualizado desde API - ' . date('Y-m-d H:i:s')
-        ];
-
-        // Si es CHECK_OUT, actualizar time_out
-        if ($type === 'CHECK_OUT') {
-            $updateData['time_out'] = $time;
-        } else {
-            $updateData['time_in'] = $time;
-        }
-
-        $detailModel->update($recordId, $updateData);
-        error_log("Updated detail ID {$recordId} with new data from API (schedule: {$scheduledTimeIn} - {$scheduledTimeOut})");
-    }
-
-    /**
-     * Actualizar estadísticas de un header
-     * @param int $headerId ID del header
-     */
-    private function updateHeaderStats($headerId)
-    {
-        $sql = "SELECT COUNT(*) as total FROM attendance_detail WHERE header_id = ?";
-        $result = $this->db->find($sql, [$headerId]);
-
-        $headerModel = new \App\Models\AttendanceHeader();
-        $headerModel->update($headerId, [
-            'total_records' => $result['total'],
-            'total_employees' => $result['total']
-        ]);
-    }
+    // =====================================================
+    // MÉTODOS LEGACY ELIMINADOS
+    // =====================================================
+    // Los siguientes métodos fueron removidos ya que ahora se usa
+    // attendance_records como capa intermedia y RecordsProcessor
+    // para consolidar a attendance_detail:
+    //
+    // - findExistingRecord()
+    // - needsUpdate()
+    // - insertRecord()
+    // - updateRecord()
+    // - updateHeaderStats()
+    //
+    // El nuevo flujo es:
+    // API → raw_data → attendance_records → RecordsProcessor → attendance_detail
+    // =====================================================
 
     /**
      * Marcar raw_data como procesado
