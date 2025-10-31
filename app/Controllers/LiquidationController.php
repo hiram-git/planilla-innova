@@ -1760,8 +1760,11 @@ class LiquidationController extends Controller
             $stmt->execute([$payroll_id]);
             $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Obtener datos de la empresa para las firmas
-            $sql_company = "SELECT legal_representative, jefe_recursos_humanos FROM companies LIMIT 1";
+            // Obtener datos de la empresa para las firmas y logos
+            $sql_company = "SELECT legal_representative, jefe_recursos_humanos,
+                                   company_name, logo_izquierdo_reportes, logo_derecho_reportes,
+                                   logo_empresa
+                            FROM companies LIMIT 1";
             $stmt_company = $this->db->prepare($sql_company);
             $stmt_company->execute();
             $company_data = $stmt_company->fetch(PDO::FETCH_ASSOC);
@@ -1835,7 +1838,7 @@ class LiquidationController extends Controller
 
             // Configuración del documento
             $pdf->SetCreator('Sistema de Planillas INNOVA');
-            $pdf->SetAuthor('INNOVA PLANILLA');
+            $pdf->SetAuthor($company_data['company_name'] ?? 'INNOVA PLANILLA');
             $pdf->SetTitle('Liquidación Laboral - ' . ($employee_info['name'] ?? 'N/A'));
             $pdf->SetSubject('Liquidación Laboral');
 
@@ -1850,18 +1853,21 @@ class LiquidationController extends Controller
             // Agregar página
             $pdf->AddPage();
 
+            // Insertar logos y nombre de empresa
+            $this->insertLogosInPDF($pdf, $company_data);
+
+            $pdf->Ln();
             // ===== ENCABEZADO =====
-            $pdf->SetFont('helvetica', 'B', 18);
-            $pdf->Cell(0, 10, 'INNOVA PLANILLA', 0, 1, 'C');
 
             $pdf->SetFont('helvetica', 'B', 14);
             $pdf->Cell(0, 8, 'LIQUIDACIÓN LABORAL', 0, 1, 'C');
+            $pdf->Ln();
 
-            $pdf->SetFont('helvetica', '', 10);
+            /*$pdf->SetFont('helvetica', '', 10);
             $periodo_texto = 'DEL ' . strtoupper(date('d \d\e F \d\e Y', strtotime($payroll['fecha_desde']))) .
                            ' HASTA EL ' . strtoupper(date('d \d\e F \d\e Y', strtotime($payroll['fecha_hasta'])));
             $pdf->Cell(0, 6, $periodo_texto, 0, 1, 'C');
-            $pdf->Ln(5);
+            $pdf->Ln(5);*/
 
             // ===== INFORMACIÓN DEL EMPLEADO =====
             if ($employee_info) {
@@ -1935,9 +1941,11 @@ class LiquidationController extends Controller
             $colMonto = $availableWidth * 0.25;
 
             // ===== ASIGNACIONES =====
-            $pdf->SetFillColor(255, 165, 0); // Verde claro
+            $pdf->SetFillColor(255, 140, 0); // Naranja intenso
+            $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->SetFont('helvetica', 'B', 11);
             $pdf->Cell(0, 7, 'ASIGNACIONES', 1, 1, 'L', true);
+            $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             // Cabecera de tabla
             $pdf->SetFillColor(224, 224, 224); // Gris claro
@@ -1956,16 +1964,18 @@ class LiquidationController extends Controller
             }
 
             // Total asignaciones
-            $pdf->SetFillColor(255, 200, 150); // Verde muy claro
+            $pdf->SetFillColor(255, 180, 120); // Naranja claro
             $pdf->SetFont('helvetica', 'B', 9);
             $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL ASIGNACIONES:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 6, '$' . number_format($totals['total_asignaciones'], 2), 1, 1, 'R', true);
             $pdf->Ln(3);
 
             // ===== DEDUCCIONES =====
-            $pdf->SetFillColor(255, 204, 204); // Rojo claro
+            $pdf->SetFillColor(255, 140, 0); // Naranja intenso (mismo que asignaciones)
+            $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->SetFont('helvetica', 'B', 11);
             $pdf->Cell(0, 7, 'DEDUCCIONES', 1, 1, 'L', true);
+            $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             // Cabecera de tabla
             $pdf->SetFillColor(224, 224, 224); // Gris claro
@@ -1984,17 +1994,19 @@ class LiquidationController extends Controller
             }
 
             // Total deducciones
-            $pdf->SetFillColor(255, 221, 221); // Rojo muy claro
+            $pdf->SetFillColor(255, 180, 120); // Naranja claro (mismo que total asignaciones)
             $pdf->SetFont('helvetica', 'B', 9);
             $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 6, '$' . number_format($totals['total_deducciones'], 2), 1, 1, 'R', true);
             $pdf->Ln(5);
 
             // ===== TOTAL NETO =====
-            $pdf->SetFillColor(73, 166, 225); // Azul/morado claro
+            $pdf->SetFillColor(25, 118, 210); // Azul profundo
+            $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->SetFont('helvetica', 'B', 12);
             $pdf->Cell($colCodigo + $colDescripcion, 8, 'TOTAL NETO A PAGAR:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 8, '$' . number_format($totals['total_neto'], 2), 1, 1, 'R', true);
+            $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             // ===== SECCIÓN DE FIRMAS =====
             $pdf->Ln(15); // Espacio antes de firmas
@@ -2071,6 +2083,90 @@ class LiquidationController extends Controller
             error_log("Error generating PDF: " . $e->getMessage());
             $this->setToastrMessage('error', 'Error al generar PDF: ' . $e->getMessage(), 'Error de Exportación');
             $this->redirect('/panel/liquidation/payroll-detail/' . $payroll_id);
+        }
+    }
+
+    /**
+     * Insertar logos en el PDF alineados con el título
+     */
+    private function insertLogosInPDF($pdf, $company_data)
+    {
+        $logoPath = __DIR__ . '/../../images/logos/';
+        $logoHeight = 12; // Altura del logo
+        $pageWidth = $pdf->getPageWidth();
+        $margin = 15; // Margen desde los bordes
+
+        // Guardar posición actual
+        $currentY = $pdf->GetY();
+
+        // Logo izquierdo - alineado con el margen izquierdo
+        if (!empty($company_data['logo_izquierdo_reportes'])) {
+            $leftLogoPath = $logoPath . $company_data['logo_izquierdo_reportes'];
+            if (file_exists($leftLogoPath)) {
+                $leftLogoWidth = 25;
+                try {
+                    $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo izquierdo: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo derecho - alineado con el margen derecho
+        if (!empty($company_data['logo_derecho_reportes'])) {
+            $rightLogoPath = $logoPath . $company_data['logo_derecho_reportes'];
+            if (file_exists($rightLogoPath)) {
+                $rightLogoWidth = 35;
+                $rightX = $pageWidth - $margin - $rightLogoWidth;
+                try {
+                    $pdf->Image($rightLogoPath, $rightX, $currentY, $rightLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo derecho: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo principal (centro) - solo si no hay logos laterales
+        if (empty($company_data['logo_izquierdo_reportes']) &&
+            empty($company_data['logo_derecho_reportes']) &&
+            !empty($company_data['logo_empresa'])) {
+            $mainLogoPath = $logoPath . $company_data['logo_empresa'];
+            if (file_exists($mainLogoPath)) {
+                $mainLogoWidth = 40;
+                $centerX = ($pageWidth - $mainLogoWidth) / 2;
+                $pdf->Image($mainLogoPath, $centerX, $currentY, $mainLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+            }
+        }
+
+        // NOMBRE DE LA EMPRESA centrado a la misma altura de los logos
+        if (!empty($company_data['company_name'])) {
+            // Guardar la fuente actual
+            $currentFont = $pdf->getFontFamily();
+            $currentSize = $pdf->getFontSizePt();
+
+            // Configurar fuente para el nombre de la empresa
+            $pdf->SetFont('helvetica', 'B', 16);
+
+            // Calcular posición centrada
+            $companyNameWidth = $pdf->GetStringWidth($company_data['company_name']);
+            $centerX = ($pageWidth - $companyNameWidth) / 2;
+
+            // Posicionar el texto a la misma altura de los logos (centrado verticalmente)
+            $textY = $currentY + ($logoHeight / 2) - 3; // Centrado vertical con pequeño ajuste
+
+            // Escribir el nombre de la empresa
+            $pdf->SetXY($centerX, $textY);
+            $pdf->Cell($companyNameWidth, 0, $company_data['company_name'], 0, 0, 'C');
+
+            // Restaurar fuente anterior
+            $pdf->SetFont($currentFont, '', $currentSize);
+        }
+
+        // Reservar espacio después de los logos para que el contenido esté alineado
+        if (!empty($company_data['logo_izquierdo_reportes']) ||
+            !empty($company_data['logo_derecho_reportes']) ||
+            !empty($company_data['logo_empresa'])) {
+            $pdf->SetY(22); // Espacio después de logos
         }
     }
 }
