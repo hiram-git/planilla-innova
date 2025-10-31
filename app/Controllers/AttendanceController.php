@@ -959,19 +959,12 @@ class AttendanceController extends Controller
     {
         try {
             $date = $_POST['date'] ?? null;
-            $tipoPlanillaId = $_POST['tipo_planilla_id'] ?? null;
+            $tipoPlanillaId = $_POST['tipo_planilla_id'] ?? null; // Solo para logging, no para filtrar
 
             if (!$date) {
                 return $this->jsonResponse([
                     'success' => false,
                     'message' => 'Debe especificar una fecha.'
-                ]);
-            }
-
-            if (!$tipoPlanillaId) {
-                return $this->jsonResponse([
-                    'success' => false,
-                    'message' => 'Debe seleccionar un tipo de planilla.'
                 ]);
             }
 
@@ -1010,20 +1003,31 @@ class AttendanceController extends Controller
                 $header = $this->headerModel->getById($headerId);
             }
 
-            // 2. Obtener empleados activos filtrados por tipo de planilla
-            $activeEmployees = $this->employeeModel->getEmployeesByTipoPlanilla($tipoPlanillaId);
+            // 2. Obtener TODOS los empleados activos (sin filtrar por tipo de planilla)
+            // El filtro de tipo de planilla solo se aplica en la vista
+            $employees = $this->employeeModel->all();
+            $activeEmployees = array_filter($employees, function($emp) {
+                return $emp['situacion_id'] == 1;
+            });
+            $activeEmployees = array_values($activeEmployees); // Reindexar array
             $stats['total_employees'] = count($activeEmployees);
+
+            error_log("DEBUG processDay - Procesando TODOS los empleados activos (sin filtro tipo planilla)");
+            error_log("DEBUG processDay - Total empleados activos: " . count($activeEmployees));
+            error_log("DEBUG processDay - IDs empleados activos: " . implode(', ', array_column($activeEmployees, 'id')));
 
             if (empty($activeEmployees)) {
                 return $this->jsonResponse([
                     'success' => false,
-                    'message' => 'No hay empleados activos para el tipo de planilla seleccionado.'
+                    'message' => 'No hay empleados activos en el sistema.'
                 ]);
             }
 
             // 3. Obtener detalles existentes (NO eliminar)
             $existingDetails = $this->detailModel->getByHeader($header['id']);
             $employeesWithAttendance = [];
+
+            error_log("DEBUG processDay - Detalles existentes: " . count($existingDetails));
 
             foreach ($existingDetails as $detail) {
                 $employeesWithAttendance[$detail['employee_id']] = true;
@@ -1048,14 +1052,18 @@ class AttendanceController extends Controller
             }
 
             // 5. PASO 1: Detectar empleados SIN marcación y crear registros de AUSENCIA
+            error_log("DEBUG processDay - Empleados con marcación: " . implode(', ', array_keys($employeesWithAttendance)));
+
             foreach ($activeEmployees as $employee) {
                 if (!isset($employeesWithAttendance[$employee['id']])) {
-                    // Empleado sin marcación - crear registro de ausencia
+                    $stats['absences_detected']++;
+                    error_log("DEBUG processDay - Empleado SIN marcación detectado: ID={$employee['id']}, Nombre={$employee['firstname']} {$employee['lastname']}");
+
+                    // Empleado sin marcación - crear registro de ausencia (si no existe)
                     try {
                         $absenceData = [
                             'header_id' => $header['id'],
                             'employee_id' => $employee['id'],
-                            'date' => $date,
                             'time_in' => null,
                             'time_out' => null,
                             'status' => 'ABSENT',
@@ -1065,10 +1073,12 @@ class AttendanceController extends Controller
                             'notes' => 'Ausencia detectada automáticamente - Sin marcación'
                         ];
 
+                        error_log("DEBUG processDay - Intentando crear registro de ausencia para empleado {$employee['id']}");
                         $detailId = $this->detailModel->create($absenceData);
 
                         if ($detailId) {
                             $stats['absences_created']++;
+                            error_log("DEBUG processDay - Registro de ausencia creado exitosamente: detail_id=$detailId");
 
                             // Registrar ausencia en el log
                             $this->absenceDetector->saveAbsence([
@@ -1078,12 +1088,15 @@ class AttendanceController extends Controller
                                 'attendance_detail_id' => $detailId,
                                 'detected_at' => date('Y-m-d H:i:s')
                             ]);
+                        } else {
+                            error_log("DEBUG processDay - FALLO: create() retornó false para empleado {$employee['id']} - Posible violación UNIQUE (header_id, employee_id)");
                         }
-
-                        $stats['absences_detected']++;
                     } catch (Exception $e) {
-                        error_log("Error creating absence for employee {$employee['id']}: " . $e->getMessage());
+                        error_log("ERROR processDay - Error creating absence for employee {$employee['id']}: " . $e->getMessage());
+                        error_log("ERROR processDay - Stack trace: " . $e->getTraceAsString());
                     }
+                } else {
+                    error_log("DEBUG processDay - Empleado CON marcación: ID={$employee['id']}");
                 }
             }
 
