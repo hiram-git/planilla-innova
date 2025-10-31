@@ -275,8 +275,8 @@ ob_start();
 
 <script>
 $(document).ready(function() {
-    // Base URL del proyecto (ruta relativa)
-    const baseUrl = '<?= url("", false) ?>';
+    // Base URL del proyecto
+    const baseUrl = '<?= \App\Core\UrlHelper::base() ?>';
 
     // Inicializar DataTable
     $('#sync-history-table').DataTable({
