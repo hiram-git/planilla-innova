@@ -949,9 +949,10 @@ class AttendanceController extends Controller
     /**
      * Procesar día completo: detectar ausencias, omisiones y calcular métricas (AJAX)
      * Proceso integral que:
-     * 1. Detecta empleados sin marcación y crea registros de AUSENCIA
-     * 2. Detecta marcaciones incompletas (solo entrada o salida) y las marca como OMISIÓN
-     * 3. Calcula métricas para marcaciones completas
+     * 1. Busca registros en attendance_records y reconstruye attendance_detail
+     * 2. Detecta empleados sin marcación y crea registros de AUSENCIA
+     * 3. Detecta marcaciones incompletas (solo entrada o salida) y las marca como OMISIÓN
+     * 4. Calcula métricas para marcaciones completas
      *
      * @return array JSON response
      */
@@ -970,6 +971,8 @@ class AttendanceController extends Controller
 
             // Estadísticas del procesamiento
             $stats = [
+                'records_found' => 0,
+                'details_updated' => 0,
                 'absences_detected' => 0,
                 'absences_created' => 0,
                 'omissions_detected' => 0,
@@ -1003,7 +1006,90 @@ class AttendanceController extends Controller
                 $header = $this->headerModel->getById($headerId);
             }
 
-            // 2. Obtener TODOS los empleados activos (sin filtrar por tipo de planilla)
+            // 2. PRIMERO: Buscar y procesar registros de attendance_records para esta fecha
+            $sql = "SELECT * FROM attendance_records
+                    WHERE DATE(timestamp) = ?
+                    ORDER BY employee_id, timestamp";
+            $stmt = $this->employeeModel->db->prepare($sql);
+            $stmt->execute([$date]);
+            $records = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            error_log("DEBUG processDay - Records encontrados en attendance_records: " . count($records));
+            $stats['records_found'] = count($records);
+
+            // Agrupar records por empleado
+            $recordsByEmployee = [];
+            foreach ($records as $record) {
+                $empId = $record['employee_id'];
+                if (!isset($recordsByEmployee[$empId])) {
+                    $recordsByEmployee[$empId] = [];
+                }
+                $recordsByEmployee[$empId][] = $record;
+            }
+
+            // Procesar records: actualizar o crear attendance_detail desde attendance_records
+            foreach ($recordsByEmployee as $empId => $empRecords) {
+                // Determinar entrada y salida
+                $checkIn = null;
+                $checkOut = null;
+
+                error_log("DEBUG processDay - Procesando empleado $empId con " . count($empRecords) . " records");
+
+                foreach ($empRecords as $record) {
+                    error_log("DEBUG processDay - Record: employee_id={$record['employee_id']}, punch_type={$record['punch_type']}, timestamp={$record['timestamp']}");
+
+                    if ($record['punch_type'] === 'CHECK_IN' && !$checkIn) {
+                        $checkIn = $record['timestamp'];
+                        error_log("DEBUG processDay - Asignado CHECK_IN: $checkIn");
+                    } elseif ($record['punch_type'] === 'CHECK_OUT') {
+                        $checkOut = $record['timestamp'];
+                        error_log("DEBUG processDay - Asignado CHECK_OUT: $checkOut");
+                    }
+                }
+
+                error_log("DEBUG processDay - Resultado para empleado $empId: CHECK_IN=" . ($checkIn ?? 'NULL') . ", CHECK_OUT=" . ($checkOut ?? 'NULL'));
+
+                // Buscar si ya existe un detail para este empleado y fecha
+                $sqlDetail = "SELECT id FROM attendance_detail
+                             WHERE header_id = ? AND employee_id = ?";
+                $stmtDetail = $this->employeeModel->db->prepare($sqlDetail);
+                $stmtDetail->execute([$header['id'], $empId]);
+                $existingDetail = $stmtDetail->fetch(\PDO::FETCH_ASSOC);
+
+                if ($existingDetail) {
+                    // Actualizar detail existente con los datos de records
+                    $updateData = [
+                        'time_in' => $checkIn,
+                        'time_out' => $checkOut,
+                        'status' => ($checkIn && $checkOut) ? 'PRESENT' : 'INCOMPLETE',
+                        'notes' => 'Actualizado desde attendance_records'
+                    ];
+
+                    error_log("DEBUG processDay - Actualizando detail ID {$existingDetail['id']} con datos: " . json_encode($updateData));
+
+                    $this->detailModel->update($existingDetail['id'], $updateData);
+                    $stats['details_updated']++;
+                    error_log("DEBUG processDay - Detail actualizado para empleado $empId desde records");
+                } else {
+                    // Crear nuevo detail desde records
+                    $createData = [
+                        'header_id' => $header['id'],
+                        'employee_id' => $empId,
+                        'time_in' => $checkIn,
+                        'time_out' => $checkOut,
+                        'status' => ($checkIn && $checkOut) ? 'PRESENT' : 'INCOMPLETE',
+                        'notes' => 'Creado desde attendance_records'
+                    ];
+
+                    error_log("DEBUG processDay - Creando nuevo detail con datos: " . json_encode($createData));
+
+                    $this->detailModel->create($createData);
+                    $stats['details_updated']++;
+                    error_log("DEBUG processDay - Nuevo detail creado para empleado $empId desde records");
+                }
+            }
+
+            // 3. Obtener TODOS los empleados activos (sin filtrar por tipo de planilla)
             // El filtro de tipo de planilla solo se aplica en la vista
             $employees = $this->employeeModel->all();
             $activeEmployees = array_filter($employees, function($emp) {
@@ -1023,11 +1109,11 @@ class AttendanceController extends Controller
                 ]);
             }
 
-            // 3. Obtener detalles existentes (NO eliminar)
+            // 4. Obtener detalles existentes después de actualizar desde records
             $existingDetails = $this->detailModel->getByHeader($header['id']);
             $employeesWithAttendance = [];
 
-            error_log("DEBUG processDay - Detalles existentes: " . count($existingDetails));
+            error_log("DEBUG processDay - Detalles existentes después de actualizar desde records: " . count($existingDetails));
 
             foreach ($existingDetails as $detail) {
                 $employeesWithAttendance[$detail['employee_id']] = true;
@@ -1051,7 +1137,7 @@ class AttendanceController extends Controller
                 }
             }
 
-            // 5. PASO 1: Detectar empleados SIN marcación y crear registros de AUSENCIA
+            // 5. PASO 2: Detectar empleados SIN marcación y crear registros de AUSENCIA
             error_log("DEBUG processDay - Empleados con marcación: " . implode(', ', array_keys($employeesWithAttendance)));
 
             foreach ($activeEmployees as $employee) {

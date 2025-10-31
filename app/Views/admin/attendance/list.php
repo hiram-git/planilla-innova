@@ -31,7 +31,7 @@
                 <div class="small-box bg-success">
                     <div class="inner">
                         <h3><?= number_format($stats['total_employee_records'] ?? 0) ?></h3>
-                        <p>Total Empleados con Marcaciones</p>
+                        <p>Total Marcaciones por empleado</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-users"></i>

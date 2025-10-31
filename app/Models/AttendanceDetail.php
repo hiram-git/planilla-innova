@@ -163,43 +163,42 @@ class AttendanceDetail
 
     /**
      * Actualiza un registro de detalle
+     * Solo actualiza los campos que se proporcionen en $data
      */
     public function update($id, $data)
     {
-        $sql = "UPDATE {$this->table} SET
-                    time_in = ?,
-                    time_out = ?,
-                    scheduled_time_in = ?,
-                    scheduled_time_out = ?,
-                    tardiness_minutes = ?,
-                    is_late = ?,
-                    early_departure_minutes = ?,
-                    hours_worked = ?,
-                    status = ?,
-                    justification_type = ?,
-                    justification_notes = ?,
-                    justification_document = ?,
-                    notes = ?
-                WHERE id = ?";
+        // Campos permitidos para actualización
+        $allowedFields = [
+            'time_in', 'time_out', 'scheduled_time_in', 'scheduled_time_out',
+            'tardiness_minutes', 'is_late', 'early_departure_minutes', 'hours_worked',
+            'status', 'justification_type', 'justification_notes', 'justification_document',
+            'notes', 'schedule_id', 'device_id', 'external_id'
+        ];
+
+        // Filtrar solo los campos que están en $data y son permitidos
+        $updateFields = [];
+        $values = [];
+
+        foreach ($data as $field => $value) {
+            if (in_array($field, $allowedFields)) {
+                $updateFields[] = "$field = ?";
+                $values[] = $value;
+            }
+        }
+
+        // Si no hay campos para actualizar, retornar false
+        if (empty($updateFields)) {
+            return false;
+        }
+
+        // Construir la consulta SQL dinámicamente
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $updateFields) . " WHERE id = ?";
+
+        // Agregar el ID al final de los valores
+        $values[] = $id;
 
         $stmt = $this->db->prepare($sql);
-
-        return $stmt->execute([
-            $data['time_in'] ?? null,
-            $data['time_out'] ?? null,
-            $data['scheduled_time_in'] ?? null,
-            $data['scheduled_time_out'] ?? null,
-            $data['tardiness_minutes'] ?? 0,
-            $data['is_late'] ?? 0,
-            $data['early_departure_minutes'] ?? 0,
-            $data['hours_worked'] ?? 0,
-            $data['status'] ?? 'PRESENT',
-            $data['justification_type'] ?? null,
-            $data['justification_notes'] ?? null,
-            $data['justification_document'] ?? null,
-            $data['notes'] ?? null,
-            $id
-        ]);
+        return $stmt->execute($values);
     }
 
     /**
