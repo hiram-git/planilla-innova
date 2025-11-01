@@ -67,7 +67,7 @@ class ExcelExporter
         $this->sheet->setCellValue('B' . $row, date('d/m/Y H:i:s'));
         $this->sheet->getStyle('A' . $row)->getFont()->setBold(true);
         $row += 2;
-
+/*
         // Resumen estadístico
         $this->sheet->setCellValue('A' . $row, 'RESUMEN ESTADÍSTICO');
         $this->sheet->mergeCells('A' . $row . ':H' . $row);
@@ -122,7 +122,7 @@ class ExcelExporter
                 $row++;
             }
             $row += 2;
-        }
+        }*/
 
         // Ausencias por departamento
         foreach ($byDepartment as $deptName => $absences) {
@@ -603,7 +603,7 @@ class ExcelExporter
         $row += 2;
 
         // Resumen estadístico
-        $this->sheet->setCellValue('A' . $row, 'RESUMEN ESTADÍSTICO');
+        /*$this->sheet->setCellValue('A' . $row, 'RESUMEN ESTADÍSTICO');
         $this->sheet->mergeCells('A' . $row . ':J' . $row);
         $this->applySubHeaderStyle('A' . $row . ':J' . $row);
         $row++;
@@ -660,7 +660,7 @@ class ExcelExporter
                 $row++;
             }
             $row += 2;
-        }
+        }*/
 
         // Marcaciones por departamento
         foreach ($byDepartment as $deptName => $punches) {
