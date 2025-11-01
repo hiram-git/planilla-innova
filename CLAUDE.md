@@ -1,10 +1,10 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.5.2 Mejora Reportes Liquidaciones**
-- **Fecha**: 30 de Octubre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 85% + LIQUIDACIONES PROFESIONALES 100%**
-- **Versión**: 3.5.2 - Mejora reportes PDF/Excel liquidaciones con campos adicionales y firmas profesionales
-- **Versión Anterior**: 3.5.1 - Hotfix crítico synced_from + data cleanup + normalización timestamp + CSRF dispositivos
+## 📝 **Estado Actual - V3.5.3 Eliminación eval() + Seguridad Reforzada**
+- **Fecha**: 1 de Noviembre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 85% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100%**
+- **Versión**: 3.5.3 - Eliminación completa eval() + arquitectura segura con herencia (PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure)
+- **Versión Anterior**: 3.5.2 - Mejora reportes PDF/Excel liquidaciones con campos adicionales y firmas profesionales
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -15,7 +15,7 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **XIII Mes Panamá**: Cálculo trimestral (Salario Anual ÷ 3) + períodos automáticos + variables dinámicas
 - ✅ **Reportes PDF**: Layout empresarial + logos + firmas + comprobantes individuales
 - ✅ **Módulos**: Organizacional + Logos + Employee Import + Calendario Empresarial Panamá
-- ✅ **Motor Fórmulas V2**: INIPERIODO/FINPERIODO + ACUMULADOS() + CONCEPTO() + nxp/math-executor
+- ✅ **Motor Fórmulas V3.5.3**: INIPERIODO/FINPERIODO + ACUMULADOS() + CONCEPTO() + arquitectura herencia segura + 100% sin eval() + nxp/math-executor
 - ✅ **Custom Query Builder**: Interfaz fluente + adaptadores multi-BD + 24% mejora rendimiento
 - ✅ **UI/UX**: AdminLTE nativo + AJAX DataTables + Responsive 1024px + Cache-busting + Modal refresh
 - ✅ **Dashboard Ejecutivo**: Filtros tipo planilla + métricas en tiempo real + gráficas asistencia
@@ -154,6 +154,56 @@ Jornada ordinaria 8h/48h semanales (Art.31) | Jornada nocturna 6PM-6AM +50% (Art
 
 **Estadísticas**: 1 archivo | 2 métodos | ~250 líneas agregadas | 4 campos nuevos | 1 sección firmas | 3 JOINs SQL | 0 cambios BD
 
+### **Refactorización V3.5.3: Eliminación eval() + Arquitectura Segura** ✅ (01-Nov-2025)
+
+**Cambios Críticos de Seguridad**:
+1. **Eliminación Total eval()** (PlanillaConceptCalculator.php):
+   - 862 líneas de código corrupto/duplicado eliminadas (líneas 166-1030)
+   - Archivo reducido de 2058 a 1196 líneas
+   - Arquitectura de herencia: `class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure`
+   - 100% evaluación fórmulas mediante NXP\MathExecutor (sin eval())
+2. **Refactorización Visibilidad** (PlanillaConceptCalculatorSecure.php):
+   - 9 propiedades `private`→`protected` (incluye $db, $executor, $conceptos, etc.)
+   - 18 métodos `private`→`protected` para permitir herencia completa
+   - Fix crítico acceso $db que causaba error null pointer
+3. **Validación Variables Extendida** (líneas 54-70):
+   - Agregadas variables string permitidas: EMPLEADO, CLAVE_SS, CLAVE_SEGURO_SOCIAL
+   - Mejora en configurarValidacionesEstritas() para identificadores de empleados
+4. **Testing Runtime Completo**:
+   - 3 errores resueltos durante testing: null $db, private methods, variable validation
+   - Validación con planillas reales (ID 85, tipo planilla 2, empleado 1)
+
+**Arquitectura Final**:
+```
+PlanillaConceptCalculatorSecure (Padre)
+├── MathExecutor $executor (seguro, sin eval())
+├── Evaluación segura de fórmulas
+├── Funciones personalizadas (ACUMULADOS, CONCEPTO, etc.)
+└── Validaciones estrictas de variables
+
+    ↓ extends
+
+PlanillaConceptCalculator (Hijo)
+├── XIIIMesPeriodoTrimestralCalculator
+├── Override setVariablesColaborador() (múltiples tipos planilla)
+├── Funciones liquidaciones (LIQUIDACION_INDEMNIZACION, etc.)
+├── Funciones vacaciones (VACATION_DAYS_EARNED, etc.)
+└── Funciones XIII mes trimestral
+```
+
+**Archivos Modificados**:
+- PlanillaConceptCalculator.php: Eliminadas 862 líneas, estructura limpia 1196 líneas
+- PlanillaConceptCalculatorSecure.php: 9 propiedades + 18 métodos refactorizados
+
+**Estadísticas**: 2 archivos | -1085 líneas inseguras | +321 líneas seguras | 0 eval() restante | 0 cambios BD
+
+**Mejoras de Seguridad**:
+- ✅ Eliminación de vectores de inyección de código
+- ✅ Sandbox aislado para evaluación de fórmulas (MathExecutor)
+- ✅ Validación estricta de variables antes de evaluación
+- ✅ Código más limpio y mantenible
+- ✅ Mejor separación de responsabilidades
+
 ### **Hotfix V3.5.1: Data Cleanup & Fixes Críticos** ✅ (28-Oct-2025)
 
 **Problema Crítico**: Error "Data truncated for column 'synced_from'" bloqueaba sincronización asistencias.
@@ -208,6 +258,62 @@ Jornada ordinaria 8h/48h semanales (Art.31) | Jornada nocturna 6PM-6AM +50% (Art
 
 **Custom Query Builder V3.2.2**: Interfaz fluente + CRUD optimizado + adaptadores MySQL/PostgreSQL + 24% mejora rendimiento + 82% reducción código SQL + escalabilidad 5-1000+ empleados.
 
+### **⏰ Funciones de Asistencias V3.5.3** ✅ (31-Oct-2025)
+
+**16 funciones** integradas al motor de fórmulas para consultar datos del módulo de marcaciones. Retornan 0 si no hay datos (opcional). Consultan `payroll_attendance_summary` automáticamente.
+
+**Funciones Horas (Asignaciones)**:
+- `HORAS_TRABAJADAS()` - Total horas trabajadas del período
+- `HORAS_REGULARES()` - Horas regulares sin extras
+- `HORAS_EXTRAS()` - Total horas extras (25% + 50%)
+- `HORAS_EXTRAS_25()` - Horas extras al 25% (primeras 3h)
+- `HORAS_EXTRAS_50()` - Horas extras al 50% (adicionales)
+- `HORAS_NOCTURNAS()` - Horas nocturnas 6PM-6AM
+- `HORAS_FERIADOS()` - Horas trabajadas en feriados
+- `HORAS_DOMINICALES()` - Horas trabajadas en domingos
+
+**Funciones Ausencias/Tardanzas (Deducciones)**:
+- `TARDANZAS()` - Minutos de tardanza total
+- `CANTIDAD_TARDANZAS()` - Número de tardanzas
+- `AUSENCIAS()` - Días ausencias injustificadas
+- `TOTAL_AUSENCIAS()` - Total ausencias (justificadas + injustificadas)
+- `AUSENCIAS_JUSTIFICADAS()` - Días ausencias justificadas
+
+**Funciones Estadísticas**:
+- `SCORE_PUNTUALIDAD()` - Score 0-100 de puntualidad
+- `DIAS_ASISTENCIA_PERFECTA()` - Días con asistencia perfecta
+- `DIAS_TRABAJADOS()` - Total días trabajados
+
+**Ejemplos de Uso en Conceptos**:
+```php
+// Concepto: Horas Extras 25%
+HORAS_EXTRAS_25() * (SUELDO / 220) * 1.25
+
+// Concepto: Descuento Tardanzas
+TARDANZAS() / 60 * (SUELDO / 220)
+
+// Concepto: Descuento Ausencias
+AUSENCIAS() * (SUELDO / 30)
+
+// Concepto: Bono Puntualidad
+SI(SCORE_PUNTUALIDAD() >= 95, 100, 0)
+
+// Concepto: Horas Nocturnas con recargo
+HORAS_NOCTURNAS() * (SUELDO / 220) * 1.5
+```
+
+**Implementación** (PlanillaConceptCalculatorSecure.php:79-211):
+- Método helper `obtenerDatoAsistencia()` con cache automático
+- Query optimizado con tolerancia de fechas
+- Limpieza cache automática al cambiar empleado
+- Sin eval(), 100% seguro con MathExecutor
+
+**Ventajas**:
+- ✅ Opcional - No requiere módulo marcaciones activo
+- ✅ Depurable - Fácil testing de fórmulas
+- ✅ Flexible - Conceptos configurables desde UI
+- ✅ Consistente - Integrado con ACUMULADOS(), CONCEPTO()
+
 **🛡️ SEGURIDAD CRÍTICA**:
 - 🚨 NUNCA eliminar librería nxp/math-executor
 - ⚠️ PROHIBIDO eval() - usar MathExecutor exclusivamente
@@ -253,7 +359,7 @@ A partir de la versión 3.4.1, cada versión tiene su propio archivo en `documen
 - **Índice**: `CHANGELOG.md` sirve como índice con enlaces a archivos individuales
 - **Template**: Copiar estructura de versiones existentes para nuevas versiones
 - **Convenciones**: Incluir fecha, tipo, componentes, estadísticas y referencias cruzadas
-- **Última Versión**: v3.5.2 (30-Oct-2025) - Mejora reportes liquidaciones PDF/Excel
+- **Última Versión**: v3.5.3 (01-Nov-2025) - Eliminación eval() + arquitectura segura por herencia
 
       
       IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.

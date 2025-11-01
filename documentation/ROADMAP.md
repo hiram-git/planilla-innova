@@ -1,9 +1,9 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 30 de Octubre, 2025
-**Versión**: 3.5.2 - Mejora Reportes PDF/Excel Liquidaciones (Mejora UX - 100%)
-**Versión Anterior**: 3.5.1 - Data Cleanup y Fixes Críticos Sistema Asistencias (Hotfix - 100%)
+**Fecha**: 1 de Noviembre, 2025
+**Versión**: 3.5.3 - Eliminación Completa eval() + Arquitectura Segura (Seguridad - 100%)
+**Versión Anterior**: 3.5.2 - Mejora Reportes PDF/Excel Liquidaciones (Mejora UX - 100%)
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -443,6 +443,8 @@
 - **SQL Injection Prevention**: Prepared statements + validaciones
 - **Role-Based Access**: Permisos granulares por funcionalidad
 - **Error Handling**: Logging detallado + recovery automático
+- **Zero eval()**: Evaluación segura fórmulas con NXP\MathExecutor (v3.5.3)
+- **Arquitectura Herencia**: Refactorización completa eliminando código inseguro (v3.5.3)
 
 ---
 

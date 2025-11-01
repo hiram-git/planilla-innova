@@ -8,6 +8,41 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.5.3]** - 2025-11-01 - *Eliminación Completa eval() + Arquitectura Segura*
+**Tipo**: Refactorización - Seguridad
+**Fase**: Core System - Mejoras de Seguridad
+**Criticidad**: Alta
+
+**Componentes Principales**:
+- ✅ **Eliminación Total de eval()**:
+  - 862 líneas de código corrupto/duplicado eliminadas (líneas 166-1030)
+  - Archivo PlanillaConceptCalculator.php reducido de 2058 a 1196 líneas
+  - 100% evaluación de fórmulas mediante NXP\MathExecutor (sin eval())
+  - Arquitectura de herencia: `class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure`
+- ✅ **Refactorización Visibilidad**:
+  - 9 propiedades `private`→`protected` en clase padre (incluye $db, $executor, etc.)
+  - 18 métodos `private`→`protected` para permitir herencia completa
+  - Fix crítico acceso $db que causaba error null pointer
+- ✅ **Validación Variables Extendida**:
+  - Variables string permitidas: EMPLEADO, CLAVE_SS, CLAVE_SEGURO_SOCIAL
+  - Mejora validación en configurarValidacionesEstritas() (líneas 54-70)
+- ✅ **Testing Runtime Completo**:
+  - 3 errores resueltos: null $db, private methods, variable validation
+  - Validación con planillas reales (ID 85, tipo planilla 2, empleado 1)
+- ✅ **Mejoras de Seguridad**:
+  - Eliminación de vectores de inyección de código
+  - Sandbox aislado para evaluación de fórmulas
+  - Validación estricta de variables antes de evaluación
+- 📈 **Estadísticas**:
+  - 2 archivos modificados | -1085 líneas inseguras | +321 líneas seguras
+  - 9 propiedades refactorizadas | 18 métodos refactorizados
+  - 0 cambios BD | 3 errores runtime resueltos | 0 uso eval() restante
+  - Deployment: 10-15 minutos
+
+**[📄 Ver detalles completos →](./changelog/v3.5.3.md)**
+
+---
+
 ### **[v3.5.2]** - 2025-10-30 - *Mejora Reportes PDF/Excel Liquidaciones*
 **Tipo**: Mejora - Reportes de Liquidación
 **Fase**: Mejora de UX - Documentación Profesional
@@ -412,6 +447,6 @@ Al crear una nueva versión:
 
 ---
 
-**Última Actualización**: 30 de Octubre, 2025
-**Sistema**: Planillas MVC v3.5.2
-**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 85% | Liquidaciones 100%
+**Última Actualización**: 1 de Noviembre, 2025
+**Sistema**: Planillas MVC v3.5.3
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 85% | Liquidaciones 100% | Seguridad 100%
