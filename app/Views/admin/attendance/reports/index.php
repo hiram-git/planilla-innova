@@ -35,7 +35,7 @@ $baseUrl = UrlHelper::base();
                     <div class="card-body text-center">
                         <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
                         <h4>Reporte de Ausencias</h4>
-                        <p class="text-muted">Listado detallado de ausencias por empleado, departamento y tipo (justificadas/injustificadas)</p>
+                        <p class="text-muted">Listado detallado de ausencias por empleado, departamento y tipo de ausencia (justificadas/injustificadas)</p>
                     </div>
                 </div>
             </div>
@@ -105,9 +105,9 @@ $baseUrl = UrlHelper::base();
                             <div class="form-group">
                                 <label for="format">Formato</label>
                                 <select class="form-control" id="format" name="format">
-                                    <option value="view">Vista Web</option>
                                     <option value="excel">Excel (.xlsx)</option>
-                                    <option value="pdf" disabled>PDF (próximamente)</option>
+                                    <option value="view">Vista Web</option>
+                                    <!--<option value="pdf" disabled>PDF (próximamente)</option>-->
                                 </select>
                             </div>
                         </div>
