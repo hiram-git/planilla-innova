@@ -556,7 +556,7 @@ class ReportsGenerator
                         ac.is_late,
                         ac.tardiness_minutes,
                         ac.time_in,
-                        ac.expected_time_in,
+                        ac.scheduled_time_in,
                         ac.punctuality_score,
                         ac.total_hours,
                         e.id as employee_id,
@@ -726,11 +726,11 @@ class ReportsGenerator
                 'full_name' => $empData['full_name'],
                 'departamento' => $empData['departamento'],
                 'position_name' => $empData['position_name'],
-                'absences_count' => count($empData['absences']),
+                'total_absences' => count($empData['absences']),
                 'unjustified_absences' => count(array_filter($empData['absences'], fn($a) => $a['absence_type'] === 'UNJUSTIFIED')),
-                'late_days' => 0,
+                'total_tardiness' => 0,
                 'total_tardiness_minutes' => 0,
-                'attendance_score' => 100
+                'performance_score' => 100
             ];
         }
 
@@ -745,31 +745,53 @@ class ReportsGenerator
                     'full_name' => $empData['full_name'],
                     'departamento' => $empData['departamento'],
                     'position_name' => $empData['position_name'],
-                    'absences_count' => 0,
+                    'total_absences' => 0,
                     'unjustified_absences' => 0,
-                    'late_days' => 0,
+                    'total_tardiness' => 0,
                     'total_tardiness_minutes' => 0,
-                    'attendance_score' => 100
+                    'performance_score' => 100
                 ];
             }
-            $employeesMap[$empId]['late_days'] = $empData['total_late_days'];
+            $employeesMap[$empId]['total_tardiness'] = $empData['total_late_days'];
             $employeesMap[$empId]['total_tardiness_minutes'] = $empData['total_tardiness_minutes'];
         }
 
-        // Calcular score de asistencia (100 - penalizaciones)
+        // Calcular score de desempeño (100 - penalizaciones)
         foreach ($employeesMap as &$emp) {
             $penalties = 0;
             $penalties += $emp['unjustified_absences'] * 10; // 10 puntos por ausencia injustificada
-            $penalties += $emp['late_days'] * 2; // 2 puntos por día de tardanza
+            $penalties += $emp['total_tardiness'] * 2; // 2 puntos por día de tardanza
             $penalties += floor($emp['total_tardiness_minutes'] / 60) * 5; // 5 puntos por hora de tardanza acumulada
 
-            $emp['attendance_score'] = max(0, 100 - $penalties);
+            $emp['performance_score'] = max(0, 100 - $penalties);
         }
 
-        // Ordenar por score de asistencia (menor a mayor = peores primero)
-        uasort($employeesMap, function($a, $b) {
-            return $a['attendance_score'] - $b['attendance_score'];
+        // Agrupar por departamento
+        $byDepartment = [];
+        foreach ($employeesMap as $emp) {
+            $dept = $emp['departamento'] ?? 'Sin Departamento';
+            if (!isset($byDepartment[$dept])) {
+                $byDepartment[$dept] = [];
+            }
+            $byDepartment[$dept][] = $emp;
+        }
+
+        // Ordenar empleados dentro de cada departamento por score (ascendente = peores primero)
+        foreach ($byDepartment as &$employees) {
+            usort($employees, function($a, $b) {
+                return $a['performance_score'] - $b['performance_score'];
+            });
+        }
+
+        // Top 10 mejores desempeños (mayor score)
+        $allEmployees = array_values($employeesMap);
+        usort($allEmployees, function($a, $b) {
+            return $b['performance_score'] - $a['performance_score'];
         });
+        $topPerformers = array_slice($allEmployees, 0, 10);
+
+        // Top 10 peores desempeños (menor score)
+        $bottomPerformers = array_slice(array_reverse($allEmployees), 0, 10);
 
         return [
             'period' => [
@@ -777,14 +799,18 @@ class ReportsGenerator
                 'end_date' => $endDate,
                 'tipo_planilla_id' => $tipoPlanillaId
             ],
-            'combined_summary' => [
+            'summary' => [
                 'total_employees' => count($employeesMap),
                 'total_absences' => $absencesReport['summary']['total_absences'] ?? 0,
-                'total_late_arrivals' => $tardinessReport['summary']['total_late_arrivals'] ?? 0,
-                'avg_attendance_score' => count($employeesMap) > 0
-                    ? round(array_sum(array_column($employeesMap, 'attendance_score')) / count($employeesMap), 2)
+                'total_tardiness' => $tardinessReport['summary']['total_late_arrivals'] ?? 0,
+                'total_tardiness_minutes' => $tardinessReport['summary']['total_tardiness_minutes'] ?? 0,
+                'avg_performance_score' => count($employeesMap) > 0
+                    ? round(array_sum(array_column($employeesMap, 'performance_score')) / count($employeesMap), 2)
                     : 100
             ],
+            'by_department' => $byDepartment,
+            'top_performers' => $topPerformers,
+            'bottom_performers' => $bottomPerformers,
             'by_employee' => array_values($employeesMap),
             'absences_detail' => $absencesReport,
             'tardiness_detail' => $tardinessReport

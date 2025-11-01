@@ -269,12 +269,12 @@
                                                        class="btn btn-info" title="Ver Detalle">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <button type="button"
+                                                    <!--<button type="button"
                                                             class="btn btn-success btn-export"
                                                             data-date="<?= $date ?>"
                                                             title="Exportar Excel">
                                                         <i class="fas fa-file-excel"></i>
-                                                    </button>
+                                                    </button>-->
                                                     <button type="button"
                                                             class="btn btn-warning btn-reprocess"
                                                             data-id="<?= $header['id'] ?>"

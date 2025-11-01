@@ -84,7 +84,7 @@ $topTardinessEmployees = $report['top_tardiness_employees'] ?? [];
                     <div class="col-md-3">
                         <div class="small-box bg-warning">
                             <div class="inner">
-                                <h3><?= number_format($summary['total_tardiness'] ?? 0) ?></h3>
+                                <h3><?= number_format($summary['total_late_arrivals'] ?? 0) ?></h3>
                                 <p>Total Tardanzas</p>
                             </div>
                             <div class="icon">
@@ -96,7 +96,7 @@ $topTardinessEmployees = $report['top_tardiness_employees'] ?? [];
                     <div class="col-md-3">
                         <div class="small-box bg-danger">
                             <div class="inner">
-                                <h3><?= number_format($summary['total_minutes'] ?? 0) ?></h3>
+                                <h3><?= number_format($summary['total_tardiness_minutes'] ?? 0) ?></h3>
                                 <p>Minutos Totales</p>
                             </div>
                             <div class="icon">
@@ -108,7 +108,7 @@ $topTardinessEmployees = $report['top_tardiness_employees'] ?? [];
                     <div class="col-md-3">
                         <div class="small-box bg-info">
                             <div class="inner">
-                                <h3><?= number_format($summary['avg_minutes'] ?? 0, 1) ?></h3>
+                                <h3><?= number_format($summary['avg_tardiness_minutes'] ?? 0, 1) ?></h3>
                                 <p>Promedio Minutos/Tardanza</p>
                             </div>
                             <div class="icon">
@@ -162,13 +162,13 @@ $topTardinessEmployees = $report['top_tardiness_employees'] ?? [];
                                         <td><?= htmlspecialchars($emp['departamento'] ?? 'N/A') ?></td>
                                         <td><?= htmlspecialchars($emp['position_name'] ?? 'N/A') ?></td>
                                         <td class="text-center">
-                                            <span class="badge badge-warning"><?= $emp['total_tardiness'] ?></span>
+                                            <span class="badge badge-warning"><?= $emp['total_late_days'] ?></span>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge badge-danger"><?= number_format($emp['total_minutes']) ?> min</span>
+                                            <span class="badge badge-danger"><?= number_format($emp['total_tardiness_minutes']) ?> min</span>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge badge-info"><?= number_format($emp['avg_minutes'], 1) ?> min</span>
+                                            <span class="badge badge-info"><?= number_format($emp['avg_tardiness_minutes'], 1) ?> min</span>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -212,23 +212,23 @@ $topTardinessEmployees = $report['top_tardiness_employees'] ?? [];
                                         <td><?= htmlspecialchars($t['cedula']) ?></td>
                                         <td><?= htmlspecialchars($t['full_name']) ?></td>
                                         <td><?= htmlspecialchars($t['position_name'] ?? 'N/A') ?></td>
-                                        <td><?= date('d/m/Y', strtotime($t['tardiness_date'])) ?></td>
-                                        <td><?= date('H:i', strtotime($t['check_in_time'])) ?></td>
-                                        <td><?= date('H:i', strtotime($t['expected_time'])) ?></td>
+                                        <td><?= date('d/m/Y', strtotime($t['date'])) ?></td>
+                                        <td><?= $t['time_in'] ? date('H:i', strtotime($t['date'] . ' ' . $t['time_in'])) : 'N/A' ?></td>
+                                        <td><?= $t['scheduled_time_in'] ? date('H:i', strtotime($t['date'] . ' ' . $t['scheduled_time_in'])) : 'N/A' ?></td>
                                         <td class="text-center">
                                             <span class="badge badge-tardiness badge-<?php
-                                                $minutes = $t['minutes_late'];
+                                                $minutes = $t['tardiness_minutes'];
                                                 if ($minutes <= 5) echo 'info';
                                                 elseif ($minutes <= 15) echo 'warning';
                                                 elseif ($minutes <= 30) echo 'orange';
                                                 else echo 'danger';
                                             ?>">
-                                                <?= number_format($t['minutes_late']) ?> min
+                                                <?= number_format($t['tardiness_minutes']) ?> min
                                             </span>
                                         </td>
                                         <td class="text-center">
                                             <?php
-                                            $minutes = $t['minutes_late'];
+                                            $minutes = $t['tardiness_minutes'];
                                             if ($minutes <= 5) {
                                                 echo '<span class="badge badge-info">Leve</span>';
                                             } elseif ($minutes <= 15) {

@@ -33,7 +33,7 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                             ?>)
                         </h3>
                         <div class="card-tools">
-                            <a href="<?= \App\Core\UrlHelper::panel('attendance') ?>" class="btn btn-tool" title="Volver al listado">
+                            <a href="<?= \App\Core\UrlHelper::panel('attendance') ?>" class="btn btn-secondary " title="Volver al listado">
                                 <i class="fas fa-arrow-left"></i> Volver
                             </a>
                         </div>
@@ -181,15 +181,15 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                             <button type="button" class="btn btn-warning btn-sm btn-process-all-calculations" title="Procesar solo cálculos de marcaciones existentes">
                                 <i class="fas fa-calculator"></i> Procesar Cálculos
                             </button>
-                            <button type="button" class="btn btn-success btn-sm" onclick="window.print()">
+                            <!--<button type="button" class="btn btn-success btn-sm" onclick="window.print()">
                                 <i class="fas fa-print"></i> Imprimir
                             </button>
-                            <a href="/panel/attendance/export-excel/<?= $date ?>" class="btn btn-primary btn-sm">
+                            <a href="<?= \App\Core\UrlHelper::panel('attendance/export-excel/' . $date) ?>" class="btn btn-primary btn-sm">
                                 <i class="fas fa-file-excel"></i> Exportar Excel
                             </a>
-                            <a href="/panel/attendance/export-pdf/<?= $date ?>" class="btn btn-danger btn-sm">
+                            <a href="<?= \App\Core\UrlHelper::panel('attendance/export-pdf/' . $date) ?>" class="btn btn-danger btn-sm">
                                 <i class="fas fa-file-pdf"></i> PDF
-                            </a>
+                            </a>-->
                         </div>
                     </div>
                     <div class="card-body table-responsive p-0">
