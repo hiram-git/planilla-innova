@@ -20,14 +20,15 @@ use NXP\Exception\MathExecutorException;
  */
 class PlanillaConceptCalculatorSecure
 {
-    private MathExecutor $executor;
-    private PDO $db;
-    private array $conceptos = [];
-    private array $variablesColaborador = [];
-    private array $cacheAcreedores = [];
-    private array $evaluando = [];
-    private ?float $montoAcreedor = null;
-    private array $fechasActuales = [];
+    protected MathExecutor $executor;
+    protected PDO $db;
+    protected array $conceptos = [];
+    protected array $variablesColaborador = [];
+    protected array $cacheAcreedores = [];
+    protected array $evaluando = [];
+    protected ?float $montoAcreedor = null;
+    protected array $fechasActuales = [];
+    protected ?array $attendanceSummaryCache = null;
 
     public function __construct()
     {
@@ -40,7 +41,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Configurar sistema seguro completo
      */
-    private function configurarSistemaSeguro(): void
+    protected function configurarSistemaSeguro(): void
     {
         $this->configurarValidacionesEstritas();
         $this->configurarFuncionesPersonalizadas();
@@ -50,11 +51,19 @@ class PlanillaConceptCalculatorSecure
     /**
      * Configurar validaciones estrictas de variables
      */
-    private function configurarValidacionesEstritas(): void
+    protected function configurarValidacionesEstritas(): void
     {
         $this->executor->setVarValidationHandler(function (string $nombre, $valor) {
             // Variables especiales que pueden ser strings
-            $variablesEspecialesString = ['FICHA', 'INIPERIODO', 'FINPERIODO', 'FECHA'];
+            $variablesEspecialesString = [
+                'FICHA',
+                'EMPLEADO',  // Alias de FICHA (código del empleado)
+                'CLAVE_SS',
+                'CLAVE_SEGURO_SOCIAL',  // Cédula o número de seguro social
+                'INIPERIODO',
+                'FINPERIODO',
+                'FECHA'
+            ];
 
             if (!in_array($nombre, $variablesEspecialesString) && !is_numeric($valor)) {
                 throw new MathExecutorException("La variable '$nombre' debe ser numérica, recibido: " . gettype($valor));
@@ -76,7 +85,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Configurar funciones personalizadas seguras
      */
-    private function configurarFuncionesPersonalizadas(): void
+    protected function configurarFuncionesPersonalizadas(): void
     {
         // Función SI condicional
         $this->executor->addFunction('SI', function ($condicion, $valorSiVerdadero, $valorSiFalso) {
@@ -123,12 +132,97 @@ class PlanillaConceptCalculatorSecure
                 throw new MathExecutorException("Error calculando días: " . $e->getMessage());
             }
         }, 2);
+
+        // ⏰ FUNCIONES DE ASISTENCIAS (Módulo de Marcaciones)
+        // Retornan 0 si no hay datos de asistencias (opcional)
+
+        // Horas trabajadas regulares
+        $this->executor->addFunction('HORAS_TRABAJADAS', function () {
+            return $this->obtenerDatoAsistencia('total_hours_worked');
+        }, 0);
+
+        // Horas regulares (sin extras)
+        $this->executor->addFunction('HORAS_REGULARES', function () {
+            return $this->obtenerDatoAsistencia('regular_hours');
+        }, 0);
+
+        // Horas extras al 25%
+        $this->executor->addFunction('HORAS_EXTRAS_25', function () {
+            return $this->obtenerDatoAsistencia('overtime_hours_25');
+        }, 0);
+
+        // Horas extras al 50%
+        $this->executor->addFunction('HORAS_EXTRAS_50', function () {
+            return $this->obtenerDatoAsistencia('overtime_hours_50');
+        }, 0);
+
+        // Total horas extras (25% + 50%)
+        $this->executor->addFunction('HORAS_EXTRAS', function () {
+            $h25 = $this->obtenerDatoAsistencia('overtime_hours_25');
+            $h50 = $this->obtenerDatoAsistencia('overtime_hours_50');
+            return $h25 + $h50;
+        }, 0);
+
+        // Horas nocturnas (6PM-6AM)
+        $this->executor->addFunction('HORAS_NOCTURNAS', function () {
+            return $this->obtenerDatoAsistencia('night_hours');
+        }, 0);
+
+        // Horas en días feriados
+        $this->executor->addFunction('HORAS_FERIADOS', function () {
+            return $this->obtenerDatoAsistencia('holiday_hours');
+        }, 0);
+
+        // Horas en domingos
+        $this->executor->addFunction('HORAS_DOMINICALES', function () {
+            return $this->obtenerDatoAsistencia('sunday_hours');
+        }, 0);
+
+        // Minutos de tardanzas
+        $this->executor->addFunction('TARDANZAS', function () {
+            return $this->obtenerDatoAsistencia('total_tardiness_minutes');
+        }, 0);
+
+        // Cantidad de tardanzas
+        $this->executor->addFunction('CANTIDAD_TARDANZAS', function () {
+            return $this->obtenerDatoAsistencia('tardiness_count');
+        }, 0);
+
+        // Ausencias injustificadas (días)
+        $this->executor->addFunction('AUSENCIAS', function () {
+            return $this->obtenerDatoAsistencia('unjustified_absences');
+        }, 0);
+
+        // Total ausencias (justificadas + injustificadas)
+        $this->executor->addFunction('TOTAL_AUSENCIAS', function () {
+            return $this->obtenerDatoAsistencia('total_absences');
+        }, 0);
+
+        // Ausencias justificadas
+        $this->executor->addFunction('AUSENCIAS_JUSTIFICADAS', function () {
+            return $this->obtenerDatoAsistencia('justified_absences');
+        }, 0);
+
+        // Score de puntualidad (0-100)
+        $this->executor->addFunction('SCORE_PUNTUALIDAD', function () {
+            return $this->obtenerDatoAsistencia('punctuality_score');
+        }, 0);
+
+        // Días con asistencia perfecta
+        $this->executor->addFunction('DIAS_ASISTENCIA_PERFECTA', function () {
+            return $this->obtenerDatoAsistencia('perfect_attendance_days');
+        }, 0);
+
+        // Días trabajados
+        $this->executor->addFunction('DIAS_TRABAJADOS', function () {
+            return $this->obtenerDatoAsistencia('total_days_worked');
+        }, 0);
     }
 
     /**
      * Configurar manejador de variables no encontradas
      */
-    private function configurarManejadorVariables(): void
+    protected function configurarManejadorVariables(): void
     {
         $this->executor->setVarNotFoundHandler(function (string $nombre) {
             // Variables del colaborador
@@ -175,7 +269,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Validar formato de fecha
      */
-    private function validarFormatoFecha(string $fecha): bool
+    protected function validarFormatoFecha(string $fecha): bool
     {
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) &&
                \DateTime::createFromFormat('Y-m-d', $fecha) !== false;
@@ -184,7 +278,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Cargar conceptos desde la base de datos
      */
-    private function cargarConceptos(): void
+    protected function cargarConceptos(): void
     {
         try {
             $sql = "SELECT id, concepto, descripcion, formula FROM concepto";
@@ -213,6 +307,9 @@ class PlanillaConceptCalculatorSecure
     public function setVariablesColaborador(int $employeeId): void
     {
         try {
+            // Limpiar caché de asistencias al cambiar de empleado
+            $this->limpiarCacheAsistencias();
+
             $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.created_on,
                            p.sueldo,
                            s.time_in, s.time_out
@@ -270,7 +367,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Calcular horas de trabajo por semana
      */
-    private function calcularHorasTrabajo(?string $timeIn, ?string $timeOut): float
+    protected function calcularHorasTrabajo(?string $timeIn, ?string $timeOut): float
     {
         if (!$timeIn || !$timeOut) return 40.0; // Default 40 horas
 
@@ -287,7 +384,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Calcular antigüedad en días
      */
-    private function calcularAntiguedad(?string $createdOn): int
+    protected function calcularAntiguedad(?string $createdOn): int
     {
         if (!$createdOn) return 0;
 
@@ -344,7 +441,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Verificar si es fórmula multilínea
      */
-    private function esFormulaMultilinea(string $formula): bool
+    protected function esFormulaMultilinea(string $formula): bool
     {
         return strpos($formula, "\n") !== false ||
                preg_match('/[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*/', $formula);
@@ -353,7 +450,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * 📝 Evaluar fórmula multilínea (SEGURO)
      */
-    private function evaluarFormulaMultilinea(string $formula): float
+    protected function evaluarFormulaMultilinea(string $formula): float
     {
         $lineas = $this->dividirFormulaEnLineas($formula);
         $ultimoResultado = 0;
@@ -394,7 +491,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Dividir fórmula en líneas
      */
-    private function dividirFormulaEnLineas(string $formula): array
+    protected function dividirFormulaEnLineas(string $formula): array
     {
         // Normalizar saltos de línea
         $formula = str_replace(["\r\n", "\r"], "\n", $formula);
@@ -436,7 +533,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Evaluar concepto de forma segura con prevención de ciclos
      */
-    private function evaluarConceptoSeguro(string $nombre): float
+    protected function evaluarConceptoSeguro(string $nombre): float
     {
         if (!isset($this->conceptos[$nombre])) {
             throw new MathExecutorException("Concepto '$nombre' no definido");
@@ -471,7 +568,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * 💰 Calcular monto acreedor de forma segura
      */
-    private function calcularMontoAcreedorSeguro($empleado, int $idDeduction): float
+    protected function calcularMontoAcreedorSeguro($empleado, int $idDeduction): float
     {
         try {
             // Validar parámetros
@@ -507,7 +604,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * 📈 Calcular acumulados de forma segura
      */
-    private function calcularAcumuladosSeguro($conceptos, string $fechaDesde, string $fechaHasta): float
+    protected function calcularAcumuladosSeguro($conceptos, string $fechaDesde, string $fechaHasta): float
     {
         try {
             // Validar fechas
@@ -557,7 +654,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * Parsear conceptos de forma segura
      */
-    private function parsearConceptosSeguro($conceptos): array
+    protected function parsearConceptosSeguro($conceptos): array
     {
         if (is_string($conceptos)) {
             // Remover comillas y dividir por comas
@@ -582,7 +679,7 @@ class PlanillaConceptCalculatorSecure
     /**
      * 🎄 Calcular XIII mes con fechas de planilla
      */
-    private function calcularXIIIMesConFechasPlanilla(): float
+    protected function calcularXIIIMesConFechasPlanilla(): float
     {
         try {
             if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
@@ -618,5 +715,96 @@ class PlanillaConceptCalculatorSecure
             error_log("Error calculando XIII mes: " . $e->getMessage());
             return 0;
         }
+    }
+
+    /**
+     * ⏰ Obtener dato de asistencia del empleado actual
+     *
+     * Consulta payroll_attendance_summary para obtener un campo específico
+     * del empleado y período actuales. Retorna 0 si no hay datos (opcional).
+     *
+     * @param string $campo Nombre del campo a obtener
+     * @return float Valor del campo o 0 si no existe
+     */
+    protected function obtenerDatoAsistencia(string $campo): float
+    {
+        try {
+            // Validar que hay empleado establecido
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return 0;
+            }
+
+            // Validar que hay fechas de planilla establecidas
+            if (empty($this->fechasActuales['fecha_desde']) || empty($this->fechasActuales['fecha_hasta'])) {
+                return 0;
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+            $fechaDesde = $this->fechasActuales['fecha_desde'];
+            $fechaHasta = $this->fechasActuales['fecha_hasta'];
+
+            // Cargar summary en caché si no está cargado
+            if ($this->attendanceSummaryCache === null) {
+                $this->cargarResumenAsistencia($employeeId, $fechaDesde, $fechaHasta);
+            }
+
+            // Si después de cargar sigue siendo null, no hay datos
+            if ($this->attendanceSummaryCache === null) {
+                return 0;
+            }
+
+            // Retornar el campo solicitado o 0 si no existe
+            return (float)($this->attendanceSummaryCache[$campo] ?? 0);
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo dato de asistencia '$campo': " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Cargar resumen de asistencias en caché
+     *
+     * @param int $employeeId ID del empleado
+     * @param string $fechaDesde Fecha inicio período
+     * @param string $fechaHasta Fecha fin período
+     */
+    protected function cargarResumenAsistencia(int $employeeId, string $fechaDesde, string $fechaHasta): void
+    {
+        try {
+            // Buscar resumen que coincida con el empleado y período
+            // Tolerancia: el período de la planilla debe estar contenido en el período del summary
+            $sql = "SELECT *
+                    FROM payroll_attendance_summary
+                    WHERE employee_id = ?
+                    AND period_start <= ?
+                    AND period_end >= ?
+                    ORDER BY created_at DESC
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Guardar en caché (null si no se encontró)
+            $this->attendanceSummaryCache = $result ?: null;
+
+            if ($this->attendanceSummaryCache === null) {
+                error_log("No se encontró resumen de asistencias para empleado $employeeId, período $fechaDesde a $fechaHasta");
+            }
+
+        } catch (PDOException $e) {
+            error_log("Error cargando resumen de asistencias: " . $e->getMessage());
+            $this->attendanceSummaryCache = null;
+        }
+    }
+
+    /**
+     * Limpiar caché de asistencias
+     * (útil cuando se cambia de empleado)
+     */
+    public function limpiarCacheAsistencias(): void
+    {
+        $this->attendanceSummaryCache = null;
     }
 }
