@@ -1511,7 +1511,7 @@ class LiquidationController extends Controller
                 $sheet->getStyle('A' . $row)->getFont()->setBold(true);
                 $row++;
 
-                $sheet->setCellValue('A' . $row, 'Posición:');
+                $sheet->setCellValue('A' . $row, 'Cargo:');
                 $sheet->setCellValue('B' . $row, $employee_info['position']);
                 $sheet->getStyle('A' . $row)->getFont()->setBold(true);
                 $row++;
@@ -1742,7 +1742,8 @@ class LiquidationController extends Controller
            $sql = "SELECT pd.*, c.concepto, c.descripcion as concepto_descripcion,
                            c.tipo_concepto, e.employee_id as cedula, e.document_id,
                            e.fecha_ingreso, e.sueldo_individual, org.descripcion as departamento,
-                           cargos.nombre as position_name, et.termination_date,
+                           cargos.nombre as position_name, 
+                           et.termination_date,
                            et.termination_type, et.notice_period_days, et.reason as termination_reason
                     FROM planilla_cabecera pc
                     INNER JOIN planilla_detalle pd ON pd.planilla_cabecera_id = pc.id
@@ -1750,7 +1751,7 @@ class LiquidationController extends Controller
                     INNER JOIN employees e ON pd.employee_id = e.id
                     LEFT JOIN organigrama org ON e.organigrama_id = org.id
                     LEFT JOIN posiciones p ON e.position_id = p.id
-                    LEFT JOIN cargos ON p.id_cargo = cargos.id
+                    LEFT JOIN cargos ON cargos.id = e.cargo_id
                     LEFT JOIN employee_terminations et ON et.employee_id = e.id
                         AND pc.fecha_hasta = et.termination_date
                     WHERE pd.planilla_cabecera_id = ?
@@ -1819,6 +1820,8 @@ class LiquidationController extends Controller
 
                 $employee_info = [
                     'name' => $first_detail['firstname'] . ' ' . $first_detail['lastname'],
+                    'firstname' => $first_detail['firstname'],
+                    'lastname' => $first_detail['lastname'],
                     'cedula' => $first_detail['document_id'] ?? $first_detail['cedula'] ?? 'N/A',
                     'departamento' => $first_detail['departamento'] ?? 'N/A',
                     'position' => $first_detail['position_name'] ?? 'N/A',
@@ -1883,7 +1886,7 @@ class LiquidationController extends Controller
                 $pdf->Cell(50, 6, $employee_info['cedula'], 0, 0);
 
                 $pdf->SetFont('helvetica', 'B', 10);
-                $pdf->Cell(40, 6, 'Posición:', 0, 0);
+                $pdf->Cell(40, 6, 'Cargo:', 0, 0);
                 $pdf->SetFont('helvetica', '', 10);
                 $pdf->Cell(50, 6, $employee_info['position'], 0, 1);
 
@@ -1944,7 +1947,7 @@ class LiquidationController extends Controller
             $pdf->SetFillColor(255, 140, 0); // Naranja intenso
             $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->Cell(0, 7, 'ASIGNACIONES', 1, 1, 'L', true);
+            $pdf->Cell(0, 7, 'ASIGNACIONES', 1, 1, 'C', true);
             $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             // Cabecera de tabla
@@ -1974,7 +1977,7 @@ class LiquidationController extends Controller
             $pdf->SetFillColor(255, 140, 0); // Naranja intenso (mismo que asignaciones)
             $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->Cell(0, 7, 'DEDUCCIONES', 1, 1, 'L', true);
+            $pdf->Cell(0, 7, 'DEDUCCIONES', 1, 1, 'C', true);
             $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             // Cabecera de tabla
@@ -2055,7 +2058,7 @@ class LiquidationController extends Controller
             $pdf->SetFont('helvetica', '', 9);
             $pdf->Cell($firmaWidth, 5, $gerencia_name, 0, 0, 'C');
             $pdf->Cell($firmaWidth, 5, $rrhh_name, 0, 0, 'C');
-            $pdf->Cell($firmaWidth, 5, $empleado_name, 0, 1, 'C');
+            $pdf->Cell($firmaWidth, 5, $employee_info['firstname'], 0, 1, 'C');
 
             $pdf->Ln(1);
 
@@ -2065,6 +2068,16 @@ class LiquidationController extends Controller
             $pdf->SetFont('helvetica', '', 8);
             $pdf->Cell($firmaWidth, 5, '(Gerencia)', 0, 0, 'C');
             $pdf->Cell($firmaWidth, 5, '(Recursos Humanos)', 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, $employee_info['lastname'], 0, 1, 'C');
+
+            $pdf->Ln(1);
+
+            // Quinta línea: subtexto (cargo/cédula)
+            $empleado_cedula = $employee_info ? $employee_info['cedula'] : 'N/A';
+
+            $pdf->SetFont('helvetica', '', 8);
+            $pdf->Cell($firmaWidth, 5, '', 0, 0, 'C');
+            $pdf->Cell($firmaWidth, 5, '', 0, 0, 'C');
             $pdf->Cell($firmaWidth, 5, 'Cedula: ' . $empleado_cedula, 0, 1, 'C');
 
             // Generar nombre de archivo

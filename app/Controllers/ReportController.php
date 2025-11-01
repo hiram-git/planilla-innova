@@ -243,6 +243,10 @@ class ReportController extends Controller
         $pdf->SetTitle('Comprobantes de Pago - ' . $payroll['descripcion']);
         $pdf->SetSubject('Comprobantes de Pago');
 
+        // Desactivar header y footer automáticos (quita línea superior)
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
         // Márgenes reducidos para orientación horizontal
         $pdf->SetMargins(15, 15, 15);
         $pdf->SetAutoPageBreak(TRUE, 15);
@@ -281,8 +285,10 @@ class ReportController extends Controller
 
             // === SECCIÓN: DATOS DEL EMPLEADO ===
             $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->SetFillColor(230, 230, 230);
+            $pdf->SetFillColor(255, 140, 0); // Naranja intenso (mismo que liquidaciones)
+            $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->Cell(0, 7, 'DATOS DEL EMPLEADO', 0, 1, 'L', true);
+            $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             $pdf->SetFont('helvetica', '', 9);
 
@@ -320,12 +326,14 @@ class ReportController extends Controller
 
             if (!empty($employeeData['ingresos'])) {
                 $pdf->SetFont('helvetica', 'B', 11);
-                $pdf->SetFillColor(200, 200, 200);
+                $pdf->SetFillColor(255, 140, 0); // Naranja intenso
+                $pdf->SetTextColor(255, 255, 255); // Texto blanco
                 $pdf->Cell($colWidth, 6, 'INGRESOS', 1, 1, 'C', true);
+                $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
                 $pdf->SetX($leftX);
                 $pdf->SetFont('helvetica', 'B', 8);
-                $pdf->SetFillColor(240, 240, 240);
+                $pdf->SetFillColor(224, 224, 224); // Gris claro (mismo que liquidaciones)
                 $colCodigo = 25;
                 $colDescripcion = $colWidth - $colCodigo - 30;
                 $colMonto = 30;
@@ -344,7 +352,7 @@ class ReportController extends Controller
 
                 $pdf->SetX($leftX);
                 $pdf->SetFont('helvetica', 'B', 9);
-                $pdf->SetFillColor(220, 255, 220);
+                $pdf->SetFillColor(255, 180, 120); // Naranja claro (mismo que liquidaciones)
                 $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
                 $pdf->Cell($colMonto, 6, '$' . number_format($employeeData['total_ingresos'], 2), 1, 1, 'R', true);
             }
@@ -356,12 +364,14 @@ class ReportController extends Controller
 
             if (!empty($employeeData['deducciones'])) {
                 $pdf->SetFont('helvetica', 'B', 11);
-                $pdf->SetFillColor(200, 200, 200);
+                $pdf->SetFillColor(255, 140, 0); // Naranja intenso (mismo que ingresos)
+                $pdf->SetTextColor(255, 255, 255); // Texto blanco
                 $pdf->Cell($colWidth, 6, 'DEDUCCIONES', 1, 1, 'C', true);
+                $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
                 $pdf->SetX($rightX);
                 $pdf->SetFont('helvetica', 'B', 8);
-                $pdf->SetFillColor(240, 240, 240);
+                $pdf->SetFillColor(224, 224, 224); // Gris claro
                 $colCodigo = 25;
                 $colDescripcion = $colWidth - $colCodigo - 30;
                 $colMonto = 30;
@@ -380,7 +390,7 @@ class ReportController extends Controller
 
                 $pdf->SetX($rightX);
                 $pdf->SetFont('helvetica', 'B', 9);
-                $pdf->SetFillColor(255, 220, 220);
+                $pdf->SetFillColor(255, 180, 120); // Naranja claro (mismo que total ingresos)
                 $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
                 $pdf->Cell($colMonto, 6, '$' . number_format($employeeData['total_deducciones'], 2), 1, 1, 'R', true);
             }
@@ -393,33 +403,39 @@ class ReportController extends Controller
 
             // === RESUMEN FINAL: SALARIO NETO ===
             $pdf->SetFont('helvetica', 'B', 14);
-            $pdf->SetFillColor(200, 200, 200);
+            $pdf->SetFillColor(25, 118, 210); // Azul profundo (mismo que liquidaciones)
+            $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->Cell(0, 10, 'SALARIO NETO A PAGAR: $' . number_format($employeeData['neto'], 2), 1, 1, 'C', true);
+            $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             $pdf->Ln(10);
 
             // === FIRMAS ===
             $pdf->SetFont('helvetica', '', 8);
 
-            // Dos columnas para las firmas
-            $colWidth = ($pageWidth - $leftMargin - $rightMargin) / 2;
+            // Tres columnas para las firmas (Elaborado por, Autorizado por, Recibido por)
+            $colWidth = ($pageWidth - $leftMargin - $rightMargin) / 3;
 
             // Líneas para firmas
             $pdf->Cell($colWidth, 3, '', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, '', 0, 0, 'C');
             $pdf->Cell($colWidth, 3, '', 0, 1, 'C');
 
-            $pdf->Cell($colWidth, 3, '___________________________', 0, 0, 'C');
-            $pdf->Cell($colWidth, 3, '___________________________', 0, 1, 'C');
+            $pdf->Cell($colWidth, 3, '______________________', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, '______________________', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, '______________________', 0, 1, 'C');
 
             // Nombres
             $pdf->SetFont('helvetica', 'B', 8);
             $pdf->Cell($colWidth, 4, $companySignatures['elaborado_por'] ?: 'Por definir', 0, 0, 'C');
-            $pdf->Cell($colWidth, 4, $companySignatures['jefe_recursos_humanos'] ?: 'Por definir', 0, 1, 'C');
+            $pdf->Cell($colWidth, 4, $companySignatures['jefe_recursos_humanos'] ?: 'Por definir', 0, 0, 'C');
+            $pdf->Cell($colWidth, 4, $employee['firstname'] . ' ' . $employee['lastname'], 0, 1, 'C');
 
             // Cargos
             $pdf->SetFont('helvetica', '', 7);
-            $pdf->Cell($colWidth, 3, $companySignatures['cargo_elaborador'] ?: 'Especialista en Nóminas', 0, 0, 'C');
-            $pdf->Cell($colWidth, 3, $companySignatures['cargo_jefe_rrhh'] ?: 'Jefe de Recursos Humanos', 0, 1, 'C');
+            $pdf->Cell($colWidth, 3, $companySignatures['cargo_elaborador'] ?: 'Elaborado por', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, $companySignatures['cargo_jefe_rrhh'] ?: 'Autorizado por', 0, 0, 'C');
+            $pdf->Cell($colWidth, 3, 'Recibido por (Colaborador)', 0, 1, 'C');
 
             $pdf->Ln(3);
 
@@ -456,6 +472,10 @@ class ReportController extends Controller
         $pdf->SetAuthor('Sistema de Planillas');
         $pdf->SetTitle('Comprobante de Pago - ' . $employee['firstname'] . ' ' . $employee['lastname']);
 
+        // Desactivar header y footer automáticos (quita línea superior)
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
         // Márgenes reducidos para aprovechar espacio horizontal
         $pdf->SetMargins(15, 15, 15);
         $pdf->SetAutoPageBreak(TRUE, 15);
@@ -483,8 +503,10 @@ class ReportController extends Controller
 
         // === SECCIÓN: DATOS DEL EMPLEADO ===
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->SetFillColor(230, 230, 230);
+        $pdf->SetFillColor(255, 140, 0); // Naranja intenso (mismo que liquidaciones)
+        $pdf->SetTextColor(255, 255, 255); // Texto blanco
         $pdf->Cell(0, 7, 'DATOS DEL EMPLEADO', 0, 1, 'L', true);
+        $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
         $pdf->SetFont('helvetica', '', 9);
 
@@ -522,12 +544,14 @@ class ReportController extends Controller
 
         if (!empty($data['ingresos'])) {
             $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->SetFillColor(220, 255, 220);
+            $pdf->SetFillColor(255, 140, 0); // Naranja intenso
+            $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->Cell($colWidth, 6, 'INGRESOS', 1, 1, 'C', true);
+            $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             $pdf->SetX($leftX);
             $pdf->SetFont('helvetica', 'B', 8);
-            $pdf->SetFillColor(240, 240, 240);
+            $pdf->SetFillColor(224, 224, 224); // Gris claro
             $colCodigo = 25;
             $colDescripcion = $colWidth - $colCodigo - 30;
             $colMonto = 30;
@@ -546,7 +570,7 @@ class ReportController extends Controller
 
             $pdf->SetX($leftX);
             $pdf->SetFont('helvetica', 'B', 9);
-            $pdf->SetFillColor(220, 255, 220);
+            $pdf->SetFillColor(255, 180, 120); // Naranja claro
             $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 6, '$' . number_format($data['total_ingresos'], 2), 1, 1, 'R', true);
         }
@@ -559,12 +583,14 @@ class ReportController extends Controller
 
         if (!empty($data['deducciones'])) {
             $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->SetFillColor(255, 220, 220);
+            $pdf->SetFillColor(255, 140, 0); // Naranja intenso (mismo que ingresos)
+            $pdf->SetTextColor(255, 255, 255); // Texto blanco
             $pdf->Cell($colWidth, 6, 'DEDUCCIONES', 1, 1, 'C', true);
+            $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
             $pdf->SetX($rightX);
             $pdf->SetFont('helvetica', 'B', 8);
-            $pdf->SetFillColor(240, 240, 240);
+            $pdf->SetFillColor(224, 224, 224); // Gris claro
             $colCodigo = 25;
             $colDescripcion = $colWidth - $colCodigo - 30;
             $colMonto = 30;
@@ -583,7 +609,7 @@ class ReportController extends Controller
 
             $pdf->SetX($rightX);
             $pdf->SetFont('helvetica', 'B', 9);
-            $pdf->SetFillColor(255, 220, 220);
+            $pdf->SetFillColor(255, 180, 120); // Naranja claro (mismo que total ingresos)
             $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 6, '$' . number_format($data['total_deducciones'], 2), 1, 1, 'R', true);
         }
@@ -597,8 +623,10 @@ class ReportController extends Controller
 
         // === RESUMEN FINAL: SALARIO NETO ===
         $pdf->SetFont('helvetica', 'B', 14);
-        $pdf->SetFillColor(200, 200, 200);
+        $pdf->SetFillColor(25, 118, 210); // Azul profundo (mismo que liquidaciones)
+        $pdf->SetTextColor(255, 255, 255); // Texto blanco
         $pdf->Cell(0, 10, 'SALARIO NETO A PAGAR: $' . number_format($data['neto'], 2), 1, 1, 'C', true);
+        $pdf->SetTextColor(0, 0, 0); // Restaurar texto negro
 
         $pdf->Ln(5);
 
