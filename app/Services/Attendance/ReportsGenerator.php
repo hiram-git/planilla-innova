@@ -816,4 +816,160 @@ class ReportsGenerator
             'tardiness_detail' => $tardinessReport
         ];
     }
+
+    /**
+     * Generar reporte detallado de marcaciones (punches)
+     * Incluye: ID, cédula, nombres, apellidos, departamento, marcaciones (entrada/salida), tardanzas, ausencias, horas trabajadas
+     * Filtrado por tipo de planilla y ordenado por departamento
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @param int|null $tipoPlanillaId ID del tipo de planilla (filtro opcional)
+     * @return array
+     */
+    public function generateDetailedPunchesReport($startDate, $endDate, $tipoPlanillaId = null)
+    {
+        try {
+            // Query con todos los campos necesarios incluyendo marcaciones
+            $sql = "SELECT
+                        ac.id as calculation_id,
+                        ac.attendance_detail_id,
+                        ac.date,
+                        ac.time_in,
+                        ac.time_out,
+                        ac.scheduled_time_in,
+                        ac.scheduled_time_out,
+                        ac.is_late,
+                        ac.is_absent,
+                        ac.tardiness_minutes,
+                        ac.total_hours,
+                        ac.overtime_hours,
+                        ac.overtime_25_hours,
+                        ac.overtime_50_hours,
+                        ac.is_perfect_attendance,
+                        ac.punctuality_score,
+                        e.id as employee_id,
+                        e.employee_id as employee_code,
+                        e.document_id as cedula,
+                        e.firstname,
+                        e.lastname,
+                        CONCAT(e.firstname, ' ', e.lastname) as full_name,
+                        org.descripcion as departamento,
+                        org.id as departamento_id,
+                        sit.descripcion as situacion,
+                        pos.codigo as position_name,
+                        s.time_in as schedule_time_in,
+                        s.time_out as schedule_time_out
+                    FROM attendance_calculations ac
+                    INNER JOIN employees e ON ac.employee_id = e.id
+                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                    LEFT JOIN posiciones pos ON e.position_id = pos.id
+                    LEFT JOIN schedules s ON e.schedule_id = s.id
+                    WHERE ac.date BETWEEN ? AND ?";
+
+            $params = [$startDate, $endDate];
+
+            // Filtro por tipo de planilla si se especifica
+            if ($tipoPlanillaId) {
+                $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = $tipoPlanillaId;
+            }
+
+            // Ordenar por departamento, apellido y fecha
+            $sql .= " ORDER BY org.descripcion, e.lastname, e.firstname, ac.date";
+
+            $stmt = $this->employeeModel->db->prepare($sql);
+            $stmt->execute($params);
+            $punches = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Agrupar por departamento
+            $byDepartment = [];
+            foreach ($punches as $punch) {
+                $dept = $punch['departamento'] ?? 'Sin Departamento';
+                if (!isset($byDepartment[$dept])) {
+                    $byDepartment[$dept] = [];
+                }
+                $byDepartment[$dept][] = $punch;
+            }
+
+            // Estadísticas generales
+            $totalOnTime = count(array_filter($punches, fn($p) => !$p['is_late'] && !$p['is_absent']));
+            $totalLate = count(array_filter($punches, fn($p) => $p['is_late']));
+            $totalAbsent = count(array_filter($punches, fn($p) => $p['is_absent']));
+            $totalHoursWorked = array_sum(array_column($punches, 'total_hours'));
+            $totalOvertime = array_sum(array_column($punches, 'overtime_hours'));
+            $totalTardinessMinutes = array_sum(array_column($punches, 'tardiness_minutes'));
+            $avgHoursPerDay = count($punches) > 0 ? $totalHoursWorked / count($punches) : 0;
+
+            $stats = [
+                'total_punches' => count($punches),
+                'total_on_time' => $totalOnTime,
+                'total_late' => $totalLate,
+                'total_absences' => $totalAbsent,
+                'total_hours_worked' => round($totalHoursWorked, 2),
+                'total_overtime' => round($totalOvertime, 2),
+                'total_tardiness_minutes' => $totalTardinessMinutes,
+                'avg_hours_per_day' => round($avgHoursPerDay, 2),
+                'affected_employees' => count(array_unique(array_column($punches, 'employee_id'))),
+                'departments_affected' => count($byDepartment)
+            ];
+
+            // Top empleados con más tardanzas
+            $byEmployee = [];
+            foreach ($punches as $punch) {
+                $empId = $punch['employee_id'];
+                if (!isset($byEmployee[$empId])) {
+                    $byEmployee[$empId] = [
+                        'employee_id' => $empId,
+                        'employee_code' => $punch['employee_code'],
+                        'cedula' => $punch['cedula'],
+                        'full_name' => $punch['full_name'],
+                        'departamento' => $punch['departamento'],
+                        'position_name' => $punch['position_name'],
+                        'total_days' => 0,
+                        'total_late' => 0,
+                        'total_absent' => 0,
+                        'total_on_time' => 0,
+                        'total_hours' => 0,
+                        'total_overtime' => 0,
+                        'total_tardiness_minutes' => 0
+                    ];
+                }
+                $byEmployee[$empId]['total_days']++;
+                if ($punch['is_late']) $byEmployee[$empId]['total_late']++;
+                if ($punch['is_absent']) $byEmployee[$empId]['total_absent']++;
+                if (!$punch['is_late'] && !$punch['is_absent']) $byEmployee[$empId]['total_on_time']++;
+                $byEmployee[$empId]['total_hours'] += $punch['total_hours'];
+                $byEmployee[$empId]['total_overtime'] += $punch['overtime_hours'];
+                $byEmployee[$empId]['total_tardiness_minutes'] += $punch['tardiness_minutes'];
+            }
+
+            // Ordenar por tardanzas
+            usort($byEmployee, function($a, $b) {
+                return $b['total_tardiness_minutes'] - $a['total_tardiness_minutes'];
+            });
+            $topTardinessEmployees = array_slice($byEmployee, 0, 10);
+
+            return [
+                'period' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'tipo_planilla_id' => $tipoPlanillaId
+                ],
+                'summary' => $stats,
+                'by_department' => $byDepartment,
+                'by_employee' => array_values($byEmployee),
+                'top_tardiness_employees' => $topTardinessEmployees,
+                'all_punches' => $punches
+            ];
+
+        } catch (\Exception $e) {
+            error_log("Error generating detailed punches report: " . $e->getMessage());
+            return [
+                'error' => true,
+                'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ];
+        }
+    }
 }

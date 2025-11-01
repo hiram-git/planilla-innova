@@ -148,7 +148,7 @@ $content .= '<div class="row">
                     <canvas id="attendanceChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
                 </div>
                 <div class="row mt-3">
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-lg-2 col-md-4 col-sm-6 col-12">
                         <div class="info-box bg-gradient-info">
                             <span class="info-box-icon"><i class="fas fa-users"></i></span>
                             <div class="info-box-content">
@@ -157,7 +157,7 @@ $content .= '<div class="row">
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-lg-2 col-md-4 col-sm-6 col-12">
                         <div class="info-box bg-gradient-success">
                             <span class="info-box-icon"><i class="fas fa-check"></i></span>
                             <div class="info-box-content">
@@ -166,17 +166,35 @@ $content .= '<div class="row">
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-lg-2 col-md-4 col-sm-6 col-12">
                         <div class="info-box bg-gradient-warning">
                             <span class="info-box-icon"><i class="fas fa-clock"></i></span>
                             <div class="info-box-content">
-                                <span class="info-box-text">Total Tardanzas</span>
+                                <span class="info-box-text">Tardanzas</span>
                                 <span class="info-box-number">' . $monthly_stats['total_late'] . '</span>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-lg-2 col-md-4 col-sm-6 col-12">
                         <div class="info-box bg-gradient-danger">
+                            <span class="info-box-icon"><i class="fas fa-user-times"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Ausencias</span>
+                                <span class="info-box-number">' . ($monthly_stats['total_absent'] ?? 0) . '</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6 col-12">
+                        <div class="info-box bg-gradient-primary">
+                            <span class="info-box-icon"><i class="fas fa-award"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Score Puntualidad</span>
+                                <span class="info-box-number">' . ($monthly_stats['avg_punctuality_score'] ?? 0) . '/100</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6 col-12">
+                        <div class="info-box bg-gradient-secondary">
                             <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
                             <div class="info-box-content">
                                 <span class="info-box-text">% Puntualidad</span>
@@ -271,9 +289,57 @@ $content .= '
                     <i class="fas fa-list"></i> Ver todos los registros
                 </a>
             </div>
-        </div>
+        </div>';
+
+// Widget de Alertas (Solo si hay alertas activas)
+if ($alert_stats['total'] > 0) {
+    $content .= '
+        <div class="card card-danger">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-exclamation-triangle"></i> Alertas Activas
+                </h3>
+                <div class="card-tools">
+                    <span class="badge badge-light">' . $alert_stats['total'] . '</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">';
+
+    if (!empty($active_alerts)) {
+        $count = 0;
+        foreach ($active_alerts as $alert) {
+            if ($count >= 3) break; // Solo mostrar 3 alertas
+
+            $badgeClass = $alert['severity'] == 'CRITICAL' ? 'danger' : ($alert['severity'] == 'WARNING' ? 'warning' : 'info');
+            $alertType = str_replace('_', ' ', $alert['alert_type']);
+
+            $content .= '
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>' . htmlspecialchars($alert['firstname'] . ' ' . $alert['lastname']) . '</strong>
+                                <br><small class="text-muted">' . htmlspecialchars(ucwords(strtolower($alertType))) . '</small>
+                            </div>
+                            <span class="badge badge-' . $badgeClass . '">' . $alert['severity'] . '</span>
+                        </div>
+                    </li>';
+            $count++;
+        }
+    }
+
+    $content .= '
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                <a href="' . \App\Core\UrlHelper::route('panel/attendance/pending-absences') . '" class="small">Ver todas las alertas</a>
+            </div>
+        </div>';
+}
+
+$content .= '
     </div>
-    
+
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
@@ -608,7 +674,7 @@ $(document).ready(function() {
 
     // Configurar gráfica de asistencia
     var attendanceData = ' . json_encode($attendance_chart_data) . ';
-    
+
     if (attendanceData && attendanceData.length > 0) {
         var ctx = document.getElementById("attendanceChart").getContext("2d");
         var attendanceChart = new Chart(ctx, {
@@ -616,18 +682,18 @@ $(document).ready(function() {
             data: {
                 labels: attendanceData.map(function(item) { return item.formatted_date; }),
                 datasets: [{
-                    label: "Empleados Presentes",
-                    backgroundColor: "rgba(60,141,188,0.2)",
-                    borderColor: "rgba(60,141,188,1)",
-                    pointBackgroundColor: "rgba(60,141,188,1)",
+                    label: "A Tiempo",
+                    backgroundColor: "rgba(40,167,69,0.2)",
+                    borderColor: "rgba(40,167,69,1)",
+                    pointBackgroundColor: "rgba(40,167,69,1)",
                     pointBorderColor: "#fff",
                     pointHoverBackgroundColor: "#fff",
-                    pointHoverBorderColor: "rgba(60,141,188,1)",
-                    data: attendanceData.map(function(item) { return item.present; }),
+                    pointHoverBorderColor: "rgba(40,167,69,1)",
+                    data: attendanceData.map(function(item) { return item.on_time || 0; }),
                     fill: true,
                     tension: 0.4
                 }, {
-                    label: "Llegadas Tarde",
+                    label: "Tarde",
                     backgroundColor: "rgba(255,193,7,0.2)",
                     borderColor: "rgba(255,193,7,1)",
                     pointBackgroundColor: "rgba(255,193,7,1)",
@@ -635,6 +701,17 @@ $(document).ready(function() {
                     pointHoverBackgroundColor: "#fff",
                     pointHoverBorderColor: "rgba(255,193,7,1)",
                     data: attendanceData.map(function(item) { return item.late; }),
+                    fill: false,
+                    tension: 0.4
+                }, {
+                    label: "Ausencias",
+                    backgroundColor: "rgba(220,53,69,0.2)",
+                    borderColor: "rgba(220,53,69,1)",
+                    pointBackgroundColor: "rgba(220,53,69,1)",
+                    pointBorderColor: "#fff",
+                    pointHoverBackgroundColor: "#fff",
+                    pointHoverBorderColor: "rgba(220,53,69,1)",
+                    data: attendanceData.map(function(item) { return item.absent || 0; }),
                     fill: false,
                     tension: 0.4
                 }]
@@ -672,8 +749,10 @@ $(document).ready(function() {
                                 var index = context[0].dataIndex;
                                 var total = attendanceData[index].total;
                                 var present = attendanceData[index].present;
+                                var absent = attendanceData[index].absent || 0;
+                                var punctuality = attendanceData[index].avg_punctuality || 0;
                                 var percentage = total > 0 ? ((present / total) * 100).toFixed(1) : 0;
-                                return "Total registros: " + total + "\\nPorcentaje presente: " + percentage + "%";
+                                return "Total empleados: " + total + "\\nPresentes: " + present + "\\nAusentes: " + absent + "\\n% Asistencia: " + percentage + "%\\nScore Puntualidad: " + punctuality + "/100";
                             }
                         }
                     }

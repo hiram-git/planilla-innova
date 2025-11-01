@@ -141,6 +141,13 @@ class Admin extends Controller
         // Obtener datos de acumulados para el dashboard (filtrados)
         $acumuladosData = $this->getAcumuladosData($tipoSeleccionado);
 
+        // Obtener datos del módulo de asistencias avanzado (nuevos)
+        $activeAlerts = $this->getActiveAlerts($tipoSeleccionado, 5);
+        $alertStats = $this->getAlertStats($tipoSeleccionado);
+        $attendanceMonthStats = $this->getCurrentMonthAttendanceStats($tipoSeleccionado);
+        $absenceMonthStats = $this->getCurrentMonthAbsenceStats($tipoSeleccionado);
+        $topTardinessEmployees = $this->getTopTardinessEmployees($tipoSeleccionado, 5);
+
         $data = [
             'title' => 'Dashboard Administrativo',
             'page_title' => 'Panel de Control',
@@ -159,7 +166,13 @@ class Admin extends Controller
             'attendance_chart_data' => $attendanceChartData,
             'tipos_planilla' => $tiposPlanilla,
             'tipo_seleccionado' => $tipoSeleccionado,
-            'acumulados_data' => $acumuladosData
+            'acumulados_data' => $acumuladosData,
+            // Nuevos datos del módulo de asistencias
+            'active_alerts' => $activeAlerts,
+            'alert_stats' => $alertStats,
+            'attendance_month_stats' => $attendanceMonthStats,
+            'absence_month_stats' => $absenceMonthStats,
+            'top_tardiness_employees' => $topTardinessEmployees
         ];
 
         $this->view('admin/dashboard', $data);
@@ -226,32 +239,93 @@ class Admin extends Controller
 
     private function getMonthlyAttendanceStats($attendance, $tipoSeleccionado = null)
     {
-        $startDate = date('Y-m-d', strtotime('-30 days'));
-        $endDate = date('Y-m-d');
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $startDate = date('Y-m-d', strtotime('-30 days'));
+            $endDate = date('Y-m-d');
 
-        $monthlyAttendance = $attendance->getAttendanceByDateRange($startDate, $endDate, null, $tipoSeleccionado);
+            // Primero intentar obtener datos de attendance_calculations (datos avanzados)
+            $sqlAdvanced = "SELECT
+                                COUNT(*) as total_records,
+                                SUM(CASE WHEN ac.is_late = 0 AND ac.is_absent = 0 THEN 1 ELSE 0 END) as total_on_time,
+                                SUM(CASE WHEN ac.is_late = 1 THEN 1 ELSE 0 END) as total_late,
+                                SUM(CASE WHEN ac.is_absent = 1 THEN 1 ELSE 0 END) as total_absent,
+                                COALESCE(AVG(ac.punctuality_score), 0) as avg_punctuality_score
+                            FROM attendance_calculations ac
+                            INNER JOIN employees e ON ac.employee_id = e.id
+                            WHERE ac.date BETWEEN :start_date AND :end_date";
 
-        $totalPresent = 0;
-        $totalLate = 0;
-
-        foreach ($monthlyAttendance as $record) {
-            if (isset($record['time_in']) && $record['time_in']) {
-                $totalPresent++;
-                if (isset($record['status']) && $record['status'] == 0) {
-                    $totalLate++;
-                }
+            if ($tipoSeleccionado) {
+                $sqlAdvanced .= " AND FIND_IN_SET(:tipo_planilla, e.tipo_planilla_id)";
             }
+
+            $stmt = $db->prepare($sqlAdvanced);
+            $stmt->bindValue(':start_date', $startDate);
+            $stmt->bindValue(':end_date', $endDate);
+
+            if ($tipoSeleccionado) {
+                $stmt->bindValue(':tipo_planilla', $tipoSeleccionado, \PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            $advancedResult = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            // Si hay datos avanzados, usarlos
+            if ($advancedResult && $advancedResult['total_records'] > 0) {
+                $totalPresent = (int)($advancedResult['total_on_time'] ?? 0) + (int)($advancedResult['total_late'] ?? 0);
+                $totalLate = (int)($advancedResult['total_late'] ?? 0);
+                $totalAbsent = (int)($advancedResult['total_absent'] ?? 0);
+                $averageDaily = $totalPresent > 0 ? round($totalPresent / 30, 1) : 0;
+                $punctualityPercentage = $totalPresent > 0 ? round((($totalPresent - $totalLate) / $totalPresent) * 100, 1) : 0;
+
+                return [
+                    'average_daily' => $averageDaily,
+                    'total_present' => $totalPresent,
+                    'total_late' => $totalLate,
+                    'total_absent' => $totalAbsent,
+                    'punctuality_percentage' => $punctualityPercentage,
+                    'avg_punctuality_score' => round((float)($advancedResult['avg_punctuality_score'] ?? 0), 1)
+                ];
+            } else {
+                // Fallback: usar datos básicos de la tabla attendance
+                $monthlyAttendance = $attendance->getAttendanceByDateRange($startDate, $endDate, null, $tipoSeleccionado);
+
+                $totalPresent = 0;
+                $totalLate = 0;
+
+                foreach ($monthlyAttendance as $record) {
+                    if (isset($record['time_in']) && $record['time_in']) {
+                        $totalPresent++;
+                        if (isset($record['status']) && $record['status'] == 0) {
+                            $totalLate++;
+                        }
+                    }
+                }
+
+                $averageDaily = $totalPresent > 0 ? round($totalPresent / 30, 1) : 0;
+                $punctualityPercentage = $totalPresent > 0 ? round((($totalPresent - $totalLate) / $totalPresent) * 100, 1) : 0;
+
+                return [
+                    'average_daily' => $averageDaily,
+                    'total_present' => $totalPresent,
+                    'total_late' => $totalLate,
+                    'total_absent' => 0, // No podemos calcular ausencias con datos básicos
+                    'punctuality_percentage' => $punctualityPercentage,
+                    'avg_punctuality_score' => 0 // No disponible en datos básicos
+                ];
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error getting monthly attendance stats: " . $e->getMessage());
+            return [
+                'average_daily' => 0,
+                'total_present' => 0,
+                'total_late' => 0,
+                'total_absent' => 0,
+                'punctuality_percentage' => 0,
+                'avg_punctuality_score' => 0
+            ];
         }
-
-        $averageDaily = $totalPresent > 0 ? round($totalPresent / 30, 1) : 0;
-        $punctualityPercentage = $totalPresent > 0 ? round((($totalPresent - $totalLate) / $totalPresent) * 100, 1) : 0;
-
-        return [
-            'average_daily' => $averageDaily,
-            'total_present' => $totalPresent,
-            'total_late' => $totalLate,
-            'punctuality_percentage' => $punctualityPercentage
-        ];
     }
 
     private function getAttendanceChartData($attendance, $tipoSeleccionado = null)
@@ -259,37 +333,88 @@ class Admin extends Controller
         $chartData = [];
 
         try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+
             // Obtener datos de los últimos 30 días
             for ($i = 29; $i >= 0; $i--) {
                 $date = date('Y-m-d', strtotime("-$i days"));
-                $dayAttendance = $attendance->getAttendanceByDateRange($date, $date, null, $tipoSeleccionado);
-                
-                // Asegurar que $dayAttendance sea un array
-                if (!is_array($dayAttendance)) {
-                    $dayAttendance = [];
+
+                // Primero intentar obtener datos de attendance_calculations (datos avanzados)
+                $sqlAdvanced = "SELECT
+                                    COUNT(DISTINCT ac.employee_id) as total_employees,
+                                    SUM(CASE WHEN ac.is_late = 0 AND ac.is_absent = 0 THEN 1 ELSE 0 END) as present_on_time,
+                                    SUM(CASE WHEN ac.is_late = 1 THEN 1 ELSE 0 END) as late,
+                                    SUM(CASE WHEN ac.is_absent = 1 THEN 1 ELSE 0 END) as absent,
+                                    COALESCE(SUM(ac.overtime_hours), 0) as total_overtime,
+                                    COALESCE(AVG(ac.punctuality_score), 0) as avg_punctuality
+                                FROM attendance_calculations ac
+                                INNER JOIN employees e ON ac.employee_id = e.id
+                                WHERE ac.date = :date";
+
+                if ($tipoSeleccionado) {
+                    $sqlAdvanced .= " AND FIND_IN_SET(:tipo_planilla, e.tipo_planilla_id)";
                 }
-                
-                $present = 0;
-                $late = 0;
-                
-                foreach ($dayAttendance as $record) {
-                    if (isset($record['time_in']) && $record['time_in']) {
-                        $present++;
-                        if (isset($record['status']) && $record['status'] == 0) {
-                            $late++;
+
+                $stmt = $db->prepare($sqlAdvanced);
+                $stmt->bindValue(':date', $date);
+
+                if ($tipoSeleccionado) {
+                    $stmt->bindValue(':tipo_planilla', $tipoSeleccionado, \PDO::PARAM_INT);
+                }
+
+                $stmt->execute();
+                $advancedResult = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                // Si hay datos avanzados, usarlos
+                if ($advancedResult && $advancedResult['total_employees'] > 0) {
+                    $chartData[] = [
+                        'date' => $date,
+                        'formatted_date' => date('d/m', strtotime($date)),
+                        'present' => (int)($advancedResult['present_on_time'] ?? 0) + (int)($advancedResult['late'] ?? 0),
+                        'on_time' => (int)($advancedResult['present_on_time'] ?? 0),
+                        'late' => (int)($advancedResult['late'] ?? 0),
+                        'absent' => (int)($advancedResult['absent'] ?? 0),
+                        'total' => (int)($advancedResult['total_employees'] ?? 0),
+                        'overtime_hours' => round((float)($advancedResult['total_overtime'] ?? 0), 2),
+                        'avg_punctuality' => round((float)($advancedResult['avg_punctuality'] ?? 0), 1)
+                    ];
+                } else {
+                    // Fallback: usar datos básicos de la tabla attendance
+                    $dayAttendance = $attendance->getAttendanceByDateRange($date, $date, null, $tipoSeleccionado);
+
+                    if (!is_array($dayAttendance)) {
+                        $dayAttendance = [];
+                    }
+
+                    $present = 0;
+                    $onTime = 0;
+                    $late = 0;
+
+                    foreach ($dayAttendance as $record) {
+                        if (isset($record['time_in']) && $record['time_in']) {
+                            $present++;
+                            if (isset($record['status']) && $record['status'] == 1) {
+                                $onTime++;
+                            } else {
+                                $late++;
+                            }
                         }
                     }
+
+                    $chartData[] = [
+                        'date' => $date,
+                        'formatted_date' => date('d/m', strtotime($date)),
+                        'present' => $present,
+                        'on_time' => $onTime,
+                        'late' => $late,
+                        'absent' => 0, // No podemos calcular ausencias con datos básicos
+                        'total' => count($dayAttendance),
+                        'overtime_hours' => 0,
+                        'avg_punctuality' => 0
+                    ];
                 }
-                
-                $chartData[] = [
-                    'date' => $date,
-                    'formatted_date' => date('d/m', strtotime($date)),
-                    'present' => (int)$present,
-                    'late' => (int)$late,
-                    'total' => count($dayAttendance)
-                ];
             }
-            
+
         } catch (\Exception $e) {
             error_log("Error generating attendance chart data: " . $e->getMessage());
             // Devolver datos de ejemplo si falla
@@ -299,12 +424,16 @@ class Admin extends Controller
                     'date' => $date,
                     'formatted_date' => date('d/m', strtotime($date)),
                     'present' => 0,
+                    'on_time' => 0,
                     'late' => 0,
-                    'total' => 0
+                    'absent' => 0,
+                    'total' => 0,
+                    'overtime_hours' => 0,
+                    'avg_punctuality' => 0
                 ];
             }
         }
-        
+
         return $chartData;
     }
 
@@ -392,5 +521,261 @@ class Admin extends Controller
     protected function requireAuth()
     {
         AuthMiddleware::requireAuth();
+    }
+
+    /**
+     * Obtener alertas activas del sistema de asistencias
+     */
+    private function getActiveAlerts($tipoSeleccionado = null, $limit = 5)
+    {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+
+            $sql = "SELECT aa.*, e.firstname, e.lastname, e.employee_id
+                    FROM attendance_alerts aa
+                    INNER JOIN employees e ON aa.employee_id = e.id
+                    WHERE aa.status = 'PENDING'";
+
+            if ($tipoSeleccionado) {
+                $sql .= " AND FIND_IN_SET(:tipo_planilla, e.tipo_planilla_id)";
+            }
+
+            $sql .= " ORDER BY
+                      CASE aa.severity
+                        WHEN 'CRITICAL' THEN 1
+                        WHEN 'WARNING' THEN 2
+                        WHEN 'INFO' THEN 3
+                      END,
+                      aa.created_at DESC
+                    LIMIT :limit";
+
+            $stmt = $db->prepare($sql);
+
+            if ($tipoSeleccionado) {
+                $stmt->bindValue(':tipo_planilla', $tipoSeleccionado, \PDO::PARAM_INT);
+            }
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error obteniendo alertas activas: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener estadísticas de alertas por severidad
+     */
+    private function getAlertStats($tipoSeleccionado = null)
+    {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+
+            $sql = "SELECT
+                        aa.severity,
+                        COUNT(*) as count
+                    FROM attendance_alerts aa
+                    INNER JOIN employees e ON aa.employee_id = e.id
+                    WHERE aa.status = 'PENDING'";
+
+            if ($tipoSeleccionado) {
+                $sql .= " AND FIND_IN_SET(:tipo_planilla, e.tipo_planilla_id)";
+            }
+
+            $sql .= " GROUP BY aa.severity";
+
+            $stmt = $db->prepare($sql);
+
+            if ($tipoSeleccionado) {
+                $stmt->bindValue(':tipo_planilla', $tipoSeleccionado, \PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Organizar por severidad
+            $stats = [
+                'CRITICAL' => 0,
+                'WARNING' => 0,
+                'INFO' => 0,
+                'total' => 0
+            ];
+
+            foreach ($results as $row) {
+                $stats[$row['severity']] = (int)$row['count'];
+                $stats['total'] += (int)$row['count'];
+            }
+
+            return $stats;
+        } catch (\Exception $e) {
+            error_log("Error obteniendo estadísticas de alertas: " . $e->getMessage());
+            return ['CRITICAL' => 0, 'WARNING' => 0, 'INFO' => 0, 'total' => 0];
+        }
+    }
+
+    /**
+     * Obtener estadísticas de asistencias del mes actual
+     */
+    private function getCurrentMonthAttendanceStats($tipoSeleccionado = null)
+    {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $startDate = date('Y-m-01');
+            $endDate = date('Y-m-d');
+
+            $sql = "SELECT
+                        COUNT(DISTINCT ac.employee_id) as employees_with_data,
+                        COALESCE(SUM(ac.overtime_25_hours), 0) as total_overtime_25,
+                        COALESCE(SUM(ac.overtime_50_hours), 0) as total_overtime_50,
+                        COALESCE(SUM(ac.tardiness_minutes), 0) as total_tardiness_minutes,
+                        COALESCE(AVG(ac.punctuality_score), 0) as avg_punctuality_score,
+                        COALESCE(SUM(CASE WHEN ac.is_perfect_attendance = 1 THEN 1 ELSE 0 END), 0) as perfect_attendance_days
+                    FROM attendance_calculations ac
+                    INNER JOIN employees e ON ac.employee_id = e.id
+                    WHERE ac.date BETWEEN :start_date AND :end_date";
+
+            if ($tipoSeleccionado) {
+                $sql .= " AND FIND_IN_SET(:tipo_planilla, e.tipo_planilla_id)";
+            }
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindValue(':start_date', $startDate);
+            $stmt->bindValue(':end_date', $endDate);
+
+            if ($tipoSeleccionado) {
+                $stmt->bindValue(':tipo_planilla', $tipoSeleccionado, \PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($result) {
+                return [
+                    'total_overtime_hours' => round((float)$result['total_overtime_25'] + (float)$result['total_overtime_50'], 2),
+                    'overtime_25' => round((float)$result['total_overtime_25'], 2),
+                    'overtime_50' => round((float)$result['total_overtime_50'], 2),
+                    'total_tardiness_hours' => round((float)$result['total_tardiness_minutes'] / 60, 2),
+                    'avg_punctuality' => round((float)$result['avg_punctuality_score'], 1),
+                    'perfect_days' => (int)$result['perfect_attendance_days']
+                ];
+            }
+
+            return [
+                'total_overtime_hours' => 0,
+                'overtime_25' => 0,
+                'overtime_50' => 0,
+                'total_tardiness_hours' => 0,
+                'avg_punctuality' => 0,
+                'perfect_days' => 0
+            ];
+        } catch (\Exception $e) {
+            error_log("Error obteniendo estadísticas de asistencias del mes: " . $e->getMessage());
+            return [
+                'total_overtime_hours' => 0,
+                'overtime_25' => 0,
+                'overtime_50' => 0,
+                'total_tardiness_hours' => 0,
+                'avg_punctuality' => 0,
+                'perfect_days' => 0
+            ];
+        }
+    }
+
+    /**
+     * Obtener estadísticas de ausencias del mes
+     */
+    private function getCurrentMonthAbsenceStats($tipoSeleccionado = null)
+    {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $startDate = date('Y-m-01');
+            $endDate = date('Y-m-d');
+
+            $sql = "SELECT
+                        COUNT(*) as total_absences,
+                        SUM(CASE WHEN aal.status = 'UNJUSTIFIED' THEN 1 ELSE 0 END) as unjustified,
+                        SUM(CASE WHEN aal.status = 'JUSTIFIED' THEN 1 ELSE 0 END) as justified,
+                        SUM(CASE WHEN aal.status = 'PENDING' THEN 1 ELSE 0 END) as pending
+                    FROM attendance_absence_log aal
+                    INNER JOIN employees e ON aal.employee_id = e.id
+                    WHERE aal.absence_date BETWEEN :start_date AND :end_date";
+
+            if ($tipoSeleccionado) {
+                $sql .= " AND FIND_IN_SET(:tipo_planilla, e.tipo_planilla_id)";
+            }
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindValue(':start_date', $startDate);
+            $stmt->bindValue(':end_date', $endDate);
+
+            if ($tipoSeleccionado) {
+                $stmt->bindValue(':tipo_planilla', $tipoSeleccionado, \PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($result) {
+                return [
+                    'total' => (int)$result['total_absences'],
+                    'unjustified' => (int)$result['unjustified'],
+                    'justified' => (int)$result['justified'],
+                    'pending' => (int)$result['pending']
+                ];
+            }
+
+            return ['total' => 0, 'unjustified' => 0, 'justified' => 0, 'pending' => 0];
+        } catch (\Exception $e) {
+            error_log("Error obteniendo estadísticas de ausencias: " . $e->getMessage());
+            return ['total' => 0, 'unjustified' => 0, 'justified' => 0, 'pending' => 0];
+        }
+    }
+
+    /**
+     * Obtener top empleados con más tardanzas del mes
+     */
+    private function getTopTardinessEmployees($tipoSeleccionado = null, $limit = 5)
+    {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $startDate = date('Y-m-01');
+            $endDate = date('Y-m-d');
+
+            $sql = "SELECT
+                        e.id,
+                        e.employee_id,
+                        e.firstname,
+                        e.lastname,
+                        COUNT(*) as tardiness_count,
+                        SUM(ac.tardiness_minutes) as total_minutes
+                    FROM attendance_calculations ac
+                    INNER JOIN employees e ON ac.employee_id = e.id
+                    WHERE ac.date BETWEEN :start_date AND :end_date
+                      AND ac.is_late = 1";
+
+            if ($tipoSeleccionado) {
+                $sql .= " AND FIND_IN_SET(:tipo_planilla, e.tipo_planilla_id)";
+            }
+
+            $sql .= " GROUP BY e.id, e.employee_id, e.firstname, e.lastname
+                      ORDER BY tardiness_count DESC, total_minutes DESC
+                      LIMIT :limit";
+
+            $stmt = $db->prepare($sql);
+            $stmt->bindValue(':start_date', $startDate);
+            $stmt->bindValue(':end_date', $endDate);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+
+            if ($tipoSeleccionado) {
+                $stmt->bindValue(':tipo_planilla', $tipoSeleccionado, \PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("Error obteniendo top empleados con tardanzas: " . $e->getMessage());
+            return [];
+        }
     }
 }

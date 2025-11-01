@@ -15,12 +15,22 @@ $baseUrl = UrlHelper::base();
         <!-- Info Box -->
         <div class="callout callout-info">
             <h5><i class="fas fa-info-circle"></i> Generador de Reportes de Asistencias</h5>
-            <p>Seleccione el tipo de reporte, período y tipo de planilla para generar reportes detallados de ausencias y tardanzas.</p>
+            <p>Seleccione el tipo de reporte, período y tipo de planilla para generar reportes detallados de marcaciones, ausencias y tardanzas.</p>
         </div>
 
         <!-- Selector de Tipo de Reporte -->
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="card report-card" data-report-type="punches" style="cursor: pointer; transition: all 0.3s;">
+                    <div class="card-body text-center">
+                        <i class="fas fa-fingerprint fa-3x text-primary mb-3"></i>
+                        <h4>Reporte de Marcaciones</h4>
+                        <p class="text-muted">Detalle completo de marcaciones (entrada/salida) con tardanzas, ausencias y horas trabajadas</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
                 <div class="card report-card" data-report-type="absences" style="cursor: pointer; transition: all 0.3s;">
                     <div class="card-body text-center">
                         <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
@@ -30,7 +40,7 @@ $baseUrl = UrlHelper::base();
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card report-card" data-report-type="tardiness" style="cursor: pointer; transition: all 0.3s;">
                     <div class="card-body text-center">
                         <i class="fas fa-clock fa-3x text-warning mb-3"></i>
@@ -40,7 +50,7 @@ $baseUrl = UrlHelper::base();
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card report-card" data-report-type="combined" style="cursor: pointer; transition: all 0.3s;">
                     <div class="card-body text-center">
                         <i class="fas fa-chart-line fa-3x text-success mb-3"></i>

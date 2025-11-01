@@ -216,6 +216,12 @@ class App
                                         $this->params = [];
                                         call_user_func_array([$this->controller, $this->method], $this->params);
                                         return;
+                                    } elseif ($url[3] === 'punches' && method_exists($this->controller, 'punchesReport')) {
+                                        // GET: /panel/attendance/reports/punches?start_date=X&end_date=Y&tipo_planilla_id=Z&format=view
+                                        $this->method = 'punchesReport';
+                                        $this->params = [];
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
                                     }
                                 } elseif ($url[2] === 'alerts' && method_exists($this->controller, 'alertsDashboard')) {
                                     // GET: /panel/attendance/alerts - Dashboard de alertas

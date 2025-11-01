@@ -557,6 +557,202 @@ class ExcelExporter
         $this->downloadExcel($filename);
     }
 
+    /**
+     * Exportar reporte de marcaciones (punches) a Excel
+     *
+     * @param array $report Datos del reporte generado por ReportsGenerator
+     * @param string $filename Nombre del archivo (sin extensión)
+     * @return void Envía el archivo al navegador
+     */
+    public function exportPunchesReport($report, $filename = 'Reporte_Marcaciones')
+    {
+        $this->spreadsheet = new Spreadsheet();
+        $this->sheet = $this->spreadsheet->getActiveSheet();
+        $this->sheet->setTitle('Marcaciones');
+
+        $period = $report['period'] ?? [];
+        $summary = $report['summary'] ?? [];
+        $byDepartment = $report['by_department'] ?? [];
+        $topTardinessEmployees = $report['top_tardiness_employees'] ?? [];
+
+        $row = 1;
+
+        // Título principal
+        $this->sheet->setCellValue('A' . $row, 'REPORTE DE MARCACIONES');
+        $this->sheet->mergeCells('A' . $row . ':J' . $row);
+        $this->applyHeaderStyle('A' . $row . ':J' . $row);
+        $row++;
+
+        // Información del período
+        $row++;
+        $this->sheet->setCellValue('A' . $row, 'Período:');
+        $this->sheet->setCellValue('B' . $row, date('d/m/Y', strtotime($period['start_date'])) . ' - ' . date('d/m/Y', strtotime($period['end_date'])));
+        $this->sheet->getStyle('A' . $row)->getFont()->setBold(true);
+        $row++;
+
+        if ($period['tipo_planilla_id']) {
+            $this->sheet->setCellValue('A' . $row, 'Tipo de Planilla:');
+            $this->sheet->setCellValue('B' . $row, 'ID: ' . $period['tipo_planilla_id']);
+            $this->sheet->getStyle('A' . $row)->getFont()->setBold(true);
+            $row++;
+        }
+
+        $this->sheet->setCellValue('A' . $row, 'Fecha de Generación:');
+        $this->sheet->setCellValue('B' . $row, date('d/m/Y H:i:s'));
+        $this->sheet->getStyle('A' . $row)->getFont()->setBold(true);
+        $row += 2;
+
+        // Resumen estadístico
+        $this->sheet->setCellValue('A' . $row, 'RESUMEN ESTADÍSTICO');
+        $this->sheet->mergeCells('A' . $row . ':J' . $row);
+        $this->applySubHeaderStyle('A' . $row . ':J' . $row);
+        $row++;
+
+        $summaryData = [
+            ['Total Marcaciones:', $summary['total_punches'] ?? 0],
+            ['Marcaciones a Tiempo:', $summary['total_on_time'] ?? 0],
+            ['Con Tardanza:', $summary['total_late'] ?? 0],
+            ['Ausencias Detectadas:', $summary['total_absences'] ?? 0],
+            ['Horas Totales Trabajadas:', number_format($summary['total_hours_worked'] ?? 0, 1) . 'h'],
+            ['Horas Extras Total:', number_format($summary['total_overtime'] ?? 0, 1) . 'h'],
+            ['Promedio Horas/Día:', number_format($summary['avg_hours_per_day'] ?? 0, 1) . 'h'],
+            ['Minutos Tardanza Total:', number_format($summary['total_tardiness_minutes'] ?? 0) . ' min']
+        ];
+
+        foreach ($summaryData as $data) {
+            $this->sheet->setCellValue('A' . $row, $data[0]);
+            $this->sheet->setCellValue('B' . $row, $data[1]);
+            $this->sheet->getStyle('A' . $row)->getFont()->setBold(true);
+            $row++;
+        }
+        $row += 2;
+
+        // Top 10 empleados con más tardanzas
+        if (!empty($topTardinessEmployees)) {
+            $this->sheet->setCellValue('A' . $row, 'TOP 10 EMPLEADOS CON MÁS TARDANZAS');
+            $this->sheet->mergeCells('A' . $row . ':I' . $row);
+            $this->applySubHeaderStyle('A' . $row . ':I' . $row, 'FFC107');
+            $row++;
+
+            // Encabezados
+            $headers = ['#', 'ID Empleado', 'Cédula', 'Nombre Completo', 'Departamento', 'Cargo', 'Días Tarde', 'Min. Totales', 'Horas Totales'];
+            $col = 'A';
+            foreach ($headers as $header) {
+                $this->sheet->setCellValue($col . $row, $header);
+                $col++;
+            }
+            $this->applyTableHeaderStyle('A' . $row . ':I' . $row);
+            $row++;
+
+            // Datos
+            $index = 1;
+            foreach ($topTardinessEmployees as $emp) {
+                $this->sheet->setCellValue('A' . $row, $index++);
+                $this->sheet->setCellValue('B' . $row, $emp['employee_code']);
+                $this->sheet->setCellValue('C' . $row, $emp['cedula']);
+                $this->sheet->setCellValue('D' . $row, $emp['full_name']);
+                $this->sheet->setCellValue('E' . $row, $emp['departamento'] ?? 'N/A');
+                $this->sheet->setCellValue('F' . $row, $emp['position_name'] ?? 'N/A');
+                $this->sheet->setCellValue('G' . $row, $emp['total_late']);
+                $this->sheet->setCellValue('H' . $row, number_format($emp['total_tardiness_minutes']));
+                $this->sheet->setCellValue('I' . $row, number_format($emp['total_hours'], 1));
+                $this->applyTableRowStyle('A' . $row . ':I' . $row);
+                $row++;
+            }
+            $row += 2;
+        }
+
+        // Marcaciones por departamento
+        foreach ($byDepartment as $deptName => $punches) {
+            $this->sheet->setCellValue('A' . $row, 'DEPARTAMENTO: ' . $deptName);
+            $this->sheet->mergeCells('A' . $row . ':J' . $row);
+            $this->applyDepartmentHeaderStyle('A' . $row . ':J' . $row);
+            $row++;
+
+            // Encabezados
+            $headers = ['ID', 'Cédula', 'Apellidos y Nombres', 'Cargo', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Tardanza', 'Estado'];
+            $col = 'A';
+            foreach ($headers as $header) {
+                $this->sheet->setCellValue($col . $row, $header);
+                $col++;
+            }
+            $this->applyTableHeaderStyle('A' . $row . ':J' . $row);
+            $row++;
+
+            // Datos
+            foreach ($punches as $p) {
+                $this->sheet->setCellValue('A' . $row, $p['employee_code']);
+                $this->sheet->setCellValue('B' . $row, $p['cedula']);
+                $this->sheet->setCellValue('C' . $row, $p['full_name']);
+                $this->sheet->setCellValue('D' . $row, $p['position_name'] ?? 'N/A');
+                $this->sheet->setCellValue('E' . $row, date('d/m/Y', strtotime($p['date'])));
+
+                // Entrada
+                if ($p['is_absent']) {
+                    $this->sheet->setCellValue('F' . $row, 'AUSENTE');
+                } else {
+                    $timeIn = $p['time_in'] ? date('H:i', strtotime($p['date'] . ' ' . $p['time_in'])) : '--:--';
+                    if ($p['is_late'] && $p['tardiness_minutes'] > 0) {
+                        $timeIn .= ' (' . $p['tardiness_minutes'] . ' min tarde)';
+                    }
+                    $this->sheet->setCellValue('F' . $row, $timeIn);
+                }
+
+                // Salida
+                $this->sheet->setCellValue('G' . $row,
+                    !$p['is_absent'] && $p['time_out'] ? date('H:i', strtotime($p['date'] . ' ' . $p['time_out'])) : '--:--'
+                );
+
+                // Horas
+                if (!$p['is_absent']) {
+                    $hoursText = number_format($p['total_hours'], 1) . 'h';
+                    if ($p['overtime_hours'] > 0) {
+                        $hoursText .= ' (+' . number_format($p['overtime_hours'], 1) . 'h extras)';
+                    }
+                    $this->sheet->setCellValue('H' . $row, $hoursText);
+                } else {
+                    $this->sheet->setCellValue('H' . $row, '--');
+                }
+
+                // Tardanza
+                if ($p['is_absent']) {
+                    $this->sheet->setCellValue('I' . $row, 'AUSENCIA');
+                } elseif ($p['is_late'] && $p['tardiness_minutes'] > 0) {
+                    $this->sheet->setCellValue('I' . $row, number_format($p['tardiness_minutes']) . ' min');
+                } else {
+                    $this->sheet->setCellValue('I' . $row, 'A tiempo');
+                }
+
+                // Estado
+                $status = match(true) {
+                    $p['is_absent'] => 'Ausente',
+                    $p['is_late'] => 'Tarde',
+                    default => 'Normal'
+                };
+                $this->sheet->setCellValue('J' . $row, $status);
+
+                $this->applyTableRowStyle('A' . $row . ':J' . $row);
+                $row++;
+            }
+            $row += 2;
+        }
+
+        // Ajustar anchos de columna
+        $this->sheet->getColumnDimension('A')->setWidth(12);
+        $this->sheet->getColumnDimension('B')->setWidth(15);
+        $this->sheet->getColumnDimension('C')->setWidth(30);
+        $this->sheet->getColumnDimension('D')->setWidth(25);
+        $this->sheet->getColumnDimension('E')->setWidth(15);
+        $this->sheet->getColumnDimension('F')->setWidth(20);
+        $this->sheet->getColumnDimension('G')->setWidth(15);
+        $this->sheet->getColumnDimension('H')->setWidth(20);
+        $this->sheet->getColumnDimension('I')->setWidth(15);
+        $this->sheet->getColumnDimension('J')->setWidth(15);
+
+        // Descargar archivo
+        $this->downloadExcel($filename);
+    }
+
     // ==================== MÉTODOS DE ESTILOS ====================
 
     private function applyHeaderStyle($range)

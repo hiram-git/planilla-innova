@@ -1550,6 +1550,85 @@ class AttendanceController extends Controller
         }
     }
 
+    /**
+     * Generar reporte de marcaciones/punches (AJAX o vista)
+     */
+    public function punchesReport()
+    {
+        try {
+            $startDate = $_GET['start_date'] ?? null;
+            $endDate = $_GET['end_date'] ?? null;
+            $tipoPlanillaId = $_GET['tipo_planilla_id'] ?? null;
+            $format = $_GET['format'] ?? 'view'; // view, json, excel, pdf
+
+            if (!$startDate || !$endDate) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Debe especificar fecha de inicio y fin.'
+                ]);
+            }
+
+            // Generar reporte
+            require_once __DIR__ . '/../Services/Attendance/ReportsGenerator.php';
+            $generator = new \App\Services\Attendance\ReportsGenerator();
+            $report = $generator->generateDetailedPunchesReport($startDate, $endDate, $tipoPlanillaId);
+
+            if (isset($report['error'])) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => $report['message']
+                ]);
+            }
+
+            // Responder según formato solicitado
+            switch ($format) {
+                case 'json':
+                    return $this->jsonResponse([
+                        'success' => true,
+                        'data' => $report
+                    ]);
+
+                case 'view':
+                    // Renderizar vista
+                    $data = [
+                        'title' => 'Reporte de Marcaciones',
+                        'page_title' => 'Reporte Detallado de Marcaciones',
+                        'report' => $report,
+                        'csrf_token' => Security::generateToken()
+                    ];
+                    $this->render('admin/attendance/reports/punches', $data);
+                    break;
+
+                case 'excel':
+                    // Exportar a Excel
+                    require_once __DIR__ . '/../Services/Attendance/ExcelExporter.php';
+                    $exporter = new \App\Services\Attendance\ExcelExporter();
+                    $exporter->exportPunchesReport($report, 'Reporte_Marcaciones');
+                    exit; // El exporter ya envía los headers y el archivo
+                    break;
+
+                case 'pdf':
+                    // TODO: Implementar exportación PDF
+                    $this->setFlashMessage('Exportación a PDF - En desarrollo', 'info');
+                    $this->redirect('/panel/attendance/reports');
+                    break;
+
+                default:
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Formato no soportado'
+                    ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error generating punches report: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al generar reporte: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     // ========================================
     // MÉTODOS DE ALERTAS LEGALES
     // ========================================
