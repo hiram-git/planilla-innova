@@ -109,7 +109,7 @@ $scripts = ob_get_clean();
     <div class="container-fluid">
 
         <!-- Información de Filtro -->
-        <div class="alert alert-info">
+        <div class="callout callout-info">
             <i class="fas fa-info-circle mr-2"></i>
             <strong>Planillas de Liquidación:</strong> Esta vista muestra únicamente las planillas generadas para liquidaciones de empleados,
             filtradas por la frecuencia de liquidación. El periodo abarca los últimos 11 meses desde la fecha de terminación según la legislación panameña.
@@ -186,14 +186,11 @@ $scripts = ob_get_clean();
                                 <tr>
                                     <th>ID</th>
                                     <th>Descripción</th>
-                                    <th>Periodo</th>
                                     <th>Frecuencia</th>
                                     <th>Estado</th>
-                                    <th>Empleados</th>
-                                    <th>Total Asignaciones</th>
-                                    <th>Total Deducciones</th>
-                                    <th>Total Neto</th>
-                                    <th>Fecha Creación</th>
+                                    <th>Asig.</th>
+                                    <th>Deducc.</th>
+                                    <th>Neto</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -202,12 +199,6 @@ $scripts = ob_get_clean();
                                     <tr>
                                         <td><strong>#<?= $payroll['id'] ?></strong></td>
                                         <td><?= htmlspecialchars($payroll['descripcion']) ?></td>
-                                        <td>
-                                            <small>
-                                                <strong>Desde:</strong> <?= date('d/m/Y', strtotime($payroll['fecha_desde'])) ?><br>
-                                                <strong>Hasta:</strong> <?= date('d/m/Y', strtotime($payroll['fecha_hasta'])) ?>
-                                            </small>
-                                        </td>
                                         <td>
                                             <span class="badge badge-info">
                                                 <?= htmlspecialchars($payroll['frecuencia_nombre'] ?? 'Liquidación') ?>
@@ -226,11 +217,6 @@ $scripts = ob_get_clean();
                                                 <?= $payroll['estado'] ?>
                                             </span>
                                         </td>
-                                        <td class="text-center">
-                                            <span class="badge badge-primary">
-                                                <?= $payroll['total_empleados'] ?>
-                                            </span>
-                                        </td>
                                         <td class="text-right">
                                             <span class="text-success font-weight-bold">
                                                 <?= currency_symbol() ?><?= number_format($payroll['total_asignaciones'], 2) ?>
@@ -247,20 +233,17 @@ $scripts = ob_get_clean();
                                             </span>
                                         </td>
                                         <td>
-                                            <small><?= date('d/m/Y H:i', strtotime($payroll['created_at'])) ?></small>
-                                        </td>
-                                        <td>
                                             <div class="btn-group btn-group-sm">
                                                 <a href="<?= \App\Core\UrlHelper::route('panel/liquidation/payroll-detail/' . $payroll['id']) ?>"
                                                    class="btn btn-info"
                                                    title="Ver Detalle">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="<?= \App\Core\UrlHelper::route('panel/liquidation/payroll-excel/' . $payroll['id']) ?>"
+                                                <!--<a href="<?= \App\Core\UrlHelper::route('panel/liquidation/payroll-excel/' . $payroll['id']) ?>"
                                                    class="btn btn-primary"
                                                    title="Descargar Excel">
                                                     <i class="fas fa-file-excel"></i>
-                                                </a>
+                                                </a>-->
                                                 <a href="<?= \App\Core\UrlHelper::route('panel/liquidation/payroll-pdf/' . $payroll['id']) ?>"
                                                    class="btn btn-success"
                                                    title="Generar PDF"
