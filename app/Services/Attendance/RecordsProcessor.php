@@ -98,23 +98,58 @@ class RecordsProcessor
         try {
             $employeeId = $group['employee_id'];
             $date = $group['punch_date'];
-            $firstCheckIn = $group['first_check_in'];
-            $lastCheckOut = $group['last_check_out'];
             $recordIds = explode(',', $group['record_ids']);
 
-            // Extraer solo las horas
-            $timeIn = $firstCheckIn ? date('H:i:s', strtotime($firstCheckIn)) : null;
-            $timeOut = $lastCheckOut ? date('H:i:s', strtotime($lastCheckOut)) : null;
+            // 1. Obtener información del empleado y su horario
+            $employee = $this->employeeModel->find($employeeId);
+            if (!$employee) {
+                throw new Exception("Empleado {$employeeId} no encontrado");
+            }
 
-            // 1. Verificar si ya existe un detail para este empleado y fecha
+            $schedule = null;
+            if (!empty($employee['schedule_id'])) {
+                $schedule = $this->getSchedule($employee['schedule_id']);
+            }
+
+            // 2. Determinar si el horario tiene período de almuerzo
+            $hasLunchPeriod = false;
+            if ($schedule && !empty($schedule['salida_almuerzo']) && !empty($schedule['entrada_almuerzo'])) {
+                $hasLunchPeriod = true;
+            }
+
+            // 3. Obtener y clasificar marcaciones
+            $timeIn = null;
+            $timeOut = null;
+            $lunchOut = null;
+            $lunchIn = null;
+
+            if ($hasLunchPeriod) {
+                // Si tiene almuerzo: obtener todas las marcaciones individuales para clasificar
+                $allPunches = $this->recordModel->getByEmployeeAndDate($employeeId, $date);
+                $classified = $this->classifyPunches($allPunches, $schedule);
+
+                $timeIn = $classified['time_in'];
+                $lunchOut = $classified['lunch_out'];
+                $lunchIn = $classified['lunch_in'];
+                $timeOut = $classified['time_out'];
+            } else {
+                // Si NO tiene almuerzo: usar lógica tradicional (primera/última)
+                $firstCheckIn = $group['first_check_in'];
+                $lastCheckOut = $group['last_check_out'];
+
+                $timeIn = $firstCheckIn ? date('H:i:s', strtotime($firstCheckIn)) : null;
+                $timeOut = $lastCheckOut ? date('H:i:s', strtotime($lastCheckOut)) : null;
+            }
+
+            // 4. Verificar si ya existe un detail para este empleado y fecha
             $existingDetail = $this->detailModel->getByDateAndEmployee($date, $employeeId);
 
             if ($existingDetail) {
                 // Ya existe - comparar y decidir si actualizar
-                $needsUpdate = $this->needsUpdate($existingDetail, $timeIn, $timeOut);
+                $needsUpdate = $this->needsUpdate($existingDetail, $timeIn, $timeOut, $lunchOut, $lunchIn);
 
                 if ($needsUpdate) {
-                    $this->updateDetail($existingDetail['id'], $timeIn, $timeOut, $recordIds);
+                    $this->updateDetail($existingDetail['id'], $timeIn, $timeOut, $lunchOut, $lunchIn, $schedule, $recordIds);
                 } else {
                     // No necesita actualización, solo marcar records como procesados
                     $this->recordModel->markMultipleAsProcessed($recordIds, $existingDetail['id']);
@@ -123,7 +158,7 @@ class RecordsProcessor
                 }
             } else {
                 // No existe - crear nuevo detail
-                $this->createDetail($employeeId, $date, $timeIn, $timeOut, $recordIds);
+                $this->createDetail($employeeId, $date, $timeIn, $timeOut, $lunchOut, $lunchIn, $schedule, $recordIds);
             }
 
         } catch (Exception $e) {
@@ -140,9 +175,12 @@ class RecordsProcessor
      * @param string $date
      * @param string|null $timeIn
      * @param string|null $timeOut
+     * @param string|null $lunchOut
+     * @param string|null $lunchIn
+     * @param array|null $schedule
      * @param array $recordIds
      */
-    private function createDetail($employeeId, $date, $timeIn, $timeOut, $recordIds)
+    private function createDetail($employeeId, $date, $timeIn, $timeOut, $lunchOut, $lunchIn, $schedule, $recordIds)
     {
         try {
             // 1. Obtener o crear header para esta fecha
@@ -165,37 +203,47 @@ class RecordsProcessor
                 $headerId = $header['id'];
             }
 
-            // 2. Obtener información del empleado (horario, etc.)
+            // 2. Obtener información del empleado
             $employee = $this->employeeModel->find($employeeId);
 
             if (!$employee) {
                 throw new Exception("Empleado {$employeeId} no encontrado");
             }
 
-            // 3. Obtener horario programado
-            $scheduledTimeIn = null;
-            $scheduledTimeOut = null;
+            // 3. Preparar horarios programados
+            $scheduledTimeIn = $schedule['time_in'] ?? null;
+            $scheduledTimeOut = $schedule['time_out'] ?? null;
+            $scheduledLunchOut = $schedule['salida_almuerzo'] ?? null;
+            $scheduledLunchIn = $schedule['entrada_almuerzo'] ?? null;
 
-            if (!empty($employee['schedule_id'])) {
-                $schedule = $this->getSchedule($employee['schedule_id']);
-                if ($schedule) {
-                    $scheduledTimeIn = $schedule['time_in'];
-                    $scheduledTimeOut = $schedule['time_out'];
-                }
+            // 4. Convertir horas a DATETIME para lunch_out y lunch_in
+            $lunchOutDateTime = null;
+            $lunchInDateTime = null;
+
+            if ($lunchOut) {
+                $lunchOutDateTime = $date . ' ' . $lunchOut;
             }
 
-            // 4. Determinar estado inicial
-            $status = $this->determineStatus($timeIn, $timeOut);
+            if ($lunchIn) {
+                $lunchInDateTime = $date . ' ' . $lunchIn;
+            }
 
-            // 5. Crear registro en attendance_detail
+            // 5. Determinar estado inicial
+            $status = $this->determineStatus($timeIn, $timeOut, $lunchOut, $lunchIn, $schedule);
+
+            // 6. Crear registro en attendance_detail
             $detailData = [
                 'header_id' => $headerId,
                 'employee_id' => $employeeId,
                 'schedule_id' => $employee['schedule_id'] ?? null,
                 'time_in' => $timeIn,
                 'time_out' => $timeOut,
+                'lunch_out' => $lunchOutDateTime,
+                'lunch_in' => $lunchInDateTime,
                 'scheduled_time_in' => $scheduledTimeIn,
                 'scheduled_time_out' => $scheduledTimeOut,
+                'scheduled_lunch_out' => $scheduledLunchOut,
+                'scheduled_lunch_in' => $scheduledLunchIn,
                 'device_id' => null,
                 'status' => $status,
                 'is_late' => 0,
@@ -207,7 +255,7 @@ class RecordsProcessor
             $detailId = $this->detailModel->create($detailData);
 
             if ($detailId) {
-                // 6. Marcar records como procesados
+                // 7. Marcar records como procesados
                 $this->recordModel->markMultipleAsProcessed($recordIds, $detailId);
 
                 $this->stats['details_created']++;
@@ -231,9 +279,12 @@ class RecordsProcessor
      * @param int $detailId
      * @param string|null $timeIn
      * @param string|null $timeOut
+     * @param string|null $lunchOut
+     * @param string|null $lunchIn
+     * @param array|null $schedule
      * @param array $recordIds
      */
-    private function updateDetail($detailId, $timeIn, $timeOut, $recordIds)
+    private function updateDetail($detailId, $timeIn, $timeOut, $lunchOut, $lunchIn, $schedule, $recordIds)
     {
         try {
             // Obtener el detail actual
@@ -243,11 +294,38 @@ class RecordsProcessor
                 throw new Exception("Detail {$detailId} no encontrado");
             }
 
+            // Convertir horas a DATETIME para lunch_out y lunch_in
+            $lunchOutDateTime = null;
+            $lunchInDateTime = null;
+
+            if ($lunchOut && !empty($detail['header_id'])) {
+                // Extraer la fecha del detail
+                $header = $this->headerModel->getById($detail['header_id']);
+                $date = $header['attendance_date'] ?? date('Y-m-d');
+                $lunchOutDateTime = $date . ' ' . $lunchOut;
+            }
+
+            if ($lunchIn && !empty($detail['header_id'])) {
+                $header = $this->headerModel->getById($detail['header_id']);
+                $date = $header['attendance_date'] ?? date('Y-m-d');
+                $lunchInDateTime = $date . ' ' . $lunchIn;
+            }
+
             // Preparar datos de actualización
             $updateData = [
                 'time_in' => $timeIn ?? $detail['time_in'],
                 'time_out' => $timeOut ?? $detail['time_out'],
-                'status' => $this->determineStatus($timeIn ?? $detail['time_in'], $timeOut ?? $detail['time_out']),
+                'lunch_out' => $lunchOutDateTime ?? $detail['lunch_out'],
+                'lunch_in' => $lunchInDateTime ?? $detail['lunch_in'],
+                'scheduled_lunch_out' => $schedule['salida_almuerzo'] ?? $detail['scheduled_lunch_out'],
+                'scheduled_lunch_in' => $schedule['entrada_almuerzo'] ?? $detail['scheduled_lunch_in'],
+                'status' => $this->determineStatus(
+                    $timeIn ?? $detail['time_in'],
+                    $timeOut ?? $detail['time_out'],
+                    $lunchOut ?? null,
+                    $lunchIn ?? null,
+                    $schedule
+                ),
                 'notes' => ($detail['notes'] ?? '') . ' | Actualizado desde records',
                 'is_late' => $detail['is_late'] ?? 0,
                 'tardiness_minutes' => $detail['tardiness_minutes'] ?? 0,
@@ -286,9 +364,11 @@ class RecordsProcessor
      * @param array $existingDetail
      * @param string|null $newTimeIn
      * @param string|null $newTimeOut
+     * @param string|null $newLunchOut
+     * @param string|null $newLunchIn
      * @return bool
      */
-    private function needsUpdate($existingDetail, $newTimeIn, $newTimeOut)
+    private function needsUpdate($existingDetail, $newTimeIn, $newTimeOut, $newLunchOut = null, $newLunchIn = null)
     {
         // 1. Si no tiene time_in y ahora sí hay, actualizar
         if (empty($existingDetail['time_in']) && !empty($newTimeIn)) {
@@ -305,8 +385,24 @@ class RecordsProcessor
             return true;
         }
 
-        // 4. Si los horarios programados están NULL, actualizar
+        // 4. Si no tiene lunch_out y ahora sí hay, actualizar
+        if (empty($existingDetail['lunch_out']) && !empty($newLunchOut)) {
+            return true;
+        }
+
+        // 5. Si no tiene lunch_in y ahora sí hay, actualizar
+        if (empty($existingDetail['lunch_in']) && !empty($newLunchIn)) {
+            return true;
+        }
+
+        // 6. Si los horarios programados están NULL, actualizar
         if (empty($existingDetail['scheduled_time_in']) || empty($existingDetail['scheduled_time_out'])) {
+            return true;
+        }
+
+        // 7. Si los horarios de almuerzo programados están NULL y deberían estar, actualizar
+        if (empty($existingDetail['scheduled_lunch_out']) && empty($existingDetail['scheduled_lunch_in'])
+            && (!empty($newLunchOut) || !empty($newLunchIn))) {
             return true;
         }
 
@@ -314,18 +410,47 @@ class RecordsProcessor
     }
 
     /**
-     * Determinar estado basado en time_in y time_out
+     * Determinar estado basado en marcaciones y horario
      *
      * @param string|null $timeIn
      * @param string|null $timeOut
+     * @param string|null $lunchOut
+     * @param string|null $lunchIn
+     * @param array|null $schedule
      * @return string
      */
-    private function determineStatus($timeIn, $timeOut)
+    private function determineStatus($timeIn, $timeOut, $lunchOut = null, $lunchIn = null, $schedule = null)
     {
-        if (empty($timeIn) && empty($timeOut)) {
+        // Determinar si el horario requiere almuerzo
+        $requiresLunch = false;
+        if ($schedule && !empty($schedule['salida_almuerzo']) && !empty($schedule['entrada_almuerzo'])) {
+            $requiresLunch = true;
+        }
+
+        // Si no hay ninguna marcación: ABSENT
+        if (empty($timeIn) && empty($timeOut) && empty($lunchOut) && empty($lunchIn)) {
             return 'ABSENT';
         }
 
+        // Si requiere almuerzo: verificar 4 marcaciones
+        if ($requiresLunch) {
+            $missing = [];
+
+            if (empty($timeIn)) $missing[] = 'entrada';
+            if (empty($lunchOut)) $missing[] = 'salida_almuerzo';
+            if (empty($lunchIn)) $missing[] = 'entrada_almuerzo';
+            if (empty($timeOut)) $missing[] = 'salida';
+
+            // Si faltan marcaciones: INCOMPLETE
+            if (count($missing) > 0) {
+                return 'INCOMPLETE';
+            }
+
+            // Si están las 4: PRESENT
+            return 'PRESENT';
+        }
+
+        // Si NO requiere almuerzo: verificar solo entrada/salida
         if (empty($timeIn) || empty($timeOut)) {
             return 'INCOMPLETE';
         }
@@ -334,7 +459,7 @@ class RecordsProcessor
     }
 
     /**
-     * Obtener información de horario
+     * Obtener información de horario (incluyendo período de almuerzo)
      *
      * @param int $scheduleId
      * @return array|false
@@ -342,7 +467,9 @@ class RecordsProcessor
     private function getSchedule($scheduleId)
     {
         try {
-            $sql = "SELECT time_in, time_out FROM schedules WHERE id = ? LIMIT 1";
+            $sql = "SELECT time_in, time_out, salida_almuerzo, entrada_almuerzo
+                    FROM schedules
+                    WHERE id = ? LIMIT 1";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$scheduleId]);
             return $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -350,6 +477,113 @@ class RecordsProcessor
             error_log("Error obteniendo schedule: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Clasificar marcaciones del día en entrada/salida/almuerzo
+     *
+     * @param array $punches Array de marcaciones ordenadas por timestamp ASC
+     * @param array|null $schedule Horario del empleado con campos de almuerzo
+     * @return array Array con time_in, lunch_out, lunch_in, time_out
+     */
+    private function classifyPunches($punches, $schedule = null)
+    {
+        $result = [
+            'time_in' => null,
+            'lunch_out' => null,
+            'lunch_in' => null,
+            'time_out' => null
+        ];
+
+        // Si no hay marcaciones, retornar vacío
+        if (empty($punches)) {
+            return $result;
+        }
+
+        // Determinar si el horario tiene período de almuerzo configurado
+        $hasLunchPeriod = false;
+        if ($schedule && !empty($schedule['salida_almuerzo']) && !empty($schedule['entrada_almuerzo'])) {
+            $hasLunchPeriod = true;
+        }
+
+        // Si NO tiene período de almuerzo: lógica tradicional (2 marcaciones)
+        if (!$hasLunchPeriod) {
+            // Primera marcación = entrada
+            $result['time_in'] = !empty($punches[0]['punch_time'])
+                ? $punches[0]['punch_time']
+                : date('H:i:s', strtotime($punches[0]['timestamp']));
+
+            // Última marcación = salida
+            $lastIndex = count($punches) - 1;
+            $result['time_out'] = !empty($punches[$lastIndex]['punch_time'])
+                ? $punches[$lastIndex]['punch_time']
+                : date('H:i:s', strtotime($punches[$lastIndex]['timestamp']));
+
+            return $result;
+        }
+
+        // Si TIENE período de almuerzo: clasificar 4 marcaciones
+        $scheduledLunchOut = strtotime($schedule['salida_almuerzo']);
+        $scheduledLunchIn = strtotime($schedule['entrada_almuerzo']);
+
+        // Convertir marcaciones a timestamps comparables
+        $timestamps = [];
+        foreach ($punches as $punch) {
+            $time = !empty($punch['punch_time'])
+                ? $punch['punch_time']
+                : date('H:i:s', strtotime($punch['timestamp']));
+
+            $timestamps[] = [
+                'time' => $time,
+                'timestamp' => strtotime($time)
+            ];
+        }
+
+        // Clasificación basada en cercanía a horarios programados
+        switch (count($timestamps)) {
+            case 1:
+                // Solo 1 marcación: asumir entrada
+                $result['time_in'] = $timestamps[0]['time'];
+                break;
+
+            case 2:
+                // 2 marcaciones: entrada y salida (sin almuerzo registrado)
+                $result['time_in'] = $timestamps[0]['time'];
+                $result['time_out'] = $timestamps[1]['time'];
+                break;
+
+            case 3:
+                // 3 marcaciones: falta una (determinar cuál)
+                $result['time_in'] = $timestamps[0]['time'];
+
+                // Si la segunda está cerca de salida_almuerzo
+                if (abs($timestamps[1]['timestamp'] - $scheduledLunchOut) < 1800) { // 30 min tolerancia
+                    $result['lunch_out'] = $timestamps[1]['time'];
+                    $result['time_out'] = $timestamps[2]['time'];
+                }
+                // Si la segunda está cerca de entrada_almuerzo
+                elseif (abs($timestamps[1]['timestamp'] - $scheduledLunchIn) < 1800) {
+                    $result['lunch_in'] = $timestamps[1]['time'];
+                    $result['time_out'] = $timestamps[2]['time'];
+                }
+                // Si no coincide, asumir secuencia normal faltando entrada_almuerzo
+                else {
+                    $result['lunch_out'] = $timestamps[1]['time'];
+                    $result['time_out'] = $timestamps[2]['time'];
+                }
+                break;
+
+            case 4:
+            default:
+                // 4 o más marcaciones: asignar en orden
+                $result['time_in'] = $timestamps[0]['time'];
+                $result['lunch_out'] = $timestamps[1]['time'];
+                $result['lunch_in'] = $timestamps[2]['time'];
+                $result['time_out'] = $timestamps[3]['time'];
+                break;
+        }
+
+        return $result;
     }
 
     /**

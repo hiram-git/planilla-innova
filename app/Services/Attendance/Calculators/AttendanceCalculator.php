@@ -56,6 +56,8 @@ class AttendanceCalculator
         $date = $attendance['date'];
         $timeIn = $attendance['time_in'];
         $timeOut = $attendance['time_out'];
+        $lunchOut = $attendance['lunch_out'] ?? null;
+        $lunchIn = $attendance['lunch_in'] ?? null;
 
         // Obtener horario del empleado para ese día
         $schedule = $this->scheduleResolver->getScheduleForEmployeeOnDate($employeeId, $date);
@@ -68,6 +70,19 @@ class AttendanceCalculator
             return $this->getPartialCalculation($attendance, $schedule, $dayInfo);
         }
 
+        // Calcular duración real del almuerzo
+        $lunchTimeMinutes = $this->calculateLunchDuration($lunchOut, $lunchIn);
+
+        // Calcular minutos de exceso en el almuerzo
+        $lunchExceededMinutes = 0;
+        if ($schedule) {
+            $lunchExceededMinutes = $this->calculateLunchExceeded(
+                $lunchTimeMinutes,
+                $schedule['salida_almuerzo'] ?? null,
+                $schedule['entrada_almuerzo'] ?? null
+            );
+        }
+
         // Calcular breakdown completo de horas
         $hoursBreakdown = $this->overtimeCalculator->calculateCompleteBreakdown(
             $timeIn,
@@ -75,6 +90,13 @@ class AttendanceCalculator
             $date,
             $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8
         );
+
+        // Restar tiempo de almuerzo de las horas trabajadas
+        if ($lunchTimeMinutes > 0) {
+            $lunchHours = $lunchTimeMinutes / 60;
+            $hoursBreakdown['total_hours'] = max(0, $hoursBreakdown['total_hours'] - $lunchHours);
+            $hoursBreakdown['regular_hours'] = max(0, $hoursBreakdown['regular_hours'] - $lunchHours);
+        }
 
         // Calcular tardanzas si tiene horario asignado
         $tardinessMinutes = 0;
@@ -121,8 +143,12 @@ class AttendanceCalculator
             // Marcaciones
             'time_in' => $this->extractTime($timeIn),
             'time_out' => $this->extractTime($timeOut),
+            'lunch_out' => $this->extractTime($lunchOut),
+            'lunch_in' => $this->extractTime($lunchIn),
             'scheduled_time_in' => $schedule['time_in'] ?? null,
             'scheduled_time_out' => $schedule['time_out'] ?? null,
+            'scheduled_lunch_out' => $schedule['salida_almuerzo'] ?? null,
+            'scheduled_lunch_in' => $schedule['entrada_almuerzo'] ?? null,
 
             // Horas trabajadas
             'total_hours' => $hoursBreakdown['total_hours'],
@@ -147,7 +173,8 @@ class AttendanceCalculator
             'day_type' => $dayInfo['day_type'],
 
             // Métricas adicionales
-            'lunch_time_minutes' => 60,
+            'lunch_time_minutes' => $lunchTimeMinutes,
+            'lunch_exceeded_minutes' => $lunchExceededMinutes,
             'is_perfect_attendance' => $isPerfectAttendance ? 1 : 0,
             'punctuality_score' => $punctualityScore,
 
@@ -156,6 +183,10 @@ class AttendanceCalculator
             'calculation_details' => json_encode([
                 'schedule' => $schedule,
                 'day_info' => $dayInfo,
+                'lunch_info' => [
+                    'duration_minutes' => $lunchTimeMinutes,
+                    'exceeded_minutes' => $lunchExceededMinutes
+                ],
                 'calculation_timestamp' => date('Y-m-d H:i:s')
             ]),
 
@@ -273,6 +304,58 @@ class AttendanceCalculator
     }
 
     /**
+     * Calcular duración del almuerzo en minutos
+     *
+     * @param string|null $lunchOut Hora de salida a almuerzo
+     * @param string|null $lunchIn Hora de entrada después de almuerzo
+     * @return int Duración en minutos
+     */
+    private function calculateLunchDuration($lunchOut, $lunchIn)
+    {
+        if (empty($lunchOut) || empty($lunchIn)) {
+            return 0;
+        }
+
+        try {
+            $out = new DateTime($lunchOut);
+            $in = new DateTime($lunchIn);
+            $interval = $out->diff($in);
+
+            return ($interval->h * 60) + $interval->i;
+        } catch (Exception $e) {
+            error_log("Error calculating lunch duration: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular minutos de exceso en el período de almuerzo
+     *
+     * @param int $actualLunchMinutes Duración real del almuerzo
+     * @param string|null $scheduledLunchOut Hora programada de salida a almuerzo
+     * @param string|null $scheduledLunchIn Hora programada de entrada después de almuerzo
+     * @return int Minutos de exceso (0 si no hay exceso)
+     */
+    private function calculateLunchExceeded($actualLunchMinutes, $scheduledLunchOut, $scheduledLunchIn)
+    {
+        if (empty($scheduledLunchOut) || empty($scheduledLunchIn) || $actualLunchMinutes <= 0) {
+            return 0;
+        }
+
+        try {
+            $out = new DateTime($scheduledLunchOut);
+            $in = new DateTime($scheduledLunchIn);
+            $scheduledMinutes = ($in->getTimestamp() - $out->getTimestamp()) / 60;
+
+            $exceeded = $actualLunchMinutes - $scheduledMinutes;
+            return max(0, (int)$exceeded);
+        } catch (Exception $e) {
+            error_log("Error calculating lunch exceeded: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Extraer solo la hora de un timestamp completo
      *
      * @param string $datetime
@@ -318,8 +401,12 @@ class AttendanceCalculator
             'schedule_id' => null,
             'time_in' => null,
             'time_out' => null,
+            'lunch_out' => null,
+            'lunch_in' => null,
             'scheduled_time_in' => null,
             'scheduled_time_out' => null,
+            'scheduled_lunch_out' => null,
+            'scheduled_lunch_in' => null,
             'total_hours' => 0,
             'regular_hours' => 0,
             'overtime_hours' => 0,
@@ -336,7 +423,8 @@ class AttendanceCalculator
             'is_holiday' => 0,
             'is_weekend' => 0,
             'day_type' => 'UNKNOWN',
-            'lunch_time_minutes' => 60,
+            'lunch_time_minutes' => 0,
+            'lunch_exceeded_minutes' => 0,
             'is_perfect_attendance' => 0,
             'punctuality_score' => 0,
             'notes' => '',
@@ -356,6 +444,8 @@ class AttendanceCalculator
     private function getPartialCalculation($attendance, $schedule, $dayInfo)
     {
         $timeIn = $attendance['time_in'];
+        $lunchOut = $attendance['lunch_out'] ?? null;
+        $lunchIn = $attendance['lunch_in'] ?? null;
         $tardinessMinutes = 0;
         $isLate = false;
 
@@ -367,6 +457,9 @@ class AttendanceCalculator
             $isLate = $tardinessMinutes > 0;
         }
 
+        // Calcular duración de almuerzo incluso sin hora de salida
+        $lunchTimeMinutes = $this->calculateLunchDuration($lunchOut, $lunchIn);
+
         return [
             'attendance_detail_id' => $attendance['id'],
             'employee_id' => $attendance['employee_id'],
@@ -374,8 +467,12 @@ class AttendanceCalculator
             'schedule_id' => $schedule['schedule_id'] ?? null,
             'time_in' => $this->extractTime($timeIn),
             'time_out' => null,
+            'lunch_out' => $this->extractTime($lunchOut),
+            'lunch_in' => $this->extractTime($lunchIn),
             'scheduled_time_in' => $schedule['time_in'] ?? null,
             'scheduled_time_out' => $schedule['time_out'] ?? null,
+            'scheduled_lunch_out' => $schedule['salida_almuerzo'] ?? null,
+            'scheduled_lunch_in' => $schedule['entrada_almuerzo'] ?? null,
             'total_hours' => 0,
             'regular_hours' => 0,
             'overtime_hours' => 0,
@@ -392,7 +489,8 @@ class AttendanceCalculator
             'is_holiday' => $dayInfo['is_holiday'] ? 1 : 0,
             'is_weekend' => $this->isWeekend($attendance['date']) ? 1 : 0,
             'day_type' => $dayInfo['day_type'],
-            'lunch_time_minutes' => 60,
+            'lunch_time_minutes' => $lunchTimeMinutes,
+            'lunch_exceeded_minutes' => 0,
             'is_perfect_attendance' => 0,
             'punctuality_score' => 0,
             'notes' => 'Sin hora de salida registrada',

@@ -199,6 +199,8 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                     <th>Empleado</th>
                                     <th>Horario</th>
                                     <th>Hora Entrada</th>
+                                    <th>Salida Almuerzo</th>
+                                    <th>Entrada Almuerzo</th>
                                     <th>Hora Salida</th>
                                     <th>Tardanza</th>
                                     <th>Horas Trabajadas</th>
@@ -233,6 +235,8 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                         // Formateo de horas
                                         $timeIn = $detail['time_in'] ? date('H:i', strtotime($detail['time_in'])) : '-';
                                         $timeOut = $detail['time_out'] ? date('H:i', strtotime($detail['time_out'])) : '<span class="text-muted"><i>Pendiente</i></span>';
+                                        $lunchOut = $detail['lunch_out'] ? date('H:i', strtotime($detail['lunch_out'])) : '<span class="text-muted">-</span>';
+                                        $lunchIn = $detail['lunch_in'] ? date('H:i', strtotime($detail['lunch_in'])) : '<span class="text-muted">-</span>';
                                         $hoursWorked = $detail['hours_worked'] > 0 ? number_format($detail['hours_worked'], 2) . 'h' : '-';
 
                                         // Tardanza
@@ -335,6 +339,8 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                                     <strong><?= $timeIn ?></strong>
                                                 </span>
                                             </td>
+                                            <td><?= $lunchOut ?></td>
+                                            <td><?= $lunchIn ?></td>
                                             <td><?= $timeOut ?></td>
                                             <td><?= $tardiness ?></td>
                                             <td><?= $hoursWorked ?></td>
@@ -383,7 +389,7 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="10" class="text-center text-muted">
+                                        <td colspan="12" class="text-center text-muted">
                                             <i class="fas fa-info-circle"></i> No hay marcaciones registradas para esta fecha
                                         </td>
                                     </tr>
@@ -410,14 +416,42 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                 <input type="hidden" id="edit_detail_id" name="detail_id">
                 <input type="hidden" name="csrf_token" value="<?= $csrf_token ?? '' ?>">
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Hora Entrada:</label>
-                        <input type="time" class="form-control" id="edit_time_in" name="time_in">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Hora Entrada:</label>
+                                <input type="time" class="form-control" id="edit_time_in" name="time_in">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Hora Salida:</label>
+                                <input type="time" class="form-control" id="edit_time_out" name="time_out">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Hora Salida:</label>
-                        <input type="time" class="form-control" id="edit_time_out" name="time_out">
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>
+                                    Salida Almuerzo:
+                                    <small class="text-muted">(Opcional)</small>
+                                </label>
+                                <input type="time" class="form-control" id="edit_lunch_out" name="lunch_out">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>
+                                    Entrada Almuerzo:
+                                    <small class="text-muted">(Opcional)</small>
+                                </label>
+                                <input type="time" class="form-control" id="edit_lunch_in" name="lunch_in">
+                            </div>
+                        </div>
                     </div>
+
                     <div class="form-group">
                         <label>Notas:</label>
                         <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
