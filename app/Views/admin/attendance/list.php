@@ -78,7 +78,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form action="/panel/attendance" method="GET">
+                        <form action="<?= \App\Core\UrlHelper::route('/panel/attendance') ?>" method="GET">
                             <div class="row">
                                 <!-- Filtro por Año -->
                                 <div class="col-md-2">
