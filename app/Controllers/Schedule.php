@@ -54,6 +54,8 @@ class Schedule extends ReferenceController
                 'descripcion' => $data['descripcion'] ?? '',
                 'time_in' => $data['time_in'],
                 'time_out' => $data['time_out'],
+                'salida_almuerzo' => !empty($data['salida_almuerzo']) ? $data['salida_almuerzo'] : null,
+                'entrada_almuerzo' => !empty($data['entrada_almuerzo']) ? $data['entrada_almuerzo'] : null,
                 'activo' => 1
             ];
 
@@ -107,9 +109,11 @@ class Schedule extends ReferenceController
                 'descripcion' => $data['edit_descripcion'] ?? '',
                 'time_in' => $data['edit_time_in'],
                 'time_out' => $data['edit_time_out'],
+                'salida_almuerzo' => !empty($data['edit_salida_almuerzo']) ? $data['edit_salida_almuerzo'] : null,
+                'entrada_almuerzo' => !empty($data['edit_entrada_almuerzo']) ? $data['edit_entrada_almuerzo'] : null,
                 'activo' => isset($data['edit_activo']) ? 1 : 0
             ];
-            
+
             $model->update($id, $updateData);
             $_SESSION['success'] = $this->singularName . ' actualizado exitosamente';
             $this->redirect("/panel/{$this->routeName}");

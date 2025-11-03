@@ -409,7 +409,7 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-info">
-                <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Marcación</h5>
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Marcación <small id="edit_modal_subtitle" class="ml-2 text-white-50"></small></h5>
                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
             <form id="form-edit-detail">
@@ -495,12 +495,56 @@ $(document).ready(function() {
         pageLength: 50
     });
 
-    // Editar marcación
+    // Helper: extraer HH:MM
+    function toTimeHM(value) {
+        if (!value) return '';
+        // Acepta 'HH:MM', 'HH:MM:SS' o 'YYYY-mm-dd HH:MM:SS'
+        const m = String(value).match(/(\d{2}:\d{2})(?::\d{2})?$/);
+        return m ? m[1] : '';
+    }
+
+    // Editar marcación: cargar datos y abrir modal
     $(document).on('click', '.btn-edit-detail', function() {
         const detailId = $(this).data('id');
-        // TODO: Cargar datos actuales de la marcación
+        const $modal = $('#editDetailModal');
+        const $subtitle = $('#edit_modal_subtitle');
+
+        // Reset form
+        $('#form-edit-detail')[0].reset();
         $('#edit_detail_id').val(detailId);
-        $('#editDetailModal').modal('show');
+        $subtitle.text('');
+
+        $.ajax({
+            url: `${baseUrl}/panel/attendance/detail/${detailId}/get`,
+            method: 'POST',
+            success: function(response) {
+                if (response && response.success && response.data) {
+                    const d = response.data;
+                    // Título con empleado y fecha
+                    const emp = d.employee || {};
+                    const name = emp.name || '';
+                    const code = emp.code ? ` (${emp.code})` : '';
+                    $subtitle.text(`${name}${code} — ${d.date}`);
+
+                    // Campos de tiempo
+                    $('#edit_time_in').val(toTimeHM(d.time_in));
+                    $('#edit_time_out').val(toTimeHM(d.time_out));
+                    $('#edit_lunch_out').val(toTimeHM(d.lunch_out));
+                    $('#edit_lunch_in').val(toTimeHM(d.lunch_in));
+
+                    // Notas
+                    $('#edit_notes').val(d.notes || '');
+
+                    $modal.modal('show');
+                } else {
+                    toastr.error(response && response.message ? response.message : 'No se pudo obtener la marcación');
+                }
+            },
+            error: function(xhr) {
+                toastr.error('Error al obtener la marcación');
+                console.error(xhr);
+            }
+        });
     });
 
     $('#form-edit-detail').on('submit', function(e) {

@@ -1,9 +1,16 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 1 de Noviembre, 2025
-**Versión**: 3.5.4 - Reportes Asistencias + Mejoras UI Planillas (Funcionalidad + UX - 100%)
+**Fecha**: 3 de Noviembre, 2025
+**Versión**: 3.5.5 - Almuerzo en Asistencias: marcaciones y cálculos (Cálculos + UI)
 **Versión Anterior**: 3.5.3 - Eliminación Completa eval() + Arquitectura Segura (Seguridad - 100%)
+
+### 🆕 Hitos Recientes (Asistencias v3.5.5)
+- DB: campos de almuerzo en `schedules` y `attendance_detail` (+ índices, vista y procedimiento)
+- Trigger: `trg_calculate_lunch_duration` para duración/exceso de almuerzo
+- Processor: clasificación 4 marcaciones (entrada, salida almuerzo, entrada almuerzo, salida)
+- Calculator: descuenta almuerzo de horas trabajadas e incluye métricas
+- UI: columnas y campos de almuerzo en detalle y modal de edición
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware

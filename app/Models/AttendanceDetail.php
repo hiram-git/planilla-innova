@@ -169,7 +169,12 @@ class AttendanceDetail
     {
         // Campos permitidos para actualización
         $allowedFields = [
-            'time_in', 'time_out', 'scheduled_time_in', 'scheduled_time_out',
+            'time_in', 'time_out',
+            'lunch_out', 'lunch_in',
+            'scheduled_time_in', 'scheduled_time_out',
+            'scheduled_lunch_out', 'scheduled_lunch_in',
+            // Métricas que pueden ser ajustadas por trigger/servicios
+            'lunch_duration_minutes', 'lunch_exceeded_minutes',
             'tardiness_minutes', 'is_late', 'early_departure_minutes', 'hours_worked',
             'status', 'justification_type', 'justification_notes', 'justification_document',
             'notes', 'schedule_id', 'device_id', 'external_id'

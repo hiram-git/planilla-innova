@@ -30,18 +30,26 @@ $content = '
 
 foreach ($items as $item) {
     $checked = $item['activo'] ? 'checked' : '';
-    
+
     // Formatear horario
     $timeIn = date('h:i A', strtotime($item['time_in']));
     $timeOut = date('h:i A', strtotime($item['time_out']));
     $scheduleDisplay = "$timeIn - $timeOut";
-    
+
+    // Formatear horario de almuerzo si existe
+    $lunchDisplay = '';
+    if (!empty($item['salida_almuerzo']) && !empty($item['entrada_almuerzo'])) {
+        $lunchOut = date('h:i A', strtotime($item['salida_almuerzo']));
+        $lunchIn = date('h:i A', strtotime($item['entrada_almuerzo']));
+        $lunchDisplay = '<br><small><i class="fas fa-utensils"></i> ' . $lunchOut . ' - ' . $lunchIn . '</small>';
+    }
+
     $content .= '
                             <tr>
                                 <td><strong>' . htmlspecialchars($item['codigo']) . '</strong></td>
                                 <td>' . htmlspecialchars($item['nombre']) . '</td>
                                 <td>
-                                    <span class="badge badge-primary">' . $scheduleDisplay . '</span>
+                                    <span class="badge badge-primary">' . $scheduleDisplay . '</span>' . $lunchDisplay . '
                                 </td>
                                 <td>
                                     <div class="custom-control custom-switch">

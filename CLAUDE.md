@@ -1,10 +1,10 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.5.4 Reportes Asistencias + Mejoras UI**
-- **Fecha**: 1 de Noviembre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 88% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 30%**
-- **Versión**: 3.5.4 - Reporte marcaciones Excel + mejoras UI planillas (fix labels liquidaciones + comprobantes horizontales profesionales)
-- **Versión Anterior**: 3.5.3 - Eliminación completa eval() + arquitectura segura con herencia (PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure)
+## 📝 **Estado Actual - V3.5.5 Almuerzo en Asistencias**
+- **Fecha**: 3 de Noviembre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 90% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35%**
+- **Versión**: 3.5.5 - Marcaciones de almuerzo (salida/entrada), cálculos y UI en detalle asistencias
+- **Versión Anterior**: 3.5.4 - Reportes de marcaciones y mejoras UI planillas
 
 ## 🎯 **Sistema**
 Plataforma empresarial de planillas con legislación panameña, acumulados automáticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -23,7 +23,14 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Múltiples Tipos Planilla**: Empleados en varios tipos + FIND_IN_SET() queries + Select2 múltiple
 - ✅ **Calendario Empresarial**: BusinessCalendar model + feriados Panamá 2024-2025 + FullCalendar.js
 - ✅ **API Asistencias Base44 V3.4.0**: Cliente API + sincronización automática + webhook + 3 tablas BD
-- ✅ **Sistema Asistencias V3.4.1-3.4.8**: Migraciones BD + Vistas separadas + Calculadores Core + UI integración + AlertsSystem + PayrollAttendanceIntegrator + Mapeo automático + Procesamiento batch día + Reprocess (85% Subfases 7.1-7.4 completadas | 80% Subfase 7.2)
+- ✅ **Sistema Asistencias V3.4.1-3.5.5**: Migraciones BD + Vistas separadas + Calculadores Core + UI integración + AlertsSystem + PayrollAttendanceIntegrator + Mapeo automático + Procesamiento batch día + Reprocess + Almuerzo (90% Subfases 7.1-7.4 completadas | 85% Subfase 7.2 | 35% Subfase 7.5)
+
+### 🆕 V3.5.5 - Almuerzo en Asistencias
+- DB: `schedules` añade `salida_almuerzo`/`entrada_almuerzo`; `attendance_detail` añade campos de almuerzo + índices
+- Trigger: `trg_calculate_lunch_duration` para duración/exceso de almuerzo
+- Processor: clasifica 4 marcaciones cuando el horario lo define; estado requiere 4 si aplica
+- Calculator: descuenta almuerzo de horas trabajadas y añade métricas (`lunch_duration_minutes`, `lunch_exceeded_minutes`)
+- UI: nuevas columnas y campos en el modal de edición en detalle de asistencias
 - ✅ **Hotfix V3.5.1**: Fix crítico synced_from ENUM + data cleanup + normalización timestamp API Base44 + CSRF dispositivos + deployment scripts
 
 ## 📄 **Sistemas Auxiliares Implementados**

@@ -451,6 +451,8 @@ class AttendanceController extends Controller
             $data = [
                 'time_in' => $_POST['time_in'] ?? null,
                 'time_out' => $_POST['time_out'] ?? null,
+                'lunch_out' => $_POST['lunch_out'] ?? null,
+                'lunch_in' => $_POST['lunch_in'] ?? null,
                 'notes' => $_POST['notes'] ?? null
             ];
 
@@ -459,7 +461,8 @@ class AttendanceController extends Controller
             if ($result) {
                 // Recalcular automáticamente si tiene time_in y time_out
                 $calculationData = null;
-                if ($data['time_in'] && $data['time_out']) {
+                // Recalcular si hay cambios en horas de entrada/salida o almuerzo
+                if (($data['time_in'] && $data['time_out']) || ($data['lunch_out'] || $data['lunch_in'])) {
                     try {
                         // Obtener el detalle actualizado
                         $updatedDetail = $this->detailModel->getById($id);
@@ -470,7 +473,9 @@ class AttendanceController extends Controller
                             'employee_id' => $updatedDetail['employee_id'],
                             'date' => $updatedDetail['date'],
                             'time_in' => $updatedDetail['time_in'],
-                            'time_out' => $updatedDetail['time_out']
+                            'time_out' => $updatedDetail['time_out'],
+                            'lunch_out' => $updatedDetail['lunch_out'] ?? null,
+                            'lunch_in' => $updatedDetail['lunch_in'] ?? null,
                         ];
 
                         // Calcular y guardar
@@ -503,6 +508,66 @@ class AttendanceController extends Controller
 
         } catch (Exception $e) {
             error_log("Error updating detail: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Obtener marcación individual (AJAX)
+     * Devuelve todos los campos relevantes para el modal de edición
+     */
+    public function getDetail($id)
+    {
+        try {
+            $detail = $this->detailModel->getById($id);
+
+            if (!$detail) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Marcación no encontrada.'
+                ]);
+            }
+
+            // Formatear respuesta
+            $employeeName = trim(($detail['firstname'] ?? '') . ' ' . ($detail['lastname'] ?? ''));
+            $data = [
+                'id' => (int)$detail['id'],
+                'date' => $detail['date'],
+                'employee' => [
+                    'id' => (int)$detail['employee_id'],
+                    'name' => $employeeName,
+                    'code' => $detail['employee_code'] ?? ($detail['employee_number'] ?? null),
+                ],
+                // Marcaciones
+                'time_in' => $detail['time_in'],
+                'time_out' => $detail['time_out'],
+                'lunch_out' => $detail['lunch_out'] ?? null,
+                'lunch_in' => $detail['lunch_in'] ?? null,
+                // Horarios programados
+                'scheduled_time_in' => $detail['scheduled_time_in'] ?? null,
+                'scheduled_time_out' => $detail['scheduled_time_out'] ?? null,
+                'scheduled_lunch_out' => $detail['scheduled_lunch_out'] ?? null,
+                'scheduled_lunch_in' => $detail['scheduled_lunch_in'] ?? null,
+                // Métricas
+                'hours_worked' => $detail['hours_worked'] ?? 0,
+                'tardiness_minutes' => $detail['tardiness_minutes'] ?? 0,
+                'is_late' => (int)($detail['is_late'] ?? 0),
+                'lunch_duration_minutes' => $detail['lunch_duration_minutes'] ?? 0,
+                'lunch_exceeded_minutes' => $detail['lunch_exceeded_minutes'] ?? 0,
+                'status' => $detail['status'] ?? null,
+                'notes' => $detail['notes'] ?? null,
+            ];
+
+            return $this->jsonResponse([
+                'success' => true,
+                'data' => $data
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error getting detail: " . $e->getMessage());
             return $this->jsonResponse([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()

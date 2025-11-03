@@ -290,6 +290,10 @@ class App
                                             // POST: /panel/attendance/detail/{id}/calculate
                                             $this->method = 'calculateAttendance';
                                             $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'get' && method_exists($this->controller, 'getDetail')) {
+                                            // POST: /panel/attendance/detail/{id}/get
+                                            $this->method = 'getDetail';
+                                            $this->params = [$url[3]];
                                         }
                                         call_user_func_array([$this->controller, $this->method], $this->params);
                                         return;

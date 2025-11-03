@@ -58,7 +58,7 @@ if ($route_name === 'schedules') {
                             <div class="form-group">
                                 <label for="time_in">Hora de Entrada *</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="time_in" name="time_in" 
+                                    <input type="text" class="form-control timepicker" id="time_in" name="time_in"
                                            value="' . ($_SESSION['old_data']['time_in'] ?? '') . '" required>
                                     <div class="input-group-append">
                                         <div class="input-group-text"><i class="far fa-clock"></i></div>
@@ -70,12 +70,40 @@ if ($route_name === 'schedules') {
                             <div class="form-group">
                                 <label for="time_out">Hora de Salida *</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="time_out" name="time_out" 
+                                    <input type="text" class="form-control timepicker" id="time_out" name="time_out"
                                            value="' . ($_SESSION['old_data']['time_out'] ?? '') . '" required>
                                     <div class="input-group-append">
                                         <div class="input-group-text"><i class="far fa-clock"></i></div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="salida_almuerzo">Salida a Almuerzo</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control timepicker" id="salida_almuerzo" name="salida_almuerzo"
+                                           value="' . ($_SESSION['old_data']['salida_almuerzo'] ?? '') . '">
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Opcional - Hora programada para salir a almuerzo</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="entrada_almuerzo">Entrada de Almuerzo</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control timepicker" id="entrada_almuerzo" name="entrada_almuerzo"
+                                           value="' . ($_SESSION['old_data']['entrada_almuerzo'] ?? '') . '">
+                                    <div class="input-group-append">
+                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Opcional - Hora programada para regresar de almuerzo</small>
                             </div>
                         </div>
                     </div>';

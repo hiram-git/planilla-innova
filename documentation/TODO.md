@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.5.4** *(01 Nov 2025)*
+## 🎯 **ESTADO ACTUAL V3.5.5** *(03 Nov 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -30,6 +30,7 @@
 - **🆕 Mejora Reportes Liquidaciones**: ✅ Completado *(V3.5.2)*
 - **🆕 Eliminación eval() + Seguridad**: ✅ Completado *(V3.5.3)*
 - **🆕 Reportes Asistencias + Mejoras UI**: ✅ Completado *(V3.5.4)*
+- **🆕 Almuerzo en Asistencias (marcaciones + cálculos)**: ✅ Completado *(V3.5.5)*
 
 ---
 

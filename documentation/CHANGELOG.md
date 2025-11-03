@@ -8,6 +8,34 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.5.5]** - 2025-11-03 - *Almuerzo en Asistencias: marcaciones y cálculos*
+**Tipo**: Feature - Cálculos de Asistencia + UI
+**Fase**: Subfase 7.2 (Cálculos) mejorada + 7.5 (Interfaz)
+**Criticidad**: Media
+
+**Componentes Principales**:
+- ✅ **Base de Datos**:
+  - `schedules`: agrega `salida_almuerzo`, `entrada_almuerzo` (+ índice)
+  - `attendance_detail`: agrega `lunch_out`, `lunch_in`, `scheduled_lunch_out`, `scheduled_lunch_in`, `lunch_duration_minutes`, `lunch_exceeded_minutes` (+ índices)
+  - Trigger `trg_calculate_lunch_duration` para calcular duración/exceso de almuerzo
+  - Vista `v_attendance_detail_with_lunch` y procedimiento `sp_validate_attendance_completeness`
+- ✅ **Cálculos**:
+  - `AttendanceCalculator`: resta tiempo de almuerzo de horas trabajadas, incluye métricas y horarios programados de almuerzo
+- ✅ **Procesamiento**:
+  - `RecordsProcessor`: clasifica marcaciones en entrada/salida y almuerzo (salida/entrada) cuando el horario lo define
+  - Estado requiere 4 marcaciones si hay almuerzo programado; `getSchedule` incluye campos de almuerzo
+- ✅ **Interfaz**:
+  - `attendance/detail.php`: nuevas columnas “Salida Almuerzo / Entrada Almuerzo” y campos en el modal de edición
+
+**📈 Estadísticas**:
+- 6 archivos cambiados | +953 inserciones | -43 eliminaciones | 3 migraciones nuevas
+
+---
+
+**[📄 Ver detalles completos →](./changelog/v3.5.5.md)**
+
+---
+
 ### **[v3.5.4]** - 2025-11-01 - *Reportes Asistencias + Mejoras UI Planillas*
 **Tipo**: Mejora - Funcionalidad + UX
 **Fase**: Subfase 7.5 - Interfaz y Reportes (30%)
@@ -476,6 +504,6 @@ Al crear una nueva versión:
 
 ---
 
-**Última Actualización**: 1 de Noviembre, 2025
-**Sistema**: Planillas MVC v3.5.4
-**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 88% | Liquidaciones 100% | Seguridad 100%
+**Última Actualización**: 3 de Noviembre, 2025
+**Sistema**: Planillas MVC v3.5.5
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 90% | Liquidaciones 100% | Seguridad 100%
