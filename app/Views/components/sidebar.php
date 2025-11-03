@@ -271,34 +271,7 @@ class SidebarComponent
                                 </li>
                             </ul>
                         </li>
-
-                        <!-- NÓMINA Y PLANILLAS -->
-                        <li class="nav-header">NÓMINA Y PLANILLAS</li>
-
-                        <!-- Gestión de Planillas -->
-                        <li class="nav-item ' . ($this->isActive('panel/payrolls') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/payrolls') ? 'active' : '') . '">
-                                <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                                <p>
-                                    Gestión de Planillas
-                                    <i class="fas fa-angle-left right"></i>
-                                </p>
-                            </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                    <a href="' . \App\Core\UrlHelper::payroll() . '" class="nav-link ' . ($this->isActive('panel/payrolls') && !$this->isActive('panel/payrolls/create') ? 'active' : '') . '">
-                                        <i class="fas fa-list nav-icon"></i>
-                                        <p>Planillas generadas</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="' . \App\Core\UrlHelper::payroll('create') . '" class="nav-link ' . ($this->isActive('panel/payrolls/create') ? 'active' : '') . '">
-                                        <i class="fas fa-plus-circle nav-icon"></i>
-                                        <p>Nueva Planilla</p>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                        
 
                         <!-- REPORTES -->
                         <li class="nav-header">REPORTES</li>
@@ -323,6 +296,34 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::url('panel/reports/exports') . '" class="nav-link ' . ($this->isActive('panel/reports/exports') ? 'active' : '') . '">
                                         <i class="fas fa-download nav-icon"></i>
                                         <p>Exportar Datos</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- NÓMINA Y PLANILLAS -->
+                        <li class="nav-header">NÓMINA Y PLANILLAS</li>
+
+                        <!-- Gestión de Planillas -->
+                        <li class="nav-item ' . ($this->isActive('panel/payrolls') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/payrolls') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                                <p>
+                                    Gestión de Planillas
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::payroll() . '" class="nav-link ' . ($this->isActive('panel/payrolls') && !$this->isActive('panel/payrolls/create') ? 'active' : '') . '">
+                                        <i class="fas fa-list nav-icon"></i>
+                                        <p>Planillas generadas</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::payroll('create') . '" class="nav-link ' . ($this->isActive('panel/payrolls/create') ? 'active' : '') . '">
+                                        <i class="fas fa-plus-circle nav-icon"></i>
+                                        <p>Nueva Planilla</p>
                                     </a>
                                 </li>
                             </ul>
@@ -400,12 +401,12 @@ class SidebarComponent
                                 </p>
                             </a>
                             <ul class="nav nav-treeview">
-                                <li class="nav-item">
+                                <!--<li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/acumulados') . '" class="nav-link ' . ($this->isActive('panel/acumulados') && !$this->isActive('panel/acumulados/byType') && !$this->isActive('panel/acumulados/byEmployee') && !$this->isActive('panel/acumulados/byConcepto') ? 'active' : '') . '">
                                         <i class="fas fa-tachometer-alt nav-icon"></i>
                                         <p>Dashboard Acumulados</p>
                                     </a>
-                                </li>
+                                </li>-->
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byEmployee') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byEmployee') ? 'active' : '') . '">
                                         <i class="fas fa-user nav-icon"></i>

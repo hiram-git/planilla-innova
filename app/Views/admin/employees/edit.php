@@ -123,7 +123,28 @@ $content = '
                             </div>
                         </div>
                     </div>
-                    
+
+                    <!-- Campo Marca Asistencia -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>
+                                    Marca Asistencia <i class="fas fa-info-circle text-info" title="Controla si se sincronizarán las marcaciones del empleado"></i>
+                                </label>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="edit_marca_asistencia" name="edit_marca_asistencia" value="1" ' . ((isset($employee['marca_asistencia']) && $employee['marca_asistencia'] == 1) ? 'checked' : '') . '>
+                                    <label class="custom-control-label" for="edit_marca_asistencia">
+                                        <strong>Registra marcaciones</strong> (pago por horas trabajadas)
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-clock text-primary"></i> <strong>Habilitado:</strong> Se sincronizarán marcaciones y se pagará por horas trabajadas<br>
+                                    <i class="fas fa-money-bill-wave text-secondary"></i> <strong>Deshabilitado:</strong> Se pagará sueldo quincenal fijo (sin sincronizar marcaciones)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Campos condicionales según tipo de empresa -->
                     <div id="edit-public-institution-fields" style="display: none;">
                         <div class="row">

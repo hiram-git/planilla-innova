@@ -340,8 +340,11 @@ class AttendanceSyncService
     private function saveToRecords($rawData, $rawDataId)
     {
         try {
-            // 1. Buscar employee_id por email
-            $employee = $this->db->find("SELECT id FROM employees WHERE email = ?", [$rawData['employee_email']]);
+            // 1. Buscar employee_id por email Y verificar marca_asistencia = 1
+            $employee = $this->db->find(
+                "SELECT id, marca_asistencia FROM employees WHERE email = ? AND marca_asistencia = 1",
+                [$rawData['employee_email']]
+            );
 
             // Si no se encuentra por email, intentar por nombre completo
             if (!$employee && isset($rawData['employee_name'])) {
@@ -350,16 +353,18 @@ class AttendanceSyncService
                     $firstName = strtoupper($nameParts[0]);
                     $lastName = strtoupper($nameParts[count($nameParts) - 1]);
 
-                    $sql = "SELECT id FROM employees
+                    $sql = "SELECT id, marca_asistencia FROM employees
                             WHERE UPPER(firstname) LIKE ?
                               AND UPPER(lastname) LIKE ?
+                              AND marca_asistencia = 1
                             LIMIT 1";
                     $employee = $this->db->find($sql, ["%{$firstName}%", "%{$lastName}%"]);
                 }
             }
 
             if (!$employee) {
-                $this->errors[] = "Empleado no encontrado: {$rawData['employee_email']} / " . ($rawData['employee_name'] ?? 'N/A');
+                // Log diferente según si es por marca_asistencia o no encontrado
+                $this->errors[] = "Empleado no encontrado o no marca asistencia: {$rawData['employee_email']} / " . ($rawData['employee_name'] ?? 'N/A');
                 return false;
             }
 

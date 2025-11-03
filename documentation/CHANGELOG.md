@@ -8,6 +8,35 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.5.4]** - 2025-11-01 - *Reportes Asistencias + Mejoras UI Planillas*
+**Tipo**: Mejora - Funcionalidad + UX
+**Fase**: Subfase 7.5 - Interfaz y Reportes (30%)
+**Criticidad**: Media
+
+**Componentes Principales**:
+- ✅ **Reporte de Marcaciones Completo** (408 líneas):
+  - ReportsGenerator->generateDetailedPunchesReport() (145 líneas)
+  - ExcelExporter->exportPunchesReport() con formato profesional (188 líneas)
+  - AttendanceController->punchesReport() endpoint completo (75 líneas)
+  - Ruta /panel/attendance/reports/punches configurada
+  - 8 estadísticas resumen + top 10 tardanzas + detalle por departamento (10 columnas)
+- ✅ **Fix Label Liquidaciones** (2 líneas):
+  - "Posición:" → "Cargo:" en PDF y Excel
+  - LiquidationController.php (exportPayrollPdf, exportPayrollExcel)
+- ✅ **Mejoras Comprobantes Horizontales** (~203 líneas):
+  - Eliminación headers/footers TCPDF automáticos
+  - Colores profesionales liquidaciones (naranja intenso, gris claro, azul profundo)
+  - Sección firmas 3 columnas (Elaborado/Autorizado/Recibido por Colaborador)
+  - ReportController.php (generateAllPayslipsHorizontalPDF, generateIndividualPaySlipPDF)
+- 📈 **Estadísticas**:
+  - 6 archivos modificados | ~620 líneas código agregadas
+  - 3 métodos nuevos | 1 ruta nueva | 0 cambios BD
+  - Deployment: 10-15 minutos
+
+**[📄 Ver detalles completos →](./changelog/v3.5.4.md)**
+
+---
+
 ### **[v3.5.3]** - 2025-11-01 - *Eliminación Completa eval() + Arquitectura Segura*
 **Tipo**: Refactorización - Seguridad
 **Fase**: Core System - Mejoras de Seguridad
@@ -448,5 +477,5 @@ Al crear una nueva versión:
 ---
 
 **Última Actualización**: 1 de Noviembre, 2025
-**Sistema**: Planillas MVC v3.5.3
-**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 85% | Liquidaciones 100% | Seguridad 100%
+**Sistema**: Planillas MVC v3.5.4
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 88% | Liquidaciones 100% | Seguridad 100%

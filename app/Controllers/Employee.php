@@ -659,7 +659,7 @@ class Employee extends Controller
                     // Empresa privada: mostrar cargo
                     $conditionalColumn = htmlspecialchars($emp['cargo_name'] ?? 'Sin cargo');
                 }
-                
+
                 $data[] = [
                     $photoHtml,
                     htmlspecialchars($emp['employee_id']),

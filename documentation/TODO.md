@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.5.3** *(01 Nov 2025)*
+## 🎯 **ESTADO ACTUAL V3.5.4** *(01 Nov 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -29,6 +29,7 @@
 - **🆕 Data Cleanup & Fixes Críticos**: ✅ Hotfix Completado *(V3.5.1)*
 - **🆕 Mejora Reportes Liquidaciones**: ✅ Completado *(V3.5.2)*
 - **🆕 Eliminación eval() + Seguridad**: ✅ Completado *(V3.5.3)*
+- **🆕 Reportes Asistencias + Mejoras UI**: ✅ Completado *(V3.5.4)*
 
 ---
 
@@ -253,12 +254,22 @@
     - [x] Fix sync-history view: removido botón navegación a /sync
     - [x] **Total**: 2 vistas corregidas
 
-- [ ] **Fase 7.5: Interfaz y Reportes** *(1 semana)*
+- [x] **Fase 7.5: Interfaz y Reportes** *(1 semana)* 🔵 **30% COMPLETADO (01-Nov-2025)**
+  - [x] **Reporte de Marcaciones (Punches Report)** ✅ **COMPLETADO**
+    - [x] ReportsGenerator->generateDetailedPunchesReport() (145 líneas)
+    - [x] ExcelExporter->exportPunchesReport() con formato profesional (188 líneas)
+    - [x] AttendanceController->punchesReport() endpoint completo (75 líneas)
+    - [x] Ruta /panel/attendance/reports/punches configurada en App.php
+    - [x] 8 estadísticas resumen (marcaciones totales, a tiempo, tardanzas, ausencias, horas)
+    - [x] Top 10 empleados con más tardanzas
+    - [x] Detalle completo por departamento con 10 columnas
+    - [x] Formatos: Excel (.xlsx) y Vista Web
+    - [x] **Total**: 4 archivos modificados | ~408 líneas código agregadas
   - [ ] Vista empleados: consulta asistencias propias en tiempo real
   - [ ] Vista gerencial: dashboard asistencias por departamento/equipo
-  - [ ] Reportes ejecutivos: puntualidad, ausentismo, horas extras
+  - [ ] Reportes ejecutivos: ausentismo, horas extras por período
   - [ ] Alertas automáticas: ausencias injustificadas, excesos jornada
-  - [ ] Exportación: Excel, PDF, CSV de reportes de asistencias
+  - [ ] Exportación PDF: reportes de asistencias con logos empresariales
 
 ### 🏖️ **MÓDULO VACACIONES PANAMÁ** *(Alta Prioridad - En Progreso)*
 - [ ] **Fase 1: Calculadora + Base de Datos**
@@ -425,6 +436,21 @@
 ---
 
 ## 🎯 **TAREAS COMPLETADAS RECIENTES**
+
+### ✅ **V3.5.4 - Reportes Asistencias + Mejoras UI Planillas** *(01 Nov 2025)*
+- [x] **Reporte Marcaciones con Excel Export**: Implementación completa reporte punches
+- [x] **ReportsGenerator->generateDetailedPunchesReport()**: SQL optimizado + estadísticas + agrupación departamentos (145 líneas)
+- [x] **ExcelExporter->exportPunchesReport()**: Formato profesional con 8 stats + top 10 + detalle por dept (188 líneas)
+- [x] **AttendanceController->punchesReport()**: Endpoint con formatos view/json/excel (75 líneas)
+- [x] **Routing**: Nueva ruta /panel/attendance/reports/punches en App.php
+- [x] **Fix Label Liquidaciones**: "Posición:" → "Cargo:" en PDF y Excel (LiquidationController.php 2 métodos)
+- [x] **Mejoras Comprobantes Horizontales**: ReportController.php
+  - [x] Eliminación header/footer TCPDF automáticos
+  - [x] Colores liquidaciones aplicados (naranja intenso, gris claro, azul profundo)
+  - [x] Sección firmas 3 columnas (Elaborado/Autorizado/Recibido por Colaborador)
+  - [x] Consistencia métodos batch e individuales
+- [x] **Archivos Modificados**: App.php, AttendanceController.php, ReportsGenerator.php, ExcelExporter.php, LiquidationController.php (2 líneas), ReportController.php (múltiples métodos)
+- [x] **Estadísticas**: 6 archivos | ~620 líneas código agregadas | 0 cambios BD
 
 ### ✅ **V3.5.3 - Eliminación Completa eval() + Arquitectura Segura** *(01 Nov 2025)*
 - [x] **Refactorización Seguridad Planillas**: Eliminación total eval() usando herencia

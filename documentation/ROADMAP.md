@@ -2,8 +2,8 @@
 
 ## 📋 Estado Actual del Sistema
 **Fecha**: 1 de Noviembre, 2025
-**Versión**: 3.5.3 - Eliminación Completa eval() + Arquitectura Segura (Seguridad - 100%)
-**Versión Anterior**: 3.5.2 - Mejora Reportes PDF/Excel Liquidaciones (Mejora UX - 100%)
+**Versión**: 3.5.4 - Reportes Asistencias + Mejoras UI Planillas (Funcionalidad + UX - 100%)
+**Versión Anterior**: 3.5.3 - Eliminación Completa eval() + Arquitectura Segura (Seguridad - 100%)
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
@@ -267,9 +267,10 @@
 ### ⏰ **FASE 7: INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(Q4 2025/Q1 2026 - ⭐ PRIORIDAD ALTA)*
 **Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
 **Tiempo Estimado**: 6-8 semanas
-**Estado**: 🟢 En Desarrollo (85% completado - Subfases 7.1, 7.2, 7.3 y 7.4 completadas)
+**Estado**: 🟢 En Desarrollo (88% completado - Subfases 7.1-7.4 completadas | Subfase 7.5 30%)
 **Hotfix v3.5.1**: ✅ Correcciones críticas synced_from + data cleanup + CSRF dispositivos (28-Oct-2025)
 **Mejora v3.5.2**: ✅ Reportes PDF/Excel liquidaciones con campos adicionales y firmas (30-Oct-2025)
+**Mejora v3.5.4**: ✅ Reporte marcaciones Excel + mejoras UI planillas (01-Nov-2025)
 
 - [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
   - [x] Base44ApiClient (367 líneas): Cliente HTTP cURL + retry logic + backoff exponencial
@@ -367,12 +368,21 @@
   - [x] Script testing completo 5 fases
   - [x] **Total**: ~2,600 líneas código | 3 servicios | 3 tablas BD | 4 endpoints
 
-- [ ] **Subfase 7.5: Interfaz y Reportes** *(1 semana)*
+- [~] **Subfase 7.5: Interfaz y Reportes** *(1 semana)* 🔵 **30% COMPLETADO (01-Nov-2025)**
+  - [x] **Reporte de Marcaciones (Punches Report)** ✅ **COMPLETADO**
+    - [x] ReportsGenerator->generateDetailedPunchesReport() (145 líneas): SQL optimizado + estadísticas + agrupación
+    - [x] ExcelExporter->exportPunchesReport() (188 líneas): Formato profesional 8 stats + top 10 + detalle dept
+    - [x] AttendanceController->punchesReport() (75 líneas): Endpoint formatos view/json/excel
+    - [x] Ruta /panel/attendance/reports/punches configurada
+    - [x] Estadísticas: Total marcaciones, a tiempo, tardanzas, ausencias, horas trabajadas, horas extras
+    - [x] Top 10 empleados con más tardanzas
+    - [x] Detalle por departamento con 10 columnas (ID, Cédula, Nombre, Cargo, Fecha, Entrada, Salida, Horas, Tardanza, Estado)
+    - [x] **Total**: 4 archivos | ~408 líneas código
   - [ ] Vista empleados: consulta asistencias propias en tiempo real
   - [ ] Vista gerencial: dashboard asistencias por departamento/equipo
-  - [ ] Reportes ejecutivos: puntualidad, ausentismo, horas extras
+  - [ ] Reportes ejecutivos: ausentismo, horas extras por período
   - [ ] Alertas automáticas: ausencias injustificadas, excesos jornada
-  - [ ] Exportación: Excel, PDF, CSV de reportes de asistencias
+  - [ ] Exportación PDF: reportes de asistencias con logos empresariales
   - [ ] Dashboards visuales: gráficos asistencia por período
   - [ ] Notificaciones: alertas automáticas para supervisores/RRHH
 
