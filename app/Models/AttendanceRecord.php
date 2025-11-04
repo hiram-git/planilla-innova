@@ -204,17 +204,29 @@ class AttendanceRecord
 
         $params = [];
 
-        if ($dateFrom) {
-            $sql .= " AND r.punch_date >= ?";
+        // Filtro por rango de fechas con fallback si punch_date es NULL
+        if ($dateFrom && $dateTo) {
+            $sql .= " AND ( (r.punch_date IS NOT NULL AND r.punch_date BETWEEN ? AND ?)
+                           OR (r.punch_date IS NULL AND DATE(r.timestamp) BETWEEN ? AND ?) )";
             $params[] = $dateFrom;
-        }
-
-        if ($dateTo) {
-            $sql .= " AND r.punch_date <= ?";
+            $params[] = $dateTo;
+            $params[] = $dateFrom;
+            $params[] = $dateTo;
+        } elseif ($dateFrom) {
+            $sql .= " AND ( (r.punch_date IS NOT NULL AND r.punch_date >= ?)
+                           OR (r.punch_date IS NULL AND DATE(r.timestamp) >= ?) )";
+            $params[] = $dateFrom;
+            $params[] = $dateFrom;
+        } elseif ($dateTo) {
+            $sql .= " AND ( (r.punch_date IS NOT NULL AND r.punch_date <= ?)
+                           OR (r.punch_date IS NULL AND DATE(r.timestamp) <= ?) )";
+            $params[] = $dateTo;
             $params[] = $dateTo;
         }
 
-        $sql .= " GROUP BY r.employee_id, r.punch_date
+        // Solo empleados que marcan asistencia
+        $sql .= " AND COALESCE(e.marca_asistencia, 0) = 1
+                  GROUP BY r.employee_id, r.punch_date
                   ORDER BY r.punch_date DESC, e.lastname, e.firstname";
 
         $stmt = $this->db->prepare($sql);

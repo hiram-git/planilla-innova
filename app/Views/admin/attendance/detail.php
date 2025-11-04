@@ -778,12 +778,23 @@ $(document).ready(function() {
             html: `
                 <div class="text-left">
                     <p><strong>Tipo de Planilla: <span class="badge badge-primary">${tipoPlanillaText}</span></strong></p>
-                    <p><strong>Este proceso realizará:</strong></p>
-                    <ul>
-                        <li>✓ Detectará empleados sin marcación y creará registros de AUSENCIA</li>
-                        <li>✓ Detectará marcaciones incompletas (solo entrada o salida) y las marcará como OMISIÓN</li>
-                        <li>✓ Calculará horas trabajadas, extras, tardanzas para marcaciones completas</li>
-                    </ul>
+                    <div class="mb-2"><strong>Opciones:</strong></div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="opt_process_records" checked>
+                        <label class="custom-control-label" for="opt_process_records">Procesar marcaciones desde registros (guardar en detalle y marcar como procesadas)</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="opt_detect_absences" checked>
+                        <label class="custom-control-label" for="opt_detect_absences">Detectar ausencias y crear registros</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="opt_mark_omissions" checked>
+                        <label class="custom-control-label" for="opt_mark_omissions">Marcar omisiones (solo entrada o salida)</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="opt_recalculate" checked>
+                        <label class="custom-control-label" for="opt_recalculate">Recalcular métricas (horas, tardanza, extras)</label>
+                    </div>
                     <p class="text-warning mt-3"><i class="fas fa-exclamation-triangle"></i> Este proceso puede tomar varios minutos.</p>
                 </div>
             `,
@@ -804,7 +815,11 @@ $(document).ready(function() {
                     data: {
                         csrf_token: '<?= $csrf_token ?? '' ?>',
                         date: '<?= $date ?>',
-                        tipo_planilla_id: tipoPlanillaId
+                        tipo_planilla_id: tipoPlanillaId,
+                        process_records: $('#opt_process_records').is(':checked') ? 1 : 0,
+                        detect_absences: $('#opt_detect_absences').is(':checked') ? 1 : 0,
+                        mark_omissions: $('#opt_mark_omissions').is(':checked') ? 1 : 0,
+                        recalculate: $('#opt_recalculate').is(':checked') ? 1 : 0
                     },
                     success: function(response) {
                         if (response.success) {

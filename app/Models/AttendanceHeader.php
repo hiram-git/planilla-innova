@@ -81,6 +81,22 @@ class AttendanceHeader
     }
 
     /**
+     * Obtiene un registro por ID
+     */
+    public function getById($id)
+    {
+        $sql = "SELECT h.*, d.device_name, d.device_type
+                FROM {$this->table} h
+                LEFT JOIN attendance_devices d ON h.device_id = d.id
+                WHERE h.id = ?
+                LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Obtiene un registro por fecha
      */
     public function getByDate($date, $deviceId = null)

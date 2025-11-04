@@ -16,7 +16,11 @@ class Schedule extends ReferenceModel
      * Campos permitidos para inserción masiva
      * Incluye campos base de ReferenceModel + campos específicos de horarios
      */
-    protected $fillable = ['codigo', 'nombre', 'descripcion', 'activo', 'time_in', 'time_out'];
+    protected $fillable = [
+        'codigo', 'nombre', 'descripcion', 'activo',
+        'time_in', 'time_out',
+        'salida_almuerzo', 'entrada_almuerzo'
+    ];
 
     /**
      * Validación específica para horarios

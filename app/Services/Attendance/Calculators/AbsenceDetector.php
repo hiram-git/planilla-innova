@@ -130,12 +130,8 @@ class AbsenceDetector
      */
     public function detectAllAbsences($startDate, $endDate)
     {
-        // Obtener todos los empleados activos
-        $employees = $this->employeeModel->all();
-        $activeEmployees = array_filter($employees, function($emp) {
-            return $emp['situacion_id'] == 1; // Activos
-        });
-
+        // Obtener empleados activos que marcan asistencia
+        $activeEmployees = $this->employeeModel->getActiveMarkingEmployees();
         $employeeIds = array_column($activeEmployees, 'id');
 
         return $this->detectBulkAbsences($employeeIds, $startDate, $endDate);

@@ -1071,96 +1071,35 @@ class AttendanceController extends Controller
                 $header = $this->headerModel->getById($headerId);
             }
 
-            // 2. PRIMERO: Buscar y procesar registros de attendance_records para esta fecha
-            $sql = "SELECT * FROM attendance_records
-                    WHERE DATE(timestamp) = ?
-                    ORDER BY employee_id, timestamp";
-            $stmt = $this->employeeModel->db->prepare($sql);
-            $stmt->execute([$date]);
-            $records = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            // Obtener set de empleados activos que marcan asistencia
+            $markingEmployeeIds = $this->employeeModel->getActiveMarkingEmployeeIds();
+            $allowedIds = array_flip($markingEmployeeIds); // set para lookup O(1)
 
-            error_log("DEBUG processDay - Records encontrados en attendance_records: " . count($records));
-            $stats['records_found'] = count($records);
+            // Flags del checklist (UI)
+            $processRecords = isset($_POST['process_records']) ? (int)$_POST['process_records'] : 1;
+            $detectAbsences = isset($_POST['detect_absences']) ? (int)$_POST['detect_absences'] : 1;
+            $markOmissions = isset($_POST['mark_omissions']) ? (int)$_POST['mark_omissions'] : 1;
+            $recalculate = isset($_POST['recalculate']) ? (int)$_POST['recalculate'] : 1;
 
-            // Agrupar records por empleado
-            $recordsByEmployee = [];
-            foreach ($records as $record) {
-                $empId = $record['employee_id'];
-                if (!isset($recordsByEmployee[$empId])) {
-                    $recordsByEmployee[$empId] = [];
-                }
-                $recordsByEmployee[$empId][] = $record;
+            // 2. Procesar registros attendance_records → attendance_detail con RecordsProcessor (marca records como procesados)
+            if ($processRecords) {
+                $procStats = $this->recordsProcessor->processDay($date);
+                $stats['records_found'] = $procStats['groups_processed'] ?? 0;
+                $stats['details_updated'] += ($procStats['details_updated'] ?? 0);
+                $stats['details_updated'] += ($procStats['details_created'] ?? 0);
             }
 
-            // Procesar records: actualizar o crear attendance_detail desde attendance_records
-            foreach ($recordsByEmployee as $empId => $empRecords) {
-                // Determinar entrada y salida
-                $checkIn = null;
-                $checkOut = null;
-
-                error_log("DEBUG processDay - Procesando empleado $empId con " . count($empRecords) . " records");
-
-                foreach ($empRecords as $record) {
-                    error_log("DEBUG processDay - Record: employee_id={$record['employee_id']}, punch_type={$record['punch_type']}, timestamp={$record['timestamp']}");
-
-                    if ($record['punch_type'] === 'CHECK_IN' && !$checkIn) {
-                        $checkIn = $record['timestamp'];
-                        error_log("DEBUG processDay - Asignado CHECK_IN: $checkIn");
-                    } elseif ($record['punch_type'] === 'CHECK_OUT') {
-                        $checkOut = $record['timestamp'];
-                        error_log("DEBUG processDay - Asignado CHECK_OUT: $checkOut");
-                    }
-                }
-
-                error_log("DEBUG processDay - Resultado para empleado $empId: CHECK_IN=" . ($checkIn ?? 'NULL') . ", CHECK_OUT=" . ($checkOut ?? 'NULL'));
-
-                // Buscar si ya existe un detail para este empleado y fecha
-                $sqlDetail = "SELECT id FROM attendance_detail
-                             WHERE header_id = ? AND employee_id = ?";
-                $stmtDetail = $this->employeeModel->db->prepare($sqlDetail);
-                $stmtDetail->execute([$header['id'], $empId]);
-                $existingDetail = $stmtDetail->fetch(\PDO::FETCH_ASSOC);
-
-                if ($existingDetail) {
-                    // Actualizar detail existente con los datos de records
-                    $updateData = [
-                        'time_in' => $checkIn,
-                        'time_out' => $checkOut,
-                        'status' => ($checkIn && $checkOut) ? 'PRESENT' : 'INCOMPLETE',
-                        'notes' => 'Actualizado desde attendance_records'
-                    ];
-
-                    error_log("DEBUG processDay - Actualizando detail ID {$existingDetail['id']} con datos: " . json_encode($updateData));
-
-                    $this->detailModel->update($existingDetail['id'], $updateData);
-                    $stats['details_updated']++;
-                    error_log("DEBUG processDay - Detail actualizado para empleado $empId desde records");
-                } else {
-                    // Crear nuevo detail desde records
-                    $createData = [
-                        'header_id' => $header['id'],
-                        'employee_id' => $empId,
-                        'time_in' => $checkIn,
-                        'time_out' => $checkOut,
-                        'status' => ($checkIn && $checkOut) ? 'PRESENT' : 'INCOMPLETE',
-                        'notes' => 'Creado desde attendance_records'
-                    ];
-
-                    error_log("DEBUG processDay - Creando nuevo detail con datos: " . json_encode($createData));
-
-                    $this->detailModel->create($createData);
-                    $stats['details_updated']++;
-                    error_log("DEBUG processDay - Nuevo detail creado para empleado $empId desde records");
-                }
+            // Reconstruir índice de empleados con marcación desde details actuales
+            $existingDetails = $this->detailModel->getByHeader($header['id']);
+            $employeesWithAttendance = [];
+            foreach ($existingDetails as $d) {
+                $employeesWithAttendance[$d['employee_id']] = true;
             }
 
-            // 3. Obtener TODOS los empleados activos (sin filtrar por tipo de planilla)
-            // El filtro de tipo de planilla solo se aplica en la vista
-            $employees = $this->employeeModel->all();
-            $activeEmployees = array_filter($employees, function($emp) {
-                return $emp['situacion_id'] == 1;
-            });
-            $activeEmployees = array_values($activeEmployees); // Reindexar array
+            // 3. Empleados activos a considerar: SOLO los que marcan asistencia
+            // (El filtro de tipo de planilla sigue aplicando solo en la vista)
+            $activeEmployees = $this->employeeModel->getActiveMarkingEmployees();
+            $activeEmployees = array_values($activeEmployees); // Reindexar
             $stats['total_employees'] = count($activeEmployees);
 
             error_log("DEBUG processDay - Procesando TODOS los empleados activos (sin filtro tipo planilla)");
@@ -1205,16 +1144,18 @@ class AttendanceController extends Controller
             // 5. PASO 2: Detectar empleados SIN marcación y crear registros de AUSENCIA
             error_log("DEBUG processDay - Empleados con marcación: " . implode(', ', array_keys($employeesWithAttendance)));
 
-            foreach ($activeEmployees as $employee) {
-                if (!isset($employeesWithAttendance[$employee['id']])) {
-                    $stats['absences_detected']++;
-                    error_log("DEBUG processDay - Empleado SIN marcación detectado: ID={$employee['id']}, Nombre={$employee['firstname']} {$employee['lastname']}");
+            if ($detectAbsences) {
+                foreach ($activeEmployees as $employee) {
+                    if (!isset($employeesWithAttendance[$employee['id']])) {
+                        $stats['absences_detected']++;
+                        error_log("DEBUG processDay - Empleado SIN marcación detectado: ID={$employee['id']}, Nombre={$employee['firstname']} {$employee['lastname']}");
 
                     // Empleado sin marcación - crear registro de ausencia (si no existe)
                     try {
                         $absenceData = [
                             'header_id' => $header['id'],
                             'employee_id' => $employee['id'],
+                            'schedule_id' => $employee['schedule_id'] ?? null,
                             'time_in' => null,
                             'time_out' => null,
                             'status' => 'ABSENT',
@@ -1246,33 +1187,36 @@ class AttendanceController extends Controller
                         error_log("ERROR processDay - Error creating absence for employee {$employee['id']}: " . $e->getMessage());
                         error_log("ERROR processDay - Stack trace: " . $e->getTraceAsString());
                     }
-                } else {
-                    error_log("DEBUG processDay - Empleado CON marcación: ID={$employee['id']}");
+                    } else {
+                        error_log("DEBUG processDay - Empleado CON marcación: ID={$employee['id']}");
+                    }
                 }
             }
 
             // Recargar detalles después de crear ausencias
             $existingDetails = $this->detailModel->getByHeader($header['id']);
 
-            // 5. PASO 2: Detectar marcaciones INCOMPLETAS y marcarlas como OMISIÓN
-            foreach ($existingDetails as $detail) {
-                $hasTimeIn = !empty($detail['time_in']);
-                $hasTimeOut = !empty($detail['time_out']);
+            // 6. PASO 2: Detectar marcaciones INCOMPLETAS y marcarlas como OMISIÓN
+            if ($markOmissions) {
+                foreach ($existingDetails as $detail) {
+                    $hasTimeIn = !empty($detail['time_in']);
+                    $hasTimeOut = !empty($detail['time_out']);
 
-                // Marcación incompleta: solo entrada O solo salida
-                if (($hasTimeIn && !$hasTimeOut) || (!$hasTimeIn && $hasTimeOut)) {
-                    $stats['omissions_detected']++;
+                    // Marcación incompleta: solo entrada O solo salida
+                    if (($hasTimeIn && !$hasTimeOut) || (!$hasTimeIn && $hasTimeOut)) {
+                        $stats['omissions_detected']++;
 
-                    try {
-                        // Actualizar estado a INCOMPLETE (OMISIÓN)
-                        $this->detailModel->update($detail['id'], [
-                            'status' => 'INCOMPLETE',
-                            'notes' => 'Omisión de marcación: ' . ($hasTimeIn ? 'Falta salida' : 'Falta entrada')
-                        ]);
+                        try {
+                            // Actualizar estado a INCOMPLETE (OMISIÓN)
+                            $this->detailModel->update($detail['id'], [
+                                'status' => 'INCOMPLETE',
+                                'notes' => 'Omisión de marcación: ' . ($hasTimeIn ? 'Falta salida' : 'Falta entrada')
+                            ]);
 
-                        $stats['omissions_marked']++;
-                    } catch (Exception $e) {
-                        error_log("Error marking omission for detail {$detail['id']}: " . $e->getMessage());
+                            $stats['omissions_marked']++;
+                        } catch (Exception $e) {
+                            error_log("Error marking omission for detail {$detail['id']}: " . $e->getMessage());
+                        }
                     }
                 }
             }
@@ -1292,7 +1236,7 @@ class AttendanceController extends Controller
                 }
             }
 
-            if (!empty($completeAttendances)) {
+            if ($recalculate && !empty($completeAttendances)) {
                 $calcResult = $this->attendanceCalculator->calculateAndSaveBulk($completeAttendances, true);
 
                 $stats['calculations_processed'] = $calcResult['stats']['total_processed'];

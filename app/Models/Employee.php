@@ -262,6 +262,38 @@ class Employee extends Model
         return $this->db->findAll($sql);
     }
 
+    /**
+     * Empleados activos que marcan asistencia (marca_asistencia = 1)
+     */
+    public function getActiveMarkingEmployees()
+    {
+        $sql = "SELECT e.*, pos.codigo as position_name, sit.descripcion as situacion_nombre
+                FROM employees e
+                LEFT JOIN posiciones pos ON e.position_id = pos.id
+                LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                WHERE (e.situacion_id = 1 OR sit.descripcion LIKE '%activ%' OR sit.descripcion LIKE '%ACTIV%' OR e.situacion_id IS NULL)
+                  AND COALESCE(e.marca_asistencia, 0) = 1
+                ORDER BY e.lastname, e.firstname";
+
+        return $this->db->findAll($sql);
+    }
+
+    /**
+     * IDs de empleados activos que marcan asistencia (helper)
+     * @return int[]
+     */
+    public function getActiveMarkingEmployeeIds(): array
+    {
+        $sql = "SELECT e.id
+                FROM employees e
+                LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                WHERE (e.situacion_id = 1 OR sit.descripcion LIKE '%activ%' OR sit.descripcion LIKE '%ACTIV%' OR e.situacion_id IS NULL)
+                  AND COALESCE(e.marca_asistencia, 0) = 1";
+
+        $rows = $this->db->findAll($sql);
+        return array_map(fn($r) => (int)$r['id'], $rows);
+    }
+
     public function getAllEmployees()
     {
         $sql = "SELECT e.*, pos.codigo as position_name, sit.descripcion as situacion_nombre
