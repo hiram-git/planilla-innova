@@ -406,6 +406,36 @@ class PlanillaConceptCalculatorSecure
     }
 
     /**
+     * Obtener array de conceptos cargados
+     * @return array
+     */
+    public function getConceptos(): array
+    {
+        return $this->conceptos;
+    }
+
+    /**
+     * Agregar un concepto temporal (útil para validación)
+     * @param string $nombre Nombre del concepto
+     * @param array $data Data del concepto (debe incluir 'id' y 'formula')
+     */
+    public function agregarConceptoTemporal(string $nombre, array $data): void
+    {
+        $this->conceptos[$nombre] = $data;
+    }
+
+    /**
+     * Eliminar un concepto temporal
+     * @param string $nombre Nombre del concepto a eliminar
+     */
+    public function eliminarConceptoTemporal(string $nombre): void
+    {
+        if (isset($this->conceptos[$nombre])) {
+            unset($this->conceptos[$nombre]);
+        }
+    }
+
+    /**
      * 🧮 Evaluar fórmula directamente (SEGURO)
      */
     public function evaluarFormula(string $formula): float
@@ -720,10 +750,10 @@ class PlanillaConceptCalculatorSecure
     /**
      * ⏰ Obtener dato de asistencia del empleado actual
      *
-     * Consulta payroll_attendance_summary para obtener un campo específico
+     * Consulta attendance_calculations directamente para obtener datos agregados
      * del empleado y período actuales. Retorna 0 si no hay datos (opcional).
      *
-     * @param string $campo Nombre del campo a obtener
+     * @param string $campo Nombre del campo a obtener (mapeo de funciones)
      * @return float Valor del campo o 0 si no existe
      */
     protected function obtenerDatoAsistencia(string $campo): float
@@ -743,18 +773,8 @@ class PlanillaConceptCalculatorSecure
             $fechaDesde = $this->fechasActuales['fecha_desde'];
             $fechaHasta = $this->fechasActuales['fecha_hasta'];
 
-            // Cargar summary en caché si no está cargado
-            if ($this->attendanceSummaryCache === null) {
-                $this->cargarResumenAsistencia($employeeId, $fechaDesde, $fechaHasta);
-            }
-
-            // Si después de cargar sigue siendo null, no hay datos
-            if ($this->attendanceSummaryCache === null) {
-                return 0;
-            }
-
-            // Retornar el campo solicitado o 0 si no existe
-            return (float)($this->attendanceSummaryCache[$campo] ?? 0);
+            // Mapeo de funciones a queries SQL
+            return $this->ejecutarQueryAsistencia($campo, $employeeId, $fechaDesde, $fechaHasta);
 
         } catch (\Exception $e) {
             error_log("Error obteniendo dato de asistencia '$campo': " . $e->getMessage());
@@ -763,48 +783,188 @@ class PlanillaConceptCalculatorSecure
     }
 
     /**
-     * Cargar resumen de asistencias en caché
+     * Ejecutar query específico según el tipo de dato de asistencia solicitado
      *
+     * @param string $campo Nombre del campo/función
      * @param int $employeeId ID del empleado
      * @param string $fechaDesde Fecha inicio período
      * @param string $fechaHasta Fecha fin período
+     * @return float Resultado de la consulta
      */
-    protected function cargarResumenAsistencia(int $employeeId, string $fechaDesde, string $fechaHasta): void
+    protected function ejecutarQueryAsistencia(string $campo, int $employeeId, string $fechaDesde, string $fechaHasta): float
+    {
+        // Mapeo de funciones a campos y agregaciones de attendance_calculations
+        $mapeoDirecto = [
+            // Horas (SUM de campos numéricos)
+            'total_hours_worked' => 'SUM(total_hours)',
+            'regular_hours' => 'SUM(regular_hours)',
+            'overtime_hours' => 'SUM(overtime_hours)',
+            'overtime_hours_25' => 'SUM(overtime_25_hours)',
+            'overtime_hours_50' => 'SUM(overtime_50_hours)',
+            'night_hours' => 'SUM(night_hours)',
+            'holiday_hours' => 'SUM(holiday_hours)',
+
+            // Tardanzas (SUM de minutos)
+            'total_tardiness_minutes' => 'SUM(tardiness_minutes)',
+
+            // Puntualidad (AVG de score)
+            'punctuality_score' => 'AVG(punctuality_score)',
+        ];
+
+        // Mapeo de conteos especiales
+        $mapeoConteos = [
+            'tardiness_count' => 'COUNT(*) WHERE is_late = 1',
+            'perfect_attendance_days' => 'COUNT(*) WHERE is_perfect_attendance = 1',
+            'total_days_worked' => 'COUNT(*) WHERE is_absent = 0',
+        ];
+
+        // Campos que requieren query especial
+        $mapeoEspecial = [
+            'sunday_hours' => 'SUM(total_hours) WHERE is_weekend = 1',
+            'unjustified_absences' => 'absence_log_unjustified',
+            'total_absences' => 'absence_log_total',
+            'justified_absences' => 'absence_log_justified',
+        ];
+
+        // Intentar mapeo directo primero
+        if (isset($mapeoDirecto[$campo])) {
+            return $this->queryAggregation($mapeoDirecto[$campo], $employeeId, $fechaDesde, $fechaHasta);
+        }
+
+        // Intentar mapeo de conteos
+        if (isset($mapeoConteos[$campo])) {
+            return $this->queryCount($mapeoConteos[$campo], $employeeId, $fechaDesde, $fechaHasta);
+        }
+
+        // Intentar mapeo especial
+        if (isset($mapeoEspecial[$campo])) {
+            $tipo = $mapeoEspecial[$campo];
+
+            if ($tipo === 'absence_log_unjustified') {
+                return $this->queryAbsences($employeeId, $fechaDesde, $fechaHasta, 'unjustified');
+            } elseif ($tipo === 'absence_log_total') {
+                return $this->queryAbsences($employeeId, $fechaDesde, $fechaHasta, 'all');
+            } elseif ($tipo === 'absence_log_justified') {
+                return $this->queryAbsences($employeeId, $fechaDesde, $fechaHasta, 'justified');
+            } elseif (strpos($tipo, 'SUM') !== false) {
+                return $this->queryAggregation($tipo, $employeeId, $fechaDesde, $fechaHasta);
+            }
+        }
+
+        error_log("Campo de asistencia no mapeado: $campo");
+        return 0;
+    }
+
+    /**
+     * Query genérico de agregación (SUM, AVG, etc.) sobre attendance_calculations
+     */
+    protected function queryAggregation(string $agregacion, int $employeeId, string $fechaDesde, string $fechaHasta): float
     {
         try {
-            // Buscar resumen que coincida con el empleado y período
-            // Tolerancia: el período de la planilla debe estar contenido en el período del summary
-            $sql = "SELECT *
-                    FROM payroll_attendance_summary
+            // Extraer WHERE adicional si existe
+            $whereExtra = '';
+            if (strpos($agregacion, 'WHERE') !== false) {
+                list($agregacion, $whereExtra) = explode('WHERE', $agregacion, 2);
+                $whereExtra = trim($whereExtra);
+            }
+
+            $sql = "SELECT " . trim($agregacion) . " as result
+                    FROM attendance_calculations
                     WHERE employee_id = ?
-                    AND period_start <= ?
-                    AND period_end >= ?
-                    ORDER BY created_at DESC
-                    LIMIT 1";
+                    AND date >= ?
+                    AND date <= ?";
+
+            if (!empty($whereExtra)) {
+                $sql .= " AND " . $whereExtra;
+            }
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Guardar en caché (null si no se encontró)
-            $this->attendanceSummaryCache = $result ?: null;
-
-            if ($this->attendanceSummaryCache === null) {
-                error_log("No se encontró resumen de asistencias para empleado $employeeId, período $fechaDesde a $fechaHasta");
-            }
+            return (float)($result['result'] ?? 0);
 
         } catch (PDOException $e) {
-            error_log("Error cargando resumen de asistencias: " . $e->getMessage());
-            $this->attendanceSummaryCache = null;
+            error_log("Error en queryAggregation: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Query de conteo con condiciones sobre attendance_calculations
+     */
+    protected function queryCount(string $condicion, int $employeeId, string $fechaDesde, string $fechaHasta): float
+    {
+        try {
+            // Extraer WHERE adicional
+            $whereExtra = '';
+            if (strpos($condicion, 'WHERE') !== false) {
+                list($count, $whereExtra) = explode('WHERE', $condicion, 2);
+                $whereExtra = trim($whereExtra);
+            }
+
+            $sql = "SELECT COUNT(*) as result
+                    FROM attendance_calculations
+                    WHERE employee_id = ?
+                    AND date >= ?
+                    AND date <= ?";
+
+            if (!empty($whereExtra)) {
+                $sql .= " AND " . $whereExtra;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return (float)($result['result'] ?? 0);
+
+        } catch (PDOException $e) {
+            error_log("Error en queryCount: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Query de ausencias desde attendance_absence_log
+     */
+    protected function queryAbsences(int $employeeId, string $fechaDesde, string $fechaHasta, string $tipo): float
+    {
+        try {
+            $sql = "SELECT COUNT(*) as result
+                    FROM attendance_absence_log
+                    WHERE employee_id = ?
+                    AND absence_date >= ?
+                    AND absence_date <= ?";
+
+            if ($tipo === 'justified') {
+                $sql .= " AND justified = 1";
+            } elseif ($tipo === 'unjustified') {
+                $sql .= " AND justified = 0";
+            }
+            // 'all' no necesita condición adicional
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return (float)($result['result'] ?? 0);
+
+        } catch (PDOException $e) {
+            error_log("Error en queryAbsences: " . $e->getMessage());
+            return 0;
         }
     }
 
     /**
      * Limpiar caché de asistencias
      * (útil cuando se cambia de empleado)
+     * @deprecated Ya no se usa caché, las consultas se hacen directamente a attendance_calculations
      */
     public function limpiarCacheAsistencias(): void
     {
+        // Método mantenido por compatibilidad, pero ya no hace nada
+        // Las consultas ahora se hacen directamente a attendance_calculations
         $this->attendanceSummaryCache = null;
     }
 }

@@ -11,6 +11,10 @@
 - Processor: clasificación 4 marcaciones (entrada, salida almuerzo, entrada almuerzo, salida)
 - Calculator: descuenta almuerzo de horas trabajadas e incluye métricas
 - UI: columnas y campos de almuerzo en detalle y modal de edición
+- Process Day: consolida `attendance_records` → `attendance_detail` y marca records como procesados
+- Filtro `marca_asistencia`: procesamiento y ausencias sólo para empleados que marcan asistencia
+- Modal “Procesar día”: checklist de opciones (procesar registros, ausencias, omisiones, recálculo)
+- Fix: `AttendanceHeader::getById()` para soporte de reconstrucción de DATETIME en almuerzo
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware

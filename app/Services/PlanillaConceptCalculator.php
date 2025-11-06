@@ -48,6 +48,7 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
 
             $sql = "SELECT e.id, e.fecha_ingreso, e.employee_id, e.firstname, e.lastname, e.created_on,
                            e.sueldo_individual, e.gastos_representacion, e.clave_seguro_social,
+                           e.marca_asistencia,
                            p.sueldo as sueldo_posicion,
                            s.time_in, s.time_out
                     FROM employees e
@@ -111,6 +112,13 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
             // Obtener clave de seguro social
             $clave_seguro_social = $employee['clave_seguro_social'] ?: '';
 
+            // Obtener marca_asistencia (si empleado paga por horas trabajadas)
+            $marca_asistencia = (int)($employee['marca_asistencia'] ?? 0);
+
+            // Calcular tarifa por hora (220 horas mensuales estándar)
+            // Esta es la base para empleados que cobran por hora
+            $tarifa_hora = $salario > 0 ? ($salario / 220) : 0;
+
             // Establecer variables en el executor (heredado de la clase padre)
             $this->executor->setVar('SUELDO', $salario);
             $this->executor->setVar('SALARIO', $salario);
@@ -126,6 +134,10 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
             $this->executor->setVar('ANTIGUEDAD_DIAS', (float)$antiguedadDias);
             $this->executor->setVar('ANTIGUEDAD_ANUAL', (float)$diff->y);
             $this->executor->setVar('ANTIGUEDAD_MES', (float)$diff->m);
+
+            // Variables para cálculo de salario basado en asistencia
+            $this->executor->setVar('MARCA_ASISTENCIA', $marca_asistencia);
+            $this->executor->setVar('TARIFA_HORA', $tarifa_hora);
 
             // Guardar para referencia interna (heredado de la clase padre)
             $this->variablesColaborador = [
@@ -143,6 +155,8 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
                 'ANTIGUEDAD_DIAS' => (float)$antiguedadDias,
                 'ANTIGUEDAD_ANUAL' => (float)$diff->y,
                 'ANTIGUEDAD_MES' => (float)$diff->m,
+                'MARCA_ASISTENCIA' => $marca_asistencia,
+                'TARIFA_HORA' => $tarifa_hora,
             ];
 
         } catch (PDOException $e) {

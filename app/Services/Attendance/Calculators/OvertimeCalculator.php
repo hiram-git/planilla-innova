@@ -178,16 +178,30 @@ class OvertimeCalculator
         // Verificar si es feriado/domingo
         $holidayStatus = $this->checkHolidayStatus($date);
 
-        // Si es feriado, todas las horas son horas de feriado (con recargo 50%)
+        // Si es feriado, clasificar correctamente: holiday_hours (horario regular) + extras + nocturnas
         if ($holidayStatus['is_holiday'] || $holidayStatus['is_non_working']) {
+            // Horas de feriado = las del horario regular (máximo 8h o las horas esperadas)
+            $actualHolidayHours = min($totalHours, $regularHours);
+
+            // Horas nocturnas (se calculan independientemente)
+            $nightHours = $this->calculateNightHours($timeIn, $timeOut);
+
+            // Horas extras = las que exceden el horario regular
+            $overtimeTotal = max(0, $totalHours - $regularHours);
+
+            // En feriados, las extras se clasifican igual (primeras 3h al 25%, resto al 50%)
+            // pero ya llevan recargo base del 50% por ser feriado
+            $overtime25 = min($overtimeTotal, self::OVERTIME_25_LIMIT);
+            $overtime50 = max(0, $overtimeTotal - self::OVERTIME_25_LIMIT);
+
             return [
                 'total_hours' => $totalHours,
-                'regular_hours' => 0,
-                'overtime_hours' => 0,
-                'overtime_25_hours' => 0,
-                'overtime_50_hours' => 0,
-                'night_hours' => $this->calculateNightHours($timeIn, $timeOut),
-                'holiday_hours' => $totalHours,
+                'regular_hours' => 0, // En feriado no hay horas regulares, son holiday_hours
+                'overtime_hours' => round($overtimeTotal, 2),
+                'overtime_25_hours' => round($overtime25, 2),
+                'overtime_50_hours' => round($overtime50, 2),
+                'night_hours' => $nightHours,
+                'holiday_hours' => round($actualHolidayHours, 2), // Solo las del horario
                 'is_holiday' => true,
                 'day_type' => $holidayStatus['day_type']
             ];

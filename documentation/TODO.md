@@ -31,6 +31,10 @@
 - **🆕 Eliminación eval() + Seguridad**: ✅ Completado *(V3.5.3)*
 - **🆕 Reportes Asistencias + Mejoras UI**: ✅ Completado *(V3.5.4)*
 - **🆕 Almuerzo en Asistencias (marcaciones + cálculos)**: ✅ Completado *(V3.5.5)*
+- **🆕 Unificación Proceso Día + Checklist + Filtro marca_asistencia**: ✅ Completado *(V3.5.5)*
+  - `Process Day` usa `RecordsProcessor` para escribir `attendance_detail` y marcar `attendance_records`
+  - Checklist en modal: procesar registros, ausencias, omisiones, recálculo
+  - Filtro global por `employees.marca_asistencia = 1`; ausencias guardan `schedule_id`
 
 ---
 

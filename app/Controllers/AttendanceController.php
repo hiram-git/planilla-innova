@@ -712,7 +712,9 @@ class AttendanceController extends Controller
                 'employee_id' => $detail['employee_id'],
                 'date' => $detail['date'],
                 'time_in' => $detail['time_in'],
-                'time_out' => $detail['time_out']
+                'time_out' => $detail['time_out'],
+                'lunch_out' => $detail['lunch_out'] ?? null,
+                'lunch_in' => $detail['lunch_in'] ?? null
             ];
 
             // Calcular métricas
@@ -721,17 +723,55 @@ class AttendanceController extends Controller
             // Guardar en BD
             $calculationId = $this->attendanceCalculator->saveCalculation($calculation);
 
+            // Devolver TODOS los datos necesarios para el modal
             return $this->jsonResponse([
                 'success' => true,
                 'message' => 'Cálculos procesados exitosamente.',
                 'data' => [
+                    // ID del cálculo
                     'calculation_id' => $calculationId,
+
+                    // Marcaciones reales (de attendance_detail)
+                    'time_in' => $calculation['time_in'],
+                    'time_out' => $calculation['time_out'],
+                    'lunch_out' => $calculation['lunch_out'] ?? null,
+                    'lunch_in' => $calculation['lunch_in'] ?? null,
+
+                    // Horarios programados
+                    'scheduled_time_in' => $calculation['scheduled_time_in'],
+                    'scheduled_time_out' => $calculation['scheduled_time_out'],
+                    'scheduled_lunch_out' => $calculation['scheduled_lunch_out'] ?? null,
+                    'scheduled_lunch_in' => $calculation['scheduled_lunch_in'] ?? null,
+
+                    // Horas trabajadas y calculadas
                     'total_hours' => $calculation['total_hours'],
+                    'regular_hours' => $calculation['regular_hours'],
                     'overtime_hours' => $calculation['overtime_hours'],
-                    'is_late' => $calculation['is_late'],
+                    'overtime_25_hours' => $calculation['overtime_25_hours'],
+                    'overtime_50_hours' => $calculation['overtime_50_hours'],
+                    'night_hours' => $calculation['night_hours'],
+                    'holiday_hours' => $calculation['holiday_hours'],
+
+                    // Tardanzas y puntualidad
                     'tardiness_minutes' => $calculation['tardiness_minutes'],
+                    'is_late' => $calculation['is_late'],
+                    'early_departure_minutes' => $calculation['early_departure_minutes'],
+                    'lunch_time_minutes' => $calculation['lunch_time_minutes'],
+                    'lunch_exceeded_minutes' => $calculation['lunch_exceeded_minutes'] ?? 0,
                     'punctuality_score' => $calculation['punctuality_score'],
-                    'is_perfect_attendance' => $calculation['is_perfect_attendance']
+                    'is_perfect_attendance' => $calculation['is_perfect_attendance'],
+
+                    // Tipo de día y estado
+                    'is_working_day' => $calculation['is_working_day'],
+                    'is_holiday' => $calculation['is_holiday'],
+                    'is_weekend' => $calculation['is_weekend'],
+                    'day_type' => $calculation['day_type'],
+                    'is_absent' => $calculation['is_absent'],
+
+                    // Notas y metadata
+                    'notes' => $calculation['notes'],
+                    'calculation_version' => $calculation['calculation_version'],
+                    'calculated_at' => $calculation['calculated_at']
                 ]
             ]);
 

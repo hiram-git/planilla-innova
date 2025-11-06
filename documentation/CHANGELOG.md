@@ -26,9 +26,18 @@ Este archivo sirve como índice principal para el historial de cambios del siste
   - Estado requiere 4 marcaciones si hay almuerzo programado; `getSchedule` incluye campos de almuerzo
 - ✅ **Interfaz**:
   - `attendance/detail.php`: nuevas columnas “Salida Almuerzo / Entrada Almuerzo” y campos en el modal de edición
+  - Modal de “Procesar día”: checklist para opciones (procesar registros, detectar ausencias, marcar omisiones, recalcular métricas)
+  
+- ✅ **Flujo de Procesamiento Unificado**:
+  - `Process Day` delega consolidación a `RecordsProcessor->processDay(date)`
+  - Persiste todas las marcaciones en `attendance_detail` y marca `attendance_records` como procesadas
+  - Filtro global por `employees.marca_asistencia = 1` en procesamiento y ausencias
+  - Ausencias almacenan `schedule_id`
+  - Agrupado robusto: si `punch_date` es NULL se usa `DATE(timestamp)`
+  - Fix: se agrega `AttendanceHeader::getById()` para reconstruir DATETIME de almuerzo al actualizar detalles
 
 **📈 Estadísticas**:
-- 6 archivos cambiados | +953 inserciones | -43 eliminaciones | 3 migraciones nuevas
+- 9 archivos cambiados | +1200 inserciones | -80 eliminaciones | 3 migraciones nuevas
 
 ---
 

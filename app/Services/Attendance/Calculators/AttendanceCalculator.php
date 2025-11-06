@@ -92,10 +92,11 @@ class AttendanceCalculator
             $lunchTimeMinutes
         );
 
-        // Calcular tardanzas si tiene horario asignado
+        // Calcular tardanzas si tiene horario asignado (NO en feriados)
         $tardinessMinutes = 0;
         $isLate = false;
-        if ($schedule) {
+        // En días feriados no se calculan tardanzas (el empleado no está obligado a trabajar)
+        if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
             $tardinessMinutes = $this->scheduleResolver->calculateTardinessMinutes(
                 $timeIn,
                 $schedule['time_in']
@@ -103,9 +104,10 @@ class AttendanceCalculator
             $isLate = $tardinessMinutes > 0;
         }
 
-        // Calcular salida anticipada
+        // Calcular salida anticipada (NO en feriados)
         $earlyDepartureMinutes = 0;
-        if ($schedule) {
+        // En días feriados no se calcula salida anticipada
+        if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
             $earlyDepartureMinutes = $this->scheduleResolver->calculateEarlyDepartureMinutes(
                 $timeOut,
                 $schedule['time_out']
@@ -278,12 +280,17 @@ class AttendanceCalculator
     {
         $notes = [];
 
-        if ($isLate) {
+        // Agregar tardanzas si aplica
+        if ($isLate && $tardinessMinutes > 0) {
             $notes[] = "Llegó tarde: {$tardinessMinutes} minutos";
         }
 
         if ($hoursBreakdown['overtime_hours'] > 0) {
-            $notes[] = "Horas extras: {$hoursBreakdown['overtime_hours']}h";
+            if (isset($hoursBreakdown['is_holiday']) && $hoursBreakdown['is_holiday']) {
+                $notes[] = "Horas extras en feriado: {$hoursBreakdown['overtime_hours']}h";
+            } else {
+                $notes[] = "Horas extras: {$hoursBreakdown['overtime_hours']}h";
+            }
         }
 
         if ($hoursBreakdown['night_hours'] > 0) {
@@ -291,7 +298,7 @@ class AttendanceCalculator
         }
 
         if ($hoursBreakdown['holiday_hours'] > 0) {
-            $notes[] = "Trabajó en feriado: {$hoursBreakdown['holiday_hours']}h";
+            $notes[] = "Horas de feriado: {$hoursBreakdown['holiday_hours']}h";
         }
 
         return implode(' | ', $notes);
@@ -443,7 +450,8 @@ class AttendanceCalculator
         $tardinessMinutes = 0;
         $isLate = false;
 
-        if ($schedule && $timeIn) {
+        // No calcular tardanzas en feriados
+        if ($schedule && $timeIn && !($dayInfo['is_holiday'] ?? false)) {
             $tardinessMinutes = $this->scheduleResolver->calculateTardinessMinutes(
                 $timeIn,
                 $schedule['time_in']
