@@ -170,7 +170,8 @@ class PlanillaConceptCalculatorSecure
 
         // Horas en días feriados
         $this->executor->addFunction('HORAS_FERIADOS', function () {
-            return $this->obtenerDatoAsistencia('holiday_hours');
+            $campo = $this->obtenerDatoAsistencia('holiday_hours');
+            return $campo;
         }, 0);
 
         // Horas en domingos
@@ -492,6 +493,7 @@ class PlanillaConceptCalculatorSecure
 
             // Verificar si es una asignación
             if (preg_match('/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/', $linea, $matches)) {
+                
                 $nombreVariable = $matches[1];
                 $expresion = trim($matches[2]);
 
@@ -511,6 +513,7 @@ class PlanillaConceptCalculatorSecure
             } else {
                 // Es una expresión final
                 $ultimoResultado = (float)$this->executor->execute($linea);
+                
                 return $ultimoResultado;
             }
         }
@@ -877,6 +880,7 @@ class PlanillaConceptCalculatorSecure
             if (!empty($whereExtra)) {
                 $sql .= " AND " . $whereExtra;
             }
+            error_log("SQL de agregación: $sql");
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);

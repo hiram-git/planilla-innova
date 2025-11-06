@@ -421,6 +421,11 @@ class RecordsProcessor
      */
     private function determineStatus($timeIn, $timeOut, $lunchOut = null, $lunchIn = null, $schedule = null)
     {
+        // Cambio solicitado: si hay hora de entrada y de salida, marcar PRESENTE
+        if (!empty($timeIn) && !empty($timeOut)) {
+            return 'PRESENT';
+        }
+
         // Determinar si el horario requiere almuerzo
         $requiresLunch = false;
         if ($schedule && !empty($schedule['salida_almuerzo']) && !empty($schedule['entrada_almuerzo'])) {
@@ -432,25 +437,20 @@ class RecordsProcessor
             return 'ABSENT';
         }
 
-        // Si requiere almuerzo: verificar 4 marcaciones
+        // Si requiere almuerzo y no tiene ambas de almuerzo ni ambas principales, considerar INCOMPLETE
         if ($requiresLunch) {
             $missing = [];
-
             if (empty($timeIn)) $missing[] = 'entrada';
             if (empty($lunchOut)) $missing[] = 'salida_almuerzo';
             if (empty($lunchIn)) $missing[] = 'entrada_almuerzo';
             if (empty($timeOut)) $missing[] = 'salida';
 
-            // Si faltan marcaciones: INCOMPLETE
             if (count($missing) > 0) {
                 return 'INCOMPLETE';
             }
-
-            // Si están las 4: PRESENT
-            return 'PRESENT';
         }
 
-        // Si NO requiere almuerzo: verificar solo entrada/salida
+        // Por defecto, si falta una de las principales y no aplica la regla de arriba, INCOMPLETE
         if (empty($timeIn) || empty($timeOut)) {
             return 'INCOMPLETE';
         }

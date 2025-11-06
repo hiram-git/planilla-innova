@@ -448,13 +448,38 @@ class AttendanceController extends Controller
                 ]);
             }
 
+            // Normalizar entradas de tiempo: convertir '' a NULL y completar segundos
+            $padSec = function ($t) {
+                if ($t === null) return null;
+                $t = trim($t);
+                if ($t === '') return null;
+                return (strlen($t) === 5) ? ($t . ':00') : $t; // HH:MM -> HH:MM:SS
+            };
+
+            $timeInRaw = isset($_POST['time_in']) ? trim($_POST['time_in']) : '';
+            $timeOutRaw = isset($_POST['time_out']) ? trim($_POST['time_out']) : '';
+            $lunchOutRaw = isset($_POST['lunch_out']) ? trim($_POST['lunch_out']) : '';
+            $lunchInRaw  = isset($_POST['lunch_in']) ? trim($_POST['lunch_in']) : '';
+
+            $dateBase = $detail['date']; // YYYY-MM-DD
+
             $data = [
-                'time_in' => $_POST['time_in'] ?? null,
-                'time_out' => $_POST['time_out'] ?? null,
-                'lunch_out' => $_POST['lunch_out'] ?? null,
-                'lunch_in' => $_POST['lunch_in'] ?? null,
+                'time_in'  => ($timeInRaw !== '') ? $padSec($timeInRaw) : null,
+                'time_out' => ($timeOutRaw !== '') ? $padSec($timeOutRaw) : null,
+                // lunch_* son DATETIME en BD: componer fecha + hora cuando haya valor
+                'lunch_out' => ($lunchOutRaw !== '') ? ($dateBase . ' ' . $padSec($lunchOutRaw)) : null,
+                'lunch_in'  => ($lunchInRaw !== '') ? ($dateBase . ' ' . $padSec($lunchInRaw)) : null,
                 'notes' => $_POST['notes'] ?? null
             ];
+
+            // Reglas de estado en edición manual:
+            // - Si hay entrada y salida: PRESENT
+            // - Si solo hay una de las dos: INCOMPLETE
+            if (!empty($data['time_in']) && !empty($data['time_out'])) {
+                $data['status'] = 'PRESENT';
+            } elseif (!empty($data['time_in']) || !empty($data['time_out'])) {
+                $data['status'] = 'INCOMPLETE';
+            }
 
             $result = $this->detailModel->update($id, $data);
 
