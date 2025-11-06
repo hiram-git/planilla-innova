@@ -252,11 +252,7 @@ class VacationController extends Controller
                 return;
             }
 
-            if ($dias_solicitados_pagar + $dias_solicitados_disfrute != $total_dias_solicitados) {
-                $this->setFlashMessage('error', 'La suma de días por pagar y disfrute debe coincidir con el total solicitado');
-                $this->redirect('/panel/vacation/create/' . $employee_id);
-                return;
-            }
+            // Nota: Los días de disfrute son independientes y no deben sumar con los días solicitados.
 
             if ($business_days > $current_balance) {
                 $this->setFlashMessage('error', "Días solicitados ($business_days) exceden el balance disponible ($current_balance)");
@@ -410,12 +406,11 @@ class VacationController extends Controller
             // Crear registro de cálculo
             $this->createCalculationRecord($request_id, 'DAYS_APPROVED', $request['business_days'], $request['business_days'], 0);
 
-            $this->setFlashMessage('success', 'Solicitud de vacaciones aprobada exitosamente');
-            $this->redirect('/panel/vacation');
+            // Notificación Toastr y redirección
+            $this->redirectWithToastr('/panel/vacation', 'success', 'Solicitud de vacaciones aprobada exitosamente');
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al aprobar solicitud: ' . $e->getMessage());
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al aprobar solicitud: ' . $e->getMessage());
         }
     }
 
@@ -457,12 +452,10 @@ class VacationController extends Controller
             // Crear registro de cálculo
             $this->createCalculationRecord($request_id, 'DAYS_REJECTED', $request['business_days'], 0, 0);
 
-            $this->setFlashMessage('success', 'Solicitud de vacaciones rechazada');
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'success', 'Solicitud de vacaciones rechazada');
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al rechazar solicitud: ' . $e->getMessage());
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al rechazar solicitud: ' . $e->getMessage());
         }
     }
 

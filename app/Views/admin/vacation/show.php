@@ -218,58 +218,25 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                         </div>
                         <div class="card-body">
                             <div class="d-grid gap-2">
-                                <form method="POST" action="<?= \App\Core\UrlHelper::route('panel/vacation/approve/' . $request['id']) ?>" class="mb-2">
+                                <form id="approveForm" method="POST" action="<?= \App\Core\UrlHelper::route('panel/vacation/approve/' . $request['id']) ?>" class="mb-2">
                                     <?= \App\Core\Controller::getCsrfTokenInput() ?>
-                                    <button type="submit" class="btn btn-success btn-block"
-                                            onclick="return confirm('¿Está seguro de aprobar esta solicitud de vacaciones?')">
+                                    <button type="button" class="btn btn-success btn-block btn-approve-vacation">
                                         <i class="fas fa-check mr-1"></i> Aprobar Solicitud
                                     </button>
                                 </form>
 
-                                <button type="button" class="btn btn-danger btn-block"
-                                        data-toggle="modal" data-target="#rejectModal">
-                                    <i class="fas fa-times mr-1"></i> Rechazar Solicitud
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Modal de Rechazo -->
-                    <div class="modal fade" id="rejectModal" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <form method="POST" action="<?= \App\Core\UrlHelper::route('panel/vacation/reject/' . $request['id']) ?>">
+                                <form id="rejectForm" method="POST" action="<?= \App\Core\UrlHelper::route('panel/vacation/reject/' . $request['id']) ?>">
                                     <?= \App\Core\Controller::getCsrfTokenInput() ?>
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Rechazar Solicitud de Vacaciones</h5>
-                                        <button type="button" class="close" data-dismiss="modal">
-                                            <span>&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="form-group">
-                                            <label for="rejection_reason">Razón del rechazo: *</label>
-                                            <textarea class="form-control" name="rejection_reason"
-                                                      rows="4" required
-                                                      placeholder="Explique detalladamente por qué se rechaza esta solicitud..."></textarea>
-                                        </div>
-                                        <div class="alert alert-warning">
-                                            <small>
-                                                <i class="fas fa-exclamation-triangle"></i>
-                                                El empleado será notificado de la razón del rechazo.
-                                            </small>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                                        <button type="submit" class="btn btn-danger">
-                                            <i class="fas fa-times mr-1"></i> Rechazar Solicitud
-                                        </button>
-                                    </div>
+                                    <input type="hidden" name="rejection_reason" id="rejection_reason_hidden">
+                                    <button type="button" class="btn btn-danger btn-block btn-reject-vacation">
+                                        <i class="fas fa-times mr-1"></i> Rechazar Solicitud
+                                    </button>
                                 </form>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Modal removido: se usa SweetAlert para rechazo/aprobación -->
                 <?php endif; ?>
 
                 <!-- Información Legal -->
@@ -317,3 +284,68 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
 
     </div>
 </section>
+
+<?php ob_start(); ?>
+<script>
+$(document).ready(function() {
+    // Aprobar con SweetAlert
+    $(document).on('click', '.btn-approve-vacation', function() {
+        const $btn = $(this);
+        if ($btn.data('submitting')) return;
+        Swal.fire({
+            title: '¿Aprobar solicitud?',
+            text: 'Esta acción descontará los días aprobados del balance del empleado.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-check"></i> Sí, aprobar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('approveForm');
+                if (form) {
+                    $btn.data('submitting', true).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+                    form.submit();
+                } else { toastr.error('No se encontró el formulario de aprobación'); }
+            }
+        });
+    });
+
+    // Rechazar con SweetAlert (textarea)
+    $(document).on('click', '.btn-reject-vacation', function() {
+        const $btn = $(this);
+        if ($btn.data('submitting')) return;
+        Swal.fire({
+            title: 'Rechazar solicitud',
+            input: 'textarea',
+            inputLabel: 'Razón del rechazo',
+            inputPlaceholder: 'Explique detalladamente por qué se rechaza esta solicitud...',
+            inputAttributes: { 'aria-label': 'Razón del rechazo' },
+            inputValidator: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return 'La razón del rechazo es obligatoria';
+                }
+            },
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-times"></i> Rechazar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('rejectForm');
+                const hidden = document.getElementById('rejection_reason_hidden');
+                if (form && hidden) {
+                    hidden.value = result.value;
+                    $btn.data('submitting', true).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+                    form.submit();
+                } else {
+                    toastr.error('No se pudo preparar el formulario de rechazo');
+                }
+            }
+        });
+    });
+});
+</script>
+<?php $scripts = ob_get_clean(); ?>

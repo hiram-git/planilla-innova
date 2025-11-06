@@ -27,7 +27,8 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 - ✅ **Interfaz**:
   - `attendance/detail.php`: nuevas columnas “Salida Almuerzo / Entrada Almuerzo” y campos en el modal de edición
   - Modal de “Procesar día”: checklist para opciones (procesar registros, detectar ausencias, marcar omisiones, recalcular métricas)
-  
+  - Modal de métricas ampliado: desglose (tipo de día, marcaciones y horarios programados, horas totales/regulares/extras +25/+50, nocturnas, feriados, almuerzo y puntualidad)
+
 - ✅ **Flujo de Procesamiento Unificado**:
   - `Process Day` delega consolidación a `RecordsProcessor->processDay(date)`
   - Persiste todas las marcaciones en `attendance_detail` y marca `attendance_records` como procesadas

@@ -210,36 +210,16 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     <input type="hidden" name="employee_id" value="<?= $employee['id'] ?>">
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="form-group">
-                                <label for="start_date">Fecha de Inicio *</label>
-                                <input type="date"
-                                       class="form-control <?= isset($errors['start_date']) ? 'is-invalid' : '' ?>"
-                                       id="start_date"
-                                       name="start_date"
-                                       min="<?= date('Y-m-d', strtotime('+1 day')) ?>"
-                                       required>
-                                <?php if (isset($errors['start_date'])): ?>
-                                    <div class="invalid-feedback"><?= $errors['start_date'] ?></div>
-                                <?php endif; ?>
+                                <label for="date_range">Período de Vacaciones (rango) *</label>
+                                <input type="text" class="form-control" id="date_range" placeholder="Seleccione rango de fechas" required>
                                 <small class="form-text text-muted">
-                                    Las vacaciones deben solicitarse con al menos 15 días de anticipación.
+                                    Las vacaciones deben solicitarse con al menos 15 días de anticipación. Se calcularán los días solicitados a partir del rango.
                                 </small>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="end_date">Fecha de Fin *</label>
-                                <input type="date"
-                                       class="form-control <?= isset($errors['end_date']) ? 'is-invalid' : '' ?>"
-                                       id="end_date"
-                                       name="end_date"
-                                       min="<?= date('Y-m-d', strtotime('+2 days')) ?>"
-                                       required>
-                                <?php if (isset($errors['end_date'])): ?>
-                                    <div class="invalid-feedback"><?= $errors['end_date'] ?></div>
-                                <?php endif; ?>
+                                <!-- Campos reales para el backend -->
+                                <input type="hidden" id="start_date" name="start_date">
+                                <input type="hidden" id="end_date" name="end_date">
                             </div>
                         </div>
                     </div>
@@ -522,6 +502,62 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
     $(document).ready(function() {
     console.log('jQuery cargado correctamente en vacation/create');
 
+    // Cargar DateRangePicker por CDN y configurar
+    (function initDateRangePicker() {
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css';
+        document.head.appendChild(css);
+
+        function loadScript(src, onload) {
+            const s = document.createElement('script');
+            s.src = src; s.onload = onload; document.body.appendChild(s);
+        }
+
+        loadScript('https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js', function() {
+            loadScript('https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js', function() {
+                const $input = $('#date_range');
+                const minStart = moment().add(1, 'day');
+                $input.daterangepicker({
+                    locale: {
+                        format: 'YYYY-MM-DD',
+                        applyLabel: 'Aplicar',
+                        cancelLabel: 'Cancelar',
+                        daysOfWeek: ['Do','Lu','Ma','Mi','Ju','Vi','Sa'],
+                        monthNames: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+                        firstDay: 1
+                    },
+                    autoUpdateInput: false,
+                    minDate: minStart,
+                });
+
+                $input.on('apply.daterangepicker', function(ev, picker) {
+                    const start = picker.startDate.clone().startOf('day');
+                    const end = picker.endDate.clone().startOf('day');
+                    $(this).val(start.format('YYYY-MM-DD') + ' - ' + end.format('YYYY-MM-DD'));
+                    $('#start_date').val(start.format('YYYY-MM-DD')).trigger('change');
+                    $('#end_date').val(end.format('YYYY-MM-DD')).trigger('change');
+
+                    // Calcular días solicitados (inclusive)
+                    const total = end.diff(start, 'days') + 1;
+                    $('#total_dias_solicitados').val(total).trigger('input');
+
+                    // Por defecto, igualar días de disfrute al total si el usuario no lo cambió manualmente
+                    const $disfrute = $('#dias_solicitados_disfrute');
+                    const prevDefault = $disfrute.data('prev-default');
+                    const currentVal = parseFloat($disfrute.val() || '0');
+                    if (!prevDefault || currentVal === prevDefault || currentVal === 0) {
+                        $disfrute.val(total);
+                        $disfrute.data('prev-default', total);
+                    }
+
+                    updateCalculation();
+                    updateTotalDiasSolicitados();
+                });
+            });
+        });
+    })();
+
     const currentBalance = <?= $vacation_data['current_balance'] ?? 0 ?>;
     const dailySalary = <?= $vacation_data['daily_salary'] ?? 0 ?>;
     const annualBalance = <?= $vacation_data['annual_balance']['saldo_disponible_year'] ?? 30 ?>;
@@ -630,7 +666,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         const diasVacacionesAnuales = parseInt($('#dias_vacaciones_anuales').val()) || 30;
         const selectedYear = parseInt($('#ano_vacaciones').val()) || currentYear;
         const yearBalance = getAnnualBalanceForYear(selectedYear);
-        const total = diasPagar + diasDisfrute;
+        // Total de días solicitados: tomado del rango de fechas seleccionado
+        const total = parseInt($('#dias_calculados_fechas').val()) || 0;
 
         $('#total_dias_solicitados').val(total);
 

@@ -413,6 +413,66 @@ class App
                             return;
                         }
 
+                        // ✅ MANEJO ESPECIAL: vacation subroutes
+                        if ($url[1] === 'vacation') {
+                            $this->controller = new \App\Controllers\VacationController();
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            if ($httpMethod === 'GET') {
+                                if (!isset($url[2])) {
+                                    // GET /panel/vacation
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'create' && isset($url[3]) && method_exists($this->controller, 'create')) {
+                                    // GET /panel/vacation/create/{employee_id}
+                                    $this->method = 'create';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'show' && isset($url[3]) && method_exists($this->controller, 'show')) {
+                                    // GET /panel/vacation/show/{request_id}
+                                    $this->method = 'show';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'balance' && isset($url[3]) && method_exists($this->controller, 'balance')) {
+                                    // GET /panel/vacation/balance/{employee_id}
+                                    $this->method = 'balance';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'calendar' && method_exists($this->controller, 'calendar')) {
+                                    // GET /panel/vacation/calendar
+                                    $this->method = 'calendar';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'reports' && method_exists($this->controller, 'reports')) {
+                                    // GET /panel/vacation/reports (si existe)
+                                    $this->method = 'reports';
+                                    $this->params = [];
+                                } else {
+                                    // Fallback a index
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            } elseif ($httpMethod === 'POST') {
+                                if ($url[2] === 'store' && method_exists($this->controller, 'store')) {
+                                    // POST /panel/vacation/store
+                                    $this->method = 'store';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'approve' && isset($url[3]) && method_exists($this->controller, 'approve')) {
+                                    // POST /panel/vacation/approve/{request_id}
+                                    $this->method = 'approve';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'reject' && isset($url[3]) && method_exists($this->controller, 'reject')) {
+                                    // POST /panel/vacation/reject/{request_id}
+                                    $this->method = 'reject';
+                                    $this->params = [$url[3]];
+                                } else {
+                                    // Fallback a index en POST no reconocido
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            }
+                        }
+
                         // ✅ MIDDLEWARE DE PERMISOS - Verificar acceso antes de instanciar controlador
                         $currentRoute = implode('/', array_slice($url, 0, 3)); // panel/module/action
                         
