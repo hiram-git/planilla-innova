@@ -952,6 +952,7 @@ $(document).ready(function() {
     function showCalculationDetails(data) {
         const fmtH = (v) => (v != null ? Number(v).toFixed(2) + 'h' : '-');
         const fmtM = (v) => (v != null ? Number(v).toFixed(0) + ' min' : '-');
+        const fmtTime = (v) => v ? v : '-';
         const badge = (cond, yes = 'Sí', no = 'No') => cond ? `<span class="badge badge-success">${yes}</span>` : `<span class="badge badge-secondary">${no}</span>`;
         const statusBadge = () => {
             const isHoliday = !!data.is_holiday;
@@ -965,52 +966,198 @@ $(document).ready(function() {
             return chips.join(' ');
         };
 
-        const overtimeBreakdown = `
-            <small class="text-muted">
-                ${data.overtime_25_hours > 0 ? `+25%: ${fmtH(data.overtime_25_hours)} ` : ''}
-                ${data.overtime_50_hours > 0 ? `+50%: ${fmtH(data.overtime_50_hours)}` : ''}
-            </small>
-        `;
-
         const html = `
-            <div class="text-left">
-                <h6 class="mb-2"><i class="fas fa-info-circle"></i> Tipo de día</h6>
-                <div class="mb-3">${statusBadge()}</div>
+            <div class="text-left" style="max-height: 600px; overflow-y: auto;">
 
-                <h6 class="mb-2"><i class="fas fa-user-clock"></i> Marcaciones</h6>
-                <table class="table table-sm mb-3">
-                    <tr><td><strong>Entrada</strong></td><td>${data.time_in ?? '-'}</td><td><strong>Salida</strong></td><td>${data.time_out ?? '-'}</td></tr>
-                    <tr><td><strong>Salida Almuerzo</strong></td><td>${data.lunch_out ?? '-'}</td><td><strong>Entrada Almuerzo</strong></td><td>${data.lunch_in ?? '-'}</td></tr>
-                    <tr><td><strong>Prog. Entrada</strong></td><td>${data.scheduled_time_in ?? '-'}</td><td><strong>Prog. Salida</strong></td><td>${data.scheduled_time_out ?? '-'}</td></tr>
-                    <tr><td><strong>Prog. Salida Almuerzo</strong></td><td>${data.scheduled_lunch_out ?? '-'}</td><td><strong>Prog. Entrada Almuerzo</strong></td><td>${data.scheduled_lunch_in ?? '-'}</td></tr>
-                </table>
+                <!-- SECCIÓN 1: TIPO DE DÍA -->
+                <div class="card mb-3">
+                    <div class="card-header bg-info">
+                        <h6 class="mb-0"><i class="fas fa-calendar-day"></i> Tipo de Día</h6>
+                    </div>
+                    <div class="card-body">
+                        ${statusBadge()}
+                    </div>
+                </div>
 
-                <h6 class="mb-2"><i class="fas fa-clock"></i> Horas</h6>
-                <table class="table table-sm mb-3">
-                    <tr><td><strong>Totales</strong></td><td>${fmtH(data.total_hours)}</td><td><strong>Regulares</strong></td><td>${fmtH(data.regular_hours)}</td></tr>
-                    <tr><td><strong>Extras</strong></td><td>${fmtH(data.overtime_hours)} ${data.overtime_hours > 0 ? overtimeBreakdown : ''}</td><td><strong>Nocturnas</strong></td><td>${fmtH(data.night_hours)}</td></tr>
-                    <tr><td><strong>Feriado</strong></td><td>${fmtH(data.holiday_hours)}</td><td></td><td></td></tr>
-                </table>
+                <!-- SECCIÓN 2: DATOS DE MARCACIONES (attendance_detail) -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary">
+                        <h6 class="mb-0"><i class="fas fa-fingerprint"></i> Marcaciones Registradas (attendance_detail)</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th colspan="2" class="text-center">Marcaciones Reales</th>
+                                    <th colspan="2" class="text-center">Horario Programado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Entrada:</strong></td>
+                                    <td><span class="text-primary"><strong>${fmtTime(data.time_in)}</strong></span></td>
+                                    <td><strong>Prog. Entrada:</strong></td>
+                                    <td>${fmtTime(data.scheduled_time_in)}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Salida Almuerzo:</strong></td>
+                                    <td><span class="text-warning">${fmtTime(data.lunch_out)}</span></td>
+                                    <td><strong>Prog. Salida Almuerzo:</strong></td>
+                                    <td>${fmtTime(data.scheduled_lunch_out)}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Entrada Almuerzo:</strong></td>
+                                    <td><span class="text-success">${fmtTime(data.lunch_in)}</span></td>
+                                    <td><strong>Prog. Entrada Almuerzo:</strong></td>
+                                    <td>${fmtTime(data.scheduled_lunch_in)}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Salida:</strong></td>
+                                    <td><span class="text-danger"><strong>${fmtTime(data.time_out)}</strong></span></td>
+                                    <td><strong>Prog. Salida:</strong></td>
+                                    <td>${fmtTime(data.scheduled_time_out)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-                <h6 class="mb-2"><i class="fas fa-utensils"></i> Almuerzo</h6>
-                <table class="table table-sm mb-3">
-                    <tr><td><strong>Duración</strong></td><td>${fmtM(data.lunch_time_minutes)}</td><td><strong>Exceso</strong></td><td>${fmtM(data.lunch_exceeded_minutes)}</td></tr>
-                </table>
+                <!-- SECCIÓN 3: CÁLCULOS DE HORAS (attendance_calculations) -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success">
+                        <h6 class="mb-0"><i class="fas fa-clock"></i> Cálculos de Horas (attendance_calculations)</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th class="text-right">Valor</th>
+                                    <th>Concepto</th>
+                                    <th class="text-right">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Horas Totales:</strong></td>
+                                    <td class="text-right"><span class="badge badge-primary">${fmtH(data.total_hours)}</span></td>
+                                    <td><strong>Horas Regulares:</strong></td>
+                                    <td class="text-right"><span class="badge badge-info">${fmtH(data.regular_hours)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Horas Extras Total:</strong></td>
+                                    <td class="text-right"><span class="badge badge-warning">${fmtH(data.overtime_hours)}</span></td>
+                                    <td><strong>Horas Extras 25%:</strong></td>
+                                    <td class="text-right"><span class="badge badge-warning">${fmtH(data.overtime_25_hours)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Horas Extras 50%:</strong></td>
+                                    <td class="text-right"><span class="badge badge-warning">${fmtH(data.overtime_50_hours)}</span></td>
+                                    <td><strong>Horas Nocturnas:</strong></td>
+                                    <td class="text-right"><span class="badge badge-dark">${fmtH(data.night_hours)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Horas en Feriado:</strong></td>
+                                    <td class="text-right"><span class="badge badge-danger">${fmtH(data.holiday_hours)}</span></td>
+                                    <td><strong>Tiempo Almuerzo:</strong></td>
+                                    <td class="text-right"><span class="badge badge-secondary">${fmtM(data.lunch_time_minutes)}</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-                <h6 class="mb-2"><i class="fas fa-user-check"></i> Puntualidad</h6>
-                <table class="table table-sm mb-2">
-                    <tr><td><strong>Tardanza</strong></td><td>${fmtM(data.tardiness_minutes)}</td><td><strong>Salida Anticipada</strong></td><td>${fmtM(data.early_departure_minutes)}</td></tr>
-                    <tr><td><strong>Score</strong></td><td><span class="badge badge-${(data.punctuality_score||0) >= 80 ? 'success' : ((data.punctuality_score||0) >= 50 ? 'warning' : 'danger')}">${data.punctuality_score||0}%</span></td><td><strong>Asistencia Perfecta</strong></td><td>${badge(!!data.is_perfect_attendance)}</td></tr>
-                </table>
+                <!-- SECCIÓN 4: PUNTUALIDAD Y TARDANZAS (attendance_calculations) -->
+                <div class="card mb-3">
+                    <div class="card-header bg-warning">
+                        <h6 class="mb-0"><i class="fas fa-user-clock"></i> Puntualidad y Tardanzas (attendance_calculations)</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <table class="table table-sm table-bordered mb-0">
+                            <tbody>
+                                <tr>
+                                    <td width="35%"><strong>Tardanza:</strong></td>
+                                    <td width="15%" class="text-right">
+                                        ${data.tardiness_minutes > 0 ?
+                                            `<span class="badge badge-danger">${fmtM(data.tardiness_minutes)}</span>` :
+                                            `<span class="badge badge-success">0 min</span>`
+                                        }
+                                    </td>
+                                    <td width="35%"><strong>Llegó Tarde:</strong></td>
+                                    <td width="15%" class="text-right">${badge(!!data.is_late)}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Salida Anticipada:</strong></td>
+                                    <td class="text-right">
+                                        ${data.early_departure_minutes > 0 ?
+                                            `<span class="badge badge-warning">${fmtM(data.early_departure_minutes)}</span>` :
+                                            `<span class="badge badge-success">0 min</span>`
+                                        }
+                                    </td>
+                                    <td><strong>Exceso Almuerzo:</strong></td>
+                                    <td class="text-right">
+                                        ${data.lunch_exceeded_minutes > 0 ?
+                                            `<span class="badge badge-warning">${fmtM(data.lunch_exceeded_minutes)}</span>` :
+                                            `<span class="badge badge-success">0 min</span>`
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Score de Puntualidad:</strong></td>
+                                    <td class="text-right">
+                                        <span class="badge badge-${(data.punctuality_score||0) >= 80 ? 'success' : ((data.punctuality_score||0) >= 50 ? 'warning' : 'danger')}">
+                                            ${data.punctuality_score||0}%
+                                        </span>
+                                    </td>
+                                    <td><strong>Asistencia Perfecta:</strong></td>
+                                    <td class="text-right">
+                                        ${data.is_perfect_attendance ?
+                                            `<span class="badge badge-success"><i class="fas fa-star"></i> Sí</span>` :
+                                            `<span class="badge badge-secondary">No</span>`
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ausente:</strong></td>
+                                    <td class="text-right">${badge(!!data.is_absent)}</td>
+                                    <td><strong>Estado:</strong></td>
+                                    <td class="text-right">
+                                        <span class="badge badge-${data.is_absent ? 'danger' : 'success'}">
+                                            ${data.is_absent ? 'Ausente' : 'Presente'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 5: INFORMACIÓN ADICIONAL -->
+                ${data.notes || data.calculation_details ? `
+                <div class="card mb-2">
+                    <div class="card-header bg-secondary">
+                        <h6 class="mb-0"><i class="fas fa-sticky-note"></i> Notas Adicionales</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        ${data.notes ? `<p class="mb-1"><strong>Notas:</strong> ${data.notes}</p>` : ''}
+                        ${data.calculation_version ? `<p class="mb-1"><small class="text-muted">Versión de Cálculo: ${data.calculation_version}</small></p>` : ''}
+                        ${data.calculated_at ? `<p class="mb-0"><small class="text-muted">Calculado: ${data.calculated_at}</small></p>` : ''}
+                    </div>
+                </div>
+                ` : ''}
+
             </div>
         `;
 
         Swal.fire({
-            title: '<i class="fas fa-calculator"></i> Desglose de Cálculo',
+            title: '<i class="fas fa-calculator"></i> Detalle Completo de Marcación y Cálculos',
             html: html,
             icon: 'info',
             confirmButtonText: 'Cerrar',
-            width: '720px'
+            width: '900px',
+            customClass: {
+                container: 'calculation-details-modal'
+            }
         });
     }
 
