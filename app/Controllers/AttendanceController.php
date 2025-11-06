@@ -1231,7 +1231,9 @@ class AttendanceController extends Controller
                         'employee_id' => $detail['employee_id'],
                         'date' => $date,
                         'time_in' => $detail['time_in'],
-                        'time_out' => $detail['time_out']
+                        'time_out' => $detail['time_out'],
+                        'lunch_out' => $detail['lunch_out'] ?? null,
+                        'lunch_in' => $detail['lunch_in'] ?? null
                     ];
                 }
             }

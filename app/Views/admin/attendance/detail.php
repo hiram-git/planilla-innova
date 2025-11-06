@@ -948,72 +948,73 @@ $(document).ready(function() {
         });
     });
 
-    // Mostrar modal con detalles de cálculo
+    // Mostrar modal con detalles de cálculo (todos los campos relevantes)
     function showCalculationDetails(data) {
-        const overtimeColor = data.overtime_hours > 0 ? 'text-primary' : 'text-muted';
-        const lateColor = data.is_late ? 'text-danger' : 'text-success';
+        const fmtH = (v) => (v != null ? Number(v).toFixed(2) + 'h' : '-');
+        const fmtM = (v) => (v != null ? Number(v).toFixed(0) + ' min' : '-');
+        const badge = (cond, yes = 'Sí', no = 'No') => cond ? `<span class="badge badge-success">${yes}</span>` : `<span class="badge badge-secondary">${no}</span>`;
+        const statusBadge = () => {
+            const isHoliday = !!data.is_holiday;
+            const isWeekend = !!data.is_weekend;
+            const isWorking = !!data.is_working_day;
+            let chips = [];
+            if (data.day_type) chips.push(`<span class="badge badge-info">${data.day_type}</span>`);
+            if (isHoliday) chips.push('<span class="badge badge-danger">Feriado</span>');
+            if (isWeekend && !isHoliday) chips.push('<span class="badge badge-warning">Fin de semana</span>');
+            if (isWorking && !isHoliday) chips.push('<span class="badge badge-primary">Laboral</span>');
+            return chips.join(' ');
+        };
 
-        // Desglose de horas extras
-        let overtimeBreakdown = '';
-        if (data.overtime_25_hours > 0 || data.overtime_50_hours > 0) {
-            overtimeBreakdown = '<br><small class="text-muted">';
-            if (data.overtime_25_hours > 0) {
-                overtimeBreakdown += `+25%: ${data.overtime_25_hours}h `;
-            }
-            if (data.overtime_50_hours > 0) {
-                overtimeBreakdown += `+50%: ${data.overtime_50_hours}h`;
-            }
-            overtimeBreakdown += '</small>';
-        }
+        const overtimeBreakdown = `
+            <small class="text-muted">
+                ${data.overtime_25_hours > 0 ? `+25%: ${fmtH(data.overtime_25_hours)} ` : ''}
+                ${data.overtime_50_hours > 0 ? `+50%: ${fmtH(data.overtime_50_hours)}` : ''}
+            </small>
+        `;
+
+        const html = `
+            <div class="text-left">
+                <h6 class="mb-2"><i class="fas fa-info-circle"></i> Tipo de día</h6>
+                <div class="mb-3">${statusBadge()}</div>
+
+                <h6 class="mb-2"><i class="fas fa-user-clock"></i> Marcaciones</h6>
+                <table class="table table-sm mb-3">
+                    <tr><td><strong>Entrada</strong></td><td>${data.time_in ?? '-'}</td><td><strong>Salida</strong></td><td>${data.time_out ?? '-'}</td></tr>
+                    <tr><td><strong>Salida Almuerzo</strong></td><td>${data.lunch_out ?? '-'}</td><td><strong>Entrada Almuerzo</strong></td><td>${data.lunch_in ?? '-'}</td></tr>
+                    <tr><td><strong>Prog. Entrada</strong></td><td>${data.scheduled_time_in ?? '-'}</td><td><strong>Prog. Salida</strong></td><td>${data.scheduled_time_out ?? '-'}</td></tr>
+                    <tr><td><strong>Prog. Salida Almuerzo</strong></td><td>${data.scheduled_lunch_out ?? '-'}</td><td><strong>Prog. Entrada Almuerzo</strong></td><td>${data.scheduled_lunch_in ?? '-'}</td></tr>
+                </table>
+
+                <h6 class="mb-2"><i class="fas fa-clock"></i> Horas</h6>
+                <table class="table table-sm mb-3">
+                    <tr><td><strong>Totales</strong></td><td>${fmtH(data.total_hours)}</td><td><strong>Regulares</strong></td><td>${fmtH(data.regular_hours)}</td></tr>
+                    <tr><td><strong>Extras</strong></td><td>${fmtH(data.overtime_hours)} ${data.overtime_hours > 0 ? overtimeBreakdown : ''}</td><td><strong>Nocturnas</strong></td><td>${fmtH(data.night_hours)}</td></tr>
+                    <tr><td><strong>Feriado</strong></td><td>${fmtH(data.holiday_hours)}</td><td></td><td></td></tr>
+                </table>
+
+                <h6 class="mb-2"><i class="fas fa-utensils"></i> Almuerzo</h6>
+                <table class="table table-sm mb-3">
+                    <tr><td><strong>Duración</strong></td><td>${fmtM(data.lunch_time_minutes)}</td><td><strong>Exceso</strong></td><td>${fmtM(data.lunch_exceeded_minutes)}</td></tr>
+                </table>
+
+                <h6 class="mb-2"><i class="fas fa-user-check"></i> Puntualidad</h6>
+                <table class="table table-sm mb-2">
+                    <tr><td><strong>Tardanza</strong></td><td>${fmtM(data.tardiness_minutes)}</td><td><strong>Salida Anticipada</strong></td><td>${fmtM(data.early_departure_minutes)}</td></tr>
+                    <tr><td><strong>Score</strong></td><td><span class="badge badge-${(data.punctuality_score||0) >= 80 ? 'success' : ((data.punctuality_score||0) >= 50 ? 'warning' : 'danger')}">${data.punctuality_score||0}%</span></td><td><strong>Asistencia Perfecta</strong></td><td>${badge(!!data.is_perfect_attendance)}</td></tr>
+                </table>
+            </div>
+        `;
 
         Swal.fire({
-            title: '<i class="fas fa-chart-bar"></i> Métricas Calculadas',
-            html: `
-                <div class="text-left">
-                    <table class="table table-sm">
-                        <tr>
-                            <td><strong>Horas Totales:</strong></td>
-                            <td>${data.total_hours}h</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Horas Trabajadas:</strong></td>
-                            <td>${data.regular_hours || data.total_hours}h</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Horas Extras:</strong></td>
-                            <td class="${overtimeColor}">
-                                ${data.overtime_hours}h
-                                ${overtimeBreakdown}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><strong>Tardanza:</strong></td>
-                            <td class="${lateColor}">${data.tardiness_minutes} min</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Salida Anticipada:</strong></td>
-                            <td>${data.early_departure_minutes || 0} min</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Score de Puntualidad:</strong></td>
-                            <td>
-                                <span class="badge badge-${data.punctuality_score >= 80 ? 'success' : (data.punctuality_score >= 50 ? 'warning' : 'danger')}">
-                                    ${data.punctuality_score}%
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><strong>Asistencia Perfecta:</strong></td>
-                            <td>${data.is_perfect_attendance ? '<i class="fas fa-check text-success"></i> Sí' : '<i class="fas fa-times text-danger"></i> No'}</td>
-                        </tr>
-                    </table>
-                </div>
-            `,
+            title: '<i class="fas fa-calculator"></i> Desglose de Cálculo',
+            html: html,
             icon: 'info',
             confirmButtonText: 'Cerrar',
-            width: '600px'
+            width: '720px'
         });
     }
+
+    // (Revertido) El modal existente se usa tras cálculo por botón Calcular
 });
 </script>
 

@@ -825,15 +825,8 @@ class ConceptController extends Controller
                 }
             }
 
-            // Validar la fórmula intentando evaluarla
-            $conceptoTest = 'VALIDACION_FORMULA';
-            
-            // Crear un concepto temporal en la calculadora para validar
-            $conceptos = $calculator->getConceptos();
-            $conceptos[$conceptoTest] = ['id' => 999, 'formula' => $formula];
-            
-            // Intentar evaluar la fórmula
-            $resultado = $calculator->evaluarFormula($conceptoTest);
+            // Validar la fórmula intentando evaluarla directamente
+            $resultado = $calculator->evaluarFormula($formula);
             
             if (is_numeric($resultado)) {
                 return [

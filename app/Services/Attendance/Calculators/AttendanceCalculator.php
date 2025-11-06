@@ -83,20 +83,14 @@ class AttendanceCalculator
             );
         }
 
-        // Calcular breakdown completo de horas
+        // Calcular breakdown completo de horas (pasando minutos reales de almuerzo)
         $hoursBreakdown = $this->overtimeCalculator->calculateCompleteBreakdown(
             $timeIn,
             $timeOut,
             $date,
-            $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8
+            $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8,
+            $lunchTimeMinutes
         );
-
-        // Restar tiempo de almuerzo de las horas trabajadas
-        if ($lunchTimeMinutes > 0) {
-            $lunchHours = $lunchTimeMinutes / 60;
-            $hoursBreakdown['total_hours'] = max(0, $hoursBreakdown['total_hours'] - $lunchHours);
-            $hoursBreakdown['regular_hours'] = max(0, $hoursBreakdown['regular_hours'] - $lunchHours);
-        }
 
         // Calcular tardanzas si tiene horario asignado
         $tardinessMinutes = 0;
