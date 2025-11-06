@@ -1206,12 +1206,31 @@ class AttendanceController extends Controller
                 }
             }
 
+            // Verificar si el día es feriado (para omitir creación de ausencias sin marcaciones)
+            $isHoliday = false;
+            try {
+                $calendar = new \App\Models\BusinessCalendar();
+                $dayInfo = $calendar->getDayInfo($date);
+                $isHoliday = $dayInfo && ($dayInfo['day_type'] === 'FERIADO');
+                if ($isHoliday) {
+                    error_log("DEBUG processDay - Fecha $date marcada como FERIADO en calendario empresarial");
+                }
+            } catch (\Exception $e) {
+                // Si falla el calendario, asumir día normal
+                $isHoliday = false;
+            }
+
             // 5. PASO 2: Detectar empleados SIN marcación y crear registros de AUSENCIA
             error_log("DEBUG processDay - Empleados con marcación: " . implode(', ', array_keys($employeesWithAttendance)));
 
             if ($detectAbsences) {
                 foreach ($activeEmployees as $employee) {
                     if (!isset($employeesWithAttendance[$employee['id']])) {
+                        // Regla: si es feriado y no hay marcaciones, NO crear registro ni cambiar status
+                        if ($isHoliday) {
+                            error_log("DEBUG processDay - FERIADO sin marcaciones: omitiendo ausencia para empleado {$employee['id']}");
+                            continue;
+                        }
                         $stats['absences_detected']++;
                         error_log("DEBUG processDay - Empleado SIN marcación detectado: ID={$employee['id']}, Nombre={$employee['firstname']} {$employee['lastname']}");
 
