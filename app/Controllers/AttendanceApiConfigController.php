@@ -9,6 +9,13 @@ use App\Models\AttendanceApiConfig;
 use App\Services\Attendance\Base44ApiClient;
 use App\Services\Attendance\AttendanceSyncService;
 use App\Services\Attendance\RecordsProcessor;
+use App\Models\AttendanceHeader;
+use App\Models\AttendanceDetail;
+use App\Models\Employee;
+use App\Models\BusinessCalendar;
+use App\Models\AttendanceRecord;
+use App\Services\Attendance\Calculators\AbsenceDetector;
+use App\Core\Database;
 use Exception;
 
 /**
@@ -243,9 +250,145 @@ class AttendanceApiConfigController extends Controller
             if ($dateFrom && $dateTo) {
                 // Procesar rango específico
                 $processStats = $processor->processToDetails($dateFrom, $dateTo);
+
+                // PASO 3: Crear ausencias en días laborables sin marcaciones según calendario empresarial
+                try {
+                    $detailModel = new AttendanceDetail();
+                    $headerModel = new AttendanceHeader();
+                    $employeeModel = new Employee();
+                    $calendar = new BusinessCalendar();
+                    $absenceDetector = new AbsenceDetector();
+
+                    // Obtener empleados activos que marcan asistencia
+                    $activeEmployees = $employeeModel->getActiveMarkingEmployees();
+                    // Rango basado en fechas del API (fallback al rango solicitado)
+                    $startTs = strtotime($stats['min_date'] ?? $dateFrom);
+                    $endTs = strtotime($stats['max_date'] ?? $dateTo);
+                    for ($ts = $startTs; $ts <= $endTs; $ts = strtotime('+1 day', $ts)) {
+                        $d = date('Y-m-d', $ts);
+
+                        // Solo días laborables
+                        $isWorking = $calendar->isWorkingDay($d);
+                        if (!$isWorking) {
+                            continue;
+                        }
+
+                        // Asegurar header del día
+                        $header = $headerModel->getByDate($d);
+                        if (!$header) {
+                            $headerId = $headerModel->create([
+                                'attendance_date' => $d,
+                                'device_id' => null,
+                                'synced_from' => 'API',
+                                'total_records' => 0,
+                                'total_employees' => 0,
+                                'is_processed' => 0
+                            ]);
+                            $header = $headerModel->getById($headerId);
+                        }
+
+                        foreach ($activeEmployees as $emp) {
+                            // Si no existe detail para ese empleado y fecha, crear ausencia
+                            $existing = $detailModel->getByDateAndEmployee($d, $emp['id']);
+                            if ($existing) {
+                                continue;
+                            }
+
+                            // Crear registro de ausencia
+                            $detailId = $detailModel->create([
+                                'header_id' => $header['id'],
+                                'employee_id' => $emp['id'],
+                                'schedule_id' => $emp['schedule_id'] ?? null,
+                                'time_in' => null,
+                                'time_out' => null,
+                                'status' => 'ABSENT',
+                                'is_late' => 0,
+                                'tardiness_minutes' => 0,
+                                'hours_worked' => 0,
+                                'notes' => 'Ausencia creada por sincronización: día laborable sin marcaciones'
+                            ]);
+
+                            if ($detailId) {
+                                // Registrar en log de ausencias
+                                $absenceDetector->saveAbsence([
+                                    'employee_id' => $emp['id'],
+                                    'date' => $d,
+                                    'absence_type' => 'UNJUSTIFIED',
+                                    'attendance_detail_id' => $detailId,
+                                    'detected_at' => date('Y-m-d H:i:s')
+                                ]);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    error_log('SYNC: Error creando ausencias por calendario empresarial: ' . $e->getMessage());
+                }
             } else {
                 // Procesar todos los registros pendientes
                 $processStats = $processor->processUpToDate();
+                
+                // Determinar rango para ausencias en modo FULL: usar fechas detectadas por el API en esta sincronización
+                try {
+                    $dateFromFull = $stats['min_date'] ?? date('Y-m-d');
+                    $dateToFull = $stats['max_date'] ?? date('Y-m-d');
+
+                    // Crear ausencias para todos los días laborables del rango calculado
+                    $detailModel = new AttendanceDetail();
+                    $headerModel = new AttendanceHeader();
+                    $employeeModel = new Employee();
+                    $calendar = new BusinessCalendar();
+                    $absenceDetector = new AbsenceDetector();
+
+                    $activeEmployees = $employeeModel->getActiveMarkingEmployees();
+                    for ($ts = strtotime($dateFromFull); $ts <= strtotime($dateToFull); $ts = strtotime('+1 day', $ts)) {
+                        $d = date('Y-m-d', $ts);
+                        if (!$calendar->isWorkingDay($d)) continue;
+
+                        // Header del día
+                        $header = $headerModel->getByDate($d);
+                        if (!$header) {
+                            $headerId = $headerModel->create([
+                                'attendance_date' => $d,
+                                'device_id' => null,
+                                'synced_from' => 'API',
+                                'total_records' => 0,
+                                'total_employees' => 0,
+                                'is_processed' => 0
+                            ]);
+                            $header = $headerModel->getById($headerId);
+                        }
+
+                        foreach ($activeEmployees as $emp) {
+                            $existing = $detailModel->getByDateAndEmployee($d, $emp['id']);
+                            if ($existing) continue;
+
+                            $detailId = $detailModel->create([
+                                'header_id' => $header['id'],
+                                'employee_id' => $emp['id'],
+                                'schedule_id' => $emp['schedule_id'] ?? null,
+                                'time_in' => null,
+                                'time_out' => null,
+                                'status' => 'ABSENT',
+                                'is_late' => 0,
+                                'tardiness_minutes' => 0,
+                                'hours_worked' => 0,
+                                'notes' => 'Ausencia creada por sincronización FULL: día laborable sin marcaciones'
+                            ]);
+
+                            if ($detailId) {
+                                $absenceDetector->saveAbsence([
+                                    'employee_id' => $emp['id'],
+                                    'date' => $d,
+                                    'absence_type' => 'UNJUSTIFIED',
+                                    'attendance_detail_id' => $detailId,
+                                    'detected_at' => date('Y-m-d H:i:s')
+                                ]);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    error_log('SYNC FULL: Error creando ausencias por calendario empresarial: ' . $e->getMessage());
+                }
             }
 
             $message = sprintf(

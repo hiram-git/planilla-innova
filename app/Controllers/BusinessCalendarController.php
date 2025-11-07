@@ -280,10 +280,26 @@ class BusinessCalendarController extends Controller
         }
 
         try {
-            $result = $businessCalendar->initializeYear($year);
+            // Obtener opción de sábados como medio día
+            $saturdayHalfDay = isset($data['saturday_half_day']) && $data['saturday_half_day'] == '1';
+
+            // Debug logging
+            error_log("BusinessCalendarController::initializeYear - Year: {$year}, Saturday Half Day: " . ($saturdayHalfDay ? 'YES' : 'NO'));
+            error_log("POST data: " . json_encode($data));
+
+            $result = $businessCalendar->initializeYear($year, $saturdayHalfDay);
 
             if ($result['success']) {
-                $_SESSION['success'] = "Calendario $year inicializado exitosamente. Días insertados: {$result['inserted']}, Total: {$result['total']}";
+                $message = "Calendario $year inicializado exitosamente. ";
+                $message .= "Días insertados: {$result['inserted']}, Total: {$result['total']}";
+
+                if ($saturdayHalfDay && isset($result['updated']) && $result['updated'] > 0) {
+                    $message .= ". Sábados actualizados a medio día: {$result['updated']}";
+                } elseif ($saturdayHalfDay) {
+                    $message .= " (Sábados marcados como medio día)";
+                }
+
+                $_SESSION['success'] = $message;
             } else {
                 $_SESSION['error'] = 'Error al inicializar calendario: ' . ($result['error'] ?? 'Error desconocido');
             }

@@ -252,6 +252,18 @@ $content .= '
                             Solo se agregarán días que no existan. Los días ya registrados (feriados, días especiales) no se modificarán.
                         </small>
                     </div>
+
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="saturday_half_day" name="saturday_half_day" value="1">
+                            <label class="custom-control-label" for="saturday_half_day">
+                                <strong>Sábados como medio día laborable</strong>
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Si se activa, los sábados se marcarán como días laborables con estado "MEDIO_DIA" en lugar de días no laborables.
+                        </small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
@@ -268,7 +280,10 @@ $content .= '
 <form id="deleteForm" method="POST" style="display:none;">
     <input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrf_token) . '">
 </form>
+';
 
+// Scripts que dependen de jQuery - se cargarán después de las librerías
+$scripts = '
 <script>
 $(document).ready(function() {
     $("#holidaysTable").DataTable({

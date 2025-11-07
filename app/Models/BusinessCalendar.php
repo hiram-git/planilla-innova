@@ -63,6 +63,58 @@ class BusinessCalendar extends Model
     }
 
     /**
+     * Obtener lista de días laborables entre dos fechas
+     * Retorna array de fechas en formato Y-m-d
+     *
+     * @param string $startDate Fecha inicial (Y-m-d)
+     * @param string $endDate Fecha final (Y-m-d)
+     * @return array Array de fechas laborables ['2025-11-01', '2025-11-04', ...]
+     */
+    public function getWorkingDaysList($startDate, $endDate)
+    {
+        try {
+            $sql = "SELECT date_value
+                    FROM business_calendar
+                    WHERE date_value BETWEEN ? AND ?
+                    AND day_type = 'LABORAL'
+                    ORDER BY date_value ASC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$startDate, $endDate]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return array_column($results, 'date_value');
+        } catch (PDOException $e) {
+            error_log("Error getting working days list: " . $e->getMessage());
+            return $this->getWorkingDaysListFallback($startDate, $endDate);
+        }
+    }
+
+    /**
+     * Obtener lista de días laborables (fallback sin BD)
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    private function getWorkingDaysListFallback($startDate, $endDate)
+    {
+        $start = new \DateTime($startDate);
+        $end = new \DateTime($endDate);
+        $workingDays = [];
+
+        while ($start <= $end) {
+            $dateStr = $start->format('Y-m-d');
+            if ($this->isWeekday($dateStr)) {
+                $workingDays[] = $dateStr;
+            }
+            $start->modify('+1 day');
+        }
+
+        return $workingDays;
+    }
+
+    /**
      * Obtener calendario de un mes específico
      */
     public function getMonthCalendar($year, $month)
@@ -243,8 +295,12 @@ class BusinessCalendar extends Model
     /**
      * Inicializar calendario completo para un año
      * Genera todos los días laborables y fines de semana, manteniendo feriados existentes
+     *
+     * @param int $year Año a inicializar
+     * @param bool $saturdayHalfDay Si true, los sábados se marcan como LABORAL con status MEDIO_DIA
+     * @return array Resultado de la operación
      */
-    public function initializeYear($year)
+    public function initializeYear($year, $saturdayHalfDay = false)
     {
         try {
             $startDate = new \DateTime("$year-01-01");
@@ -266,6 +322,55 @@ class BusinessCalendar extends Model
                 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'
             ];
 
+            $updated = 0;
+
+            // Si el checkbox está marcado, actualizar sábados existentes
+            if ($saturdayHalfDay) {
+                error_log("BusinessCalendar::initializeYear - UPDATING Saturdays for year {$year}");
+
+                // Verificar cuántos sábados hay antes del update
+                $checkStmt = $this->db->prepare("
+                    SELECT COUNT(*) as total
+                    FROM business_calendar
+                    WHERE year_value = ?
+                    AND day_of_week = 6
+                    AND day_type = 'NO_LABORAL'
+                ");
+                $checkStmt->execute([$year]);
+                $beforeCount = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+                error_log("BusinessCalendar: Sábados NO_LABORAL antes del update: {$beforeCount['total']}");
+
+                $updateStmt = $this->db->prepare("
+                    UPDATE business_calendar
+                    SET day_type = 'LABORAL',
+                        status = 'MEDIO_DIA',
+                        description = 'Medio día laborable - Sábado',
+                        is_weekend = 0
+                    WHERE year_value = ?
+                    AND day_of_week = 6
+                    AND day_type = 'NO_LABORAL'
+                ");
+                $updateStmt->execute([$year]);
+                $updated = $updateStmt->rowCount();
+
+                error_log("BusinessCalendar: Actualizados {$updated} sábados a medio día laborable en año {$year}");
+
+                // Verificar después del update
+                $afterStmt = $this->db->prepare("
+                    SELECT COUNT(*) as total
+                    FROM business_calendar
+                    WHERE year_value = ?
+                    AND day_of_week = 6
+                    AND day_type = 'LABORAL'
+                    AND status = 'MEDIO_DIA'
+                ");
+                $afterStmt->execute([$year]);
+                $afterCount = $afterStmt->fetch(\PDO::FETCH_ASSOC);
+                error_log("BusinessCalendar: Sábados LABORAL/MEDIO_DIA después del update: {$afterCount['total']}");
+            } else {
+                error_log("BusinessCalendar::initializeYear - Saturday half-day NOT requested");
+            }
+
             $inserted = 0;
             $currentDate = clone $startDate;
 
@@ -286,12 +391,27 @@ class BusinessCalendar extends Model
                 }
 
                 $dayOfWeek = (int)$currentDate->format('N'); // 1=Lunes, 7=Domingo
-                $isWeekend = ($dayOfWeek >= 6);
 
-                $dayType = $isWeekend ? 'NO_LABORAL' : 'LABORAL';
-                $description = $isWeekend
-                    ? $diasSemanaEs[$dayOfWeek]
-                    : "Día laboral - {$diasSemana[$dayOfWeek]}";
+                // Lógica especial para sábados si saturday_half_day está activado
+                if ($dayOfWeek == 6 && $saturdayHalfDay) {
+                    // Sábado como medio día laborable
+                    $dayType = 'LABORAL';
+                    $status = 'MEDIO_DIA';
+                    $description = "Medio día laborable - Sábado";
+                    $isWeekend = 0; // No se marca como fin de semana si es laborable
+                } elseif ($dayOfWeek >= 6) {
+                    // Fin de semana normal (sábados sin opción activa o domingos)
+                    $dayType = 'NO_LABORAL';
+                    $status = 'NORMAL';
+                    $description = $diasSemanaEs[$dayOfWeek];
+                    $isWeekend = 1;
+                } else {
+                    // Días laborables normales (Lunes-Viernes)
+                    $dayType = 'LABORAL';
+                    $status = 'NORMAL';
+                    $description = "Día laboral - {$diasSemana[$dayOfWeek]}";
+                    $isWeekend = 0;
+                }
 
                 $insertStmt->execute([
                     $dateStr,
@@ -299,9 +419,9 @@ class BusinessCalendar extends Model
                     (int)$currentDate->format('m'),
                     $dayOfWeek,
                     $dayType,
-                    'NORMAL',
+                    $status,
                     $description,
-                    $isWeekend ? 1 : 0
+                    $isWeekend
                 ]);
 
                 $inserted++;
@@ -311,8 +431,10 @@ class BusinessCalendar extends Model
             return [
                 'success' => true,
                 'inserted' => $inserted,
+                'updated' => $updated,
                 'skipped' => count($existingDates),
-                'total' => $inserted + count($existingDates)
+                'total' => $inserted + count($existingDates),
+                'saturday_half_day' => $saturdayHalfDay
             ];
 
         } catch (\PDOException $e) {

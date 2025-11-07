@@ -4,7 +4,11 @@ namespace App\Services\Attendance;
 
 use App\Models\AttendanceApiConfig;
 use App\Models\AttendanceRecord;
+use App\Models\AttendanceHeader;
+use App\Models\AttendanceDetail;
+use App\Models\BusinessCalendar;
 use App\Core\Database;
+use App\Services\Attendance\Calculators\AbsenceDetector;
 use Exception;
 
 /**
@@ -17,13 +21,24 @@ class AttendanceSyncService
     private $config;
     private $syncLogId;
     private $recordModel;
+    private $businessCalendar;
+    private $absenceDetector;
     private $stats = [
         'fetched' => 0,
         'inserted' => 0,
         'updated' => 0,
         'skipped' => 0,
         'errors' => 0,
-        'records_created' => 0
+        'records_created' => 0,
+        // Rango de fechas detectado desde la API (YYYY-MM-DD)
+        'min_date' => null,
+        'max_date' => null,
+        // Estadísticas de detección de ausencias
+        'working_days_checked' => 0,
+        'employees_checked' => 0,
+        'missing_days_detected' => 0,
+        'absences_created' => 0,
+        'absences_errors' => 0
     ];
     private $errors = [];
 
@@ -31,6 +46,8 @@ class AttendanceSyncService
     {
         $this->db = Database::getInstance();
         $this->recordModel = new AttendanceRecord();
+        $this->businessCalendar = new BusinessCalendar();
+        $this->absenceDetector = new AbsenceDetector();
 
         // Obtener configuración (opcional)
         $configModel = new AttendanceApiConfig();
@@ -97,12 +114,25 @@ class AttendanceSyncService
 
             // Procesar cada marcación
             foreach ($attendances as $attendance) {
+                // Detectar rango de fechas desde campos de la API
+                $date = $this->extractRecordDate($attendance);
+                if ($date) {
+                    if (empty($this->stats['min_date']) || $date < $this->stats['min_date']) {
+                        $this->stats['min_date'] = $date;
+                    }
+                    if (empty($this->stats['max_date']) || $date > $this->stats['max_date']) {
+                        $this->stats['max_date'] = $date;
+                    }
+                }
                 $this->processAttendanceRecord($attendance);
             }
 
+            // Detectar ausencias automáticamente
+            $this->detectMissingAttendanceRecords();
+
             // Finalizar log
             $status = $this->stats['errors'] > 0 ? 'PARTIAL' : 'SUCCESS';
-            $message = "Sincronización completada: {$this->stats['inserted']} insertados, {$this->stats['updated']} actualizados, {$this->stats['skipped']} omitidos, {$this->stats['errors']} errores";
+            $message = "Sincronización completada: {$this->stats['inserted']} insertados, {$this->stats['updated']} actualizados, {$this->stats['skipped']} omitidos, {$this->stats['errors']} errores. Ausencias: {$this->stats['absences_created']} creadas";
             $this->endSyncLog($status, $message);
 
             // Actualizar configuración si existe
@@ -160,8 +190,15 @@ class AttendanceSyncService
                 $this->processAttendanceRecord($attendance);
             }
 
+            // Establecer rango reportado según parámetros del API/rango aplicados
+            $this->stats['min_date'] = $startDate;
+            $this->stats['max_date'] = $endDate;
+
+            // Detectar ausencias automáticamente
+            $this->detectMissingAttendanceRecords();
+
             $status = $this->stats['errors'] > 0 ? 'PARTIAL' : 'SUCCESS';
-            $message = "Sincronización por rango completada: {$this->stats['inserted']} insertados, {$this->stats['updated']} actualizados";
+            $message = "Sincronización por rango completada: {$this->stats['inserted']} insertados, {$this->stats['updated']} actualizados. Ausencias: {$this->stats['absences_created']} creadas";
             $this->endSyncLog($status, $message);
 
             return $this->stats;
@@ -192,11 +229,23 @@ class AttendanceSyncService
             }
 
             foreach ($attendances as $attendance) {
+                $date = $this->extractRecordDate($attendance);
+                if ($date) {
+                    if (empty($this->stats['min_date']) || $date < $this->stats['min_date']) {
+                        $this->stats['min_date'] = $date;
+                    }
+                    if (empty($this->stats['max_date']) || $date > $this->stats['max_date']) {
+                        $this->stats['max_date'] = $date;
+                    }
+                }
                 $this->processAttendanceRecord($attendance);
             }
 
+            // Detectar ausencias automáticamente
+            $this->detectMissingAttendanceRecords();
+
             $status = $this->stats['errors'] > 0 ? 'PARTIAL' : 'SUCCESS';
-            $this->endSyncLog($status, "Sincronización de empleado completada");
+            $this->endSyncLog($status, "Sincronización de empleado completada. Ausencias: {$this->stats['absences_created']} creadas");
 
             return $this->stats;
 
@@ -241,11 +290,23 @@ class AttendanceSyncService
             });
 
             foreach ($newAttendances as $attendance) {
+                $date = $this->extractRecordDate($attendance);
+                if ($date) {
+                    if (empty($this->stats['min_date']) || $date < $this->stats['min_date']) {
+                        $this->stats['min_date'] = $date;
+                    }
+                    if (empty($this->stats['max_date']) || $date > $this->stats['max_date']) {
+                        $this->stats['max_date'] = $date;
+                    }
+                }
                 $this->processAttendanceRecord($attendance);
             }
 
+            // Detectar ausencias automáticamente
+            $this->detectMissingAttendanceRecords();
+
             $status = $this->stats['errors'] > 0 ? 'PARTIAL' : 'SUCCESS';
-            $message = "Sincronización incremental completada: {$this->stats['inserted']} nuevos registros";
+            $message = "Sincronización incremental completada: {$this->stats['inserted']} nuevos registros. Ausencias: {$this->stats['absences_created']} creadas";
             $this->endSyncLog($status, $message);
 
             // Actualizar configuración si existe
@@ -259,6 +320,21 @@ class AttendanceSyncService
         } catch (Exception $e) {
             $this->endSyncLog('FAILED', 'Error: ' . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Extraer fecha (Y-m-d) desde un registro crudo de la API
+     */
+    private function extractRecordDate(array $raw): ?string
+    {
+        try {
+            $ts = $raw['timestamp'] ?? ($raw['actual_timestamp'] ?? ($raw['registered_timestamp'] ?? null));
+            if (!$ts) return null;
+            $dt = new \DateTime($ts);
+            return $dt->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
         }
     }
 
@@ -500,6 +576,22 @@ class AttendanceSyncService
      */
     private function endSyncLog($status, $message)
     {
+        // Consolidar detalles (errores + estadísticas de ausencias)
+        $details = [
+            'errors' => $this->errors,
+            'absence_detection' => [
+                'working_days_checked' => $this->stats['working_days_checked'],
+                'employees_checked' => $this->stats['employees_checked'],
+                'missing_days_detected' => $this->stats['missing_days_detected'],
+                'absences_created' => $this->stats['absences_created'],
+                'absences_errors' => $this->stats['absences_errors'],
+                'date_range' => [
+                    'min_date' => $this->stats['min_date'],
+                    'max_date' => $this->stats['max_date']
+                ]
+            ]
+        ];
+
         $sql = "UPDATE attendance_sync_log
                 SET end_time = NOW(),
                     duration_seconds = TIMESTAMPDIFF(SECOND, start_time, NOW()),
@@ -519,7 +611,7 @@ class AttendanceSyncService
             $this->stats['updated'],
             $this->stats['skipped'],
             $this->stats['errors'],
-            json_encode($this->errors),
+            json_encode($details),
             $status,
             $message,
             $this->syncLogId
@@ -559,4 +651,306 @@ class AttendanceSyncService
     {
         return $this->errors;
     }
+
+    // =====================================================
+    // DETECCIÓN AUTOMÁTICA DE AUSENCIAS
+    // =====================================================
+
+    /**
+     * Detectar días laborables sin marcaciones y crear ausencias automáticas
+     *
+     * Compara el rango de fechas sincronizado con el calendario empresarial
+     * para detectar días sin marcaciones y crea:
+     * - attendance_header para el día
+     * - attendance_detail con status ABSENT para cada empleado
+     * - attendance_absence_log para tracking
+     *
+     * @return void
+     */
+    private function detectMissingAttendanceRecords()
+    {
+        // Solo ejecutar si hay rango detectado
+        if (!$this->stats['min_date'] || !$this->stats['max_date']) {
+            $this->log("Detección de ausencias: No hay rango de fechas para analizar");
+            return;
+        }
+
+        $this->log("Iniciando detección de ausencias para período: {$this->stats['min_date']} - {$this->stats['max_date']}");
+
+        try {
+            // 1. Obtener días laborables en el rango
+            $workingDays = $this->businessCalendar->getWorkingDaysList(
+                $this->stats['min_date'],
+                $this->stats['max_date']
+            );
+
+            $this->stats['working_days_checked'] = count($workingDays);
+
+            if (empty($workingDays)) {
+                $this->log("No hay días laborables en el rango especificado");
+                return;
+            }
+
+            // 2. Obtener empleados activos con marca_asistencia = 1
+            $employees = $this->getActiveMarkingEmployees();
+            $this->stats['employees_checked'] = count($employees);
+
+            if (empty($employees)) {
+                $this->log("No hay empleados con marca_asistencia activa");
+                return;
+            }
+
+            $this->log("Analizando {$this->stats['working_days_checked']} días laborables para {$this->stats['employees_checked']} empleados");
+
+            // 3. Por cada día laboral, verificar si faltan marcaciones
+            foreach ($workingDays as $date) {
+                $this->processAbsentDay($date, $employees);
+            }
+
+            $this->log("Detección completada: {$this->stats['missing_days_detected']} ausencias detectadas, {$this->stats['absences_created']} registros creados");
+
+        } catch (Exception $e) {
+            $this->stats['absences_errors']++;
+            $this->errors[] = "Error en detección de ausencias: " . $e->getMessage();
+            error_log("Error detectMissingAttendanceRecords: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Procesar un día que podría tener ausencias
+     * Crea header + details si hay empleados sin marcación
+     *
+     * @param string $date Fecha a procesar (Y-m-d)
+     * @param array $employees Lista de empleados activos
+     * @return void
+     */
+    private function processAbsentDay($date, $employees)
+    {
+        $absentEmployees = [];
+
+        // 1. Identificar empleados sin marcación ese día
+        foreach ($employees as $employee) {
+            // Verificar si el empleado estaba activo en esa fecha
+            if (!$this->isEmployeeActiveOnDate($employee, $date)) {
+                continue;
+            }
+
+            // Verificar si tiene marcación en attendance_records
+            if (!$this->hasAttendanceRecord($employee['id'], $date)) {
+                $absentEmployees[] = $employee;
+            }
+        }
+
+        // Si no hay ausentes, no hacer nada
+        if (empty($absentEmployees)) {
+            return;
+        }
+
+        $this->log("Día {$date}: detectados " . count($absentEmployees) . " empleados ausentes");
+
+        try {
+            // 2. Verificar si ya existe header para este día
+            $headerModel = new AttendanceHeader();
+            $existingHeader = $headerModel->getByDate($date);
+
+            if ($existingHeader) {
+                $headerId = $existingHeader['id'];
+                $this->log("Usando header existente ID {$headerId} para {$date}");
+            } else {
+                // 3. Crear header para el día
+                $headerId = $this->createAbsenceHeader($date, count($absentEmployees));
+                if (!$headerId) {
+                    $this->log("Error: No se pudo crear header para {$date}");
+                    return;
+                }
+                $this->log("Header creado ID {$headerId} para {$date}");
+            }
+
+            // 4. Crear attendance_detail + absence_log para cada ausente
+            foreach ($absentEmployees as $employee) {
+                $this->createAbsenceRecords($headerId, $employee, $date);
+            }
+
+        } catch (Exception $e) {
+            $this->stats['absences_errors']++;
+            $this->errors[] = "Error procesando día {$date}: " . $e->getMessage();
+            error_log("Error processAbsentDay {$date}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crear header de asistencia para día con ausencias
+     *
+     * @param string $date Fecha (Y-m-d)
+     * @param int $totalAbsent Total de empleados ausentes
+     * @return int|false ID del header creado o false si falla
+     */
+    private function createAbsenceHeader($date, $totalAbsent)
+    {
+        try {
+            $headerModel = new AttendanceHeader();
+
+            $headerData = [
+                'attendance_date' => $date,
+                'device_id' => null,
+                'total_records' => $totalAbsent,
+                'total_employees' => $totalAbsent,
+                'total_on_time' => 0,
+                'total_late' => 0,
+                'total_absent' => $totalAbsent,
+                'is_processed' => 1,
+                'processed_at' => date('Y-m-d H:i:s'),
+                'processed_by' => null,
+                'sync_batch_id' => $this->syncLogId,
+                'synced_from' => 'API',
+                'notes' => 'Ausencias detectadas automáticamente - sin marcaciones en API'
+            ];
+
+            return $headerModel->create($headerData);
+
+        } catch (Exception $e) {
+            error_log("Error createAbsenceHeader: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Crear registros de ausencia en attendance_detail y attendance_absence_log
+     *
+     * @param int $headerId ID del header
+     * @param array $employee Datos del empleado
+     * @param string $date Fecha de la ausencia
+     * @return void
+     */
+    private function createAbsenceRecords($headerId, $employee, $date)
+    {
+        try {
+            $detailModel = new AttendanceDetail();
+
+            // 1. Verificar si ya existe el detalle para evitar duplicados
+            if ($detailModel->exists($headerId, $employee['id'])) {
+                $this->log("Ya existe detalle para empleado {$employee['id']} en header {$headerId}");
+                return;
+            }
+
+            // 2. Crear registro en attendance_detail
+            $detailData = [
+                'header_id' => $headerId,
+                'employee_id' => $employee['id'],
+                'schedule_id' => null,
+                'time_in' => null,
+                'time_out' => null,
+                'scheduled_time_in' => null,
+                'scheduled_time_out' => null,
+                'device_id' => null,
+                'external_id' => null,
+                'tardiness_minutes' => 0,
+                'is_late' => 0,
+                'early_departure_minutes' => 0,
+                'hours_worked' => 0,
+                'status' => 'ABSENT',
+                'justification_type' => null,
+                'justification_notes' => null,
+                'justification_document' => null,
+                'notes' => 'Ausencia detectada automáticamente - sin marcación en API'
+            ];
+
+            $detailId = $detailModel->create($detailData);
+
+            if ($detailId) {
+                $this->log("Detalle creado ID {$detailId} para empleado {$employee['id']} ({$employee['firstname']} {$employee['lastname']})");
+                $this->stats['missing_days_detected']++;
+            }
+
+            // 3. Crear registro en attendance_absence_log
+            $absence = [
+                'employee_id' => $employee['id'],
+                'date' => $date,
+                'absence_type' => 'UNJUSTIFIED',
+                'is_working_day' => true,
+                'day_type' => 'LABORAL',
+                'detected_at' => date('Y-m-d H:i:s'),
+                'detection_method' => 'AUTO_SYNC'
+            ];
+
+            $this->absenceDetector->saveAbsence($absence);
+            $this->stats['absences_created']++;
+
+        } catch (Exception $e) {
+            $this->stats['absences_errors']++;
+            $this->errors[] = "Error creando registros de ausencia para empleado {$employee['id']} en {$date}: " . $e->getMessage();
+            error_log("Error createAbsenceRecords: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener empleados activos que deben marcar asistencia
+     *
+     * @return array Array de empleados con marca_asistencia = 1
+     */
+    private function getActiveMarkingEmployees()
+    {
+        try {
+            $sql = "SELECT id, firstname, lastname, employee_id, email, fecha_ingreso
+                    FROM employees
+                    WHERE marca_asistencia = 1
+                    AND (termination_date IS NULL OR termination_date >= ?)
+                    ORDER BY id";
+
+            // Usamos min_date como referencia para verificar si estaban activos
+            $results = $this->db->findAll($sql, [$this->stats['min_date']]);
+
+            return $results ?: [];
+
+        } catch (Exception $e) {
+            error_log("Error getActiveMarkingEmployees: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Verificar si un empleado estaba activo en una fecha específica
+     *
+     * @param array $employee Datos del empleado
+     * @param string $date Fecha a verificar (Y-m-d)
+     * @return bool
+     */
+    private function isEmployeeActiveOnDate($employee, $date)
+    {
+        // Verificar fecha de ingreso
+        $fechaIngreso = $employee['fecha_ingreso'] ?? null;
+        if ($fechaIngreso && $date < $fechaIngreso) {
+            return false;
+        }
+
+        // Si llegó hasta acá, está activo
+        return true;
+    }
+
+    /**
+     * Verificar si existe marcación para un empleado en una fecha
+     *
+     * @param int $employeeId ID del empleado
+     * @param string $date Fecha a verificar (Y-m-d)
+     * @return bool True si tiene marcación, False si no
+     */
+    private function hasAttendanceRecord($employeeId, $date)
+    {
+        try {
+            $sql = "SELECT COUNT(*) as count
+                    FROM attendance_records
+                    WHERE employee_id = ?
+                    AND punch_date = ?
+                    LIMIT 1";
+
+            $result = $this->db->find($sql, [$employeeId, $date]);
+
+            return isset($result['count']) && $result['count'] > 0;
+
+        } catch (Exception $e) {
+            error_log("Error hasAttendanceRecord: " . $e->getMessage());
+            return false;
+        }
+    }
+
 }
