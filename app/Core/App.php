@@ -682,6 +682,10 @@ class App
                                     } elseif ($url[2] === 'import' && method_exists($this->controller, 'import')) {
                                         $this->method = 'import';
                                         $this->params = array_slice($url, 3);
+                                    } elseif (method_exists($this->controller, $url[2])) {
+                                        // Fallback genérico para POST: si el método existe en el controlador, llamarlo
+                                        $this->method = $url[2];
+                                        $this->params = array_slice($url, 3);
                                     }
                                 } else {
                                     // Para GET, usar lógica normal

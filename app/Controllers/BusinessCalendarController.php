@@ -255,13 +255,21 @@ class BusinessCalendarController extends Controller
      */
     public function initializeYear()
     {
+        error_log("BusinessCalendarController::initializeYear - METHOD CALLED");
+        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            error_log("BusinessCalendarController::initializeYear - NOT POST, redirecting");
             $this->redirect(UrlHelper::route('panel/business-calendar'));
         }
 
+        error_log("BusinessCalendarController::initializeYear - Validating CSRF");
         AuthMiddleware::validateCSRF();
+        error_log("BusinessCalendarController::initializeYear - CSRF validated");
 
         $data = Security::sanitizeInput($_POST);
+        error_log("BusinessCalendarController::initializeYear - POST data sanitized: " . json_encode($data));
+
         $businessCalendar = $this->model('BusinessCalendar');
 
         // Validación
