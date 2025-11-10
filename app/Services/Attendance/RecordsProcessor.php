@@ -609,10 +609,10 @@ class RecordsProcessor
             $upToDate = date('Y-m-d');
         }
 
-        // Obtener fecha del registro más antiguo sin procesar
+        // Obtener fecha del registro más antiguo
         $sql = "SELECT MIN(punch_date) as oldest_date
                 FROM attendance_records
-                WHERE is_processed = 0 AND is_duplicate = 0";
+                WHERE is_duplicate = 0";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

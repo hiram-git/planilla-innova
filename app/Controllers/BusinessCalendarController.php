@@ -51,11 +51,31 @@ class BusinessCalendarController extends Controller
             ];
         }
 
+        // Obtener TODOS los días del año para badges
+        $sqlAllDays = "SELECT date_value, day_type, description, status
+                       FROM business_calendar
+                       WHERE year_value = ?
+                       ORDER BY date_value";
+
+        $allDays = $businessCalendar->db->findAll($sqlAllDays, [$year]);
+
+        // Indexar por fecha para acceso rápido
+        $daysByDate = [];
+        foreach ($allDays as $day) {
+            $daysByDate[$day['date_value']] = [
+                'day_type' => $day['day_type'],
+                'description' => $day['description'] ?? '',
+                'status' => $day['status']
+            ];
+        }
+
         $data = [
             'title' => 'Calendario Empresarial',
             'page_title' => 'Calendario Empresarial',
             'year' => $year,
             'calendar_events' => $calendarEvents,
+            'days_by_date' => $daysByDate,
+            'day_type_colors' => $colors,
             'csrf_token' => AuthMiddleware::generateCSRF()
         ];
 

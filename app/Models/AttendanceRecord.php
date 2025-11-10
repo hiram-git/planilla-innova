@@ -156,8 +156,7 @@ class AttendanceRecord
                        e.employee_id as employee_code
                 FROM {$this->table} r
                 INNER JOIN employees e ON r.employee_id = e.id
-                WHERE r.is_processed = 0
-                  AND r.is_duplicate = 0";
+                WHERE r.is_duplicate = 0";
 
         $params = [];
 
@@ -199,8 +198,7 @@ class AttendanceRecord
                     GROUP_CONCAT(r.id ORDER BY r.timestamp) as record_ids
                 FROM {$this->table} r
                 INNER JOIN employees e ON r.employee_id = e.id
-                WHERE r.is_processed = 0
-                  AND r.is_duplicate = 0";
+                WHERE r.is_duplicate = 0";
 
         $params = [];
 
@@ -269,7 +267,6 @@ class AttendanceRecord
                     detail_id = ?
                 WHERE employee_id = ?
                   AND punch_date = ?
-                  AND is_processed = 0
                   AND is_duplicate = 0";
 
         $stmt = $this->db->prepare($sql);
@@ -294,8 +291,7 @@ class AttendanceRecord
                 SET is_processed = 1,
                     processed_at = NOW(),
                     detail_id = ?
-                WHERE id IN ($placeholders)
-                  AND is_processed = 0";
+                WHERE id IN ($placeholders)";
 
         $params = array_merge([$detailId], $recordIds);
 

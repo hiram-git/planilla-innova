@@ -1,9 +1,9 @@
 # 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📝 **Estado Actual - V3.5.5 Almuerzo en Asistencias**
+## 📝 **Estado Actual - V3.5.5 Almuerzo en Asistencias + Proceso Unificado**
 - **Fecha**: 3 de Noviembre, 2025
 - **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + CALENDARIO + API ASISTENCIAS + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 90% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35%**
-- **Versión**: 3.5.5 - Marcaciones de almuerzo (salida/entrada), cálculos y UI en detalle asistencias
+- **Versión**: 3.5.5 - Marcaciones de almuerzo (salida/entrada), cálculos y UI en detalle asistencias + proceso del día unificado
 - **Versión Anterior**: 3.5.4 - Reportes de marcaciones y mejoras UI planillas
 
 ## 🎯 **Sistema**
@@ -25,12 +25,16 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **API Asistencias Base44 V3.4.0**: Cliente API + sincronización automática + webhook + 3 tablas BD
 - ✅ **Sistema Asistencias V3.4.1-3.5.5**: Migraciones BD + Vistas separadas + Calculadores Core + UI integración + AlertsSystem + PayrollAttendanceIntegrator + Mapeo automático + Procesamiento batch día + Reprocess + Almuerzo (90% Subfases 7.1-7.4 completadas | 85% Subfase 7.2 | 35% Subfase 7.5)
 
-### 🆕 V3.5.5 - Almuerzo en Asistencias
+### 🆕 V3.5.5 - Almuerzo en Asistencias + Proceso Unificado
 - DB: `schedules` añade `salida_almuerzo`/`entrada_almuerzo`; `attendance_detail` añade campos de almuerzo + índices
 - Trigger: `trg_calculate_lunch_duration` para duración/exceso de almuerzo
 - Processor: clasifica 4 marcaciones cuando el horario lo define; estado requiere 4 si aplica
 - Calculator: descuenta almuerzo de horas trabajadas y añade métricas (`lunch_duration_minutes`, `lunch_exceeded_minutes`)
 - UI: nuevas columnas y campos en el modal de edición en detalle de asistencias
+- Process Day: consolida `attendance_records` → `attendance_detail` (marca records como procesados) y respeta `employees.marca_asistencia = 1`
+- Modal: checklist de opciones (procesar registros, detectar ausencias, marcar omisiones, recalcular métricas)
+- Ausencias: guardan `schedule_id`; sólo se detectan para empleados que marcan
+- Fix infra: `AttendanceHeader::getById()` para soporte en reconstrucción de DATETIME (almuerzos) durante actualización
 - ✅ **Hotfix V3.5.1**: Fix crítico synced_from ENUM + data cleanup + normalización timestamp API Base44 + CSRF dispositivos + deployment scripts
 
 ## 📄 **Sistemas Auxiliares Implementados**

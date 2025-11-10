@@ -669,10 +669,30 @@ class AttendanceSyncService
      */
     private function detectMissingAttendanceRecords()
     {
-        // Solo ejecutar si hay rango detectado
-        if (!$this->stats['min_date'] || !$this->stats['max_date']) {
-            $this->log("Detección de ausencias: No hay rango de fechas para analizar");
-            return;
+        // Determinar rango de fechas para análisis de ausencias
+        $today = date('Y-m-d');
+        $sevenDaysAgo = date('Y-m-d', strtotime('-7 days'));
+
+        // Si no hay rango detectado desde marcaciones, usar últimos 7 días hasta hoy
+        if (!$this->stats['min_date']) {
+            $this->stats['min_date'] = $sevenDaysAgo;
+            $this->log("No hay marcaciones, usando rango por defecto: últimos 7 días");
+        }
+
+        // Asegurar que el rango cubra al menos los últimos 7 días
+        // Esto es importante para sincronizaciones de "día actual" que solo analizan hoy
+        if ($this->stats['min_date'] > $sevenDaysAgo) {
+            $originalMinDate = $this->stats['min_date'];
+            $this->stats['min_date'] = $sevenDaysAgo;
+            $this->log("Extendiendo rango hacia atrás. Original: {$originalMinDate}, Nuevo: {$sevenDaysAgo} (últimos 7 días)");
+        }
+
+        // Siempre extender hasta hoy para detectar ausencias recientes
+        // Esto asegura que se detecten días laborables sin marcaciones
+        if (!$this->stats['max_date'] || $this->stats['max_date'] < $today) {
+            $originalMaxDate = $this->stats['max_date'] ?? 'N/A';
+            $this->stats['max_date'] = $today;
+            $this->log("Extendiendo rango hasta hoy. Original: {$originalMaxDate}, Nuevo: {$today}");
         }
 
         $this->log("Iniciando detección de ausencias para período: {$this->stats['min_date']} - {$this->stats['max_date']}");
@@ -891,14 +911,19 @@ class AttendanceSyncService
     private function getActiveMarkingEmployees()
     {
         try {
+            // Usar max_date (que ahora es hoy) como referencia
+            // Esto incluye empleados activos al final del período
+            $referenceDate = $this->stats['max_date'] ?? date('Y-m-d');
+
             $sql = "SELECT id, firstname, lastname, employee_id, email, fecha_ingreso
                     FROM employees
                     WHERE marca_asistencia = 1
                     AND (termination_date IS NULL OR termination_date >= ?)
                     ORDER BY id";
 
-            // Usamos min_date como referencia para verificar si estaban activos
-            $results = $this->db->findAll($sql, [$this->stats['min_date']]);
+            $results = $this->db->findAll($sql, [$referenceDate]);
+
+            $this->log("Empleados con marca_asistencia encontrados: " . count($results) . " (referencia: {$referenceDate})");
 
             return $results ?: [];
 

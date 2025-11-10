@@ -35,25 +35,33 @@ $content = '
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-info-circle mr-2"></i>
-                    Leyenda
+                    Leyenda de Badges
                 </h3>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-2">
-                        <span class="badge badge-success mr-2">■</span> Días Laborables
+                        <span class="badge badge-success mr-2">Lab</span> Días Laborables
                     </div>
                     <div class="col-md-2">
-                        <span class="badge badge-danger mr-2">■</span> Feriados Nacionales
+                        <span class="badge badge-secondary mr-2">Desc</span> Fines de Semana
                     </div>
                     <div class="col-md-2">
-                        <span class="badge badge-secondary mr-2">■</span> Fines de Semana
+                        <span class="badge badge-danger mr-2">Fer</span> Feriados Nacionales
                     </div>
                     <div class="col-md-2">
-                        <span class="badge badge-dark mr-2">■</span> Duelo Nacional
+                        <span class="badge badge-dark mr-2">Duelo</span> Duelo Nacional
                     </div>
                     <div class="col-md-2">
-                        <span class="badge badge-info mr-2">■</span> Días Especiales
+                        <span class="badge badge-info mr-2">Esp</span> Días Especiales
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <small class="text-muted">
+                            <i class="fas fa-tag mr-1"></i>
+                            Cada día del calendario muestra un badge indicando su tipo. Los eventos especiales aparecen además como eventos completos.
+                        </small>
                     </div>
                 </div>
             </div>
@@ -96,12 +104,54 @@ $content = '
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/es.global.min.js"></script>
 
+<style>
+    .fc-daygrid-day-top {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    .day-type-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        margin-top: 2px;
+        margin-left: 2px;
+        font-weight: 600;
+        border-radius: 3px;
+        display: inline-block;
+    }
+    .badge-laboral { background-color: #28a745; color: white; }
+    .badge-no-laboral { background-color: #6c757d; color: white; }
+    .badge-feriado { background-color: #dc3545; color: white; }
+    .badge-duelo { background-color: #343a40; color: white; }
+    .badge-especial { background-color: #17a2b8; color: white; }
+</style>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     var calendarEl = document.getElementById("calendar");
 
     // Eventos del calendario
     var eventsData = ' . json_encode($calendar_events) . ';
+
+    // Días indexados por fecha
+    var daysByDate = ' . json_encode($days_by_date) . ';
+
+    // Mapeo de tipos de día a clases CSS
+    var dayTypeClasses = {
+        "LABORAL": "badge-laboral",
+        "NO_LABORAL": "badge-no-laboral",
+        "FERIADO": "badge-feriado",
+        "DUELO_NACIONAL": "badge-duelo",
+        "ESPECIAL": "badge-especial"
+    };
+
+    // Mapeo de tipos de día a etiquetas cortas
+    var dayTypeLabels = {
+        "LABORAL": "Lab",
+        "NO_LABORAL": "Desc",
+        "FERIADO": "Fer",
+        "DUELO_NACIONAL": "Duelo",
+        "ESPECIAL": "Esp"
+    };
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
         locale: "es",
@@ -146,6 +196,32 @@ document.addEventListener("DOMContentLoaded", function() {
 
             document.getElementById("modalDayDetailBody").innerHTML = html;
             $("#modalDayDetail").modal("show");
+        },
+        // Agregar badges en cada celda del día
+        dayCellDidMount: function(info) {
+            // Obtener fecha en formato YYYY-MM-DD
+            var dateStr = info.date.toISOString().split("T")[0];
+
+            // Buscar información del día
+            var dayInfo = daysByDate[dateStr];
+
+            if (dayInfo && dayInfo.day_type) {
+                var dayType = dayInfo.day_type;
+                var badgeClass = dayTypeClasses[dayType] || "badge-secondary";
+                var badgeLabel = dayTypeLabels[dayType] || dayType;
+
+                // Crear badge
+                var badge = document.createElement("span");
+                badge.className = "day-type-badge " + badgeClass;
+                badge.textContent = badgeLabel;
+                badge.title = dayType + (dayInfo.description ? ": " + dayInfo.description : "");
+
+                // Agregar al contenedor del día
+                var dayTop = info.el.querySelector(".fc-daygrid-day-top");
+                if (dayTop) {
+                    dayTop.appendChild(badge);
+                }
+            }
         },
         // Personalización visual
         dayMaxEvents: true,
