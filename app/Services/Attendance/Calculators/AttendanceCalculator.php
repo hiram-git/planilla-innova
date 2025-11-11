@@ -65,7 +65,12 @@ class AttendanceCalculator
         // Verificar tipo de día (laboral, feriado, etc.)
         $dayInfo = $this->overtimeCalculator->checkHolidayStatus($date);
 
-        // Si no hay salida, no podemos calcular horas
+        // Si NO hay entrada NI salida, es AUSENTE
+        if (empty($timeIn) && empty($timeOut)) {
+            return $this->getAbsentCalculation($attendance, $schedule, $dayInfo);
+        }
+
+        // Si no hay salida, no podemos calcular horas (marcación incompleta)
         if (empty($timeOut)) {
             return $this->getPartialCalculation($attendance, $schedule, $dayInfo);
         }
@@ -497,6 +502,56 @@ class AttendanceCalculator
             'punctuality_score' => 0,
             'notes' => 'Sin hora de salida registrada',
             'calculation_details' => json_encode(['status' => 'incomplete', 'reason' => 'no_time_out']),
+            'calculation_version' => 'v1.0',
+            'calculated_at' => date('Y-m-d H:i:s')
+        ];
+    }
+
+    /**
+     * Retornar cálculo para ausencia (sin marcaciones)
+     *
+     * @param array $attendance
+     * @param array|null $schedule
+     * @param array $dayInfo
+     * @return array
+     */
+    private function getAbsentCalculation($attendance, $schedule, $dayInfo)
+    {
+        return [
+            'attendance_detail_id' => $attendance['id'],
+            'employee_id' => $attendance['employee_id'],
+            'date' => $attendance['date'],
+            'schedule_id' => $schedule['schedule_id'] ?? null,
+            'time_in' => null,
+            'time_out' => null,
+            'lunch_out' => null,
+            'lunch_in' => null,
+            'scheduled_time_in' => $schedule['time_in'] ?? null,
+            'scheduled_time_out' => $schedule['time_out'] ?? null,
+            'scheduled_lunch_out' => $schedule['salida_almuerzo'] ?? null,
+            'scheduled_lunch_in' => $schedule['entrada_almuerzo'] ?? null,
+            'total_hours' => 0,
+            'regular_hours' => 0,
+            'overtime_hours' => 0,
+            'overtime_25_hours' => 0,
+            'overtime_50_hours' => 0,
+            'night_hours' => 0,
+            'holiday_hours' => 0,
+            'tardiness_minutes' => 0,
+            'is_late' => 0,
+            'early_departure_minutes' => 0,
+            'is_absent' => 1, // MARCADO COMO AUSENTE
+            'absence_type' => 'UNJUSTIFIED',
+            'is_working_day' => $dayInfo['day_type'] === 'LABORAL' ? 1 : 0,
+            'is_holiday' => $dayInfo['is_holiday'] ? 1 : 0,
+            'is_weekend' => $this->isWeekend($attendance['date']) ? 1 : 0,
+            'day_type' => $dayInfo['day_type'],
+            'lunch_time_minutes' => 0,
+            'lunch_exceeded_minutes' => 0,
+            'is_perfect_attendance' => 0,
+            'punctuality_score' => 0,
+            'notes' => 'Ausencia - Sin marcaciones registradas',
+            'calculation_details' => json_encode(['status' => 'absent', 'reason' => 'no_punches']),
             'calculation_version' => 'v1.0',
             'calculated_at' => date('Y-m-d H:i:s')
         ];

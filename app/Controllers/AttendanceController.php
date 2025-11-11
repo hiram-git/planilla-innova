@@ -748,6 +748,21 @@ class AttendanceController extends Controller
             // Guardar en BD
             $calculationId = $this->attendanceCalculator->saveCalculation($calculation);
 
+            // Actualizar estado en attendance_detail basándose en el cálculo
+            $newStatus = 'PRESENT'; // Por defecto
+            if ($calculation['is_absent'] == 1) {
+                $newStatus = 'ABSENT';
+            } elseif (empty($calculation['time_out'])) {
+                $newStatus = 'INCOMPLETE';
+            }
+
+            $this->detailModel->update($detailId, [
+                'status' => $newStatus,
+                'hours_worked' => $calculation['total_hours'],
+                'is_late' => $calculation['is_late'],
+                'tardiness_minutes' => $calculation['tardiness_minutes']
+            ]);
+
             // Devolver TODOS los datos necesarios para el modal
             return $this->jsonResponse([
                 'success' => true,
@@ -922,12 +937,31 @@ class AttendanceController extends Controller
                     'employee_id' => $detail['employee_id'],
                     'date' => $date,
                     'time_in' => $detail['time_in'],
-                    'time_out' => $detail['time_out']
+                    'time_out' => $detail['time_out'],
+                    'lunch_out' => $detail['lunch_out'] ?? null,
+                    'lunch_in' => $detail['lunch_in'] ?? null
                 ];
             }
 
             // Procesar en batch
             $result = $this->attendanceCalculator->calculateAndSaveBulk($attendances, true);
+
+            // Actualizar estados en attendance_detail basándose en los cálculos
+            foreach ($result['calculations'] as $calculation) {
+                $newStatus = 'PRESENT'; // Por defecto
+                if ($calculation['is_absent'] == 1) {
+                    $newStatus = 'ABSENT';
+                } elseif (empty($calculation['time_out'])) {
+                    $newStatus = 'INCOMPLETE';
+                }
+
+                $this->detailModel->update($calculation['attendance_detail_id'], [
+                    'status' => $newStatus,
+                    'hours_worked' => $calculation['total_hours'],
+                    'is_late' => $calculation['is_late'],
+                    'tardiness_minutes' => $calculation['tardiness_minutes']
+                ]);
+            }
 
             return $this->jsonResponse([
                 'success' => true,
@@ -1328,6 +1362,23 @@ class AttendanceController extends Controller
                 $stats['calculations_processed'] = $calcResult['stats']['total_processed'];
                 $stats['calculations_saved'] = $calcResult['stats']['saved'];
                 $stats['calculations_errors'] = $calcResult['stats']['errors'];
+
+                // Actualizar estados en attendance_detail basándose en los cálculos
+                foreach ($calcResult['calculations'] as $calculation) {
+                    $newStatus = 'PRESENT'; // Por defecto
+                    if ($calculation['is_absent'] == 1) {
+                        $newStatus = 'ABSENT';
+                    } elseif (empty($calculation['time_out'])) {
+                        $newStatus = 'INCOMPLETE';
+                    }
+
+                    $this->detailModel->update($calculation['attendance_detail_id'], [
+                        'status' => $newStatus,
+                        'hours_worked' => $calculation['total_hours'],
+                        'is_late' => $calculation['is_late'],
+                        'tardiness_minutes' => $calculation['tardiness_minutes']
+                    ]);
+                }
             }
 
             // 7. Actualizar estadísticas del header
