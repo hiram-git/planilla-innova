@@ -1252,6 +1252,59 @@ class AttendanceController extends Controller
                 ];
             }
 
+            // Verificar si el día es domingo según el calendario empresarial
+            // Si es domingo (is_weekend = 1), saltar sin crear cabecera
+            try {
+                $calendar = new \App\Models\BusinessCalendar();
+                $dayInfo = $calendar->getDayInfo($date);
+
+                // Si es domingo o fin de semana, saltar este día
+                if ($dayInfo && $dayInfo['is_weekend'] == 1) {
+                    return [
+                        'success' => true,
+                        'message' => 'Día saltado (Domingo/Fin de semana)',
+                        'data' => [
+                            'records_found' => 0,
+                            'details_updated' => 0,
+                            'absences_detected' => 0,
+                            'absences_created' => 0,
+                            'omissions_detected' => 0,
+                            'omissions_marked' => 0,
+                            'calculations_processed' => 0,
+                            'calculations_saved' => 0,
+                            'calculations_errors' => 0,
+                            'total_employees' => 0,
+                            'skipped' => true,
+                            'reason' => 'Domingo/Fin de semana'
+                        ]
+                    ];
+                }
+            } catch (\Exception $e) {
+                error_log("Error checking calendar for Sunday: " . $e->getMessage());
+                // Si hay error, verificar por día de semana
+                $dayOfWeek = date('N', strtotime($date)); // 7 = Domingo
+                if ($dayOfWeek == 7) {
+                    return [
+                        'success' => true,
+                        'message' => 'Día saltado (Domingo)',
+                        'data' => [
+                            'records_found' => 0,
+                            'details_updated' => 0,
+                            'absences_detected' => 0,
+                            'absences_created' => 0,
+                            'omissions_detected' => 0,
+                            'omissions_marked' => 0,
+                            'calculations_processed' => 0,
+                            'calculations_saved' => 0,
+                            'calculations_errors' => 0,
+                            'total_employees' => 0,
+                            'skipped' => true,
+                            'reason' => 'Domingo'
+                        ]
+                    ];
+                }
+            }
+
             // Estadísticas del procesamiento
             $stats = [
                 'records_found' => 0,
