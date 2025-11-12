@@ -316,6 +316,12 @@ class App
                                     $this->params = [];
                                     call_user_func_array([$this->controller, $this->method], $this->params);
                                     return;
+                                } elseif ($url[2] === 'process-range' && method_exists($this->controller, 'processRange')) {
+                                    // POST: /panel/attendance/process-range
+                                    $this->method = 'processRange';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
                                 } elseif ($url[2] === 'process-records' && method_exists($this->controller, 'processRecords')) {
                                     // POST: /panel/attendance/process-records
                                     $this->method = 'processRecords';

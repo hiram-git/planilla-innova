@@ -209,31 +209,39 @@ $topAbsentEmployees = $report['top_absent_employees'] ?? [];
                                 <td><?= date('d/m/Y', strtotime($absence['absence_date'])) ?></td>
                                 <td>
                                     <?php
+                                    // Determinar tipo según status y si tiene justificación
+                                    $hasJustification = !empty($absence['justification_type']);
                                     $typeClass = '';
                                     $typeText = '';
-                                    switch ($absence['absence_type']) {
-                                        case 'JUSTIFIED':
-                                            $typeClass = 'success';
-                                            $typeText = 'Justificada';
-                                            break;
-                                        case 'UNJUSTIFIED':
-                                            $typeClass = 'danger';
-                                            $typeText = 'Injustificada';
-                                            break;
-                                        case 'PENDING':
-                                            $typeClass = 'warning';
-                                            $typeText = 'Pendiente';
-                                            break;
-                                        default:
-                                            $typeClass = 'secondary';
-                                            $typeText = $absence['absence_type'];
+
+                                    if ($absence['status'] === 'JUSTIFIED' || $hasJustification) {
+                                        $typeClass = 'success';
+                                        $typeText = 'Justificada';
+                                    } else {
+                                        $typeClass = 'danger';
+                                        $typeText = 'Injustificada';
                                     }
                                     ?>
                                     <span class="badge badge-<?= $typeClass ?>"><?= $typeText ?></span>
                                 </td>
                                 <td>
-                                    <?php if ($absence['justified'] && $absence['justification_type']): ?>
-                                        <small><?= htmlspecialchars($absence['justification_type']) ?></small>
+                                    <?php if (!empty($absence['justification_type'])): ?>
+                                        <small>
+                                            <?php
+                                            $justTypes = [
+                                                'MEDICAL' => 'Médica',
+                                                'PERMISSION' => 'Permiso',
+                                                'VACATION' => 'Vacaciones',
+                                                'OTHER' => 'Otro'
+                                            ];
+                                            echo htmlspecialchars($justTypes[$absence['justification_type']] ?? $absence['justification_type']);
+                                            ?>
+                                        </small>
+                                        <?php if (!empty($absence['justification_notes'])): ?>
+                                            <br><small class="text-muted"><?= htmlspecialchars($absence['justification_notes']) ?></small>
+                                        <?php endif; ?>
+                                    <?php elseif (!empty($absence['notes'])): ?>
+                                        <small class="text-muted"><?= htmlspecialchars($absence['notes']) ?></small>
                                     <?php else: ?>
                                         <span class="text-muted">-</span>
                                     <?php endif; ?>

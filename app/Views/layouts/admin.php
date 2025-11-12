@@ -54,6 +54,9 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
+    <!-- Date Range Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+
     <!-- Custom Component Styles -->
     <?= $navbarStyles ?>
     <?= $sidebarStyles ?>
@@ -372,7 +375,14 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
+    <!-- Moment.js (requerido por daterangepicker) -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/locale/es.js"></script>
+
+    <!-- Date Range Picker -->
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
     <!-- Global Scripts -->
     <script>
     $(document).ready(function() {

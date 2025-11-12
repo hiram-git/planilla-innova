@@ -412,6 +412,7 @@ class ReportsGenerator
      * Generar reporte detallado de ausencias
      * Incluye: ID, cédula, nombres, apellidos, departamento
      * Filtrado por tipo de planilla y ordenado por departamento
+     * ACTUALIZADO: Lee desde attendance_detail en lugar de attendance_absence_log
      *
      * @param string $startDate
      * @param string $endDate
@@ -421,15 +422,18 @@ class ReportsGenerator
     public function generateDetailedAbsencesReport($startDate, $endDate, $tipoPlanillaId = null)
     {
         try {
-            // Query con todos los campos necesarios
+            // Query con todos los campos necesarios desde attendance_detail
             $sql = "SELECT
-                        aal.id as absence_id,
-                        aal.absence_date,
-                        aal.absence_type,
-                        aal.justified,
-                        aal.justification_type,
-                        aal.justification_notes,
-                        aal.is_working_day,
+                        ad.id as absence_id,
+                        ah.attendance_date as absence_date,
+                        ad.status,
+                        ad.notes,
+                        ad.hours_worked,
+                        ad.is_late,
+                        ad.tardiness_minutes,
+                        ad.justification_type,
+                        ad.justification_notes,
+                        ad.justification_document,
                         e.id as employee_id,
                         e.employee_id as employee_code,
                         e.document_id as cedula,
@@ -440,12 +444,14 @@ class ReportsGenerator
                         org.id as departamento_id,
                         sit.descripcion as situacion,
                         pos.codigo as position_name
-                    FROM attendance_absence_log aal
-                    INNER JOIN employees e ON aal.employee_id = e.id
+                    FROM attendance_detail ad
+                    INNER JOIN attendance_header ah ON ad.header_id = ah.id
+                    INNER JOIN employees e ON ad.employee_id = e.id
                     LEFT JOIN organigrama org ON e.organigrama_id = org.id
                     LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                     LEFT JOIN posiciones pos ON e.position_id = pos.id
-                    WHERE aal.absence_date BETWEEN ? AND ?";
+                    WHERE ad.status = 'ABSENT'
+                    AND ah.attendance_date BETWEEN ? AND ?";
 
             $params = [$startDate, $endDate];
 
@@ -456,7 +462,7 @@ class ReportsGenerator
             }
 
             // Ordenar por departamento y luego por apellido
-            $sql .= " ORDER BY org.descripcion, e.lastname, e.firstname";
+            $sql .= " ORDER BY org.descripcion, e.lastname, e.firstname, ah.attendance_date";
 
             $stmt = $this->employeeModel->db->prepare($sql);
             $stmt->execute($params);
@@ -473,11 +479,23 @@ class ReportsGenerator
             }
 
             // Estadísticas generales
+            // Contar justificadas/injustificadas según el campo justification_type o status
+            $justified = 0;
+            $unjustified = 0;
+
+            foreach ($absences as $absence) {
+                if ($absence['status'] === 'JUSTIFIED' || !empty($absence['justification_type'])) {
+                    $justified++;
+                } else {
+                    $unjustified++;
+                }
+            }
+
             $stats = [
                 'total_absences' => count($absences),
-                'justified' => count(array_filter($absences, fn($a) => $a['absence_type'] === 'JUSTIFIED')),
-                'unjustified' => count(array_filter($absences, fn($a) => $a['absence_type'] === 'UNJUSTIFIED')),
-                'pending' => count(array_filter($absences, fn($a) => $a['absence_type'] === 'PENDING')),
+                'justified' => $justified,
+                'unjustified' => $unjustified,
+                'pending' => 0, // attendance_detail no tiene estado pendiente
                 'affected_employees' => count(array_unique(array_column($absences, 'employee_id'))),
                 'departments_affected' => count($byDepartment)
             ];
@@ -509,7 +527,10 @@ class ReportsGenerator
             // Agregar contador total a cada empleado
             foreach ($topAbsentEmployees as &$emp) {
                 $emp['total_absences'] = count($emp['absences']);
-                $emp['unjustified_count'] = count(array_filter($emp['absences'], fn($a) => $a['absence_type'] === 'UNJUSTIFIED'));
+                // Contar solo las injustificadas (sin justification_type y status != 'JUSTIFIED')
+                $emp['unjustified_count'] = count(array_filter($emp['absences'], function($a) {
+                    return $a['status'] !== 'JUSTIFIED' && empty($a['justification_type']);
+                }));
             }
 
             return [

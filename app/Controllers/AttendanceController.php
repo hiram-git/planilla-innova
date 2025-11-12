@@ -1111,26 +1111,145 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Procesar día completo: detectar ausencias, omisiones y calcular métricas (AJAX)
-     * Proceso integral que:
-     * 1. Busca registros en attendance_records y reconstruye attendance_detail
-     * 2. Detecta empleados sin marcación y crea registros de AUSENCIA
-     * 3. Detecta marcaciones incompletas (solo entrada o salida) y las marca como OMISIÓN
-     * 4. Calcula métricas para marcaciones completas
+     * Procesar rango de fechas completo (AJAX)
+     * Itera sobre todas las fechas del rango y procesa cada día
+     * Similar a processDay() pero para múltiples fechas
      *
      * @return array JSON response
      */
-    public function processDay()
+    public function processRange()
     {
         try {
-            $date = $_POST['date'] ?? null;
-            $tipoPlanillaId = $_POST['tipo_planilla_id'] ?? null; // Solo para logging, no para filtrar
+            $startDate = $_POST['start_date'] ?? null;
+            $endDate = $_POST['end_date'] ?? null;
 
-            if (!$date) {
+            if (!$startDate || !$endDate) {
                 return $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Debe especificar una fecha.'
+                    'message' => 'Debe especificar fecha de inicio y fin.'
                 ]);
+            }
+
+            // Validar que start_date sea menor o igual a end_date
+            if (strtotime($startDate) > strtotime($endDate)) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'La fecha de inicio debe ser menor o igual a la fecha de fin.'
+                ]);
+            }
+
+            // Opciones de procesamiento desde el formulario
+            $processRecords = isset($_POST['process_records']) ? (int)$_POST['process_records'] : 1;
+            $detectAbsences = isset($_POST['detect_absences']) ? (int)$_POST['detect_absences'] : 1;
+            $markOmissions = isset($_POST['mark_omissions']) ? (int)$_POST['mark_omissions'] : 1;
+            $recalculate = isset($_POST['recalculate']) ? (int)$_POST['recalculate'] : 1;
+
+            // Estadísticas consolidadas del rango
+            $rangeStats = [
+                'days_processed' => 0,
+                'days_with_errors' => 0,
+                'total_records_found' => 0,
+                'total_details_updated' => 0,
+                'total_absences_detected' => 0,
+                'total_absences_created' => 0,
+                'total_omissions_detected' => 0,
+                'total_omissions_marked' => 0,
+                'total_calculations_processed' => 0,
+                'total_calculations_saved' => 0,
+                'total_calculations_errors' => 0,
+                'errors' => []
+            ];
+
+            // Iterar sobre cada día del rango
+            $currentDate = $startDate;
+            while (strtotime($currentDate) <= strtotime($endDate)) {
+                try {
+                    // Simular $_POST para processDay
+                    $_POST['date'] = $currentDate;
+                    $_POST['process_records'] = $processRecords;
+                    $_POST['detect_absences'] = $detectAbsences;
+                    $_POST['mark_omissions'] = $markOmissions;
+                    $_POST['recalculate'] = $recalculate;
+
+                    // Procesar el día
+                    $dayResult = $this->processSingleDay($currentDate, $processRecords, $detectAbsences, $markOmissions, $recalculate);
+
+                    if ($dayResult['success']) {
+                        $rangeStats['days_processed']++;
+
+                        // Sumar estadísticas del día
+                        $rangeStats['total_records_found'] += $dayResult['data']['records_found'] ?? 0;
+                        $rangeStats['total_details_updated'] += $dayResult['data']['details_updated'] ?? 0;
+                        $rangeStats['total_absences_detected'] += $dayResult['data']['absences_detected'] ?? 0;
+                        $rangeStats['total_absences_created'] += $dayResult['data']['absences_created'] ?? 0;
+                        $rangeStats['total_omissions_detected'] += $dayResult['data']['omissions_detected'] ?? 0;
+                        $rangeStats['total_omissions_marked'] += $dayResult['data']['omissions_marked'] ?? 0;
+                        $rangeStats['total_calculations_processed'] += $dayResult['data']['calculations_processed'] ?? 0;
+                        $rangeStats['total_calculations_saved'] += $dayResult['data']['calculations_saved'] ?? 0;
+                        $rangeStats['total_calculations_errors'] += $dayResult['data']['calculations_errors'] ?? 0;
+                    } else {
+                        $rangeStats['days_with_errors']++;
+                        $rangeStats['errors'][] = [
+                            'date' => $currentDate,
+                            'message' => $dayResult['message'] ?? 'Error desconocido'
+                        ];
+                        error_log("Error processing date {$currentDate}: " . ($dayResult['message'] ?? 'Unknown error'));
+                    }
+
+                } catch (Exception $dayError) {
+                    $rangeStats['days_with_errors']++;
+                    $rangeStats['errors'][] = [
+                        'date' => $currentDate,
+                        'message' => $dayError->getMessage()
+                    ];
+                    error_log("Exception processing date {$currentDate}: " . $dayError->getMessage());
+                }
+
+                // Avanzar al siguiente día
+                $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
+            }
+
+            // Preparar mensaje de respuesta
+            $message = "Procesamiento completado. {$rangeStats['days_processed']} días procesados";
+            if ($rangeStats['days_with_errors'] > 0) {
+                $message .= " ({$rangeStats['days_with_errors']} con errores)";
+            }
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => $message,
+                'data' => $rangeStats
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error in processRange: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al procesar el rango: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Método interno para procesar un solo día
+     * Extrae la lógica de processDay() para reutilización
+     *
+     * @param string $date Fecha en formato Y-m-d
+     * @param int $processRecords 1 para procesar records, 0 para omitir
+     * @param int $detectAbsences 1 para detectar ausencias, 0 para omitir
+     * @param int $markOmissions 1 para marcar omisiones, 0 para omitir
+     * @param int $recalculate 1 para recalcular métricas, 0 para omitir
+     * @return array Resultado del procesamiento
+     */
+    private function processSingleDay($date, $processRecords = 1, $detectAbsences = 1, $markOmissions = 1, $recalculate = 1)
+    {
+        try {
+            if (!$date) {
+                return [
+                    'success' => false,
+                    'message' => 'Debe especificar una fecha.'
+                ];
             }
 
             // Estadísticas del procesamiento
@@ -1161,10 +1280,10 @@ class AttendanceController extends Controller
                 ]);
 
                 if (!$headerId) {
-                    return $this->jsonResponse([
+                    return [
                         'success' => false,
                         'message' => 'Error al crear cabecera del día.'
-                    ]);
+                    ];
                 }
 
                 $header = $this->headerModel->getById($headerId);
@@ -1172,15 +1291,8 @@ class AttendanceController extends Controller
 
             // Obtener set de empleados activos que marcan asistencia
             $markingEmployeeIds = $this->employeeModel->getActiveMarkingEmployeeIds();
-            $allowedIds = array_flip($markingEmployeeIds); // set para lookup O(1)
 
-            // Flags del checklist (UI)
-            $processRecords = isset($_POST['process_records']) ? (int)$_POST['process_records'] : 1;
-            $detectAbsences = isset($_POST['detect_absences']) ? (int)$_POST['detect_absences'] : 1;
-            $markOmissions = isset($_POST['mark_omissions']) ? (int)$_POST['mark_omissions'] : 1;
-            $recalculate = isset($_POST['recalculate']) ? (int)$_POST['recalculate'] : 1;
-
-            // 2. Procesar registros attendance_records → attendance_detail con RecordsProcessor (marca records como procesados)
+            // 2. Procesar registros attendance_records → attendance_detail con RecordsProcessor
             if ($processRecords) {
                 $procStats = $this->recordsProcessor->processDay($date);
                 $stats['records_found'] = $procStats['groups_processed'] ?? 0;
@@ -1196,27 +1308,20 @@ class AttendanceController extends Controller
             }
 
             // 3. Empleados activos a considerar: SOLO los que marcan asistencia
-            // (El filtro de tipo de planilla sigue aplicando solo en la vista)
             $activeEmployees = $this->employeeModel->getActiveMarkingEmployees();
-            $activeEmployees = array_values($activeEmployees); // Reindexar
+            $activeEmployees = array_values($activeEmployees);
             $stats['total_employees'] = count($activeEmployees);
 
-            error_log("DEBUG processDay - Procesando TODOS los empleados activos (sin filtro tipo planilla)");
-            error_log("DEBUG processDay - Total empleados activos: " . count($activeEmployees));
-            error_log("DEBUG processDay - IDs empleados activos: " . implode(', ', array_column($activeEmployees, 'id')));
-
             if (empty($activeEmployees)) {
-                return $this->jsonResponse([
+                return [
                     'success' => false,
                     'message' => 'No hay empleados activos en el sistema.'
-                ]);
+                ];
             }
 
             // 4. Obtener detalles existentes después de actualizar desde records
             $existingDetails = $this->detailModel->getByHeader($header['id']);
             $employeesWithAttendance = [];
-
-            error_log("DEBUG processDay - Detalles existentes después de actualizar desde records: " . count($existingDetails));
 
             foreach ($existingDetails as $detail) {
                 $employeesWithAttendance[$detail['employee_id']] = true;
@@ -1234,79 +1339,72 @@ class AttendanceController extends Controller
                                 'scheduled_time_in' => $schedule['time_in'],
                                 'scheduled_time_out' => $schedule['time_out']
                             ]);
-                            error_log("Updated scheduled times for detail ID {$detail['id']}");
                         }
                     }
                 }
             }
 
-            // Verificar si el día es feriado (para omitir creación de ausencias sin marcaciones)
-            $isHoliday = false;
+            // Verificar si el día es laboral según el calendario empresarial
+            $isWorkingDay = true;
             try {
                 $calendar = new \App\Models\BusinessCalendar();
                 $dayInfo = $calendar->getDayInfo($date);
-                $isHoliday = $dayInfo && ($dayInfo['day_type'] === 'FERIADO');
-                if ($isHoliday) {
-                    error_log("DEBUG processDay - Fecha $date marcada como FERIADO en calendario empresarial");
+
+                // Si existe información del día en el calendario, verificar si es laboral
+                if ($dayInfo) {
+                    // Solo es laboral si day_type = 'LABORAL'
+                    // Saltar si es: FERIADO, NO_LABORAL, DUELO_NACIONAL, ESPECIAL
+                    $isWorkingDay = ($dayInfo['day_type'] === 'LABORAL');
+                } else {
+                    // Si no hay información del día, asumir que es laboral de Lunes a Viernes
+                    $dayOfWeek = date('N', strtotime($date)); // 1=Lunes, 7=Domingo
+                    $isWorkingDay = ($dayOfWeek >= 1 && $dayOfWeek <= 5);
                 }
             } catch (\Exception $e) {
-                // Si falla el calendario, asumir día normal
-                $isHoliday = false;
+                error_log("Error checking business calendar: " . $e->getMessage());
+                // Fallback: asumir días laborables de Lunes a Viernes
+                $dayOfWeek = date('N', strtotime($date));
+                $isWorkingDay = ($dayOfWeek >= 1 && $dayOfWeek <= 5);
             }
 
-            // 5. PASO 2: Detectar empleados SIN marcación y crear registros de AUSENCIA
-            error_log("DEBUG processDay - Empleados con marcación: " . implode(', ', array_keys($employeesWithAttendance)));
-
-            if ($detectAbsences) {
+            // 5. Detectar empleados SIN marcación y crear registros de AUSENCIA
+            // Solo detectar ausencias en días LABORABLES
+            if ($detectAbsences && $isWorkingDay) {
                 foreach ($activeEmployees as $employee) {
                     if (!isset($employeesWithAttendance[$employee['id']])) {
-                        // Regla: si es feriado y no hay marcaciones, NO crear registro ni cambiar status
-                        if ($isHoliday) {
-                            error_log("DEBUG processDay - FERIADO sin marcaciones: omitiendo ausencia para empleado {$employee['id']}");
-                            continue;
-                        }
                         $stats['absences_detected']++;
-                        error_log("DEBUG processDay - Empleado SIN marcación detectado: ID={$employee['id']}, Nombre={$employee['firstname']} {$employee['lastname']}");
 
-                    // Empleado sin marcación - crear registro de ausencia (si no existe)
-                    try {
-                        $absenceData = [
-                            'header_id' => $header['id'],
-                            'employee_id' => $employee['id'],
-                            'schedule_id' => $employee['schedule_id'] ?? null,
-                            'time_in' => null,
-                            'time_out' => null,
-                            'status' => 'ABSENT',
-                            'is_late' => 0,
-                            'tardiness_minutes' => 0,
-                            'hours_worked' => 0,
-                            'notes' => 'Ausencia detectada automáticamente - Sin marcación'
-                        ];
-
-                        error_log("DEBUG processDay - Intentando crear registro de ausencia para empleado {$employee['id']}");
-                        $detailId = $this->detailModel->create($absenceData);
-
-                        if ($detailId) {
-                            $stats['absences_created']++;
-                            error_log("DEBUG processDay - Registro de ausencia creado exitosamente: detail_id=$detailId");
-
-                            // Registrar ausencia en el log
-                            $this->absenceDetector->saveAbsence([
+                        try {
+                            $absenceData = [
+                                'header_id' => $header['id'],
                                 'employee_id' => $employee['id'],
-                                'date' => $date,
-                                'absence_type' => 'UNJUSTIFIED',
-                                'attendance_detail_id' => $detailId,
-                                'detected_at' => date('Y-m-d H:i:s')
-                            ]);
-                        } else {
-                            error_log("DEBUG processDay - FALLO: create() retornó false para empleado {$employee['id']} - Posible violación UNIQUE (header_id, employee_id)");
+                                'schedule_id' => $employee['schedule_id'] ?? null,
+                                'time_in' => null,
+                                'time_out' => null,
+                                'status' => 'ABSENT',
+                                'is_late' => 0,
+                                'tardiness_minutes' => 0,
+                                'hours_worked' => 0,
+                                'notes' => 'Ausencia detectada automáticamente - Sin marcación'
+                            ];
+
+                            $detailId = $this->detailModel->create($absenceData);
+
+                            if ($detailId) {
+                                $stats['absences_created']++;
+
+                                // Registrar ausencia en el log
+                                $this->absenceDetector->saveAbsence([
+                                    'employee_id' => $employee['id'],
+                                    'date' => $date,
+                                    'absence_type' => 'UNJUSTIFIED',
+                                    'attendance_detail_id' => $detailId,
+                                    'detected_at' => date('Y-m-d H:i:s')
+                                ]);
+                            }
+                        } catch (Exception $e) {
+                            error_log("ERROR processDay - Error creating absence for employee {$employee['id']}: " . $e->getMessage());
                         }
-                    } catch (Exception $e) {
-                        error_log("ERROR processDay - Error creating absence for employee {$employee['id']}: " . $e->getMessage());
-                        error_log("ERROR processDay - Stack trace: " . $e->getTraceAsString());
-                    }
-                    } else {
-                        error_log("DEBUG processDay - Empleado CON marcación: ID={$employee['id']}");
                     }
                 }
             }
@@ -1314,18 +1412,16 @@ class AttendanceController extends Controller
             // Recargar detalles después de crear ausencias
             $existingDetails = $this->detailModel->getByHeader($header['id']);
 
-            // 6. PASO 2: Detectar marcaciones INCOMPLETAS y marcarlas como OMISIÓN
+            // 6. Detectar marcaciones INCOMPLETAS y marcarlas como OMISIÓN
             if ($markOmissions) {
                 foreach ($existingDetails as $detail) {
                     $hasTimeIn = !empty($detail['time_in']);
                     $hasTimeOut = !empty($detail['time_out']);
 
-                    // Marcación incompleta: solo entrada O solo salida
                     if (($hasTimeIn && !$hasTimeOut) || (!$hasTimeIn && $hasTimeOut)) {
                         $stats['omissions_detected']++;
 
                         try {
-                            // Actualizar estado a INCOMPLETE (OMISIÓN)
                             $this->detailModel->update($detail['id'], [
                                 'status' => 'INCOMPLETE',
                                 'notes' => 'Omisión de marcación: ' . ($hasTimeIn ? 'Falta salida' : 'Falta entrada')
@@ -1339,10 +1435,9 @@ class AttendanceController extends Controller
                 }
             }
 
-            // 6. PASO 3: Calcular métricas para marcaciones COMPLETAS
+            // 7. Calcular métricas para marcaciones COMPLETAS
             $completeAttendances = [];
             foreach ($existingDetails as $detail) {
-                // Solo procesar si tiene entrada Y salida
                 if (!empty($detail['time_in']) && !empty($detail['time_out'])) {
                     $completeAttendances[] = [
                         'id' => $detail['id'],
@@ -1363,9 +1458,9 @@ class AttendanceController extends Controller
                 $stats['calculations_saved'] = $calcResult['stats']['saved'];
                 $stats['calculations_errors'] = $calcResult['stats']['errors'];
 
-                // Actualizar estados en attendance_detail basándose en los cálculos
+                // Actualizar estados en attendance_detail
                 foreach ($calcResult['calculations'] as $calculation) {
-                    $newStatus = 'PRESENT'; // Por defecto
+                    $newStatus = 'PRESENT';
                     if ($calculation['is_absent'] == 1) {
                         $newStatus = 'ABSENT';
                     } elseif (empty($calculation['time_out'])) {
@@ -1381,7 +1476,7 @@ class AttendanceController extends Controller
                 }
             }
 
-            // 7. Actualizar estadísticas del header
+            // 8. Actualizar estadísticas del header
             $finalDetails = $this->detailModel->getByHeader($header['id']);
 
             $totalOnTime = 0;
@@ -1416,20 +1511,46 @@ class AttendanceController extends Controller
                 'processed_at' => date('Y-m-d H:i:s')
             ]);
 
-            return $this->jsonResponse([
+            return [
                 'success' => true,
                 'message' => 'Procesamiento completado exitosamente.',
                 'data' => $stats
-            ]);
+            ];
 
         } catch (Exception $e) {
-            error_log("Error processing day: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            return $this->jsonResponse([
+            error_log("Error processing single day {$date}: " . $e->getMessage());
+            return [
                 'success' => false,
                 'message' => 'Error al procesar el día: ' . $e->getMessage()
-            ]);
+            ];
         }
+    }
+
+    /**
+     * Procesar día completo: detectar ausencias, omisiones y calcular métricas (AJAX)
+     * Proceso integral que:
+     * 1. Busca registros en attendance_records y reconstruye attendance_detail
+     * 2. Detecta empleados sin marcación y crea registros de AUSENCIA
+     * 3. Detecta marcaciones incompletas (solo entrada o salida) y las marca como OMISIÓN
+     * 4. Calcula métricas para marcaciones completas
+     *
+     * @return array JSON response
+     */
+    public function processDay()
+    {
+        $date = $_POST['date'] ?? null;
+
+        // Opciones de procesamiento desde el formulario
+        $processRecords = isset($_POST['process_records']) ? (int)$_POST['process_records'] : 1;
+        $detectAbsences = isset($_POST['detect_absences']) ? (int)$_POST['detect_absences'] : 1;
+        $markOmissions = isset($_POST['mark_omissions']) ? (int)$_POST['mark_omissions'] : 1;
+        $recalculate = isset($_POST['recalculate']) ? (int)$_POST['recalculate'] : 1;
+
+        // Llamar al método reutilizable
+        $result = $this->processSingleDay($date, $processRecords, $detectAbsences, $markOmissions, $recalculate);
+
+        // Retornar JSON response
+        return $this->jsonResponse($result);
     }
 
     // ========================================
