@@ -320,8 +320,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                         <label for="dias_solicitados_pagar">Días Solicitados por Pagar</label>
                                         <input type="number" name="dias_solicitados_pagar" id="dias_solicitados_pagar"
                                                class="form-control" min="0" max="<?= htmlspecialchars($vacation_data['current_balance']) ?>"
-                                               placeholder="0" value="0" autocomplete="off">
-                                        <small class="form-text text-muted">Días a compensar monetariamente</small>
+                                               placeholder="0" value="0" autocomplete="off" readonly>
+                                        <small class="form-text text-muted">Días a compensar monetariamente (calculado automáticamente)</small>
                                     </div>
                                 </div>
                             </div>
@@ -331,27 +331,32 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                     <div class="form-group">
                                         <label for="dias_vacaciones_disfrute">Días Vacaciones de Disfrute</label>
                                         <input type="number" name="dias_vacaciones_disfrute" id="dias_vacaciones_disfrute"
-                                               class="form-control" min="0" max="<?= htmlspecialchars($vacation_data['current_balance']) ?>"
-                                               placeholder="0" value="0" autocomplete="off">
-                                        <small class="form-text text-muted">Días para tomar como descanso</small>
+                                               class="form-control" value="<?= $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30 ?>" readonly autocomplete="off"
+                                               title="Días de vacaciones anuales (siempre 30)">
+                                        <small class="form-text text-muted">Días anuales (igual a Días Vacaciones Anuales)</small>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="saldo_dias_disfrute">Saldo Días de Disfrute</label>
+                                        <?php
+                                        $diasDisfrutados = $vacation_data['annual_balance']['dias_disfrutados_year'] ?? 0;
+                                        $diasAnuales = $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30;
+                                        $saldoDisfrute = $diasAnuales - $diasDisfrutados;
+                                        ?>
                                         <input type="number" name="saldo_dias_disfrute" id="saldo_dias_disfrute"
-                                               class="form-control" value="<?= htmlspecialchars($vacation_data['current_balance']) ?>" readonly autocomplete="off"
+                                               class="form-control" value="<?= $saldoDisfrute ?>" readonly autocomplete="off"
                                                title="Saldo disponible para disfrute">
-                                        <small class="form-text text-muted">Saldo disponible para disfrute</small>
+                                        <small class="form-text text-muted">Días anuales - Días disfrutados del año</small>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="dias_solicitados_disfrute">Días Solicitados de Disfrute</label>
                                         <input type="number" name="dias_solicitados_disfrute" id="dias_solicitados_disfrute"
-                                               class="form-control" min="0" max="<?= htmlspecialchars($vacation_data['current_balance']) ?>"
+                                               class="form-control" min="0" max="<?= $saldoDisfrute ?>"
                                                placeholder="0" value="0" autocomplete="off">
-                                        <small class="form-text text-muted">Días de disfrute solicitados</small>
+                                        <small class="form-text text-muted">Editable - Coloque 0 si no tomará vacaciones (máx: <?= $saldoDisfrute ?>)</small>
                                     </div>
                                 </div>
                             </div>
@@ -361,8 +366,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                     <div class="form-group">
                                         <label for="total_dias_solicitados">Total Días Solicitados</label>
                                         <input type="number" name="total_dias_solicitados" id="total_dias_solicitados"
-                                               class="form-control" readonly title="Total de días solicitados (pago + disfrute)" autocomplete="off">
-                                        <small class="form-text text-muted">Suma automática de días por pagar + disfrute</small>
+                                               class="form-control" readonly title="Total de días solicitados" autocomplete="off">
+                                        <small class="form-text text-muted">Total calculado del rango de fechas seleccionado</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -371,7 +376,6 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                         <div class="bg-light p-3 rounded">
                                             <div id="calculation-summary">
                                                 <p class="mb-1"><strong>Días Totales:</strong> <span id="total-days">0</span></p>
-                                                <p class="mb-1"><strong>Días Hábiles:</strong> <span id="business-days">0</span></p>
                                                 <p class="mb-1"><strong>Balance Después:</strong> <span id="remaining-balance"><?= number_format($vacation_data['current_balance'], 1) ?></span></p>
                                                 <p class="mb-0"><strong>Monto Compensación:</strong> <span id="compensation-amount"><?= currency_symbol() ?>0.00</span></p>
                                             </div>
@@ -397,7 +401,6 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                             <li>Según la legislación panameña, tiene derecho a 30 días de vacaciones por cada 11 meses trabajados.</li>
                             <li>Las vacaciones deben ser disfrutadas en períodos mínimos de 15 días consecutivos.</li>
                             <li>Las vacaciones pueden ser compensadas monetariamente con autorización del empleado.</li>
-                            <li>El período de vacaciones se calcula en días hábiles (excluyendo fines de semana y feriados).</li>
                         </ul>
                     </div>
 
@@ -542,14 +545,12 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     const total = end.diff(start, 'days') + 1;
                     $('#total_dias_solicitados').val(total).trigger('input');
 
-                    // Por defecto, igualar días de disfrute al total si el usuario no lo cambió manualmente
-                    const $disfrute = $('#dias_solicitados_disfrute');
-                    const prevDefault = $disfrute.data('prev-default');
-                    const currentVal = parseFloat($disfrute.val() || '0');
-                    if (!prevDefault || currentVal === prevDefault || currentVal === 0) {
-                        $disfrute.val(total);
-                        $disfrute.data('prev-default', total);
-                    }
+                    // Asignar días al campo "Días Solicitados por Pagar"
+                    $('#dias_solicitados_pagar').val(total);
+
+                    // Asignar días al campo "Días Solicitados de Disfrute" (igual a días por pagar, pero no mayor al saldo)
+                    const diasSolicitadosDisfrute = Math.min(total, saldoDisfrute);
+                    $('#dias_solicitados_disfrute').val(diasSolicitadosDisfrute);
 
                     updateCalculation();
                     updateTotalDiasSolicitados();
@@ -562,6 +563,9 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
     const dailySalary = <?= $vacation_data['daily_salary'] ?? 0 ?>;
     const annualBalance = <?= $vacation_data['annual_balance']['saldo_disponible_year'] ?? 30 ?>;
     const currentYear = <?= $vacation_data['current_year'] ?? date('Y') ?>;
+    const diasDisfrutadosYear = <?= $vacation_data['annual_balance']['dias_disfrutados_year'] ?? 0 ?>;
+    const diasAnuales = <?= $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30 ?>;
+    const saldoDisfrute = diasAnuales - diasDisfrutadosYear;
 
     // Calcular días y actualizar resumen cuando cambien las fechas
     function updateCalculation() {
@@ -600,24 +604,20 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                 // Calcular días totales
                 const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
-                // Estimar días hábiles (aproximado - el servidor calculará exacto)
-                const businessDays = Math.floor(totalDays * 5/7);
-
                 // Actualizar campo de días calculados por fechas
                 $('#dias_calculados_fechas').val(totalDays);
 
-                // Auto-llenar días de disfrute si no hay días por pagar especificados
+                // Asignar automáticamente los días totales al campo "Días Solicitados por Pagar"
+                $('#dias_solicitados_pagar').val(totalDays);
+
+                // NO sobrescribir días_solicitados_disfrute aquí - el usuario debe poder editarlo libremente
+                // Solo se inicializa una vez en el daterangepicker
+
                 const diasPagar = parseInt($('#dias_solicitados_pagar').val()) || 0;
                 const diasDisfrute = parseInt($('#dias_solicitados_disfrute').val()) || 0;
 
-                // Si no hay días de disfrute especificados y tenemos fechas, usar los días calculados
-                if (diasDisfrute === 0 && totalDays > 0) {
-                    $('#dias_solicitados_disfrute').val(totalDays);
-                }
-
                 // Actualizar interfaz
                 $('#total-days').text(totalDays);
-                $('#business-days').text(businessDays);
                 $('#remaining-balance').text((currentBalance - totalDays).toFixed(1));
 
                 // Recalcular totales de vacaciones
@@ -631,14 +631,12 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                 // Fechas inválidas
                 $('#dias_calculados_fechas').val(0);
                 $('#total-days').text(0);
-                $('#business-days').text(0);
                 $('#submitBtn').prop('disabled', true);
             }
         } else {
             // Sin fechas
             $('#dias_calculados_fechas').val(0);
             $('#total-days').text(0);
-            $('#business-days').text(0);
             $('#submitBtn').prop('disabled', true);
         }
     }
@@ -692,9 +690,12 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             isValid = false;
         }
 
-        // 3. Calcular saldo disponible para disfrute (saldo anual - días por pagar)
-        const saldoDisponibleDisfrute = Math.max(0, yearBalance - diasPagar);
-        $('#saldo_dias_disfrute').val(saldoDisponibleDisfrute);
+        // 3. Calcular saldo MÁXIMO disponible para disfrute (días anuales - días disfrutados ya tomados)
+        const saldoMaximoDisfrute = Math.max(0, diasAnuales - diasDisfrutadosYear);
+
+        // Actualizar el saldo mostrado dinámicamente (restando lo que se está solicitando)
+        const saldoActualDisfrute = Math.max(0, diasAnuales - diasDisfrutadosYear - diasDisfrute);
+        $('#saldo_dias_disfrute').val(saldoActualDisfrute);
 
         // 4. Validar que días de disfrute no excedan días anuales de vacaciones (30)
         if (diasDisfrute > diasVacacionesAnuales) {
@@ -703,10 +704,10 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             isValid = false;
         }
 
-        // 5. Validar que días de disfrute no excedan el saldo disponible para disfrute
-        if (diasDisfrute > saldoDisponibleDisfrute) {
+        // 5. Validar que días de disfrute no excedan el saldo MÁXIMO disponible
+        if (diasDisfrute > saldoMaximoDisfrute) {
             $('#dias_solicitados_disfrute').addClass('is-invalid');
-            errorMessages.push(`Días de disfrute (${diasDisfrute}) no pueden exceder el saldo disponible para disfrute del año ${selectedYear} (${saldoDisponibleDisfrute})`);
+            errorMessages.push(`Días de disfrute (${diasDisfrute}) no pueden exceder el saldo máximo disponible del año ${selectedYear} (${saldoMaximoDisfrute})`);
             isValid = false;
         }
 
@@ -761,8 +762,20 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         $('#compensation-amount').text('<?= currency_symbol() ?>' + compensationAmount.toFixed(2));
     }
 
+    // Event listener para Días Solicitados de Disfrute - actualizar saldo dinámicamente
+    $('#dias_solicitados_disfrute').on('input change', function() {
+        const diasSolicitadosDisfrute = parseInt($(this).val()) || 0;
+        // Calcular nuevo saldo de días de disfrute
+        const nuevoSaldoDisfrute = Math.max(0, diasAnuales - diasDisfrutadosYear - diasSolicitadosDisfrute);
+        $('#saldo_dias_disfrute').val(nuevoSaldoDisfrute);
+
+        // Actualizar validaciones
+        updateTotalDiasSolicitados();
+        updateCalculation();
+    });
+
     // Event listeners para los nuevos campos de vacaciones
-    $('#dias_solicitados_pagar, #dias_solicitados_disfrute, #dias_vacaciones_anuales, #ano_vacaciones').on('input change', function() {
+    $('#dias_solicitados_pagar, #dias_vacaciones_anuales, #ano_vacaciones').on('input change', function() {
         updateTotalDiasSolicitados();
         updateCalculation();
     });
@@ -804,6 +817,10 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         `);
     }
 
+    // Inicializar valores al cargar la página
+    $('#dias_vacaciones_disfrute').val(diasAnuales);
+    $('#saldo_dias_disfrute').val(saldoDisfrute);
+
     // Validación inicial al cargar la página
     updateTotalDiasSolicitados();
 
@@ -822,7 +839,6 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
 
     // Validación antes de enviar
     $('#vacationForm').on('submit', function(e) {
-        const businessDays = parseInt($('#business-days').text());
         const diasPagar = parseInt($('#dias_solicitados_pagar').val()) || 0;
         const diasDisfrute = parseInt($('#dias_solicitados_disfrute').val()) || 0;
         const totalDiasSolicitados = parseInt($('#total_dias_solicitados').val()) || 0;
@@ -887,14 +903,14 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             return false;
         }
 
-        // Validar saldo disponible para disfrute
-        const saldoDisponibleDisfrute = currentBalance - diasPagar;
+        // Validar saldo disponible para disfrute (días anuales - días disfrutados)
+        const saldoDisponibleDisfrute = diasAnuales - diasDisfrutadosYear;
         if (diasDisfrute > saldoDisponibleDisfrute) {
             e.preventDefault();
             Swal.fire({
                 icon: 'error',
                 title: 'Saldo Insuficiente',
-                text: `Días de disfrute (${diasDisfrute}) exceden el saldo disponible para disfrute (${saldoDisponibleDisfrute}).`,
+                text: `Días de disfrute solicitados (${diasDisfrute}) exceden el saldo disponible para disfrute (${saldoDisponibleDisfrute}).`,
                 confirmButtonText: 'Entendido'
             });
             return false;
@@ -945,19 +961,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             }
         }
 
-        // Validación de fechas solo si se solicitan días de disfrute
-        if (diasDisfrute > 0) {
-            if (businessDays < 1) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Días Hábiles Insuficientes',
-                    text: 'Debe especificar al menos 1 día hábil en las fechas cuando solicita días de disfrute.',
-                    confirmButtonText: 'Entendido'
-                });
-                return false;
-            }
-        }
+        // Nota: No se valida días hábiles, solo días totales del rango
 
         // Mensaje de confirmación personalizado según el tipo de solicitud
         e.preventDefault();

@@ -486,14 +486,20 @@ ob_start();
 $(document).ready(function() {
     // Base URL del proyecto
     const baseUrl = '<?= \App\Core\UrlHelper::base() ?>';
-    // DataTable
-    $('#attendanceDetailTable').DataTable({
-        language: {
-            url: '<?= url('assets/js/datatables-spanish.json', false) ?>'
-        },
-        order: [[0, 'asc']],
-        pageLength: 50
-    });
+
+    // DataTable - solo inicializar si hay datos
+    const $table = $('#attendanceDetailTable');
+    const hasData = $table.find('tbody tr').length > 0 && !$table.find('tbody tr td[colspan]').length;
+
+    if (hasData) {
+        $table.DataTable({
+            language: {
+                url: '<?= url('assets/js/datatables-spanish.json', false) ?>'
+            },
+            order: [[0, 'asc']],
+            pageLength: 50
+        });
+    }
 
     // Helper: extraer HH:MM
     function toTimeHM(value) {

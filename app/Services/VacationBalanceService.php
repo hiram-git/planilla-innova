@@ -81,11 +81,12 @@ class VacationBalanceService
             // Calcular nuevos totales
             $new_dias_pagados = $balance['dias_pagados_year'] + $dias_pagados;
             $new_dias_disfrutados = $balance['dias_disfrutados_year'] + $dias_disfrutados;
-            $new_saldo = $balance['dias_vacaciones_anuales'] - $new_dias_pagados - $new_dias_disfrutados;
+            // CORRECCIÓN: Los días disfrutados NO se restan del saldo, solo son informativos
+            $new_saldo = $balance['dias_vacaciones_anuales'] - $new_dias_pagados;
 
-            // Validar que no exceda los 30 días anuales
-            if ($new_dias_pagados + $new_dias_disfrutados > $balance['dias_vacaciones_anuales']) {
-                throw new \Exception("Total de días excede el límite anual de {$balance['dias_vacaciones_anuales']} días");
+            // Validar que no exceda los 30 días anuales (solo validar días pagados)
+            if ($new_dias_pagados > $balance['dias_vacaciones_anuales']) {
+                throw new \Exception("Total de días pagados excede el límite anual de {$balance['dias_vacaciones_anuales']} días");
             }
 
             // Actualizar balance anual
@@ -250,14 +251,15 @@ class VacationBalanceService
                 return ['valid' => false, 'message' => 'No se pudo obtener el balance anual'];
             }
 
-            $total_solicitado = $dias_pagados + $dias_disfrutados;
-            $total_usado_actual = $balance['dias_pagados_year'] + $balance['dias_disfrutados_year'];
+            // CORRECCIÓN: Los días disfrutados NO afectan el saldo, solo validar días pagados
+            $total_solicitado = $dias_pagados; // Solo validar días pagados
+            $total_usado_actual = $balance['dias_pagados_year']; // Solo contar días pagados
             $nuevo_total = $total_usado_actual + $total_solicitado;
 
             if ($nuevo_total > $balance['dias_vacaciones_anuales']) {
                 return [
                     'valid' => false,
-                    'message' => "Total solicitado ({$total_solicitado}) excede el saldo disponible ({$balance['saldo_disponible_year']}) para el año {$year}"
+                    'message' => "Total de días pagados solicitados ({$total_solicitado}) excede el saldo disponible ({$balance['saldo_disponible_year']}) para el año {$year}"
                 ];
             }
 
