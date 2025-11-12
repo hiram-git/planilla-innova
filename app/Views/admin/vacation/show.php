@@ -78,7 +78,7 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                                     </dd>
 
                                     <dt class="col-sm-5">Cargo:</dt>
-                                    <dd class="col-sm-7"><?= htmlspecialchars($request['position_name'] ?? 'N/A') ?></dd>
+                                    <dd class="col-sm-7"><?= htmlspecialchars($request['cargo_nombre'] ?? 'N/A') ?></dd>
 
                                     <dt class="col-sm-5">Fecha Solicitud:</dt>
                                     <dd class="col-sm-7"><?= date('d/m/Y', strtotime($request['request_date'])) ?></dd>
@@ -106,11 +106,8 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                                         <strong><?= date('d/m/Y', strtotime($request['end_date'])) ?></strong>
                                     </dd>
 
-                                    <dt class="col-sm-5">Días Totales:</dt>
-                                    <dd class="col-sm-7"><?= $request['total_days'] ?> días</dd>
-
-                                    <dt class="col-sm-5">Días Hábiles:</dt>
-                                    <dd class="col-sm-7"><strong><?= $request['business_days'] ?> días</strong></dd>
+                                    <dt class="col-sm-5">Días Solicitados:</dt>
+                                    <dd class="col-sm-7"><strong><?= $request['total_days'] ?> días</strong></dd>
 
                                     <dt class="col-sm-5">Fecha Ingreso:</dt>
                                     <dd class="col-sm-7"><?= date('d/m/Y', strtotime($request['fecha_ingreso'])) ?></dd>
@@ -188,8 +185,8 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                         <div class="mt-3">
                             <small class="text-muted">Desglose:</small>
                             <ul class="list-unstyled mb-0">
-                                <li><i class="fas fa-plus text-success"></i> Días ganados: <?= number_format($request['accumulated_days'], 1) ?></li>
-                                <li><i class="fas fa-minus text-warning"></i> Días solicitados: <?= number_format($request['business_days'], 1) ?></li>
+                                <li><i class="fas fa-plus text-success"></i> Días acumulados: <?= number_format($request['accumulated_days'], 1) ?></li>
+                                <li><i class="fas fa-minus text-warning"></i> Días solicitados: <?= number_format($request['total_days'], 1) ?></li>
                                 <li><i class="fas fa-equals text-info"></i> Balance resultante: <?= number_format($request['remaining_days'], 1) ?></li>
                             </ul>
                         </div>
@@ -200,7 +197,7 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                                 <h5>Compensación Monetaria</h5>
                                 <h4 class="text-success"><?= currency_symbol() ?><?= number_format($request['compensation_amount'], 2) ?></h4>
                                 <small class="text-muted">
-                                    <?= currency_symbol() ?><?= number_format($request['daily_salary'], 2) ?> × <?= $request['business_days'] ?> días
+                                    <?= currency_symbol() ?><?= number_format($request['daily_salary'], 2) ?> × <?= $request['total_days'] ?> días
                                 </small>
                             </div>
                         <?php endif; ?>

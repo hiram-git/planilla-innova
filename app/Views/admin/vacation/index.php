@@ -62,8 +62,7 @@ $pageTitle = "Gestión de Vacaciones";
                                             <strong><?= date('d/m/Y', strtotime($request['end_date'])) ?></strong>
                                         </td>
                                         <td>
-                                            <span class="badge badge-info"><?= $request['business_days'] ?> días hábiles</span>
-                                            <br><small class="text-muted"><?= $request['total_days'] ?> días totales</small>
+                                            <span class="badge badge-primary"><?= $request['total_days'] ?> días</span>
                                         </td>
                                         <td>
                                             <?php

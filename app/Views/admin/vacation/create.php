@@ -204,7 +204,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     Datos de la Solicitud
                 </h3>
             </div>
-            <form method="POST" action="<?= \App\Core\UrlHelper::route('panel/vacation/store') ?>" id="vacationForm">
+            <form method="POST" action="<?= \App\Core\UrlHelper::route('panel/vacation/store') ?>" id="vacationForm" autocomplete="off">
                 <div class="card-body">
                     <?= csrf_field() ?>
                     <input type="hidden" name="employee_id" value="<?= $employee['id'] ?>">
@@ -213,13 +213,13 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label for="date_range">Período de Vacaciones (rango) *</label>
-                                <input type="text" class="form-control" id="date_range" placeholder="Seleccione rango de fechas" required>
+                                <input type="text" class="form-control" id="date_range" placeholder="Seleccione rango de fechas" required autocomplete="off">
                                 <small class="form-text text-muted">
                                     Las vacaciones deben solicitarse con al menos 15 días de anticipación. Se calcularán los días solicitados a partir del rango.
                                 </small>
                                 <!-- Campos reales para el backend -->
-                                <input type="hidden" id="start_date" name="start_date">
-                                <input type="hidden" id="end_date" name="end_date">
+                                <input type="hidden" id="start_date" name="start_date" autocomplete="off">
+                                <input type="hidden" id="end_date" name="end_date" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -281,7 +281,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                 <label for="dias_calculados_fechas">Días Calculados por Fechas</label>
                                 <input type="number" name="dias_calculados_fechas" id="dias_calculados_fechas"
                                        class="form-control" readonly value="0"
-                                       title="Días calculados automáticamente entre fecha inicio y fin">
+                                       title="Días calculados automáticamente entre fecha inicio y fin" autocomplete="off">
                                 <small class="form-text text-muted">Calculado automáticamente (fecha fin - fecha inicio + 1)</small>
                             </div>
                         </div>
@@ -301,7 +301,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                     <div class="form-group">
                                         <label for="dias_vacaciones_anuales">Días de Vacaciones Anuales</label>
                                         <input type="number" name="dias_vacaciones_anuales" id="dias_vacaciones_anuales"
-                                               class="form-control" value="30" readonly
+                                               class="form-control" value="30" readonly autocomplete="off"
                                                title="Días de vacaciones correspondientes por año según legislación panameña">
                                         <small class="form-text text-muted">30 días por año trabajado</small>
                                     </div>
@@ -310,7 +310,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                     <div class="form-group">
                                         <label for="saldo_vacaciones">Saldo Vacaciones</label>
                                         <input type="number" name="saldo_vacaciones" id="saldo_vacaciones"
-                                               class="form-control" value="<?= htmlspecialchars($vacation_data['current_balance']) ?>" readonly
+                                               class="form-control" value="<?= htmlspecialchars($vacation_data['current_balance']) ?>" readonly autocomplete="off"
                                                title="Saldo actual de días de vacaciones disponibles">
                                         <small class="form-text text-muted">Días acumulados disponibles</small>
                                     </div>
@@ -320,7 +320,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                         <label for="dias_solicitados_pagar">Días Solicitados por Pagar</label>
                                         <input type="number" name="dias_solicitados_pagar" id="dias_solicitados_pagar"
                                                class="form-control" min="0" max="<?= htmlspecialchars($vacation_data['current_balance']) ?>"
-                                               placeholder="0" value="0">
+                                               placeholder="0" value="0" autocomplete="off">
                                         <small class="form-text text-muted">Días a compensar monetariamente</small>
                                     </div>
                                 </div>
@@ -332,7 +332,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                         <label for="dias_vacaciones_disfrute">Días Vacaciones de Disfrute</label>
                                         <input type="number" name="dias_vacaciones_disfrute" id="dias_vacaciones_disfrute"
                                                class="form-control" min="0" max="<?= htmlspecialchars($vacation_data['current_balance']) ?>"
-                                               placeholder="0" value="0">
+                                               placeholder="0" value="0" autocomplete="off">
                                         <small class="form-text text-muted">Días para tomar como descanso</small>
                                     </div>
                                 </div>
@@ -340,7 +340,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                     <div class="form-group">
                                         <label for="saldo_dias_disfrute">Saldo Días de Disfrute</label>
                                         <input type="number" name="saldo_dias_disfrute" id="saldo_dias_disfrute"
-                                               class="form-control" value="<?= htmlspecialchars($vacation_data['current_balance']) ?>" readonly
+                                               class="form-control" value="<?= htmlspecialchars($vacation_data['current_balance']) ?>" readonly autocomplete="off"
                                                title="Saldo disponible para disfrute">
                                         <small class="form-text text-muted">Saldo disponible para disfrute</small>
                                     </div>
@@ -350,7 +350,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                         <label for="dias_solicitados_disfrute">Días Solicitados de Disfrute</label>
                                         <input type="number" name="dias_solicitados_disfrute" id="dias_solicitados_disfrute"
                                                class="form-control" min="0" max="<?= htmlspecialchars($vacation_data['current_balance']) ?>"
-                                               placeholder="0" value="0">
+                                               placeholder="0" value="0" autocomplete="off">
                                         <small class="form-text text-muted">Días de disfrute solicitados</small>
                                     </div>
                                 </div>
@@ -361,7 +361,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                     <div class="form-group">
                                         <label for="total_dias_solicitados">Total Días Solicitados</label>
                                         <input type="number" name="total_dias_solicitados" id="total_dias_solicitados"
-                                               class="form-control" readonly title="Total de días solicitados (pago + disfrute)">
+                                               class="form-control" readonly title="Total de días solicitados (pago + disfrute)" autocomplete="off">
                                         <small class="form-text text-muted">Suma automática de días por pagar + disfrute</small>
                                     </div>
                                 </div>
@@ -388,7 +388,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                   id="comments"
                                   name="comments"
                                   rows="3"
-                                  placeholder="Indique cualquier observación adicional sobre la solicitud..."></textarea>
+                                  placeholder="Indique cualquier observación adicional sobre la solicitud..." autocomplete="off"></textarea>
                     </div>
 
                     <div class="alert alert-info">
@@ -834,31 +834,56 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         // Validaciones específicas para envío
         if (totalDiasSolicitados === 0) {
             e.preventDefault();
-            alert('Debe solicitar al menos un día de vacaciones (por pagar o por disfrute).');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'Debe solicitar al menos un día de vacaciones (por pagar o por disfrute).',
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
         if (totalDiasSolicitados > currentBalance) {
             e.preventDefault();
-            alert(`Total de días solicitados (${totalDiasSolicitados}) excede el balance disponible (${currentBalance}).`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Balance Insuficiente',
+                text: `Total de días solicitados (${totalDiasSolicitados}) excede el balance disponible (${currentBalance}).`,
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
         if (totalDiasSolicitados > diasVacacionesAnuales) {
             e.preventDefault();
-            alert(`Total de días solicitados (${totalDiasSolicitados}) excede los días anuales de vacaciones (${diasVacacionesAnuales}).`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Límite Excedido',
+                text: `Total de días solicitados (${totalDiasSolicitados}) excede los días anuales de vacaciones (${diasVacacionesAnuales}).`,
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
         if (diasPagar > diasVacacionesAnuales) {
             e.preventDefault();
-            alert(`Días por pagar (${diasPagar}) no pueden exceder los días anuales de vacaciones (${diasVacacionesAnuales}).`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Límite Excedido',
+                text: `Días por pagar (${diasPagar}) no pueden exceder los días anuales de vacaciones (${diasVacacionesAnuales}).`,
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
         if (diasDisfrute > diasVacacionesAnuales) {
             e.preventDefault();
-            alert(`Días de disfrute (${diasDisfrute}) no pueden exceder los días anuales de vacaciones (${diasVacacionesAnuales}).`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Límite Excedido',
+                text: `Días de disfrute (${diasDisfrute}) no pueden exceder los días anuales de vacaciones (${diasVacacionesAnuales}).`,
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
@@ -866,7 +891,12 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         const saldoDisponibleDisfrute = currentBalance - diasPagar;
         if (diasDisfrute > saldoDisponibleDisfrute) {
             e.preventDefault();
-            alert(`Días de disfrute (${diasDisfrute}) exceden el saldo disponible para disfrute (${saldoDisponibleDisfrute}).`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Saldo Insuficiente',
+                text: `Días de disfrute (${diasDisfrute}) exceden el saldo disponible para disfrute (${saldoDisponibleDisfrute}).`,
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
@@ -876,13 +906,23 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
 
         if (!anoVacaciones) {
             e.preventDefault();
-            alert('Debe seleccionar el año de vacaciones.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo Requerido',
+                text: 'Debe seleccionar el año de vacaciones.',
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
         if (diasCalculadosFechas === 0) {
             e.preventDefault();
-            alert('Debe especificar fechas de inicio y fin para calcular los días.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Fechas Requeridas',
+                text: 'Debe especificar fechas de inicio y fin para calcular los días.',
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
 
@@ -895,7 +935,12 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
 
             if (daysDifference < 15) {
                 e.preventDefault();
-                alert(`Las vacaciones deben solicitarse con al menos 15 días de anticipación.\nDías de anticipación actual: ${daysDifference} días.`);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Anticipación Insuficiente',
+                    html: `Las vacaciones deben solicitarse con al menos 15 días de anticipación.<br><small>Días de anticipación actual: ${daysDifference} días.</small>`,
+                    confirmButtonText: 'Entendido'
+                });
                 return false;
             }
         }
@@ -904,24 +949,46 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         if (diasDisfrute > 0) {
             if (businessDays < 1) {
                 e.preventDefault();
-                alert('Debe especificar al menos 1 día hábil en las fechas cuando solicita días de disfrute.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Días Hábiles Insuficientes',
+                    text: 'Debe especificar al menos 1 día hábil en las fechas cuando solicita días de disfrute.',
+                    confirmButtonText: 'Entendido'
+                });
                 return false;
             }
         }
 
         // Mensaje de confirmación personalizado según el tipo de solicitud
-        let confirmMessage = '¿Está seguro de enviar esta solicitud de vacaciones?\n\n';
+        e.preventDefault();
+        let confirmHTML = '<div class="text-left"><ul class="mb-0">';
         if (diasPagar > 0 && diasDisfrute > 0) {
-            confirmMessage += `• ${diasPagar} días por pagar (compensación monetaria)\n`;
-            confirmMessage += `• ${diasDisfrute} días de disfrute\n`;
-            confirmMessage += `• Total: ${totalDiasSolicitados} días`;
+            confirmHTML += `<li><strong>${diasPagar}</strong> días por pagar (compensación monetaria)</li>`;
+            confirmHTML += `<li><strong>${diasDisfrute}</strong> días de disfrute</li>`;
+            confirmHTML += `<li>Total: <strong>${totalDiasSolicitados}</strong> días</li>`;
         } else if (diasPagar > 0) {
-            confirmMessage += `• ${diasPagar} días por pagar (compensación monetaria únicamente)`;
+            confirmHTML += `<li><strong>${diasPagar}</strong> días por pagar (compensación monetaria únicamente)</li>`;
         } else if (diasDisfrute > 0) {
-            confirmMessage += `• ${diasDisfrute} días de disfrute únicamente`;
+            confirmHTML += `<li><strong>${diasDisfrute}</strong> días de disfrute únicamente</li>`;
         }
+        confirmHTML += '</ul></div>';
 
-        return confirm(confirmMessage);
+        Swal.fire({
+            icon: 'question',
+            title: '¿Confirmar Solicitud?',
+            html: confirmHTML,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-paper-plane mr-1"></i> Enviar Solicitud',
+            cancelButtonText: '<i class="fas fa-times mr-1"></i> Cancelar',
+            confirmButtonColor: '#007bff',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#vacationForm')[0].submit();
+            }
+        });
+
+        return false;
     });
     }); // Fin de $(document).ready
 })(); // Fin de waitForjQuery

@@ -76,8 +76,7 @@ class VacationController extends Controller
             ]);
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al cargar empleados: ' . $e->getMessage());
-            $this->redirect('/panel');
+            $this->redirectWithToastr('/panel', 'error', 'Error al cargar empleados: ' . $e->getMessage());
         }
     }
 
@@ -88,8 +87,7 @@ class VacationController extends Controller
     {
         try {
             if (!$employee_id) {
-                $this->setFlashMessage('error', 'ID de empleado requerido');
-                $this->redirect('/panel/vacation');
+                $this->redirectWithToastr('/panel/vacation', 'error', 'ID de empleado requerido');
                 return;
             }
 
@@ -105,15 +103,13 @@ class VacationController extends Controller
             $employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$employee) {
-                $this->setFlashMessage('error', 'Empleado no encontrado o inactivo');
-                $this->redirect('/panel/vacation');
+                $this->redirectWithToastr('/panel/vacation', 'error', 'Empleado no encontrado o inactivo');
                 return;
             }
 
             // Verificar elegibilidad para vacaciones
             if (!$this->calculator->VACATION_ELIGIBLE($employee_id)) {
-                $this->setFlashMessage('error', 'El empleado no tiene derecho a vacaciones (requiere 11 meses mínimo)');
-                $this->redirect('/panel/vacation');
+                $this->redirectWithToastr('/panel/vacation', 'error', 'El empleado no tiene derecho a vacaciones (requiere 11 meses mínimo)');
                 return;
             }
 
@@ -152,8 +148,7 @@ class VacationController extends Controller
             ]);
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al cargar empleado: ' . $e->getMessage());
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al cargar empleado: ' . $e->getMessage());
         }
     }
 
@@ -187,8 +182,7 @@ class VacationController extends Controller
 
             // Validaciones básicas
             if (!$employee_id || !$start_date || !$end_date || !$ano_vacaciones) {
-                $this->setFlashMessage('error', 'Todos los campos obligatorios deben ser completados');
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', 'Todos los campos obligatorios deben ser completados');
                 return;
             }
 
@@ -198,29 +192,25 @@ class VacationController extends Controller
             $today = new DateTime();
 
             if ($start_datetime < $today) {
-                $this->setFlashMessage('error', 'La fecha de inicio no puede ser en el pasado');
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', 'La fecha de inicio no puede ser en el pasado');
                 return;
             }
 
             // Validar anticipación de 15 días
             $anticipation_days = $today->diff($start_datetime)->days;
             if ($start_datetime > $today && $anticipation_days < 15) {
-                $this->setFlashMessage('error', "Las vacaciones deben solicitarse con al menos 15 días de anticipación. Días de anticipación actual: {$anticipation_days} días.");
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', "Las vacaciones deben solicitarse con al menos 15 días de anticipación. Días de anticipación actual: {$anticipation_days} días.");
                 return;
             }
 
             if ($end_datetime <= $start_datetime) {
-                $this->setFlashMessage('error', 'La fecha de fin debe ser posterior a la fecha de inicio');
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', 'La fecha de fin debe ser posterior a la fecha de inicio');
                 return;
             }
 
             // Verificar elegibilidad
             if (!$this->calculator->VACATION_ELIGIBLE($employee_id)) {
-                $this->setFlashMessage('error', 'El empleado no tiene derecho a vacaciones');
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', 'El empleado no tiene derecho a vacaciones');
                 return;
             }
 
@@ -240,30 +230,26 @@ class VacationController extends Controller
             );
 
             if (!$validation['valid']) {
-                $this->setFlashMessage('error', $validation['message']);
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', $validation['message']);
                 return;
             }
 
             // Validaciones adicionales para los nuevos campos
             if ($total_dias_solicitados > $current_balance) {
-                $this->setFlashMessage('error', "Total de días solicitados ($total_dias_solicitados) excede el balance disponible ($current_balance)");
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', "Total de días solicitados ($total_dias_solicitados) excede el balance disponible ($current_balance)");
                 return;
             }
 
             // Nota: Los días de disfrute son independientes y no deben sumar con los días solicitados.
 
             if ($business_days > $current_balance) {
-                $this->setFlashMessage('error', "Días solicitados ($business_days) exceden el balance disponible ($current_balance)");
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', "Días solicitados ($business_days) exceden el balance disponible ($current_balance)");
                 return;
             }
 
             // Verificar solapamientos con otras solicitudes aprobadas
             if ($this->hasOverlapWithApprovedRequests($employee_id, $start_date, $end_date)) {
-                $this->setFlashMessage('error', 'Las fechas solicitadas se solapan con vacaciones ya aprobadas');
-                $this->redirect('/panel/vacation/create/' . $employee_id);
+                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', 'Las fechas solicitadas se solapan con vacaciones ya aprobadas');
                 return;
             }
 
@@ -309,12 +295,10 @@ class VacationController extends Controller
             // Crear registro de cálculo para auditoría
             $this->createCalculationRecord($request_id, 'DAYS_REQUESTED', $business_days, $business_days, $compensation_amount);
 
-            $this->setFlashMessage('success', 'Solicitud de vacaciones creada exitosamente. ID: ' . $request_id);
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'success', 'Solicitud de vacaciones creada exitosamente. ID: ' . $request_id);
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al crear solicitud: ' . $e->getMessage());
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al crear solicitud: ' . $e->getMessage());
         }
     }
 
@@ -325,12 +309,17 @@ class VacationController extends Controller
     {
         try {
             // Obtener datos de la solicitud
-            $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id, e.fecha_ingreso,
-                           cargo.nombre as cargo_nombre, a.name as approver_name
-                    FROM vacation_requests vr
-                    INNER JOIN employees e ON vr.employee_id = e.id
-                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
-                    LEFT JOIN admin a ON vr.approved_by = a.id
+            $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id as employee_code, e.fecha_ingreso,
+                           COALESCE(cargo_pos.nombre, cargo_emp.nombre) as cargo_nombre,
+                           CONCAT(a.firstname, ' ', a.lastname) as approver_name
+                    
+                    FROM
+                        vacation_requests vr
+                        INNER JOIN employees e ON vr.employee_id = e.id
+                        LEFT JOIN posiciones p ON e.position_id = p.id
+                        LEFT JOIN cargos cargo_pos ON p.id_cargo = cargo_pos.id
+                        LEFT JOIN cargos cargo_emp ON e.cargo_id = cargo_emp.id
+                        LEFT JOIN admin a ON vr.approved_by = a.id
                     WHERE vr.id = ?";
 
             $stmt = $this->db->prepare($sql);
@@ -338,8 +327,7 @@ class VacationController extends Controller
             $request = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$request) {
-                $this->setFlashMessage('error', 'Solicitud de vacaciones no encontrada');
-                $this->redirect('/panel/vacation');
+                $this->redirectWithToastr('/panel/vacation', 'error', 'Solicitud de vacaciones no encontrada');
                 return;
             }
 
@@ -360,8 +348,7 @@ class VacationController extends Controller
             ]);
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al cargar solicitud: ' . $e->getMessage());
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al cargar solicitud: ' . $e->getMessage());
         }
     }
 
@@ -380,16 +367,14 @@ class VacationController extends Controller
             $request = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$request) {
-                $this->setFlashMessage('error', 'Solicitud no encontrada o ya procesada');
-                $this->redirect('/panel/vacation');
+                $this->redirectWithToastr('/panel/vacation', 'error', 'Solicitud no encontrada o ya procesada');
                 return;
             }
 
             // Verificar balance actual
             $current_balance = $this->calculator->VACATION_BALANCE($request['employee_id']);
             if ($request['business_days'] > $current_balance) {
-                $this->setFlashMessage('error', 'El empleado ya no tiene suficientes días disponibles');
-                $this->redirect('/panel/vacation/show/' . $request_id);
+                $this->redirectWithToastr('/panel/vacation/show/' . $request_id, 'error', 'El empleado ya no tiene suficientes días disponibles');
                 return;
             }
 
@@ -425,8 +410,7 @@ class VacationController extends Controller
             $rejection_reason = $_POST['rejection_reason'] ?? '';
 
             if (empty($rejection_reason)) {
-                $this->setFlashMessage('error', 'Debe proporcionar una razón para el rechazo');
-                $this->redirect('/panel/vacation/show/' . $request_id);
+                $this->redirectWithToastr('/panel/vacation/show/' . $request_id, 'error', 'Debe proporcionar una razón para el rechazo');
                 return;
             }
 
@@ -437,8 +421,7 @@ class VacationController extends Controller
             $request = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$request) {
-                $this->setFlashMessage('error', 'Solicitud no encontrada o ya procesada');
-                $this->redirect('/panel/vacation');
+                $this->redirectWithToastr('/panel/vacation', 'error', 'Solicitud no encontrada o ya procesada');
                 return;
             }
 
@@ -495,8 +478,7 @@ class VacationController extends Controller
             ]);
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al cargar calendario: ' . $e->getMessage());
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al cargar calendario: ' . $e->getMessage());
         }
     }
 
@@ -517,8 +499,7 @@ class VacationController extends Controller
             $employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$employee) {
-                $this->setFlashMessage('error', 'Empleado no encontrado');
-                $this->redirect('/panel/vacation');
+                $this->redirectWithToastr('/panel/vacation', 'error', 'Empleado no encontrado');
                 return;
             }
 
@@ -556,8 +537,7 @@ class VacationController extends Controller
             ]);
 
         } catch (PDOException $e) {
-            $this->setFlashMessage('error', 'Error al cargar balance: ' . $e->getMessage());
-            $this->redirect('/panel/vacation');
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al cargar balance: ' . $e->getMessage());
         }
     }
 
