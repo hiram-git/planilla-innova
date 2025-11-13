@@ -96,14 +96,14 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                 <!-- Balance Año Actual -->
                 <div class="row mb-4">
                     <div class="col-12">
-                        <h5><i class="fas fa-calendar-alt mr-2"></i>Balance Año <?= $vacation_data['current_year'] ?></h5>
+                        <h5><i class="fas fa-calendar-alt mr-2"></i>Balance Año <span id="balance-year-display"><?= $vacation_data['current_year'] ?></span></h5>
                     </div>
                     <div class="col-md-3">
                         <div class="info-box bg-success">
                             <span class="info-box-icon"><i class="fas fa-calendar-check"></i></span>
                             <div class="info-box-content">
                                 <span class="info-box-text">Días Anuales</span>
-                                <span class="info-box-number"><?= $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30 ?></span>
+                                <span class="info-box-number" id="balance-dias-anuales"><?= $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30 ?></span>
                             </div>
                         </div>
                     </div>
@@ -112,7 +112,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                             <span class="info-box-icon"><i class="fas fa-money-bill-wave"></i></span>
                             <div class="info-box-content">
                                 <span class="info-box-text">Días Pagados</span>
-                                <span class="info-box-number"><?= number_format($vacation_data['annual_balance']['dias_pagados_year'] ?? 0, 1) ?></span>
+                                <span class="info-box-number" id="balance-dias-pagados"><?= number_format($vacation_data['annual_balance']['dias_pagados_year'] ?? 0, 1) ?></span>
                             </div>
                         </div>
                     </div>
@@ -121,7 +121,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                             <span class="info-box-icon"><i class="fas fa-umbrella-beach"></i></span>
                             <div class="info-box-content">
                                 <span class="info-box-text">Días Disfrutados</span>
-                                <span class="info-box-number"><?= number_format($vacation_data['annual_balance']['dias_disfrutados_year'] ?? 0, 1) ?></span>
+                                <span class="info-box-number" id="balance-dias-disfrutados"><?= number_format($vacation_data['annual_balance']['dias_disfrutados_year'] ?? 0, 1) ?></span>
                             </div>
                         </div>
                     </div>
@@ -130,7 +130,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                             <span class="info-box-icon"><i class="fas fa-piggy-bank"></i></span>
                             <div class="info-box-content">
                                 <span class="info-box-text">Saldo Disponible</span>
-                                <span class="info-box-number"><?= number_format($vacation_data['annual_balance']['saldo_disponible_year'] ?? 30, 1) ?></span>
+                                <span class="info-box-number" id="balance-saldo-disponible"><?= number_format($vacation_data['annual_balance']['saldo_disponible_year'] ?? 30, 1) ?></span>
                             </div>
                         </div>
                     </div>
@@ -138,17 +138,30 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
 
                 <hr>
 
-                <!-- Totales Generales Acumulativos -->
+                <!-- Totales Generales Acumulativos (Calculados desde vacation_annual_balances) -->
+                <?php
+                // Calcular totales sumando todos los años del historial
+                $total_dias_pagados = 0;
+                $total_dias_disfrutados = 0;
+                $total_saldo_acumulado = 0;
+                if (!empty($vacation_data['vacation_history'])) {
+                    foreach ($vacation_data['vacation_history'] as $year_record) {
+                        $total_dias_pagados += $year_record['dias_pagados_year'] ?? 0;
+                        $total_dias_disfrutados += $year_record['dias_disfrutados_year'] ?? 0;
+                        $total_saldo_acumulado += $year_record['saldo_disponible_year'] ?? 0;
+                    }
+                }
+                ?>
                 <div class="row">
                     <div class="col-12">
-                        <h5><i class="fas fa-chart-line mr-2"></i>Totales Generales Acumulativos</h5>
+                        <h5><i class="fas fa-chart-line mr-2"></i>Totales Generales Acumulativos (Todos los Años)</h5>
                     </div>
                     <div class="col-md-4">
                         <div class="info-box bg-secondary">
                             <span class="info-box-icon"><i class="fas fa-coins"></i></span>
                             <div class="info-box-content">
-                                <span class="info-box-text">Total Días Pagados</span>
-                                <span class="info-box-number"><?= number_format($vacation_data['general_totals']['total_dias_pagados'] ?? 0, 1) ?></span>
+                                <span class="info-box-text">Total Días Pagados (Todos los Años)</span>
+                                <span class="info-box-number"><?= number_format($total_dias_pagados, 1) ?></span>
                             </div>
                         </div>
                     </div>
@@ -156,17 +169,17 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                         <div class="info-box bg-secondary">
                             <span class="info-box-icon"><i class="fas fa-calendar-times"></i></span>
                             <div class="info-box-content">
-                                <span class="info-box-text">Total Días Disfrutados</span>
-                                <span class="info-box-number"><?= number_format($vacation_data['general_totals']['total_dias_disfrutados'] ?? 0, 1) ?></span>
+                                <span class="info-box-text">Total Días Disfrutados (Informativo)</span>
+                                <span class="info-box-number"><?= number_format($total_dias_disfrutados, 1) ?></span>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="info-box bg-secondary">
+                        <div class="info-box bg-primary">
                             <span class="info-box-icon"><i class="fas fa-wallet"></i></span>
                             <div class="info-box-content">
-                                <span class="info-box-text">Saldo Total Acumulado</span>
-                                <span class="info-box-number"><?= number_format($vacation_data['general_totals']['total_saldo_acumulado'] ?? 0, 1) ?></span>
+                                <span class="info-box-text">Saldo Total Acumulado Disponible</span>
+                                <span class="info-box-number"><?= number_format($total_saldo_acumulado, 1) ?></span>
                             </div>
                         </div>
                     </div>
@@ -780,41 +793,119 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         updateCalculation();
     });
 
-    // Event listener específico para cambio de año
+    // Event listener específico para cambio de año - con AJAX para obtener balance real
     $('#ano_vacaciones').on('change', function() {
         const selectedYear = parseInt($(this).val());
-        const yearBalance = getAnnualBalanceForYear(selectedYear);
+        const employeeId = <?= $employee['id'] ?>;
 
-        // Actualizar los valores máximos de los campos
-        $('#dias_solicitados_pagar').attr('max', yearBalance);
-        $('#dias_solicitados_disfrute').attr('max', yearBalance);
+        // Mostrar indicador de carga
+        const $yearSelect = $(this);
+        $yearSelect.prop('disabled', true);
 
-        // Mostrar información del año seleccionado
-        showYearInfo(selectedYear, yearBalance);
+        // Construir URL usando el helper de PHP
+        const baseUrl = '<?= \App\Core\UrlHelper::route("panel/vacation/annual-balance") ?>';
+        const requestUrl = baseUrl + '/' + employeeId + '?year=' + selectedYear;
 
-        // Recalcular validaciones
-        updateTotalDiasSolicitados();
+        // Hacer AJAX call para obtener balance del año seleccionado
+        $.ajax({
+            url: requestUrl,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.data) {
+                    const data = response.data;
+
+                    // Actualizar la sección de Balance de Vacaciones (info-boxes superiores)
+                    $('#balance-year-display').text(selectedYear);
+                    $('#balance-dias-anuales').text(data.dias_vacaciones_anuales);
+                    $('#balance-dias-pagados').text(parseFloat(data.dias_pagados_year).toFixed(1));
+                    $('#balance-dias-disfrutados').text(parseFloat(data.dias_disfrutados_year).toFixed(1));
+                    $('#balance-saldo-disponible').text(parseFloat(data.saldo_disponible_year).toFixed(1));
+
+                    // Actualizar saldo de vacaciones con el saldo específico del año
+                    $('#saldo_vacaciones').val(data.saldo_disponible_year);
+
+                    // Actualizar días de vacaciones anuales (siempre 30)
+                    $('#dias_vacaciones_anuales').val(data.dias_vacaciones_anuales);
+                    $('#dias_vacaciones_disfrute').val(data.dias_vacaciones_anuales);
+
+                    // Calcular saldo disponible para disfrute del año específico
+                    const saldoDisfrute = data.dias_vacaciones_anuales - data.dias_disfrutados_year;
+                    $('#saldo_dias_disfrute').val(saldoDisfrute);
+
+                    // Actualizar los valores máximos de los campos
+                    $('#dias_solicitados_pagar').attr('max', data.saldo_disponible_year);
+                    $('#dias_solicitados_disfrute').attr('max', saldoDisfrute);
+
+                    // Mostrar información del año seleccionado con datos reales
+                    showYearInfo(selectedYear, data.saldo_disponible_year, data);
+
+                    // Actualizar balance en el resumen
+                    $('#remaining-balance').text(data.saldo_disponible_year.toFixed(1));
+
+                    // Recalcular validaciones con los nuevos valores
+                    updateTotalDiasSolicitados();
+                    updateCalculation();
+
+                    console.log('Balance actualizado para año ' + selectedYear + ':', data);
+                } else {
+                    console.error('Error en respuesta del servidor:', response);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'No se pudo obtener el balance del año seleccionado',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error AJAX:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Conexión',
+                    text: 'No se pudo conectar con el servidor para obtener el balance del año',
+                    confirmButtonText: 'Entendido'
+                });
+            },
+            complete: function() {
+                // Re-habilitar el select
+                $yearSelect.prop('disabled', false);
+            }
+        });
     });
 
     // Función para mostrar información del año seleccionado
-    function showYearInfo(year, balance) {
+    function showYearInfo(year, balance, data) {
         // Crear o actualizar info box del año seleccionado
         let infoBox = $('#year-info-box');
         if (infoBox.length === 0) {
             const infoHtml = `
                 <div id="year-info-box" class="alert alert-info mt-2">
                     <h6><i class="fas fa-info-circle mr-2"></i>Información del Año Seleccionado</h6>
-                    <p id="year-info-content"></p>
+                    <div id="year-info-content"></div>
                 </div>
             `;
             $('#ano_vacaciones').closest('.form-group').append(infoHtml);
             infoBox = $('#year-info-box');
         }
 
-        $('#year-info-content').html(`
-            <strong>Año ${year}:</strong> ${balance} días disponibles<br>
-            <small>Cada año laboral otorga 30 días de vacaciones según legislación panameña</small>
-        `);
+        // Mostrar información detallada si tenemos los datos
+        let infoHTML = `<strong>Año ${year}:</strong> ${balance} días disponibles`;
+
+        if (data) {
+            infoHTML += `<br>
+                <div class="row mt-2">
+                    <div class="col-6"><small><strong>Días Anuales:</strong> ${data.dias_vacaciones_anuales}</small></div>
+                    <div class="col-6"><small><strong>Días Pagados:</strong> ${data.dias_pagados_year}</small></div>
+                    <div class="col-6"><small><strong>Días Disfrutados:</strong> ${data.dias_disfrutados_year}</small></div>
+                    <div class="col-6"><small><strong>Saldo Total Acumulado:</strong> ${data.total_accumulated_balance}</small></div>
+                </div>
+            `;
+        } else {
+            infoHTML += `<br><small>Cada año laboral otorga 30 días de vacaciones según legislación panameña</small>`;
+        }
+
+        $('#year-info-content').html(infoHTML);
     }
 
     // Inicializar valores al cargar la página
@@ -824,8 +915,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
     // Validación inicial al cargar la página
     updateTotalDiasSolicitados();
 
-    // Mostrar información inicial del año actual
-    showYearInfo(currentYear, annualBalance);
+    // Mostrar información inicial del año actual (sin datos detallados)
+    showYearInfo(currentYear, annualBalance, null);
 
     // Validación de fechas mínimas
     $('#start_date').on('change', function() {

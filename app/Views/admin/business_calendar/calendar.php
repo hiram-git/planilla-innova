@@ -23,6 +23,9 @@ $content = '
                 </div>
             </div>
             <div class="col-md-6 text-right">
+                <button type="button" class="btn btn-success" id="btnSyncCalendar" title="Sincronizar calendario desde API Base44">
+                    <i class="fas fa-sync-alt"></i> Sincronizar desde API
+                </button>
                 <a href="' . \App\Core\UrlHelper::route('panel/business-calendar/listado?year=' . $year) . '"
                    class="btn btn-info">
                     <i class="fas fa-list"></i> Listado
@@ -231,6 +234,92 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     calendar.render();
+
+    // Sincronización del calendario desde API Base44
+    document.getElementById("btnSyncCalendar").addEventListener("click", function() {
+        Swal.fire({
+            title: "¿Sincronizar Calendario?",
+            html: `
+                <p>¿Desea sincronizar el calendario empresarial desde la API de Base44?</p>
+                <div class="text-left mt-3">
+                    <h6>Opciones:</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="replaceExisting" value="1">
+                        <label class="form-check-label" for="replaceExisting">
+                            Reemplazar registros existentes del año ' . $year . '
+                        </label>
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> Esta acción sincronizará feriados y días especiales desde Base44.
+                        Si marca "Reemplazar", se eliminarán los registros actuales del año antes de importar los nuevos.
+                    </small>
+                </div>
+            `,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#28a745",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "<i class=\"fas fa-sync-alt mr-1\"></i> Sincronizar",
+            cancelButtonText: "<i class=\"fas fa-times mr-1\"></i> Cancelar",
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                const replace = document.getElementById("replaceExisting").checked;
+
+                return $.ajax({
+                    url: "' . \App\Core\UrlHelper::route('panel/business-calendar/sync-api') . '",
+                    method: "POST",
+                    dataType: "json",
+                    data: {
+                        year: ' . $year . ',
+                        replace: replace,
+                        csrf_token: "' . ($csrf_token ?? '') . '"
+                    }
+                }).fail(function(xhr) {
+                    Swal.showValidationMessage(
+                        `Error de conexión: ${xhr.statusText || "No se pudo conectar con el servidor"}`
+                    );
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const response = result.value;
+
+                if (response.success) {
+                    // Mostrar resultado exitoso
+                    let detailsHTML = `
+                        <div class="text-left">
+                            <p><strong>${response.message}</strong></p>
+                            <table class="table table-sm mt-2">
+                                <tr><th>Obtenidos:</th><td>${response.stats.fetched}</td></tr>
+                                <tr><th>Insertados:</th><td class="text-success">${response.stats.inserted}</td></tr>
+                                <tr><th>Actualizados:</th><td class="text-info">${response.stats.updated}</td></tr>
+                                <tr><th>Omitidos:</th><td class="text-muted">${response.stats.skipped}</td></tr>
+                                ${response.stats.deleted > 0 ? `<tr><th>Eliminados:</th><td class="text-warning">${response.stats.deleted}</td></tr>` : ""}
+                                ${response.stats.errors > 0 ? `<tr><th>Errores:</th><td class="text-danger">${response.stats.errors}</td></tr>` : ""}
+                            </table>
+                        </div>
+                    `;
+
+                    Swal.fire({
+                        title: "Sincronización Exitosa",
+                        html: detailsHTML,
+                        icon: "success",
+                        confirmButtonText: "Recargar Página"
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: "Error en Sincronización",
+                        text: response.message || "Error desconocido",
+                        icon: "error",
+                        confirmButtonText: "Entendido"
+                    });
+                }
+            }
+        });
+    });
 });
 </script>
 ';

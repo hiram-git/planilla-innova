@@ -338,4 +338,75 @@ class BusinessCalendarController extends Controller
             $this->redirect(UrlHelper::route('panel/business-calendar/listado'));
         }
     }
+
+    /**
+     * Sincronizar calendario desde API Base44 (Manual)
+     * Incluye confirmación antes de proceder
+     */
+    public function syncFromApi()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Método no permitido'
+            ]);
+            exit;
+        }
+
+        AuthMiddleware::validateCSRF();
+
+        try {
+            // Obtener parámetros
+            $year = isset($_POST['year']) && is_numeric($_POST['year'])
+                ? (int)$_POST['year']
+                : date('Y');
+
+            $replace = isset($_POST['replace']) && $_POST['replace'] === 'true';
+            $dryRun = isset($_POST['dry_run']) && $_POST['dry_run'] === 'true';
+
+            // Inicializar servicio de sincronización
+            $syncService = new \App\Services\CalendarSyncService();
+
+            // Ejecutar sincronización
+            $stats = $syncService->syncFromApi([
+                'year' => $year,
+                'replace' => $replace,
+                'dry_run' => $dryRun
+            ]);
+
+            $errors = $syncService->getErrors();
+
+            // Preparar respuesta
+            $response = [
+                'success' => true,
+                'stats' => $stats,
+                'errors' => $errors,
+                'message' => $dryRun
+                    ? "Simulación completada (dry-run): {$stats['inserted']} a insertar, {$stats['updated']} a actualizar"
+                    : "Sincronización completada: {$stats['inserted']} insertados, {$stats['updated']} actualizados, {$stats['skipped']} omitidos"
+            ];
+
+            if ($stats['errors'] > 0) {
+                $response['message'] .= ". {$stats['errors']} errores encontrados.";
+            }
+
+            if ($stats['deleted'] > 0) {
+                $response['message'] .= " {$stats['deleted']} registros reemplazados.";
+            }
+
+            echo json_encode($response);
+
+        } catch (\Exception $e) {
+            error_log("Error en syncFromApi: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error durante la sincronización: ' . $e->getMessage(),
+                'stats' => ['fetched' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'deleted' => 0, 'errors' => 1]
+            ]);
+        }
+
+        exit;
+    }
 }

@@ -68,38 +68,72 @@ class VacationBalanceService
 
     /**
      * Actualizar saldo anual después de una solicitud de vacaciones
+     * NUEVO: Soporta distribución multi-año usando FIFO (años más antiguos primero)
+     * IMPORTANTE: Solo días PAGADOS afectan el saldo. Días DISFRUTADOS solo se registran.
      */
     public function updateAnnualBalance($employee_id, $year, $dias_pagados, $dias_disfrutados)
     {
         try {
-            // Obtener balance actual
-            $balance = $this->getAnnualBalance($employee_id, $year);
-            if (!$balance) {
+            // Obtener años disponibles ordenados del más antiguo al más reciente
+            $available_years = $this->getAvailableYears($employee_id);
+
+            if (empty($available_years)) {
+                error_log("No available years found for employee $employee_id");
                 return false;
             }
 
-            // Calcular nuevos totales
-            $new_dias_pagados = $balance['dias_pagados_year'] + $dias_pagados;
-            $new_dias_disfrutados = $balance['dias_disfrutados_year'] + $dias_disfrutados;
-            // CORRECCIÓN: Los días disfrutados NO se restan del saldo, solo son informativos
-            $new_saldo = $balance['dias_vacaciones_anuales'] - $new_dias_pagados;
+            $remaining_dias_pagados = $dias_pagados;
+            $remaining_dias_disfrutados = $dias_disfrutados;
 
-            // Validar que no exceda los 30 días anuales (solo validar días pagados)
-            if ($new_dias_pagados > $balance['dias_vacaciones_anuales']) {
-                throw new \Exception("Total de días pagados excede el límite anual de {$balance['dias_vacaciones_anuales']} días");
+            // Distribuir días usando FIFO (años más antiguos primero)
+            foreach ($available_years as $year_data) {
+                if ($remaining_dias_pagados <= 0 && $remaining_dias_disfrutados <= 0) {
+                    break;
+                }
+
+                $year_balance = $this->getAnnualBalance($employee_id, $year_data['year']);
+                if (!$year_balance || $year_balance['saldo_disponible_year'] <= 0) {
+                    continue;
+                }
+
+                // CORRECCIÓN: Solo días PAGADOS afectan el saldo
+                $dias_to_take_pagar = min($remaining_dias_pagados, $year_balance['saldo_disponible_year']);
+
+                // Días DISFRUTADOS se distribuyen proporcionalmente a los días pagados tomados de este año
+                // Si tomo X días pagados de este año, asigno proporcionalmente los días disfrutados
+                $proportion = $dias_pagados > 0 ? ($dias_to_take_pagar / $dias_pagados) : 0;
+                $dias_to_take_disfrute = round($dias_disfrutados * $proportion);
+
+                // Ajustar para no exceder lo que queda por distribuir
+                $dias_to_take_disfrute = min($dias_to_take_disfrute, $remaining_dias_disfrutados);
+
+                if ($dias_to_take_pagar > 0 || $dias_to_take_disfrute > 0) {
+                    // Actualizar este año
+                    $new_dias_pagados = $year_balance['dias_pagados_year'] + $dias_to_take_pagar;
+                    $new_dias_disfrutados = $year_balance['dias_disfrutados_year'] + $dias_to_take_disfrute;
+
+                    // FÓRMULA CORRECTA: saldo = dias_vacaciones - dias_pagados (sin restar disfrutados)
+                    $new_saldo = $year_balance['dias_vacaciones_anuales'] - $new_dias_pagados;
+
+                    $sql = "UPDATE vacation_annual_balances
+                            SET dias_pagados_year = ?,
+                                dias_disfrutados_year = ?,
+                                saldo_disponible_year = ?,
+                                updated_at = NOW()
+                            WHERE employee_id = ? AND year = ?";
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->execute([
+                        $new_dias_pagados,
+                        $new_dias_disfrutados,
+                        $new_saldo,
+                        $employee_id,
+                        $year_data['year']
+                    ]);
+
+                    $remaining_dias_pagados -= $dias_to_take_pagar;
+                    $remaining_dias_disfrutados -= $dias_to_take_disfrute;
+                }
             }
-
-            // Actualizar balance anual
-            $sql = "UPDATE vacation_annual_balances
-                    SET dias_pagados_year = ?,
-                        dias_disfrutados_year = ?,
-                        saldo_disponible_year = ?
-                    WHERE employee_id = ? AND year = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$new_dias_pagados, $new_dias_disfrutados, $new_saldo, $employee_id, $year]);
-
-            // Actualizar totales generales
-            $this->updateGeneralTotals($employee_id, $dias_pagados, $dias_disfrutados);
 
             return true;
         } catch (PDOException $e) {
@@ -109,105 +143,84 @@ class VacationBalanceService
     }
 
     /**
-     * Obtener totales generales acumulativos de un empleado
+     * Revertir saldo anual cuando se rechaza una solicitud de vacaciones
+     * NUEVO: Soporta reversión multi-año usando LIFO (últimos años usados primero)
+     * IMPORTANTE: Solo días PAGADOS afectan el saldo. Días DISFRUTADOS solo se revierten del registro.
      */
-    public function getGeneralTotals($employee_id)
+    public function revertAnnualBalance($employee_id, $year, $dias_pagados, $dias_disfrutados)
     {
         try {
-            $sql = "SELECT * FROM vacation_general_totals WHERE employee_id = ?";
+            // Obtener todos los años del empleado ordenados del más reciente al más antiguo (LIFO)
+            $sql = "SELECT year, dias_pagados_year, dias_disfrutados_year, saldo_disponible_year, dias_vacaciones_anuales
+                    FROM vacation_annual_balances
+                    WHERE employee_id = ?
+                    ORDER BY year DESC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employee_id]);
-            $totals = $stmt->fetch(PDO::FETCH_ASSOC);
+            $all_years = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            if (!$totals) {
-                // Crear registro inicial si no existe
-                $totals = $this->createGeneralTotals($employee_id);
-            }
-
-            return $totals;
-        } catch (PDOException $e) {
-            error_log("Error getting general totals: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Crear totales generales iniciales
-     */
-    private function createGeneralTotals($employee_id)
-    {
-        try {
-            $sql = "INSERT INTO vacation_general_totals (employee_id) VALUES (?)";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employee_id]);
-
-            return [
-                'id' => $this->db->lastInsertId(),
-                'employee_id' => $employee_id,
-                'total_dias_pagados' => 0.00,
-                'total_dias_disfrutados' => 0.00,
-                'total_saldo_acumulado' => 0.00
-            ];
-        } catch (PDOException $e) {
-            error_log("Error creating general totals: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Actualizar totales generales acumulativos
-     */
-    private function updateGeneralTotals($employee_id, $dias_pagados, $dias_disfrutados)
-    {
-        try {
-            // Obtener totales actuales
-            $totals = $this->getGeneralTotals($employee_id);
-            if (!$totals) {
+            if (empty($all_years)) {
+                error_log("No years found for employee $employee_id to revert");
                 return false;
             }
 
-            // Calcular nuevos totales
-            $new_total_pagados = $totals['total_dias_pagados'] + $dias_pagados;
-            $new_total_disfrutados = $totals['total_dias_disfrutados'] + $dias_disfrutados;
+            $remaining_dias_pagados = $dias_pagados;
+            $remaining_dias_disfrutados = $dias_disfrutados;
 
-            // Calcular saldo acumulado total (suma de todos los años disponibles)
-            $new_saldo_acumulado = $this->calculateTotalAccumulatedBalance($employee_id);
+            // Revertir usando LIFO (años más recientes primero)
+            foreach ($all_years as $year_data) {
+                if ($remaining_dias_pagados <= 0 && $remaining_dias_disfrutados <= 0) {
+                    break;
+                }
 
-            // Actualizar totales generales
-            $sql = "UPDATE vacation_general_totals
-                    SET total_dias_pagados = ?,
-                        total_dias_disfrutados = ?,
-                        total_saldo_acumulado = ?
-                    WHERE employee_id = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$new_total_pagados, $new_total_disfrutados, $new_saldo_acumulado, $employee_id]);
+                // Solo revertir de años que tienen días pagados/disfrutados
+                if ($year_data['dias_pagados_year'] <= 0 && $year_data['dias_disfrutados_year'] <= 0) {
+                    continue;
+                }
+
+                // Calcular cuántos días devolver a este año
+                $dias_to_return_pagar = min($remaining_dias_pagados, $year_data['dias_pagados_year']);
+                $dias_to_return_disfrute = min($remaining_dias_disfrutados, $year_data['dias_disfrutados_year']);
+
+                if ($dias_to_return_pagar > 0 || $dias_to_return_disfrute > 0) {
+                    // Actualizar este año
+                    $new_dias_pagados = $year_data['dias_pagados_year'] - $dias_to_return_pagar;
+                    $new_dias_disfrutados = $year_data['dias_disfrutados_year'] - $dias_to_return_disfrute;
+
+                    // FÓRMULA CORRECTA: saldo = dias_vacaciones - dias_pagados (sin considerar disfrutados)
+                    $new_saldo = $year_data['dias_vacaciones_anuales'] - $new_dias_pagados;
+
+                    // Evitar valores negativos
+                    $new_dias_pagados = max(0, $new_dias_pagados);
+                    $new_dias_disfrutados = max(0, $new_dias_disfrutados);
+
+                    $sql = "UPDATE vacation_annual_balances
+                            SET dias_pagados_year = ?,
+                                dias_disfrutados_year = ?,
+                                saldo_disponible_year = ?,
+                                updated_at = NOW()
+                            WHERE employee_id = ? AND year = ?";
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->execute([
+                        $new_dias_pagados,
+                        $new_dias_disfrutados,
+                        $new_saldo,
+                        $employee_id,
+                        $year_data['year']
+                    ]);
+
+                    $remaining_dias_pagados -= $dias_to_return_pagar;
+                    $remaining_dias_disfrutados -= $dias_to_return_disfrute;
+                }
+            }
 
             return true;
         } catch (PDOException $e) {
-            error_log("Error updating general totals: " . $e->getMessage());
+            error_log("Error reverting annual balance: " . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Calcular saldo acumulado total de todos los años
-     */
-    private function calculateTotalAccumulatedBalance($employee_id)
-    {
-        try {
-            $sql = "SELECT COALESCE(SUM(saldo_disponible_year), 0) as total_saldo
-                    FROM vacation_annual_balances
-                    WHERE employee_id = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employee_id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            return $result['total_saldo'] ?? 0;
-        } catch (PDOException $e) {
-            error_log("Error calculating total accumulated balance: " . $e->getMessage());
-            return 0;
-        }
-    }
 
     /**
      * Obtener historial completo de vacaciones por empleado
@@ -242,30 +255,75 @@ class VacationBalanceService
 
     /**
      * Validar si se puede procesar una solicitud de vacaciones
+     * NUEVO: Valida contra el saldo total acumulado de todos los años
      */
     public function canProcessVacationRequest($employee_id, $year, $dias_pagados, $dias_disfrutados)
     {
         try {
-            $balance = $this->getAnnualBalance($employee_id, $year);
-            if (!$balance) {
-                return ['valid' => false, 'message' => 'No se pudo obtener el balance anual'];
+            // Obtener saldo total acumulado de todos los años
+            $total_saldo_disponible = $this->getTotalAccumulatedBalance($employee_id);
+
+            if ($total_saldo_disponible <= 0) {
+                return [
+                    'valid' => false,
+                    'message' => "No hay días de vacaciones disponibles. Saldo total acumulado: 0 días"
+                ];
             }
 
             // CORRECCIÓN: Los días disfrutados NO afectan el saldo, solo validar días pagados
             $total_solicitado = $dias_pagados; // Solo validar días pagados
-            $total_usado_actual = $balance['dias_pagados_year']; // Solo contar días pagados
-            $nuevo_total = $total_usado_actual + $total_solicitado;
 
-            if ($nuevo_total > $balance['dias_vacaciones_anuales']) {
+            if ($total_solicitado > $total_saldo_disponible) {
                 return [
                     'valid' => false,
-                    'message' => "Total de días pagados solicitados ({$total_solicitado}) excede el saldo disponible ({$balance['saldo_disponible_year']}) para el año {$year}"
+                    'message' => "Días por pagar ({$total_solicitado}) no pueden exceder el saldo disponible total ({$total_saldo_disponible})"
                 ];
             }
 
             return ['valid' => true, 'message' => 'Solicitud válida'];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['valid' => false, 'message' => 'Error validando solicitud: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Obtener años disponibles con saldo positivo (ordenados del más antiguo al más reciente)
+     * Usado para distribución FIFO
+     */
+    private function getAvailableYears($employee_id)
+    {
+        try {
+            $sql = "SELECT year, saldo_disponible_year
+                    FROM vacation_annual_balances
+                    WHERE employee_id = ? AND saldo_disponible_year > 0
+                    ORDER BY year ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employee_id]);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getting available years: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener saldo total acumulado de todos los años
+     */
+    public function getTotalAccumulatedBalance($employee_id)
+    {
+        try {
+            $sql = "SELECT COALESCE(SUM(saldo_disponible_year), 0) as total_saldo
+                    FROM vacation_annual_balances
+                    WHERE employee_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employee_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $result['total_saldo'] ?? 0;
+        } catch (PDOException $e) {
+            error_log("Error getting total accumulated balance: " . $e->getMessage());
+            return 0;
         }
     }
 }

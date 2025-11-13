@@ -35,28 +35,30 @@ class VacationController extends Controller
                            e.fecha_ingreso, e.sueldo_individual, cargo.nombre as cargo_nombre,
                            s.nombre as situacion_nombre,
                            DATEDIFF(CURDATE(), e.fecha_ingreso) as dias_trabajados,
-                           TIMESTAMPDIFF(MONTH, e.fecha_ingreso, CURDATE()) as meses_trabajados,
-                           vb.current_balance, vb.days_earned, vb.days_taken
+                           TIMESTAMPDIFF(MONTH, e.fecha_ingreso, CURDATE()) as meses_trabajados
                     FROM employees e
                     LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN situaciones s ON e.situacion_id = s.id
-                    LEFT JOIN vacation_balances vb ON e.id = vb.employee_id AND vb.year = YEAR(CURDATE())
                     WHERE e.situacion_id = 1
                     ORDER BY e.firstname, e.lastname";
 
             $stmt = $this->db->query($sql);
             $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Calcular balances para empleados sin registro en vacation_balances
+            // Calcular balances usando el nuevo sistema (vacation_annual_balances)
             foreach ($employees as &$employee) {
-                if ($employee['current_balance'] === null) {
-                    $employee['days_earned'] = $this->calculator->VACATION_DAYS_EARNED($employee['id']);
-                    $employee['current_balance'] = $this->calculator->VACATION_BALANCE($employee['id']);
-                    $employee['days_taken'] = 0;
-                }
-
+                $employee['days_earned'] = $this->calculator->VACATION_DAYS_EARNED($employee['id']);
+                $employee['current_balance'] = $this->balanceService->getTotalAccumulatedBalance($employee['id']);
                 $employee['eligible'] = $this->calculator->VACATION_ELIGIBLE($employee['id']);
                 $employee['accrual_rate'] = $this->calculator->VACATION_ACCRUAL_RATE($employee['id']);
+
+                // Calcular días tomados de todos los años
+                $vacation_history = $this->balanceService->getVacationHistory($employee['id']);
+                $days_taken = 0;
+                foreach ($vacation_history as $year_record) {
+                    $days_taken += $year_record['dias_pagados_year'] ?? 0;
+                }
+                $employee['days_taken'] = $days_taken;
             }
 
             // Obtener solicitudes pendientes de aprobación
@@ -116,19 +118,19 @@ class VacationController extends Controller
             // Calcular datos de vacaciones
             $current_year = date('Y');
             $annual_balance = $this->balanceService->getAnnualBalance($employee_id, $current_year);
-            $general_totals = $this->balanceService->getGeneralTotals($employee_id);
             $vacation_history = $this->balanceService->getVacationHistory($employee_id);
+            $total_accumulated_balance = $this->balanceService->getTotalAccumulatedBalance($employee_id);
 
             $vacation_data = [
                 'days_earned' => $this->calculator->VACATION_DAYS_EARNED($employee_id),
-                'current_balance' => $this->calculator->VACATION_BALANCE($employee_id),
+                'current_balance' => $total_accumulated_balance, // Saldo total acumulado de todos los años
                 'accrual_rate' => $this->calculator->VACATION_ACCRUAL_RATE($employee_id),
                 'daily_salary' => $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1),
-                // Nuevos datos de balance anual
+                // Datos de balance anual
                 'annual_balance' => $annual_balance,
-                'general_totals' => $general_totals,
                 'vacation_history' => $vacation_history,
-                'current_year' => $current_year
+                'current_year' => $current_year,
+                'total_accumulated_balance' => $total_accumulated_balance // Para mostrar en el formulario
             ];
 
             // Obtener solicitudes anteriores
@@ -218,10 +220,10 @@ class VacationController extends Controller
             $total_days = $start_datetime->diff($end_datetime)->days + 1;
             $business_days = $this->calculator->VACATION_BUSINESS_DAYS($start_date, $end_date);
 
-            // Verificar balance disponible
-            $current_balance = $this->calculator->VACATION_BALANCE($employee_id);
+            // Verificar balance disponible total acumulado (todos los años)
+            $current_balance = $this->balanceService->getTotalAccumulatedBalance($employee_id);
 
-            // Validación usando el servicio de balance anual
+            // Validación usando el servicio de balance anual (valida contra saldo total acumulado)
             $validation = $this->balanceService->canProcessVacationRequest(
                 $employee_id,
                 $ano_vacaciones,
@@ -231,19 +233,6 @@ class VacationController extends Controller
 
             if (!$validation['valid']) {
                 $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', $validation['message']);
-                return;
-            }
-
-            // Validaciones adicionales para los nuevos campos
-            if ($total_dias_solicitados > $current_balance) {
-                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', "Total de días solicitados ($total_dias_solicitados) excede el balance disponible ($current_balance)");
-                return;
-            }
-
-            // Nota: Los días de disfrute son independientes y no deben sumar con los días solicitados.
-
-            if ($business_days > $current_balance) {
-                $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', "Días solicitados ($business_days) exceden el balance disponible ($current_balance)");
                 return;
             }
 
@@ -263,6 +252,7 @@ class VacationController extends Controller
 
             // Calcular compensación para días solicitados por pagar
             $compensation_amount_new = $daily_salary * $dias_solicitados_pagar;
+            
 
             // Insertar solicitud
             $sql = "INSERT INTO vacation_requests (
@@ -285,12 +275,12 @@ class VacationController extends Controller
             $request_id = $this->db->lastInsertId();
 
             // Actualizar balances anuales y totales generales
-            $this->balanceService->updateAnnualBalance(
+            /*$this->balanceService->updateAnnualBalance(
                 $employee_id,
                 $ano_vacaciones,
                 $dias_solicitados_pagar,
                 $dias_solicitados_disfrute
-            );
+            );*/
 
             // Crear registro de cálculo para auditoría
             $this->createCalculationRecord($request_id, 'DAYS_REQUESTED', $business_days, $business_days, $compensation_amount);
@@ -371,12 +361,19 @@ class VacationController extends Controller
                 return;
             }
 
-            // Verificar balance actual
-            $current_balance = $this->calculator->VACATION_BALANCE($request['employee_id']);
-            if ($request['business_days'] > $current_balance) {
-                $this->redirectWithToastr('/panel/vacation/show/' . $request_id, 'error', 'El empleado ya no tiene suficientes días disponibles');
+            // Verificar balance actual total acumulado
+            $current_balance = $this->balanceService->getTotalAccumulatedBalance($request['employee_id']);
+            if ($request['dias_solicitados_pagar'] > $current_balance) {
+                $this->redirectWithToastr('/panel/vacation/show/' . $request_id, 'error', 'El empleado ya no tiene suficientes días disponibles (saldo total: ' . $current_balance . ' días)');
                 return;
             }
+            // Actualizar balances anuales y totales generales
+            $this->balanceService->updateAnnualBalance(
+                $request['employee_id'],
+                $request['ano_vacaciones'],
+                $request['dias_solicitados_pagar'],
+                $request['dias_solicitados_disfrute']
+            );
 
             // Aprobar solicitud
             $sql = "UPDATE vacation_requests
@@ -385,8 +382,9 @@ class VacationController extends Controller
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$_SESSION['admin_id'], $request_id]);
 
-            // Actualizar balance del empleado
-            $this->updateEmployeeBalance($request['employee_id'], $request['business_days'], 'APPROVED');
+            // NOTA: Los días ya fueron restados del balance cuando se creó la solicitud (método store())
+            // por lo tanto NO se deben restar nuevamente aquí para evitar doble resta
+            // El sistema nuevo usa vacation_annual_balances que ya fue actualizado
 
             // Crear registro de cálculo
             $this->createCalculationRecord($request_id, 'DAYS_APPROVED', $request['business_days'], $request['business_days'], 0);
@@ -432,10 +430,23 @@ class VacationController extends Controller
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$_SESSION['admin_id'], $rejection_reason, $request_id]);
 
+            // IMPORTANTE: Revertir los balances que fueron actualizados cuando se creó la solicitud
+            // Los días que se restaron deben devolverse al balance del empleado
+            if (!empty($request['ano_vacaciones']) &&
+                (!empty($request['dias_solicitados_pagar']) || !empty($request['dias_solicitados_disfrute']))) {
+
+                $this->balanceService->revertAnnualBalance(
+                    $request['employee_id'],
+                    $request['ano_vacaciones'],
+                    $request['dias_solicitados_pagar'] ?? 0,
+                    $request['dias_solicitados_disfrute'] ?? 0
+                );
+            }
+
             // Crear registro de cálculo
             $this->createCalculationRecord($request_id, 'DAYS_REJECTED', $request['business_days'], 0, 0);
 
-            $this->redirectWithToastr('/panel/vacation', 'success', 'Solicitud de vacaciones rechazada');
+            $this->redirectWithToastr('/panel/vacation', 'success', 'Solicitud de vacaciones rechazada. Los días han sido devueltos al balance del empleado.');
 
         } catch (PDOException $e) {
             $this->redirectWithToastr('/panel/vacation', 'error', 'Error al rechazar solicitud: ' . $e->getMessage());
@@ -443,7 +454,47 @@ class VacationController extends Controller
     }
 
     /**
+     * Obtener balance anual por empleado y año (AJAX)
+     */
+    public function getAnnualBalance($employee_id)
+    {
+        try {
+            $year = $_GET['year'] ?? date('Y');
+
+            // Obtener balance del año específico
+            $annual_balance = $this->balanceService->getAnnualBalance($employee_id, $year);
+
+            // Obtener saldo total acumulado
+            $total_accumulated = $this->balanceService->getTotalAccumulatedBalance($employee_id);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'year' => $year,
+                    'dias_vacaciones_anuales' => $annual_balance['dias_vacaciones_anuales'] ?? 30,
+                    'dias_pagados_year' => $annual_balance['dias_pagados_year'] ?? 0,
+                    'dias_disfrutados_year' => $annual_balance['dias_disfrutados_year'] ?? 0,
+                    'saldo_disponible_year' => $annual_balance['saldo_disponible_year'] ?? 30,
+                    'total_accumulated_balance' => $total_accumulated
+                ]
+            ]);
+            exit;
+
+        } catch (\Exception $e) {
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al obtener balance: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+
+    /**
      * Vista calendario de vacaciones
+     * ✅ UNIFICADO: Usa calendario empresarial (business_calendar) como base
      */
     public function calendar()
     {
@@ -462,17 +513,24 @@ class VacationController extends Controller
             $stmt->execute([$year]);
             $vacation_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Obtener feriados del año
-            $sql = "SELECT * FROM vacation_calendar
-                    WHERE YEAR(date) = ?
-                    ORDER BY date";
+            // ✅ NUEVO: Usar calendario empresarial (business_calendar) en lugar de vacation_calendar
+            // Obtener días especiales del calendario empresarial (feriados, duelos, días especiales)
+            $sql = "SELECT date_value as date, description, day_type, status
+                    FROM business_calendar
+                    WHERE year_value = ?
+                    AND day_type IN ('FERIADO', 'DUELO_NACIONAL', 'ESPECIAL')
+                    ORDER BY date_value";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$year]);
-            $holidays = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $business_days = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Obtener colores del modelo BusinessCalendar para consistencia visual
+            $dayTypeColors = \App\Models\BusinessCalendar::getDayTypeColors();
 
             $this->render('admin/vacation/calendar', [
                 'vacation_events' => $vacation_events,
-                'holidays' => $holidays,
+                'business_days' => $business_days, // Días del calendario empresarial
+                'day_type_colors' => $dayTypeColors, // Colores consistentes
                 'year' => $year,
                 'pageTitle' => 'Calendario de Vacaciones ' . $year
             ]);
@@ -520,13 +578,8 @@ class VacationController extends Controller
             $stmt->execute([$employee_id]);
             $vacation_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Obtener balance anual
-            $sql = "SELECT * FROM vacation_balances
-                    WHERE employee_id = ?
-                    ORDER BY year DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employee_id]);
-            $annual_balances = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Obtener balance anual usando el nuevo sistema
+            $annual_balances = $this->balanceService->getVacationHistory($employee_id);
 
             $this->render('admin/vacation/balance', [
                 'employee' => $employee,
@@ -596,37 +649,4 @@ class VacationController extends Controller
         $stmt->execute([$request_id, $type, $days, $calculated_days, $amount, $formula]);
     }
 
-    /**
-     * Actualizar balance del empleado
-     */
-    private function updateEmployeeBalance($employee_id, $days_used, $operation)
-    {
-        $year = date('Y');
-
-        // Verificar si existe balance para el año actual
-        $sql = "SELECT id FROM vacation_balances WHERE employee_id = ? AND year = ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$employee_id, $year]);
-
-        if ($stmt->fetch()) {
-            // Actualizar balance existente
-            if ($operation === 'APPROVED') {
-                $sql = "UPDATE vacation_balances
-                        SET days_taken = days_taken + ?, last_calculation_date = CURDATE()
-                        WHERE employee_id = ? AND year = ?";
-            }
-        } else {
-            // Crear nuevo balance
-            $days_earned = $this->calculator->VACATION_DAYS_EARNED($employee_id);
-            $sql = "INSERT INTO vacation_balances
-                    (employee_id, year, days_earned, days_taken, last_calculation_date)
-                    VALUES (?, ?, ?, ?, CURDATE())";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employee_id, $year, $days_earned, $days_used]);
-            return;
-        }
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$days_used, $employee_id, $year]);
-    }
 }

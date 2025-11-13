@@ -1090,11 +1090,11 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
     private function calcularDiasTomadosEnAno(int $employeeId, int $year): float
     {
         try {
-            $sql = "SELECT COALESCE(SUM(business_days), 0) as total_days
+            $sql = "SELECT COALESCE(SUM(dias_solicitados_disfrute), 0) as total_days
                     FROM vacation_requests
                     WHERE employee_id = ?
                     AND YEAR(start_date) = ?
-                    AND status = 'TAKEN'";
+                    AND status = 'APPROVED'";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId, $year]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1113,11 +1113,11 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
     private function calcularDiasCompensadosEnAno(int $employeeId, int $year): float
     {
         try {
-            $sql = "SELECT COALESCE(SUM(business_days), 0) as total_days
+            $sql = "SELECT COALESCE(SUM(dias_solicitados_pagar), 0) as total_days
                     FROM vacation_requests
                     WHERE employee_id = ?
                     AND YEAR(request_date) = ?
-                    AND vacation_type = 'COMPENSATION'
+                    AND vacation_type in ('COMPENSATION', 'ANNUAL')
                     AND status = 'APPROVED'";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId, $year]);

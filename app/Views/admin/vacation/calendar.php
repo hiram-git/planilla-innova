@@ -98,8 +98,11 @@ $pageTitle = "Calendario de Vacaciones " . $year;
                             <span class="badge badge-danger mr-2 mb-1">
                                 <i class="fas fa-circle"></i> Feriados
                             </span>
-                            <span class="badge badge-warning mr-2 mb-1">
-                                <i class="fas fa-circle"></i> Compensación
+                            <span class="badge badge-dark mr-2 mb-1">
+                                <i class="fas fa-circle"></i> Duelo
+                            </span>
+                            <span class="badge badge-secondary mr-2 mb-1">
+                                <i class="fas fa-circle"></i> Especial
                             </span>
                         </div>
                     </div>
@@ -146,8 +149,8 @@ $pageTitle = "Calendario de Vacaciones " . $year;
                 <div class="info-box bg-danger">
                     <span class="info-box-icon"><i class="fas fa-heart"></i></span>
                     <div class="info-box-content">
-                        <span class="info-box-text">Feriados</span>
-                        <span class="info-box-number"><?= count($holidays) ?></span>
+                        <span class="info-box-text">Días Especiales</span>
+                        <span class="info-box-number"><?= count($business_days) ?></span>
                     </div>
                 </div>
             </div>
@@ -243,27 +246,34 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php endforeach; ?>
     ];
 
-    // Preparar feriados
-    const holidayEvents = [
-        <?php foreach ($holidays as $holiday): ?>
+    // Preparar días especiales del calendario empresarial (feriados, duelo, especiales)
+    const businessDayEvents = [
+        <?php
+        // Obtener colores para cada tipo de día
+        $dayTypeColors = $day_type_colors ?? \App\Models\BusinessCalendar::getDayTypeColors();
+        foreach ($business_days as $day):
+            $dayType = $day['day_type'];
+            $color = $dayTypeColors[$dayType] ?? '#6c757d';
+        ?>
         {
-            id: 'holiday-<?= $holiday['id'] ?>',
-            title: '<?= htmlspecialchars($holiday['description']) ?>',
-            start: '<?= $holiday['date'] ?>',
+            id: 'business-<?= $day['date'] ?>',
+            title: '<?= htmlspecialchars($day['description']) ?>',
+            start: '<?= $day['date'] ?>',
             allDay: true,
-            backgroundColor: '#dc3545',
-            borderColor: '#c82333',
+            backgroundColor: '<?= $color ?>',
+            borderColor: '<?= $color ?>',
             display: 'background',
             extendedProps: {
-                type: 'holiday',
-                dayType: '<?= $holiday['day_type'] ?>'
+                type: 'business_day',
+                dayType: '<?= $dayType ?>',
+                status: '<?= $day['status'] ?? 'CONFIRMED' ?>'
             }
         },
         <?php endforeach; ?>
     ];
 
     // Combinar todos los eventos
-    const allEvents = [...vacationEvents, ...holidayEvents];
+    const allEvents = [...vacationEvents, ...businessDayEvents];
 
     // Inicializar FullCalendar
     const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -277,9 +287,9 @@ document.addEventListener('DOMContentLoaded', function() {
         height: 'auto',
         events: allEvents,
         eventClick: function(info) {
-            if (info.event.extendedProps.type === 'holiday') {
-                // Mostrar información del feriado
-                showHolidayInfo(info.event);
+            if (info.event.extendedProps.type === 'business_day') {
+                // Mostrar información del día especial del calendario empresarial
+                showBusinessDayInfo(info.event);
             } else {
                 // Mostrar información de vacaciones
                 showVacationInfo(info.event);
@@ -287,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         eventDidMount: function(info) {
             // Añadir tooltip
-            if (info.event.extendedProps.type !== 'holiday') {
+            if (info.event.extendedProps.type !== 'business_day') {
                 info.el.title = `${info.event.extendedProps.employeeName} - ${info.event.extendedProps.businessDays} días`;
             }
         },
@@ -370,19 +380,35 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#eventModal').modal('show');
     }
 
-    // Función para mostrar información de feriados
-    function showHolidayInfo(event) {
+    // Función para mostrar información de días especiales del calendario empresarial
+    function showBusinessDayInfo(event) {
+        const dayTypeLabels = {
+            'FERIADO': 'Feriado Nacional',
+            'DUELO_NACIONAL': 'Duelo Nacional',
+            'ESPECIAL': 'Día Especial'
+        };
+
+        const dayTypeIcons = {
+            'FERIADO': '<i class="fas fa-heart fa-3x text-danger mb-3"></i>',
+            'DUELO_NACIONAL': '<i class="fas fa-ribbon fa-3x text-dark mb-3"></i>',
+            'ESPECIAL': '<i class="fas fa-star fa-3x text-info mb-3"></i>'
+        };
+
+        const dayType = event.extendedProps.dayType || 'FERIADO';
+        const label = dayTypeLabels[dayType] || 'Día Especial';
+        const icon = dayTypeIcons[dayType] || '<i class="fas fa-calendar fa-3x text-secondary mb-3"></i>';
+
         const modalBody = `
             <div class="text-center">
-                <i class="fas fa-heart fa-3x text-danger mb-3"></i>
+                ${icon}
                 <h4>${event.title}</h4>
-                <p class="text-muted">Feriado Nacional</p>
+                <p class="text-muted">${label}</p>
                 <p><strong>Fecha:</strong> ${event.start.toLocaleDateString('es-ES')}</p>
-                <p><small class="text-muted">Los feriados nacionales no se consideran como días hábiles para vacaciones.</small></p>
+                <p><small class="text-muted">Los días no laborables no se consideran como días hábiles para vacaciones.</small></p>
             </div>
         `;
 
-        document.getElementById('eventModalTitle').textContent = 'Feriado Nacional';
+        document.getElementById('eventModalTitle').textContent = label;
         document.getElementById('eventModalBody').innerHTML = modalBody;
         document.getElementById('eventDetailLink').style.display = 'none';
 
@@ -411,18 +437,18 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.removeAllEvents();
 
         // Filtrar eventos
-        let filteredEvents = [...vacationEvents, ...holidayEvents];
+        let filteredEvents = [...vacationEvents, ...businessDayEvents];
 
         if (employeeId) {
             filteredEvents = filteredEvents.filter(event =>
-                event.extendedProps.type === 'holiday' ||
+                event.extendedProps.type === 'business_day' ||
                 event.extendedProps.employeeId === employeeId
             );
         }
 
         if (status) {
             filteredEvents = filteredEvents.filter(event =>
-                event.extendedProps.type === 'holiday' ||
+                event.extendedProps.type === 'business_day' ||
                 event.extendedProps.status === status
             );
         }
@@ -431,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.addEventSource(filteredEvents);
 
         // Actualizar estadísticas
-        updateStats(filteredEvents.filter(e => e.extendedProps.type !== 'holiday'));
+        updateStats(filteredEvents.filter(e => e.extendedProps.type !== 'business_day'));
     }
 
     function updateStats(events) {

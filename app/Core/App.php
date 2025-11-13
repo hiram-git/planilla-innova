@@ -441,6 +441,10 @@ class App
                                     // GET /panel/vacation/balance/{employee_id}
                                     $this->method = 'balance';
                                     $this->params = [$url[3]];
+                                } elseif ($url[2] === 'annual-balance' && isset($url[3]) && method_exists($this->controller, 'getAnnualBalance')) {
+                                    // GET /panel/vacation/annual-balance/{employee_id}?year=YYYY
+                                    $this->method = 'getAnnualBalance';
+                                    $this->params = [$url[3]];
                                 } elseif ($url[2] === 'calendar' && method_exists($this->controller, 'calendar')) {
                                     // GET /panel/vacation/calendar
                                     $this->method = 'calendar';
@@ -469,6 +473,62 @@ class App
                                     // POST /panel/vacation/reject/{request_id}
                                     $this->method = 'reject';
                                     $this->params = [$url[3]];
+                                } else {
+                                    // Fallback a index en POST no reconocido
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            }
+                        }
+
+                        // ✅ MANEJO ESPECIAL: business-calendar subroutes
+                        if ($url[1] === 'business-calendar') {
+                            $this->controller = new \App\Controllers\BusinessCalendarController();
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            if ($httpMethod === 'GET') {
+                                if (!isset($url[2])) {
+                                    // GET /panel/business-calendar
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'calendar' && method_exists($this->controller, 'index')) {
+                                    // GET /panel/business-calendar/calendar
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'listado' && method_exists($this->controller, 'listado')) {
+                                    // GET /panel/business-calendar/listado
+                                    $this->method = 'listado';
+                                    $this->params = [];
+                                } else {
+                                    // Fallback a index
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            } elseif ($httpMethod === 'POST') {
+                                if ($url[2] === 'store' && method_exists($this->controller, 'store')) {
+                                    // POST /panel/business-calendar/store
+                                    $this->method = 'store';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'delete' && isset($url[3]) && method_exists($this->controller, 'delete')) {
+                                    // POST /panel/business-calendar/delete/{id}
+                                    $this->method = 'delete';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'initialize-year' && method_exists($this->controller, 'initializeYear')) {
+                                    // POST /panel/business-calendar/initialize-year
+                                    $this->method = 'initializeYear';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'sync-api' && method_exists($this->controller, 'syncFromApi')) {
+                                    // POST /panel/business-calendar/sync-api
+                                    $this->method = 'syncFromApi';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'get-working-days' && method_exists($this->controller, 'getWorkingDays')) {
+                                    // POST /panel/business-calendar/get-working-days (AJAX)
+                                    $this->method = 'getWorkingDays';
+                                    $this->params = [];
                                 } else {
                                     // Fallback a index en POST no reconocido
                                     $this->method = 'index';

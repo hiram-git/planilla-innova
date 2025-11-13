@@ -159,11 +159,11 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                             <thead>
                                 <tr>
                                     <th>Año</th>
-                                    <th>Días Ganados</th>
-                                    <th>Días Tomados</th>
-                                    <th>Días Compensados</th>
-                                    <th>Balance Final</th>
-                                    <th>Última Actualización</th>
+                                    <th>Días Anuales</th>
+                                    <th>Días Pagados</th>
+                                    <th>Días Disfrutados (Info)</th>
+                                    <th>Saldo Disponible</th>
+                                    <th>Solicitudes</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -171,21 +171,21 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                     <tr>
                                         <td><strong><?= $balance['year'] ?></strong></td>
                                         <td>
-                                            <span class="badge badge-success">+<?= number_format($balance['days_earned'], 1) ?></span>
+                                            <span class="badge badge-success"><?= number_format($balance['dias_vacaciones_anuales'] ?? 30, 1) ?></span>
                                         </td>
                                         <td>
-                                            <span class="badge badge-warning">-<?= number_format($balance['days_taken'], 1) ?></span>
+                                            <span class="badge badge-warning"><?= number_format($balance['dias_pagados_year'] ?? 0, 1) ?></span>
                                         </td>
                                         <td>
-                                            <span class="badge badge-info">-<?= number_format($balance['days_compensated'], 1) ?></span>
+                                            <span class="badge badge-info"><?= number_format($balance['dias_disfrutados_year'] ?? 0, 1) ?></span>
                                         </td>
                                         <td>
-                                            <span class="badge badge-<?= $balance['current_balance'] > 0 ? 'success' : 'secondary' ?>">
-                                                <?= number_format($balance['current_balance'], 1) ?>
+                                            <span class="badge badge-<?= ($balance['saldo_disponible_year'] ?? 0) > 0 ? 'primary' : 'secondary' ?>">
+                                                <?= number_format($balance['saldo_disponible_year'] ?? 0, 1) ?>
                                             </span>
                                         </td>
                                         <td>
-                                            <?= $balance['last_calculation_date'] ? date('d/m/Y', strtotime($balance['last_calculation_date'])) : 'N/A' ?>
+                                            <span class="badge badge-light"><?= $balance['solicitudes_count'] ?? 0 ?></span>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
