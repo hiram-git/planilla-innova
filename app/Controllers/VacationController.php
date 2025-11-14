@@ -651,9 +651,12 @@ class VacationController extends Controller
     {
         try {
             // Obtener datos del empleado
-            $sql = "SELECT e.*, cargo.nombre as cargo_nombre
+            $sql = "SELECT e.*,
+                           COALESCE(cargo_pos.nombre, cargo_emp.nombre) as position_name
                     FROM employees e
-                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    LEFT JOIN cargos cargo_pos ON p.id_cargo = cargo_pos.id
+                    LEFT JOIN cargos cargo_emp ON e.cargo_id = cargo_emp.id
                     WHERE e.id = ?";
 
             $stmt = $this->db->prepare($sql);
