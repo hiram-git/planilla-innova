@@ -252,7 +252,8 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($vacation_history as $request): ?>
+                                <?php foreach ($vacation_history as $request): 
+                                    ?>
                                     <tr>
                                         <td><strong>#<?= $request['id'] ?></strong></td>
                                         <td><?= date('d/m/Y', strtotime($request['request_date'])) ?></td>
@@ -262,7 +263,7 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                             <?= date('d/m/Y', strtotime($request['end_date'])) ?>
                                         </td>
                                         <td>
-                                            <span class="badge badge-info"><?= $request['business_days'] ?> hábiles</span>
+                                            <span class="badge badge-info"><?= $request['dias_solicitados_pagar'] ?? 0 ?> solicitados</span>
                                             <br><small class="text-muted"><?= $request['total_days'] ?> totales</small>
                                         </td>
                                         <td>

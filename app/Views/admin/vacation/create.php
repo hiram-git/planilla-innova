@@ -533,7 +533,10 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         loadScript('https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js', function() {
             loadScript('https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js', function() {
                 const $input = $('#date_range');
-                const minStart = moment().add(1, 'day');
+                // Permitir seleccionar fechas desde el inicio del año seleccionado
+                const selectedYear = parseInt($('#ano_vacaciones').val()) || currentYear;
+                const minStart = moment(selectedYear + '-01-01');
+
                 $input.daterangepicker({
                     locale: {
                         format: 'YYYY-MM-DD',
@@ -798,6 +801,17 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         const selectedYear = parseInt($(this).val());
         const employeeId = <?= $employee['id'] ?>;
 
+        // Actualizar minDate del daterangepicker según el año seleccionado
+        const newMinDate = moment(selectedYear + '-01-01');
+        $('#date_range').data('daterangepicker').minDate = newMinDate;
+        // Limpiar fechas seleccionadas anteriormente
+        $('#date_range').val('');
+        $('#start_date').val('');
+        $('#end_date').val('');
+        $('#dias_calculados_fechas').val(0);
+        $('#total_dias_solicitados').val(0);
+        $('#dias_solicitados_pagar').val(0);
+
         // Mostrar indicador de carga
         const $yearSelect = $(this);
         $yearSelect.prop('disabled', true);
@@ -841,7 +855,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     showYearInfo(selectedYear, data.saldo_disponible_year, data);
 
                     // Actualizar balance en el resumen
-                    $('#remaining-balance').text(data.saldo_disponible_year.toFixed(1));
+                    $('#remaining-balance').text(parseFloat(data.saldo_disponible_year || 0).toFixed(1));
 
                     // Recalcular validaciones con los nuevos valores
                     updateTotalDiasSolicitados();
