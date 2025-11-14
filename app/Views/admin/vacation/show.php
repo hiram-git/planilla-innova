@@ -107,7 +107,17 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                                     </dd>
 
                                     <dt class="col-sm-5">Días Solicitados:</dt>
-                                    <dd class="col-sm-7"><strong><?= $request['total_days'] ?> días</strong></dd>
+                                    <dd class="col-sm-7">
+                                        <?php 
+                                        $diasPagar = (float)($request['dias_solicitados_pagar'] ?? 0);
+                                        $diasDisfruteInfo = (float)($request['dias_solicitados_disfrute'] ?? 0);
+                                        ?>
+                                        <strong><?= number_format($diasPagar, 1) ?> días</strong>
+                                        <?php if ($diasDisfruteInfo > 0): ?>
+                                            <br>
+                                            <small class="text-muted">Disfrute: <?= number_format($diasDisfruteInfo, 1) ?> días (informativo)</small>
+                                        <?php endif; ?>
+                                    </dd>
 
                                     <dt class="col-sm-5">Fecha Ingreso:</dt>
                                     <dd class="col-sm-7"><?= date('d/m/Y', strtotime($request['fecha_ingreso'])) ?></dd>
@@ -175,19 +185,23 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                         </h3>
                     </div>
                     <div class="card-body">
+                        <?php 
+                        $diasPagar = (float)($request['dias_solicitados_pagar'] ?? 0);
+                        $balanceResultante = (float)($request['accumulated_days'] ?? 0) - $diasPagar;
+                        ?>
                         <div class="text-center">
                             <h3 class="text-<?= $current_balance > 0 ? 'success' : 'danger' ?>">
                                 <?= number_format($current_balance, 1) ?> días
                             </h3>
-                            <p class="text-muted">Disponibles actualmente</p>
+                            <p class="text-muted">Disponibles para este periodo</p>
                         </div>
 
                         <div class="mt-3">
                             <small class="text-muted">Desglose:</small>
                             <ul class="list-unstyled mb-0">
-                                <li><i class="fas fa-plus text-success"></i> Días acumulados: <?= number_format($request['accumulated_days'], 1) ?></li>
-                                <li><i class="fas fa-minus text-warning"></i> Días solicitados: <?= number_format($request['total_days'], 1) ?></li>
-                                <li><i class="fas fa-equals text-info"></i> Balance resultante: <?= number_format($request['remaining_days'], 1) ?></li>
+                                <li><i class="fas fa-plus text-success"></i> Días acumulados: <?= number_format((float)($request['accumulated_days'] ?? 0), 1) ?></li>
+                                <li><i class="fas fa-minus text-warning"></i> Días solicitados: <?= number_format($diasPagar, 1) ?></li>
+                                <li><i class="fas fa-equals text-info"></i> Balance resultante: <?= number_format($balanceResultante, 1) ?></li>
                             </ul>
                         </div>
 
@@ -197,7 +211,8 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                                 <h5>Compensación Monetaria</h5>
                                 <h4 class="text-success"><?= currency_symbol() ?><?= number_format($request['compensation_amount'], 2) ?></h4>
                                 <small class="text-muted">
-                                    <?= currency_symbol() ?><?= number_format($request['daily_salary'], 2) ?> × <?= $request['total_days'] ?> días
+                                    <?php $diasPagar = (float)($request['dias_solicitados_pagar'] ?? 0); ?>
+                                    <?= currency_symbol() ?><?= number_format($request['daily_salary'], 2) ?> × <?= number_format($diasPagar, 1) ?> días
                                 </small>
                             </div>
                         <?php endif; ?>
