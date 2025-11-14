@@ -970,19 +970,22 @@ class VacationController extends Controller
             $tipo_concepto = $concepto_data['tipo_concepto'] ?? 'A';
 
             // Insertar detalle de planilla para el empleado
-            $monto = $request['compensation_amount'] ?? 0;
+            $monto_vacaciones = $request['compensation_amount'] ?? 0;
 
+            // Preparar statement para insertar múltiples conceptos
             $sql = "INSERT INTO planilla_detalle
                     (planilla_cabecera_id, employee_id, concepto_id, monto, tipo,
                      organigrama_id, organigrama_path, position_id, schedule_id,
                      firstname, lastname, cargo_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($sql);
+
+            // 1. Insertar concepto VACACIONES
             $stmt->execute([
                 $payroll_id,
                 $request['employee_id'],
                 $concepto_id,
-                $monto,
+                $monto_vacaciones,
                 $tipo_concepto,
                 $employee['organigrama_id'],
                 $employee['organigrama_path'],
@@ -993,11 +996,64 @@ class VacationController extends Controller
                 $employee['cargo_id']
             ]);
 
+            // 2. Insertar concepto Seguro Social (9.75% del monto de vacaciones)
+            $sql_ss = "SELECT id FROM concepto WHERE id = 2 LIMIT 1";
+            $stmt_ss = $this->db->prepare($sql_ss);
+            $stmt_ss->execute();
+            $concepto_ss = $stmt_ss->fetch(PDO::FETCH_ASSOC);
+
+            if ($concepto_ss) {
+                $monto_ss = $monto_vacaciones * 0.0975;
+                $stmt->execute([
+                    $payroll_id,
+                    $request['employee_id'],
+                    $concepto_ss['id'],
+                    $monto_ss,
+                    'D', // Deducción
+                    $employee['organigrama_id'],
+                    $employee['organigrama_path'],
+                    $employee['position_id'],
+                    $employee['schedule_id'],
+                    $employee['firstname'],
+                    $employee['lastname'],
+                    $employee['cargo_id']
+                ]);
+            }
+
+            // 3. Insertar concepto Seguro Educativo (1.25% del monto de vacaciones)
+            $sql_se = "SELECT id FROM concepto WHERE id = 3 LIMIT 1";
+            $stmt_se = $this->db->prepare($sql_se);
+            $stmt_se->execute();
+            $concepto_se = $stmt_se->fetch(PDO::FETCH_ASSOC);
+
+            if ($concepto_se) {
+                $monto_se = $monto_vacaciones * 0.0125;
+                $stmt->execute([
+                    $payroll_id,
+                    $request['employee_id'],
+                    $concepto_se['id'],
+                    $monto_se,
+                    'D', // Deducción
+                    $employee['organigrama_id'],
+                    $employee['organigrama_path'],
+                    $employee['position_id'],
+                    $employee['schedule_id'],
+                    $employee['firstname'],
+                    $employee['lastname'],
+                    $employee['cargo_id']
+                ]);
+            }
+
+            // Actualizar estado de planilla a PROCESADA
+            $sql_update = "UPDATE planilla_cabecera SET estado = 'PROCESADA' WHERE id = ?";
+            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update->execute([$payroll_id]);
+
             // Retornar respuesta JSON exitosa
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
-                'message' => 'Planilla de vacaciones generada exitosamente',
+                'message' => 'Planilla de vacaciones generada y procesada exitosamente',
                 'payroll_id' => $payroll_id
             ]);
             exit;
