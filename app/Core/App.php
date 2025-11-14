@@ -494,6 +494,10 @@ class App
                                     // POST /panel/vacation/generate-missing-years/{employee_id}
                                     $this->method = 'generateMissingYears';
                                     $this->params = [$url[3]];
+                                } elseif ($url[2] === 'generate-payroll' && isset($url[3]) && method_exists($this->controller, 'generatePayroll')) {
+                                    // POST /panel/vacation/generate-payroll/{request_id}
+                                    $this->method = 'generatePayroll';
+                                    $this->params = [$url[3]];
                                 } else {
                                     // Fallback a index en POST no reconocido
                                     $this->method = 'index';

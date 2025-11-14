@@ -329,10 +329,12 @@ class VacationController extends Controller
             $accumulated_days = $this->calculator->VACATION_DAYS_EARNED($employee_id);
             $available_days = $current_balance;
             $remaining_days = $available_days - $business_days;
-            $daily_salary = $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1);
+
+            // Calcular salario diario basado en promedio de últimos 11 meses
+            $daily_salary = $this->calculateVacationDailySalary($employee_id, $start_date);
             $compensation_amount = ($vacation_type === 'COMPENSATION') ? $daily_salary * $business_days : 0;
 
-            // Calcular compensación para días solicitados por pagar
+            // Calcular compensación para días solicitados por pagar (usando promedio 11 meses)
             $compensation_amount_new = $daily_salary * $dias_solicitados_pagar;
             
 
@@ -451,6 +453,11 @@ class VacationController extends Controller
                 $this->redirectWithToastr('/panel/vacation/show/' . $request_id, 'error', 'El empleado ya no tiene suficientes días disponibles (saldo total: ' . $current_balance . ' días)');
                 return;
             }
+
+            // Recalcular compensation_amount usando promedio de últimos 11 meses
+            $daily_salary = $this->calculateVacationDailySalary($request['employee_id'], $request['start_date']);
+            $compensation_amount = $daily_salary * $request['dias_solicitados_pagar'];
+
             // Actualizar balances anuales y totales generales
             $this->balanceService->updateAnnualBalance(
                 $request['employee_id'],
@@ -459,12 +466,13 @@ class VacationController extends Controller
                 $request['dias_solicitados_disfrute']
             );
 
-            // Aprobar solicitud
+            // Aprobar solicitud y actualizar compensation_amount
             $sql = "UPDATE vacation_requests
-                    SET status = 'APPROVED', approved_by = ?, approved_at = NOW()
+                    SET status = 'APPROVED', approved_by = ?, approved_at = NOW(),
+                        compensation_amount = ?, daily_salary = ?
                     WHERE id = ?";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$_SESSION['admin_id'], $request_id]);
+            $stmt->execute([$_SESSION['admin_id'], $compensation_amount, $daily_salary, $request_id]);
 
             // NOTA: Los días ya fueron restados del balance cuando se creó la solicitud (método store())
             // por lo tanto NO se deben restar nuevamente aquí para evitar doble resta
@@ -785,6 +793,62 @@ class VacationController extends Controller
     }
 
     /**
+     * Calcular salario diario de vacaciones basado en promedio de últimos 11 meses
+     * Según legislación panameña: (Total ingresos últimos 11 meses) / 11 / 30
+     *
+     * @param int $employee_id ID del empleado
+     * @param string $start_date Fecha de inicio de vacaciones (para calcular 11 meses hacia atrás)
+     * @return float Salario diario promedio
+     */
+    private function calculateVacationDailySalary($employee_id, $start_date)
+    {
+        try {
+            // Calcular fecha 11 meses antes del inicio de vacaciones
+            $fecha_inicio_vacaciones = new DateTime($start_date);
+            $fecha_11_meses_antes = clone $fecha_inicio_vacaciones;
+            $fecha_11_meses_antes->modify('-11 months');
+
+            $fechaDesde = $fecha_11_meses_antes->format('Y-m-d');
+            $fechaHasta = $fecha_inicio_vacaciones->format('Y-m-d');
+
+            // Obtener total de ingresos de los últimos 11 meses
+            $sql = "SELECT SUM(ape.monto) as total_ingresos
+                    FROM acumulados_por_empleado ape
+                    INNER JOIN concepto c ON ape.concepto_id = c.id
+                    WHERE ape.employee_id = ?
+                    AND c.tipo_concepto = 'A'
+                    AND ape.fecha >= ?
+                    AND ape.fecha < ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employee_id, $fechaDesde, $fechaHasta]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $total_ingresos = (float)($result['total_ingresos'] ?? 0);
+
+            // Si no hay acumulados, usar el salario actual
+            if ($total_ingresos <= 0) {
+                $daily_salary = $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1);
+                error_log("No se encontraron acumulados para empleado $employee_id. Usando salario actual: $daily_salary");
+                return $daily_salary;
+            }
+
+            // Calcular salario diario: Total ingresos / 11 meses / 30 días
+            $salario_mensual_promedio = $total_ingresos / 11;
+            $salario_diario = $salario_mensual_promedio / 30;
+
+            error_log("Vacaciones empleado $employee_id: Total ingresos 11 meses = $total_ingresos, Mensual promedio = $salario_mensual_promedio, Diario = $salario_diario");
+
+            return $salario_diario;
+
+        } catch (\Exception $e) {
+            error_log("Error calculando salario de vacaciones: " . $e->getMessage());
+            // Fallback al salario actual si hay error
+            return $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1);
+        }
+    }
+
+    /**
      * Exportar PDF de la solicitud de vacaciones (delegado a PDFReportController)
      */
     public function exportPDF($request_id)
@@ -799,6 +863,154 @@ class VacationController extends Controller
             error_log('Error generating vacation PDF: ' . $e->getMessage());
             $this->setFlashMessage('Error al generar PDF: ' . $e->getMessage(), 'error');
             return $this->redirect('/panel/vacation/show/' . $request_id);
+        }
+    }
+
+    /**
+     * Generar planilla de vacaciones para una solicitud aprobada
+     */
+    public function generatePayroll($request_id)
+    {
+        try {
+            $this->validateCsrfToken();
+
+            // Obtener la solicitud de vacaciones
+            $sql = "SELECT vr.*, e.id as employee_id
+                    FROM vacation_requests vr
+                    INNER JOIN employees e ON vr.employee_id = e.id
+                    WHERE vr.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$request_id]);
+            $request = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$request) {
+                header('Content-Type: application/json');
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Solicitud de vacaciones no encontrada'
+                ]);
+                exit;
+            }
+
+            // Validar que la solicitud esté aprobada
+            if ($request['status'] !== 'APPROVED') {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Solo se pueden generar planillas para solicitudes aprobadas'
+                ]);
+                exit;
+            }
+
+            // Obtener tipo de planilla del sessionStorage (viene por POST)
+            $tipo_planilla_id = $_POST['tipo_planilla_id'] ?? null;
+            if (!$tipo_planilla_id) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Debe seleccionar un tipo de planilla desde el navbar'
+                ]);
+                exit;
+            }
+
+            // Frecuencia de Vacaciones (ID 11)
+            $frecuencia_id = 11;
+
+            // Crear cabecera de planilla
+            $descripcion = "Planilla de Vacaciones - Solicitud #{$request_id}";
+            $payrollData = [
+                'descripcion' => $descripcion,
+                'tipo_planilla_id' => $tipo_planilla_id,
+                'frecuencia_id' => $frecuencia_id,
+                'fecha' => date('Y-m-d'),
+                'periodo_inicio' => $request['start_date'],
+                'periodo_fin' => $request['end_date'],
+                'usuario_creacion' => $_SESSION['admin_id'] ?? null
+            ];
+
+            $payrollModel = new \App\Models\Payroll();
+            $payroll_id = $payrollModel->create($payrollData);
+
+            if (!$payroll_id) {
+                throw new \Exception('Error al crear la planilla');
+            }
+
+            // Buscar concepto VACACIONES (ID 61)
+            $sql = "SELECT id FROM concepto WHERE concepto = 'VACACIONES' LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $concepto = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$concepto) {
+                throw new \Exception('Concepto VACACIONES no encontrado');
+            }
+
+            $concepto_id = $concepto['id'];
+
+            // Obtener información completa del empleado para el detalle
+            $sql = "SELECT e.*
+                    FROM employees e
+                    WHERE e.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$request['employee_id']]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee) {
+                throw new \Exception('Empleado no encontrado');
+            }
+
+            // Obtener tipo de concepto
+            $sql = "SELECT tipo_concepto FROM concepto WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$concepto_id]);
+            $concepto_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            $tipo_concepto = $concepto_data['tipo_concepto'] ?? 'A';
+
+            // Insertar detalle de planilla para el empleado
+            $monto = $request['compensation_amount'] ?? 0;
+
+            $sql = "INSERT INTO planilla_detalle
+                    (planilla_cabecera_id, employee_id, concepto_id, monto, tipo,
+                     organigrama_id, organigrama_path, position_id, schedule_id,
+                     firstname, lastname, cargo_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                $payroll_id,
+                $request['employee_id'],
+                $concepto_id,
+                $monto,
+                $tipo_concepto,
+                $employee['organigrama_id'],
+                $employee['organigrama_path'],
+                $employee['position_id'],
+                $employee['schedule_id'],
+                $employee['firstname'],
+                $employee['lastname'],
+                $employee['cargo_id']
+            ]);
+
+            // Retornar respuesta JSON exitosa
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Planilla de vacaciones generada exitosamente',
+                'payroll_id' => $payroll_id
+            ]);
+            exit;
+
+        } catch (\Exception $e) {
+            error_log('Error generating vacation payroll: ' . $e->getMessage());
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al generar planilla: ' . $e->getMessage()
+            ]);
+            exit;
         }
     }
 

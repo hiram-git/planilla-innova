@@ -325,6 +325,17 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                                class="btn btn-sm btn-info" title="Ver Detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            <?php if ($request['status'] === 'APPROVED' && $request['compensation_amount'] > 0): ?>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-success btn-generate-payroll"
+                                                        data-request-id="<?= $request['id'] ?>"
+                                                        data-employee-name="<?= htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']) ?>"
+                                                        data-compensation="<?= number_format($request['compensation_amount'], 2) ?>"
+                                                        data-dias-solicitados="<?= $request['dias_solicitados_pagar'] ?? 0 ?>"
+                                                        title="Generar Planilla de Vacaciones">
+                                                    <i class="fas fa-file-invoice-dollar"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -532,6 +543,103 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                 Swal.fire({
                                     title: 'Error',
                                     text: response.message || 'Error desconocido',
+                                    icon: 'error',
+                                    confirmButtonText: 'Entendido'
+                                });
+                            }
+                        }
+                    });
+                });
+
+                // Generar planilla de vacaciones desde solicitud aprobada
+                $('.btn-generate-payroll').on('click', function() {
+                    const requestId = $(this).data('request-id');
+                    const employeeName = $(this).data('employee-name');
+                    const compensation = $(this).data('compensation');
+                    const diasSolicitados = $(this).data('dias-solicitados');
+
+                    // Obtener tipo_planilla_id desde sessionStorage (guardado por navbar)
+                    const selectedPayrollType = sessionStorage.getItem('selectedPayrollType');
+
+                    if (!selectedPayrollType) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Tipo de Planilla Requerido',
+                            html: 'Debe seleccionar un tipo de planilla desde el menú de navegación antes de generar la planilla de vacaciones.',
+                            confirmButtonText: 'Entendido'
+                        });
+                        return;
+                    }
+
+                    // Parsear el JSON para obtener el ID
+                    const payrollTypeData = JSON.parse(selectedPayrollType);
+                    const tipoPlanillaId = payrollTypeData.id;
+
+                    Swal.fire({
+                        title: '¿Generar Planilla de Vacaciones?',
+                        html: `
+                            <div class="text-left">
+                                <p>Se creará una planilla de vacaciones con los siguientes datos:</p>
+                                <table class="table table-sm mt-2">
+                                    <tr><th>Empleado:</th><td>${employeeName}</td></tr>
+                                    <tr><th>Solicitud:</th><td>#${requestId}</td></tr>
+                                    <tr><th>Días Solicitados:</th><td>${diasSolicitados}</td></tr>
+                                    <tr><th>Monto Compensación:</th><td><?= currency_symbol() ?>${compensation}</td></tr>
+                                    <tr><th>Frecuencia:</th><td>Vacaciones</td></tr>
+                                </table>
+                                <div class="alert alert-info mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i> La planilla se generará con el concepto "VACACIONES" y se agregará el detalle para este empleado.
+                                </div>
+                            </div>
+                        `,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-file-invoice-dollar mr-1"></i> Generar Planilla',
+                        cancelButtonText: '<i class="fas fa-times mr-1"></i> Cancelar',
+                        showLoaderOnConfirm: true,
+                        preConfirm: () => {
+                            return $.ajax({
+                                url: `<?= \App\Core\UrlHelper::route('panel/vacation/generate-payroll/') ?>${requestId}`,
+                                method: 'POST',
+                                dataType: 'json',
+                                data: {
+                                    csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>',
+                                    tipo_planilla_id: tipoPlanillaId
+                                }
+                            }).fail(function(xhr) {
+                                Swal.showValidationMessage(
+                                    `Error: ${xhr.responseJSON?.message || xhr.statusText || 'No se pudo conectar con el servidor'}`
+                                );
+                            });
+                        },
+                        allowOutsideClick: () => !Swal.isLoading()
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            const response = result.value;
+
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Planilla Generada',
+                                    html: `
+                                        <div class="text-left">
+                                            <p><strong>${response.message}</strong></p>
+                                            <div class="alert alert-success mt-2">
+                                                <i class="fas fa-check-circle mr-1"></i> Planilla ID: #${response.payroll_id}
+                                            </div>
+                                        </div>
+                                    `,
+                                    icon: 'success',
+                                    confirmButtonText: 'Ver Planilla'
+                                }).then(() => {
+                                    // Redirigir a la planilla generada
+                                    window.location.href = `<?= \App\Core\UrlHelper::route('panel/payrolls/') ?>${response.payroll_id}`;
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: response.message || 'Error desconocido al generar planilla',
                                     icon: 'error',
                                     confirmButtonText: 'Entendido'
                                 });
