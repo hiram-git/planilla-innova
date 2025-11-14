@@ -121,6 +121,9 @@ class VacationController extends Controller
 
             // Calcular balances usando el nuevo sistema (vacation_annual_balances)
             foreach ($employees as &$employee) {
+                // Generar años faltantes si no existen (igual que en create())
+                $this->balanceService->generateMissingYears($employee['id']);
+
                 $employee['days_earned'] = $this->calculator->VACATION_DAYS_EARNED($employee['id']);
                 $employee['current_balance'] = $this->balanceService->getTotalAccumulatedBalance($employee['id']);
                 $employee['eligible'] = $this->calculator->VACATION_ELIGIBLE($employee['id']);

@@ -376,10 +376,27 @@ class VacationBalanceService
             $stmt->execute([$employee_id]);
             $existing_years = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // Detectar años faltantes
+            // Detectar años faltantes con validación de 24 meses cumplidos
             $missing_years = [];
+            $today = new \DateTime();
+
             for ($year = $first_year; $year <= $current_year; $year++) {
-                if (!in_array($year, $existing_years)) {
+                // Saltar si el año ya existe
+                if (in_array($year, $existing_years)) {
+                    continue;
+                }
+
+                // Calcular meses requeridos para generar este año
+                // Año 1 (first_year): 12 meses desde ingreso
+                // Año 2: 24 meses desde ingreso
+                // Año 3: 36 meses desde ingreso, etc.
+                $year_offset = $year - $first_year;
+                $meses_requeridos = ($year_offset + 1) * 12;
+                $fecha_requerida = clone $fecha_ingreso;
+                $fecha_requerida->modify("+{$meses_requeridos} months");
+
+                // Solo agregar el año si ya cumplió los meses requeridos
+                if ($today >= $fecha_requerida) {
                     $missing_years[] = $year;
                 }
             }
@@ -388,7 +405,7 @@ class VacationBalanceService
             if (empty($missing_years)) {
                 return [
                     'success' => true,
-                    'message' => 'No hay años faltantes. Todos los años están generados.',
+                    'message' => 'No hay años faltantes. Todos los años disponibles están generados.',
                     'years_created' => [],
                     'count' => 0
                 ];
