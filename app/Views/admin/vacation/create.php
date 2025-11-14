@@ -228,7 +228,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                 <label for="date_range">Período de Vacaciones (rango) *</label>
                                 <input type="text" class="form-control" id="date_range" placeholder="Seleccione rango de fechas" required autocomplete="off">
                                 <small class="form-text text-muted">
-                                    Las vacaciones deben solicitarse con al menos 15 días de anticipación. Se calcularán los días solicitados a partir del rango.
+                                    Se calcularán los días solicitados a partir del rango de fechas seleccionado.
                                 </small>
                                 <!-- Campos reales para el backend -->
                                 <input type="hidden" id="start_date" name="start_date" autocomplete="off">
@@ -594,7 +594,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             const end = new Date(endDate);
 
             if (end >= start) {
-                // Validar anticipación de 15 días
+                // COMENTADO: Validar anticipación de 15 días - Se permite para solicitudes históricas
+                /*
                 const today = new Date();
                 const daysDifference = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
 
@@ -616,6 +617,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     // Anticipación válida, continuar con cálculos
                     $('#submitBtn').prop('disabled', false);
                 }
+                */
 
                 // Calcular días totales
                 const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
@@ -1047,7 +1049,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             return false;
         }
 
-        // Validación de anticipación de 15 días
+        // COMENTADO: Validación de anticipación de 15 días - Se permite para solicitudes históricas
+        /*
         const startDate = $('#start_date').val();
         if (startDate) {
             const start = new Date(startDate);
@@ -1065,6 +1068,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                 return false;
             }
         }
+        */
 
         // Nota: No se valida días hábiles, solo días totales del rango
 
