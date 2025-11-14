@@ -730,20 +730,117 @@ class AttendanceController extends Controller
                 ]);
             }
 
-            // Preparar datos para el calculador
-            // El calculador espera un formato de registro de attendance
-            $attendanceData = [
-                'id' => $detail['id'],
-                'employee_id' => $detail['employee_id'],
-                'date' => $detail['date'],
-                'time_in' => $detail['time_in'],
-                'time_out' => $detail['time_out'],
-                'lunch_out' => $detail['lunch_out'] ?? null,
-                'lunch_in' => $detail['lunch_in'] ?? null
-            ];
+            // Verificar si la fecha es un feriado pagado
+            $isPaidHoliday = false;
+            $dayInfo = null;
+            try {
+                $calendar = new \App\Models\BusinessCalendar();
+                $dayInfo = $calendar->getDayInfo($detail['date']);
 
-            // Calcular métricas
-            $calculation = $this->attendanceCalculator->calculate($attendanceData);
+                if ($dayInfo) {
+                    $isPaidHoliday = ($dayInfo['day_type'] === 'FERIADO' && isset($dayInfo['is_paid_holiday']) && $dayInfo['is_paid_holiday'] == 1);
+                }
+            } catch (\Exception $e) {
+                error_log("Error checking business calendar in calculateAttendance: " . $e->getMessage());
+            }
+
+            // Si es feriado pagado, generar cálculo manual sin usar AttendanceCalculator
+            if ($isPaidHoliday) {
+                // Obtener horario del empleado
+                $scheduleId = $detail['schedule_id'] ?? null;
+                $timeIn = $detail['time_in'] ?? '08:00:00';
+                $timeOut = $detail['time_out'] ?? '17:00:00';
+                $lunchOut = null;
+                $lunchIn = null;
+                $lunchMinutes = 0;
+
+                if ($scheduleId) {
+                    $sql = "SELECT time_in, time_out, salida_almuerzo, entrada_almuerzo FROM schedules WHERE id = ?";
+                    $stmt = $this->employeeModel->db->prepare($sql);
+                    $stmt->execute([$scheduleId]);
+                    $schedule = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                    if ($schedule) {
+                        $timeIn = $schedule['time_in'];
+                        $timeOut = $schedule['time_out'];
+                        $lunchOut = $schedule['salida_almuerzo'] ?? null;
+                        $lunchIn = $schedule['entrada_almuerzo'] ?? null;
+
+                        // Calcular minutos de almuerzo
+                        if ($lunchOut && $lunchIn) {
+                            $lunchStart = new \DateTime($lunchOut);
+                            $lunchEnd = new \DateTime($lunchIn);
+                            $lunchInterval = $lunchStart->diff($lunchEnd);
+                            $lunchMinutes = ($lunchInterval->h * 60) + $lunchInterval->i;
+                        }
+                    }
+                }
+
+                // Calcular horas netas (descontando almuerzo)
+                $timeInObj = new \DateTime($timeIn);
+                $timeOutObj = new \DateTime($timeOut);
+                $interval = $timeInObj->diff($timeOutObj);
+                $totalMinutes = ($interval->h * 60) + $interval->i;
+                $netMinutes = $totalMinutes - $lunchMinutes;
+                $holidayHours = round($netMinutes / 60, 2);
+
+                // Crear cálculo manual para feriado pagado
+                $calculation = [
+                    'attendance_detail_id' => $detail['id'],
+                    'employee_id' => $detail['employee_id'],
+                    'date' => $detail['date'],
+                    'schedule_id' => $scheduleId,
+                    'time_in' => $timeIn,
+                    'time_out' => $timeOut,
+                    'lunch_out' => $lunchOut ? date('Y-m-d', strtotime($detail['date'])) . ' ' . $lunchOut : null,
+                    'lunch_in' => $lunchIn ? date('Y-m-d', strtotime($detail['date'])) . ' ' . $lunchIn : null,
+                    'scheduled_time_in' => $timeIn,
+                    'scheduled_time_out' => $timeOut,
+                    'scheduled_lunch_out' => $lunchOut,
+                    'scheduled_lunch_in' => $lunchIn,
+                    'total_hours' => $holidayHours,
+                    'regular_hours' => 0,
+                    'overtime_hours' => 0,
+                    'overtime_25_hours' => 0,
+                    'overtime_50_hours' => 0,
+                    'night_hours' => 0,
+                    'holiday_hours' => $holidayHours,
+                    'tardiness_minutes' => 0,
+                    'is_late' => 0,
+                    'early_departure_minutes' => 0,
+                    'is_absent' => 0,
+                    'absence_type' => null,
+                    'is_working_day' => 0,
+                    'is_holiday' => 1,
+                    'is_weekend' => 0,
+                    'day_type' => 'FERIADO',
+                    'lunch_time_minutes' => $lunchMinutes,
+                    'lunch_exceeded_minutes' => 0,
+                    'is_perfect_attendance' => 1,
+                    'punctuality_score' => 100,
+                    'notes' => 'Feriado Pagado - ' . ($dayInfo['description'] ?? 'Día Feriado'),
+                    'calculation_version' => 'v1.0',
+                    'calculated_at' => date('Y-m-d H:i:s')
+                ];
+
+                error_log("PAID HOLIDAY CALCULATE: Generando cálculo manual para feriado pagado - employee_id={$detail['employee_id']}, date={$detail['date']}, holiday_hours={$holidayHours}");
+
+            } else {
+                // Procesamiento normal para días NO feriados pagados
+                // Preparar datos para el calculador
+                $attendanceData = [
+                    'id' => $detail['id'],
+                    'employee_id' => $detail['employee_id'],
+                    'date' => $detail['date'],
+                    'time_in' => $detail['time_in'],
+                    'time_out' => $detail['time_out'],
+                    'lunch_out' => $detail['lunch_out'] ?? null,
+                    'lunch_in' => $detail['lunch_in'] ?? null
+                ];
+
+                // Calcular métricas usando el calculador normal
+                $calculation = $this->attendanceCalculator->calculate($attendanceData);
+            }
 
             // Guardar en BD
             $calculationId = $this->attendanceCalculator->saveCalculation($calculation);
@@ -1425,8 +1522,31 @@ class AttendanceController extends Controller
             }
 
             // 4.5. Generar registros automáticos para FERIADOS PAGADOS
-            // Si el día es feriado pagado, generar 8 horas para todos los empleados
+            // Si el día es feriado pagado, generar registros con holiday_hours
             if ($isPaidHoliday) {
+                error_log("PAID HOLIDAY PROCESSING: Iniciando procesamiento de feriado pagado para fecha {$date}");
+
+                // Si se está recalculando, eliminar todos los registros existentes para este día
+                // para regenerarlos correctamente como feriado pagado
+                if ($recalculate && !empty($existingDetails)) {
+                    error_log("PAID HOLIDAY: Eliminando " . count($existingDetails) . " registros existentes para regenerar como feriado pagado");
+
+                    foreach ($existingDetails as $detail) {
+                        // Eliminar cálculo asociado si existe
+                        $calculationModel = new \App\Models\AttendanceCalculation();
+                        $existingCalc = $calculationModel->findByAttendanceDetailId($detail['id']);
+                        if ($existingCalc) {
+                            $calculationModel->delete($existingCalc['id']);
+                        }
+
+                        // Eliminar detalle
+                        $this->detailModel->delete($detail['id']);
+                    }
+
+                    // Limpiar array de empleados con asistencia para regenerar todos
+                    $employeesWithAttendance = [];
+                }
+
                 $paidHolidayCount = 0;
 
                 foreach ($activeEmployees as $employee) {
@@ -1436,13 +1556,16 @@ class AttendanceController extends Controller
                     }
 
                     try {
-                        // Obtener horario del empleado (o usar horario por defecto)
+                        // Obtener horario del empleado incluyendo almuerzo
                         $scheduleId = $employee['schedule_id'] ?? null;
                         $timeIn = '08:00:00';
                         $timeOut = '17:00:00';
+                        $lunchOut = null;
+                        $lunchIn = null;
+                        $lunchMinutes = 0;
 
                         if ($scheduleId) {
-                            $sql = "SELECT time_in, time_out FROM schedules WHERE id = ?";
+                            $sql = "SELECT time_in, time_out, salida_almuerzo, entrada_almuerzo FROM schedules WHERE id = ?";
                             $stmt = $this->employeeModel->db->prepare($sql);
                             $stmt->execute([$scheduleId]);
                             $schedule = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -1450,35 +1573,86 @@ class AttendanceController extends Controller
                             if ($schedule) {
                                 $timeIn = $schedule['time_in'];
                                 $timeOut = $schedule['time_out'];
+                                $lunchOut = $schedule['salida_almuerzo'] ?? null;
+                                $lunchIn = $schedule['entrada_almuerzo'] ?? null;
+
+                                // Calcular minutos de almuerzo si están definidos
+                                if ($lunchOut && $lunchIn) {
+                                    $lunchStart = new \DateTime($lunchOut);
+                                    $lunchEnd = new \DateTime($lunchIn);
+                                    $lunchInterval = $lunchStart->diff($lunchEnd);
+                                    $lunchMinutes = ($lunchInterval->h * 60) + $lunchInterval->i;
+                                }
                             }
                         }
 
-                        // Calcular horas totales (time_out - time_in)
-                        // En feriado pagado se paga el tiempo completo incluyendo almuerzo
-                        $timeInObj = new \DateTime($timeIn);
-                        $timeOutObj = new \DateTime($timeOut);
-                        $interval = $timeInObj->diff($timeOutObj);
-                        $hoursWorked = $interval->h + ($interval->i / 60);
-
-                        // Crear registro de asistencia con horas calculadas
+                        // Crear registro de asistencia (hours_worked = 0, se guardan en holiday_hours)
                         $paidHolidayData = [
                             'header_id' => $header['id'],
                             'employee_id' => $employee['id'],
                             'schedule_id' => $scheduleId,
                             'time_in' => $timeIn,
                             'time_out' => $timeOut,
+                            'lunch_out' => $lunchOut ? date('Y-m-d', strtotime($date)) . ' ' . $lunchOut : null,
+                            'lunch_in' => $lunchIn ? date('Y-m-d', strtotime($date)) . ' ' . $lunchIn : null,
                             'status' => 'PRESENT',
                             'is_late' => 0,
                             'tardiness_minutes' => 0,
-                            'hours_worked' => $hoursWorked,
+                            'hours_worked' => 0, // Las horas se guardan en holiday_hours (attendance_calculations)
                             'notes' => 'Feriado Pagado - ' . ($dayInfo['description'] ?? 'Día Feriado')
                         ];
 
                         $detailId = $this->detailModel->create($paidHolidayData);
 
                         if ($detailId) {
+                            // Calcular horas netas (descontando almuerzo)
+                            $timeInObj = new \DateTime($timeIn);
+                            $timeOutObj = new \DateTime($timeOut);
+                            $interval = $timeInObj->diff($timeOutObj);
+                            $totalMinutes = ($interval->h * 60) + $interval->i;
+
+                            // Descontar almuerzo
+                            $netMinutes = $totalMinutes - $lunchMinutes;
+                            $holidayHours = round($netMinutes / 60, 2);
+
+                            $calculationData = [
+                                'attendance_detail_id' => $detailId,
+                                'employee_id' => $employee['id'],
+                                'date' => $date,
+                                'schedule_id' => $scheduleId,
+                                'time_in' => $timeIn,
+                                'time_out' => $timeOut,
+                                'scheduled_time_in' => $timeIn,
+                                'scheduled_time_out' => $timeOut,
+                                'total_hours' => $holidayHours,
+                                'regular_hours' => 0,
+                                'overtime_hours' => 0,
+                                'overtime_25_hours' => 0,
+                                'overtime_50_hours' => 0,
+                                'night_hours' => 0,
+                                'holiday_hours' => $holidayHours,
+                                'tardiness_minutes' => 0,
+                                'is_late' => 0,
+                                'early_departure_minutes' => 0,
+                                'is_absent' => 0,
+                                'absence_type' => null,
+                                'is_working_day' => 0,
+                                'is_holiday' => 1,
+                                'is_weekend' => 0,
+                                'day_type' => 'FERIADO',
+                                'lunch_time_minutes' => $lunchMinutes,
+                                'is_perfect_attendance' => 1,
+                                'punctuality_score' => 100,
+                                'notes' => 'Feriado Pagado - ' . ($dayInfo['description'] ?? 'Día Feriado'),
+                                'calculation_version' => 'v1.0',
+                                'calculated_at' => date('Y-m-d H:i:s')
+                            ];
+
+                            $calculationModel = new \App\Models\AttendanceCalculation();
+                            $calculationModel->create($calculationData);
+
                             $paidHolidayCount++;
-                            error_log("Feriado pagado generado para empleado {$employee['id']} en fecha {$date}");
+                            error_log("Feriado pagado generado para empleado {$employee['id']} en fecha {$date} - {$holidayHours} horas en holiday_hours");
                         }
                     } catch (Exception $e) {
                         error_log("ERROR processDay - Error creando feriado pagado para empleado {$employee['id']}: " . $e->getMessage());
@@ -1487,8 +1661,34 @@ class AttendanceController extends Controller
 
                 error_log("PAID HOLIDAY: Generados {$paidHolidayCount} registros de feriado pagado para fecha {$date}");
 
-                // No detectar ausencias en feriados pagados, todos ya tienen registro
-                // Continuar con el procesamiento normal (omisiones, cálculos)
+                // Actualizar estadísticas del header y retornar
+                // En feriados pagados NO se procesan omisiones ni se recalcula nada más
+                $finalDetails = $this->detailModel->getByHeader($header['id']);
+                $this->headerModel->update($header['id'], [
+                    'total_employees' => count($finalDetails),
+                    'total_present' => count($finalDetails),
+                    'total_late' => 0,
+                    'total_absent' => 0,
+                    'total_incomplete' => 0
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => "Feriado pagado procesado: {$paidHolidayCount} registros generados",
+                    'data' => [
+                        'records_found' => 0,
+                        'details_updated' => 0,
+                        'absences_detected' => 0,
+                        'absences_created' => 0,
+                        'omissions_detected' => 0,
+                        'omissions_marked' => 0,
+                        'calculations_processed' => 0,
+                        'calculations_saved' => 0,
+                        'calculations_errors' => 0,
+                        'total_employees' => count($finalDetails),
+                        'paid_holidays_generated' => $paidHolidayCount
+                    ]
+                ];
             }
             // 5. Detectar empleados SIN marcación y crear registros de AUSENCIA
             // Solo detectar ausencias en días LABORABLES (no en feriados pagados)
@@ -1559,8 +1759,17 @@ class AttendanceController extends Controller
             }
 
             // 7. Calcular métricas para marcaciones COMPLETAS
+            // Excluir registros de feriados pagados (ya tienen su cálculo manual)
             $completeAttendances = [];
             foreach ($existingDetails as $detail) {
+                // Saltar si es un registro de feriado pagado (ya tiene cálculo manual)
+                $isFeriado = (strpos($detail['notes'] ?? '', 'Feriado Pagado') !== false);
+
+                if ($isFeriado) {
+                    error_log("SKIPPING recalculation for paid holiday record: employee_id={$detail['employee_id']}, date={$date}");
+                    continue;
+                }
+
                 if (!empty($detail['time_in']) && !empty($detail['time_out'])) {
                     $completeAttendances[] = [
                         'id' => $detail['id'],

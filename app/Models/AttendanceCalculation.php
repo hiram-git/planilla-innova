@@ -20,7 +20,7 @@ class AttendanceCalculation extends Model
     public $table = 'attendance_calculations';
 
     public $fillable = [
-        'attendance_id', 'employee_id', 'date', 'schedule_id',
+        'attendance_detail_id', 'employee_id', 'date', 'schedule_id',
         'time_in', 'time_out', 'scheduled_time_in', 'scheduled_time_out',
         'total_hours', 'regular_hours', 'overtime_hours',
         'overtime_25_hours', 'overtime_50_hours', 'night_hours', 'holiday_hours',
@@ -34,7 +34,7 @@ class AttendanceCalculation extends Model
 
     /**
      * Guardar o actualizar un cálculo
-     * Si ya existe para ese attendance_id, actualiza
+     * Si ya existe para ese attendance_detail_id, actualiza
      *
      * @param array $calculation Datos del cálculo
      * @return int|bool ID del registro o false en error
@@ -43,12 +43,15 @@ class AttendanceCalculation extends Model
     {
         try {
             // Verificar si ya existe
-            $existing = $this->findByAttendanceId($calculation['attendance_id']);
+            $attendanceDetailId = $calculation['attendance_detail_id'] ?? null;
+            if ($attendanceDetailId) {
+                $existing = $this->findByAttendanceDetailId($attendanceDetailId);
 
-            if ($existing) {
-                // Actualizar existente
-                $calculation['recalculated_at'] = date('Y-m-d H:i:s');
-                return $this->update($existing['id'], $calculation);
+                if ($existing) {
+                    // Actualizar existente
+                    $calculation['recalculated_at'] = date('Y-m-d H:i:s');
+                    return $this->update($existing['id'], $calculation);
+                }
             }
 
             // Insertar nuevo
@@ -61,23 +64,32 @@ class AttendanceCalculation extends Model
     }
 
     /**
-     * Buscar cálculo por attendance_id
+     * Buscar cálculo por attendance_detail_id
      *
-     * @param int $attendanceId
+     * @param int $attendanceDetailId
      * @return array|null
      */
-    public function findByAttendanceId($attendanceId)
+    public function findByAttendanceDetailId($attendanceDetailId)
     {
         try {
-            $sql = "SELECT * FROM {$this->table} WHERE attendance_id = ? LIMIT 1";
+            $sql = "SELECT * FROM {$this->table} WHERE attendance_detail_id = ? LIMIT 1";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$attendanceId]);
+            $stmt->execute([$attendanceDetailId]);
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
         } catch (PDOException $e) {
             error_log("Error finding calculation: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Buscar cálculo por attendance_id (alias para compatibilidad)
+     * @deprecated Use findByAttendanceDetailId instead
+     */
+    public function findByAttendanceId($attendanceId)
+    {
+        return $this->findByAttendanceDetailId($attendanceId);
     }
 
     /**
