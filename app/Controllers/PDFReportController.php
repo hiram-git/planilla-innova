@@ -898,8 +898,25 @@ class PDFReportController extends Controller
      */
     private function checkPermission($permission)
     {
-        if (!isset($_SESSION['permissions']) || !in_array($permission, $_SESSION['permissions'])) {
-            throw new \Exception('No tiene permisos para acceder a esta funcionalidad');
+        // Preferir el sistema de permisos unificado
+        try {
+            if (\App\Middleware\PermissionMiddleware::isSuperAdmin()) {
+                return;
+            }
+            // Permitir si el usuario puede leer el módulo de reportes o vacaciones
+            if (\App\Middleware\PermissionMiddleware::canRead('reports') ||
+                \App\Middleware\PermissionMiddleware::canRead('vacation')) {
+                return;
+            }
+        } catch (\Throwable $t) {
+            // Ignorar errores del middleware y caer al mecanismo legacy
         }
+
+        // Fallback legacy: usar arreglo de permisos en sesión si existe
+        if (isset($_SESSION['permissions']) && in_array($permission, $_SESSION['permissions'])) {
+            return;
+        }
+
+        throw new \Exception('No tiene permisos para acceder a esta funcionalidad');
     }
 }

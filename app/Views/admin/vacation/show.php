@@ -276,7 +276,7 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                         </a>
                     <?php endif; ?>
 
-                    <a href="<?= \App\Core\UrlHelper::route('panel/vacation/show/' . $request['id'] . '/pdf') ?>" class="btn btn-danger float-right">
+                    <a href="<?= \App\Core\UrlHelper::url('panel/vacation/show/' . $request['id'] . '/pdf') ?>" class="btn btn-danger float-right">
                         <i class="fas fa-file-pdf mr-1"></i> PDF
                     </a>
                 </div>

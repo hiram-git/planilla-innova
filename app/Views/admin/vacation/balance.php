@@ -401,12 +401,16 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
 </style>
 
 <script>
-$(document).ready(function() {
-    // Generar años faltantes de vacaciones
-    $('#btnGenerateMissingYears').on('click', function() {
-        const employeeId = <?= $employee['id'] ?>;
+// Esperar a que jQuery esté disponible antes de usar "$"
+(function() {
+    function waitForjQuery() {
+        if (typeof window.jQuery !== 'undefined') {
+            jQuery(function($) {
+                // Generar años faltantes de vacaciones
+                $('#btnGenerateMissingYears').on('click', function() {
+                    const employeeId = <?= $employee['id'] ?>;
 
-        Swal.fire({
+                    Swal.fire({
             title: '¿Generar Años Faltantes?',
             html: `
                 <p>Esta acción detectará y creará automáticamente los años de vacaciones faltantes para el empleado <strong><?= htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']) ?></strong>.</p>
@@ -430,69 +434,75 @@ $(document).ready(function() {
             confirmButtonText: '<i class="fas fa-magic mr-1"></i> Generar Años',
             cancelButtonText: '<i class="fas fa-times mr-1"></i> Cancelar',
             showLoaderOnConfirm: true,
-            preConfirm: () => {
-                return $.ajax({
-                    url: `<?= \App\Core\UrlHelper::route('panel/vacation/generate-missing-years/') ?>${employeeId}`,
-                    method: 'POST',
-                    dataType: 'json',
-                    data: {
-                        csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
-                    }
-                }).fail(function(xhr) {
-                    Swal.showValidationMessage(
-                        `Error: ${xhr.responseJSON?.message || xhr.statusText || 'No se pudo conectar con el servidor'}`
-                    );
-                });
-            },
+                    preConfirm: () => {
+                        return $.ajax({
+                            url: `<?= \App\Core\UrlHelper::route('panel/vacation/generate-missing-years/') ?>${employeeId}`,
+                            method: 'POST',
+                            dataType: 'json',
+                            data: {
+                                csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
+                            }
+                        }).fail(function(xhr) {
+                            Swal.showValidationMessage(
+                                `Error: ${xhr.responseJSON?.message || xhr.statusText || 'No se pudo conectar con el servidor'}`
+                            );
+                        });
+                    },
             allowOutsideClick: () => !Swal.isLoading()
-        }).then((result) => {
-            if (result.isConfirmed && result.value) {
-                const response = result.value;
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            const response = result.value;
 
-                if (response.success) {
-                    let detailsHTML = `
-                        <div class="text-left">
-                            <p><strong>${response.message}</strong></p>
-                    `;
+                            if (response.success) {
+                                let detailsHTML = `
+                                    <div class="text-left">
+                                        <p><strong>${response.message}</strong></p>
+                                `;
 
-                    if (response.count > 0) {
-                        detailsHTML += `
-                            <table class="table table-sm mt-2">
-                                <tr><th>Años Creados:</th><td class="text-success">${response.count}</td></tr>
-                                <tr><th>Años:</th><td>${response.years_created.join(', ')}</td></tr>
-                                <tr><th>Rango:</th><td>${response.first_year} - ${response.current_year}</td></tr>
-                            </table>
-                        `;
-                    } else {
-                        detailsHTML += `
-                            <div class="alert alert-info mt-2">
-                                <i class="fas fa-check-circle mr-1"></i> ${response.message}
-                            </div>
-                        `;
-                    }
+                                if (response.count > 0) {
+                                    detailsHTML += `
+                                        <table class="table table-sm mt-2">
+                                            <tr><th>Años Creados:</th><td class="text-success">${response.count}</td></tr>
+                                            <tr><th>Años:</th><td>${response.years_created.join(', ')}</td></tr>
+                                            <tr><th>Rango:</th><td>${response.first_year} - ${response.current_year}</td></tr>
+                                        </table>
+                                    `;
+                                } else {
+                                    detailsHTML += `
+                                        <div class="alert alert-info mt-2">
+                                            <i class="fas fa-check-circle mr-1"></i> ${response.message}
+                                        </div>
+                                    `;
+                                }
 
-                    detailsHTML += '</div>';
+                                detailsHTML += '</div>';
 
-                    Swal.fire({
-                        title: response.count > 0 ? 'Años Generados Exitosamente' : 'Información',
-                        html: detailsHTML,
-                        icon: response.count > 0 ? 'success' : 'info',
-                        confirmButtonText: response.count > 0 ? 'Recargar Página' : 'Entendido'
-                    }).then(() => {
-                        if (response.count > 0) {
-                            window.location.reload();
+                                Swal.fire({
+                                    title: response.count > 0 ? 'Años Generados Exitosamente' : 'Información',
+                                    html: detailsHTML,
+                                    icon: response.count > 0 ? 'success' : 'info',
+                                    confirmButtonText: response.count > 0 ? 'Recargar Página' : 'Entendido'
+                                }).then(() => {
+                                    if (response.count > 0) {
+                                        window.location.reload();
+                                    }
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: response.message || 'Error desconocido',
+                                    icon: 'error',
+                                    confirmButtonText: 'Entendido'
+                                });
+                            }
                         }
                     });
-                } else {
-                    Swal.fire({
-                        title: 'Error',
-                        text: response.message || 'Error desconocido',
-                        icon: 'error',
-                        confirmButtonText: 'Entendido'
-                    });
-                }
-            }
-        });
-    });
-});
+                });
+            });
+        } else {
+            setTimeout(waitForjQuery, 100);
+        }
+    }
+    waitForjQuery();
+})();
 </script>

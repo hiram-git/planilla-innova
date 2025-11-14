@@ -357,6 +357,12 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
 
     <!-- jQuery -->
     <script src="<?= url('plugins/jquery/jquery.min.js') ?>"></script>
+    <!-- Fallback a CDN si jQuery local falla -->
+    <script>
+    if (typeof window.jQuery === 'undefined') {
+        document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>');
+    }
+    </script>
     <!-- Bootstrap 4 -->
     <script src="<?= url('plugins/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <!-- AdminLTE App -->
@@ -385,7 +391,10 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
 
     <!-- Global Scripts -->
     <script>
-    $(document).ready(function() {
+    (function() {
+        function waitForjQuery() {
+            if (typeof window.jQuery !== 'undefined' && typeof window.$ !== 'undefined') {
+                $(document).ready(function() {
         // Configuración global de Toastr
         toastr.options = {
             closeButton: true,
@@ -523,7 +532,14 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
                 }
             });
         });
-    });
+                }); // end $(document).ready
+            } else {
+                // jQuery no está listo aún; reintentar
+                setTimeout(waitForjQuery, 100);
+            }
+        }
+        waitForjQuery();
+    })();
     
     // Service Worker registration for offline support
     // Service Worker comentado - no existe sw.js
