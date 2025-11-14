@@ -76,11 +76,11 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
         <div class="row">
             <div class="col-md-3">
                 <div class="info-box bg-success">
-                    <span class="info-box-icon"><i class="fas fa-piggy-bank"></i></span>
+                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
                     <div class="info-box-content">
-                        <span class="info-box-text">Balance Actual</span>
+                        <span class="info-box-text">Balance Disponible</span>
                         <span class="info-box-number"><?= number_format($vacation_data['current_balance'], 1) ?></span>
-                        <span class="info-box-more">días disponibles</span>
+                        <span class="info-box-more">días para usar</span>
                     </div>
                 </div>
             </div>
@@ -95,12 +95,12 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="info-box bg-warning">
-                    <span class="info-box-icon"><i class="fas fa-calendar-plus"></i></span>
+                <div class="info-box bg-danger">
+                    <span class="info-box-icon"><i class="fas fa-minus-circle"></i></span>
                     <div class="info-box-content">
-                        <span class="info-box-text">Acumulación</span>
-                        <span class="info-box-number"><?= number_format($vacation_data['accrual_rate'], 1) ?></span>
-                        <span class="info-box-more">días por mes</span>
+                        <span class="info-box-text">Días Tomados</span>
+                        <span class="info-box-number"><?= number_format($vacation_data['days_taken'], 1) ?></span>
+                        <span class="info-box-more">días pagados</span>
                     </div>
                 </div>
             </div>
@@ -112,6 +112,24 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                         <span class="info-box-number"><?= currency_symbol() ?><?= number_format($vacation_data['daily_salary'], 0) ?></span>
                         <span class="info-box-more">por día de vacaciones</span>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explicación del Cálculo -->
+        <div class="row">
+            <div class="col-12">
+                <div class="callout callout-info">
+                    <h5><i class="fas fa-calculator mr-2"></i>Cálculo del Balance</h5>
+                    <p class="mb-0">
+                        <strong>Balance Disponible</strong> = Días Ganados - Días Tomados (Pagados)
+                        = <strong><?= number_format($vacation_data['days_earned'], 1) ?></strong>
+                        - <strong><?= number_format($vacation_data['days_taken'], 1) ?></strong>
+                        = <strong class="text-success"><?= number_format($vacation_data['current_balance'], 1) ?> días</strong>
+                    </p>
+                    <p class="text-muted mb-0 mt-1">
+                        <small><i class="fas fa-info-circle"></i> Los días disfrutados son informativos. Solo los días PAGADOS restan del balance.</small>
+                    </p>
                 </div>
             </div>
         </div>
@@ -152,6 +170,11 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                         <i class="fas fa-calendar-alt mr-2"></i>
                         Balance por Año
                     </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary btn-sm" id="btnGenerateMissingYears">
+                            <i class="fas fa-magic mr-1"></i> Generar Años Faltantes
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -376,3 +399,100 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
         box-shadow: none !important;
     }
 </style>
+
+<script>
+$(document).ready(function() {
+    // Generar años faltantes de vacaciones
+    $('#btnGenerateMissingYears').on('click', function() {
+        const employeeId = <?= $employee['id'] ?>;
+
+        Swal.fire({
+            title: '¿Generar Años Faltantes?',
+            html: `
+                <p>Esta acción detectará y creará automáticamente los años de vacaciones faltantes para el empleado <strong><?= htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']) ?></strong>.</p>
+                <div class="text-left mt-3">
+                    <h6>¿Qué hace esta función?</h6>
+                    <ul>
+                        <li>Calcula desde qué año tiene derecho a vacaciones (11 meses después del ingreso)</li>
+                        <li>Detecta qué años faltan hasta el año actual</li>
+                        <li>Crea registros con 30 días anuales y saldo disponible = 30</li>
+                        <li>No modifica años que ya existen</li>
+                    </ul>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> Fecha de ingreso: <?= date('d/m/Y', strtotime($employee['fecha_ingreso'])) ?>
+                    </small>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#007bff',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-magic mr-1"></i> Generar Años',
+            cancelButtonText: '<i class="fas fa-times mr-1"></i> Cancelar',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return $.ajax({
+                    url: `<?= \App\Core\UrlHelper::route('panel/vacation/generate-missing-years/') ?>${employeeId}`,
+                    method: 'POST',
+                    dataType: 'json',
+                    data: {
+                        csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
+                    }
+                }).fail(function(xhr) {
+                    Swal.showValidationMessage(
+                        `Error: ${xhr.responseJSON?.message || xhr.statusText || 'No se pudo conectar con el servidor'}`
+                    );
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const response = result.value;
+
+                if (response.success) {
+                    let detailsHTML = `
+                        <div class="text-left">
+                            <p><strong>${response.message}</strong></p>
+                    `;
+
+                    if (response.count > 0) {
+                        detailsHTML += `
+                            <table class="table table-sm mt-2">
+                                <tr><th>Años Creados:</th><td class="text-success">${response.count}</td></tr>
+                                <tr><th>Años:</th><td>${response.years_created.join(', ')}</td></tr>
+                                <tr><th>Rango:</th><td>${response.first_year} - ${response.current_year}</td></tr>
+                            </table>
+                        `;
+                    } else {
+                        detailsHTML += `
+                            <div class="alert alert-info mt-2">
+                                <i class="fas fa-check-circle mr-1"></i> ${response.message}
+                            </div>
+                        `;
+                    }
+
+                    detailsHTML += '</div>';
+
+                    Swal.fire({
+                        title: response.count > 0 ? 'Años Generados Exitosamente' : 'Información',
+                        html: detailsHTML,
+                        icon: response.count > 0 ? 'success' : 'info',
+                        confirmButtonText: response.count > 0 ? 'Recargar Página' : 'Entendido'
+                    }).then(() => {
+                        if (response.count > 0) {
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.message || 'Error desconocido',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            }
+        });
+    });
+});
+</script>

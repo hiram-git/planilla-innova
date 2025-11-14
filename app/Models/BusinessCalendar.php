@@ -188,19 +188,21 @@ class BusinessCalendar extends Model
 
     /**
      * Agregar un día especial al calendario
+     * ✅ ACTUALIZADO: Incluye campo is_paid_holiday
      */
-    public function addSpecialDay($date, $dayType, $status, $description)
+    public function addSpecialDay($date, $dayType, $status, $description, $isPaidHoliday = 0)
     {
         try {
             $dateObj = new \DateTime($date);
 
             $sql = "INSERT INTO business_calendar
-                    (date_value, day_type, status, description, is_weekend, year_value, month_value, day_of_week)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (date_value, day_type, status, description, is_paid_holiday, is_weekend, year_value, month_value, day_of_week)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
                     day_type = VALUES(day_type),
                     status = VALUES(status),
-                    description = VALUES(description)";
+                    description = VALUES(description),
+                    is_paid_holiday = VALUES(is_paid_holiday)";
 
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
@@ -208,6 +210,7 @@ class BusinessCalendar extends Model
                 $dayType,
                 $status,
                 $description,
+                $isPaidHoliday,
                 $this->isWeekend($date),
                 $dateObj->format('Y'),
                 $dateObj->format('n'),
@@ -215,6 +218,40 @@ class BusinessCalendar extends Model
             ]);
         } catch (PDOException $e) {
             error_log("Error adding special day: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Actualizar un día del calendario
+     * ✅ NUEVO: Permite actualizar campos de días existentes
+     */
+    public function updateDay($id, $data)
+    {
+        try {
+            $allowedFields = ['day_type', 'status', 'description', 'is_paid_holiday', 'notes', 'is_weekend'];
+            $updates = [];
+            $params = [];
+
+            foreach ($allowedFields as $field) {
+                if (isset($data[$field])) {
+                    $updates[] = "$field = ?";
+                    $params[] = $data[$field];
+                }
+            }
+
+            if (empty($updates)) {
+                return false;
+            }
+
+            $params[] = $id;
+            $sql = "UPDATE business_calendar SET " . implode(', ', $updates) . " WHERE id = ?";
+
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($params);
+
+        } catch (PDOException $e) {
+            error_log("Error updating day: " . $e->getMessage());
             return false;
         }
     }
@@ -444,6 +481,55 @@ class BusinessCalendar extends Model
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Obtener día por fecha (alias de getDayInfo para compatibilidad con CalendarSyncService)
+     */
+    public function getByDate($date)
+    {
+        return $this->getDayInfo($date);
+    }
+
+    /**
+     * Crear un nuevo día en el calendario
+     * Método genérico para compatibilidad con CalendarSyncService
+     */
+    public function create($data)
+    {
+        try {
+            $dateObj = new \DateTime($data['date_value']);
+
+            $sql = "INSERT INTO business_calendar
+                    (date_value, year_value, month_value, day_of_week, day_type, status,
+                     description, is_weekend, is_paid_holiday, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                $data['date_value'],
+                $data['year'] ?? (int)$dateObj->format('Y'),
+                $data['month'] ?? (int)$dateObj->format('n'),
+                $this->getDayOfWeek($data['date_value']),
+                $data['day_type'] ?? 'LABORAL',
+                $data['status'] ?? 'NORMAL',
+                $data['description'] ?? null,
+                $data['is_weekend'] ?? $this->isWeekend($data['date_value']),
+                $data['is_paid_holiday'] ?? 0,
+                $data['notes'] ?? null
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error creating calendar day: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Actualizar día (alias de updateDay para compatibilidad con CalendarSyncService)
+     */
+    public function update($id, $data)
+    {
+        return $this->updateDay($id, $data);
     }
 
     /**

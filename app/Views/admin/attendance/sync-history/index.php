@@ -278,14 +278,19 @@ $(document).ready(function() {
     // Base URL del proyecto
     const baseUrl = '<?= \App\Core\UrlHelper::base() ?>';
 
-    // Inicializar DataTable
-    $('#sync-history-table').DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-        },
-        order: [[2, 'desc']], // Ordenar por fecha descendente
-        pageLength: 25
-    });
+    // Inicializar DataTable solo si hay registros
+    const hasData = $('#sync-history-table tbody tr').length > 0 &&
+                    !$('#sync-history-table tbody tr td[colspan]').length;
+
+    if (hasData) {
+        $('#sync-history-table').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            order: [[2, 'desc']], // Ordenar por fecha descendente
+            pageLength: 25
+        });
+    }
 
     // Ver detalle de sincronización
     $(document).on('click', '.btn-view-detail', function() {

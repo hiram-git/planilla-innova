@@ -326,4 +326,104 @@ class VacationBalanceService
             return 0;
         }
     }
+
+    /**
+     * Generar años faltantes de vacaciones para un empleado
+     * ✅ NUEVO: Detecta años faltantes desde fecha_ingreso hasta año actual y los crea
+     *
+     * @param int $employee_id ID del empleado
+     * @return array Resultado con años creados y estadísticas
+     */
+    public function generateMissingYears($employee_id)
+    {
+        try {
+            // Obtener fecha de ingreso del empleado
+            $sql = "SELECT fecha_ingreso FROM employees WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employee_id]);
+            $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$employee || !$employee['fecha_ingreso']) {
+                return [
+                    'success' => false,
+                    'message' => 'Empleado no encontrado o sin fecha de ingreso',
+                    'years_created' => [],
+                    'count' => 0
+                ];
+            }
+
+            $fecha_ingreso = new \DateTime($employee['fecha_ingreso']);
+            $current_year = (int)date('Y');
+
+            // Calcular primer año completo (11 meses después del ingreso)
+            $fecha_primer_derecho = clone $fecha_ingreso;
+            $fecha_primer_derecho->modify('+11 months');
+            $first_year = (int)$fecha_primer_derecho->format('Y');
+
+            // Si aún no ha cumplido 11 meses, no tiene años disponibles
+            if ($first_year > $current_year) {
+                return [
+                    'success' => true,
+                    'message' => 'El empleado aún no cumple 11 meses para generar años de vacaciones',
+                    'years_created' => [],
+                    'count' => 0
+                ];
+            }
+
+            // Obtener años que ya existen
+            $sql = "SELECT year FROM vacation_annual_balances WHERE employee_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employee_id]);
+            $existing_years = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            // Detectar años faltantes
+            $missing_years = [];
+            for ($year = $first_year; $year <= $current_year; $year++) {
+                if (!in_array($year, $existing_years)) {
+                    $missing_years[] = $year;
+                }
+            }
+
+            // Si no hay años faltantes
+            if (empty($missing_years)) {
+                return [
+                    'success' => true,
+                    'message' => 'No hay años faltantes. Todos los años están generados.',
+                    'years_created' => [],
+                    'count' => 0
+                ];
+            }
+
+            // Crear años faltantes
+            $created_years = [];
+            foreach ($missing_years as $year) {
+                $sql = "INSERT INTO vacation_annual_balances
+                        (employee_id, year, dias_vacaciones_anuales, dias_pagados_year,
+                         dias_disfrutados_year, saldo_disponible_year, created_at, updated_at)
+                        VALUES (?, ?, 30, 0, 0, 30, NOW(), NOW())";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$employee_id, $year]);
+
+                $created_years[] = $year;
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Años de vacaciones generados exitosamente',
+                'years_created' => $created_years,
+                'count' => count($created_years),
+                'first_year' => $first_year,
+                'current_year' => $current_year
+            ];
+
+        } catch (PDOException $e) {
+            error_log("Error generating missing years: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al generar años: ' . $e->getMessage(),
+                'years_created' => [],
+                'count' => 0
+            ];
+        }
+    }
 }

@@ -1399,6 +1399,7 @@ class AttendanceController extends Controller
 
             // Verificar si el día es laboral según el calendario empresarial
             $isWorkingDay = true;
+            $isPaidHoliday = false;
             try {
                 $calendar = new \App\Models\BusinessCalendar();
                 $dayInfo = $calendar->getDayInfo($date);
@@ -1408,6 +1409,9 @@ class AttendanceController extends Controller
                     // Solo es laboral si day_type = 'LABORAL'
                     // Saltar si es: FERIADO, NO_LABORAL, DUELO_NACIONAL, ESPECIAL
                     $isWorkingDay = ($dayInfo['day_type'] === 'LABORAL');
+
+                    // Verificar si es feriado pagado
+                    $isPaidHoliday = ($dayInfo['day_type'] === 'FERIADO' && isset($dayInfo['is_paid_holiday']) && $dayInfo['is_paid_holiday'] == 1);
                 } else {
                     // Si no hay información del día, asumir que es laboral de Lunes a Viernes
                     $dayOfWeek = date('N', strtotime($date)); // 1=Lunes, 7=Domingo
@@ -1420,9 +1424,75 @@ class AttendanceController extends Controller
                 $isWorkingDay = ($dayOfWeek >= 1 && $dayOfWeek <= 5);
             }
 
+            // 4.5. Generar registros automáticos para FERIADOS PAGADOS
+            // Si el día es feriado pagado, generar 8 horas para todos los empleados
+            if ($isPaidHoliday) {
+                $paidHolidayCount = 0;
+
+                foreach ($activeEmployees as $employee) {
+                    // Verificar si ya existe un registro para este empleado
+                    if (isset($employeesWithAttendance[$employee['id']])) {
+                        continue; // Ya tiene marcación, no crear registro automático
+                    }
+
+                    try {
+                        // Obtener horario del empleado (o usar horario por defecto)
+                        $scheduleId = $employee['schedule_id'] ?? null;
+                        $timeIn = '08:00:00';
+                        $timeOut = '17:00:00';
+
+                        if ($scheduleId) {
+                            $sql = "SELECT time_in, time_out FROM schedules WHERE id = ?";
+                            $stmt = $this->employeeModel->db->prepare($sql);
+                            $stmt->execute([$scheduleId]);
+                            $schedule = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                            if ($schedule) {
+                                $timeIn = $schedule['time_in'];
+                                $timeOut = $schedule['time_out'];
+                            }
+                        }
+
+                        // Calcular horas totales (time_out - time_in)
+                        // En feriado pagado se paga el tiempo completo incluyendo almuerzo
+                        $timeInObj = new \DateTime($timeIn);
+                        $timeOutObj = new \DateTime($timeOut);
+                        $interval = $timeInObj->diff($timeOutObj);
+                        $hoursWorked = $interval->h + ($interval->i / 60);
+
+                        // Crear registro de asistencia con horas calculadas
+                        $paidHolidayData = [
+                            'header_id' => $header['id'],
+                            'employee_id' => $employee['id'],
+                            'schedule_id' => $scheduleId,
+                            'time_in' => $timeIn,
+                            'time_out' => $timeOut,
+                            'status' => 'PRESENT',
+                            'is_late' => 0,
+                            'tardiness_minutes' => 0,
+                            'hours_worked' => $hoursWorked,
+                            'notes' => 'Feriado Pagado - ' . ($dayInfo['description'] ?? 'Día Feriado')
+                        ];
+
+                        $detailId = $this->detailModel->create($paidHolidayData);
+
+                        if ($detailId) {
+                            $paidHolidayCount++;
+                            error_log("Feriado pagado generado para empleado {$employee['id']} en fecha {$date}");
+                        }
+                    } catch (Exception $e) {
+                        error_log("ERROR processDay - Error creando feriado pagado para empleado {$employee['id']}: " . $e->getMessage());
+                    }
+                }
+
+                error_log("PAID HOLIDAY: Generados {$paidHolidayCount} registros de feriado pagado para fecha {$date}");
+
+                // No detectar ausencias en feriados pagados, todos ya tienen registro
+                // Continuar con el procesamiento normal (omisiones, cálculos)
+            }
             // 5. Detectar empleados SIN marcación y crear registros de AUSENCIA
-            // Solo detectar ausencias en días LABORABLES
-            if ($detectAbsences && $isWorkingDay) {
+            // Solo detectar ausencias en días LABORABLES (no en feriados pagados)
+            elseif ($detectAbsences && $isWorkingDay) {
                 foreach ($activeEmployees as $employee) {
                     if (!isset($employeesWithAttendance[$employee['id']])) {
                         $stats['absences_detected']++;

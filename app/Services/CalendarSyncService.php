@@ -242,10 +242,27 @@ class CalendarSyncService
         $dayOfWeek = (int)$dateObj->format('N'); // 1 (lunes) a 7 (domingo)
         $isWeekend = ($dayOfWeek === 6 || $dayOfWeek === 7) ? 1 : 0;
 
+        // Determinar si es feriado pagado
+        // El API puede enviarlo como 'paid', 'pagado', 'is_paid', 'is_paid_holiday'
+        $isPaidHoliday = 0;
+        if (isset($entity['paid'])) {
+            $isPaidHoliday = $entity['paid'] ? 1 : 0;
+        } elseif (isset($entity['pagado'])) {
+            $isPaidHoliday = $entity['pagado'] ? 1 : 0;
+        } elseif (isset($entity['is_paid'])) {
+            $isPaidHoliday = $entity['is_paid'] ? 1 : 0;
+        } elseif (isset($entity['is_paid_holiday'])) {
+            $isPaidHoliday = $entity['is_paid_holiday'] ? 1 : 0;
+        } elseif ($dayType === 'FERIADO') {
+            // Por defecto, los feriados nacionales son pagados
+            $isPaidHoliday = 1;
+        }
+
         return [
             'date_value' => $date,
             'day_type' => $dayType,
             'is_weekend' => $isWeekend,
+            'is_paid_holiday' => $isPaidHoliday,
             'description' => $entity['description'] ?? $entity['descripcion'] ?? null,
             'notes' => $entity['notes'] ?? $entity['notas'] ?? 'Sincronizado desde API Base44',
             'year' => (int)$dateObj->format('Y'),

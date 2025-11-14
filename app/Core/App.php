@@ -433,6 +433,19 @@ class App
                                     // GET /panel/vacation/create/{employee_id}
                                     $this->method = 'create';
                                     $this->params = [$url[3]];
+                                } elseif ($url[2] === 'show' && isset($url[3]) && isset($url[4]) && $url[4] === 'pdf') {
+                                    // GET /panel/vacation/show/{request_id}/pdf
+                                    $pdfController = new \App\Controllers\PDFReportController();
+                                    if (method_exists($pdfController, 'generateVacationRequestPDF')) {
+                                        call_user_func_array([$pdfController, 'generateVacationRequestPDF'], [$url[3]]);
+                                        return;
+                                    }
+                                    if (method_exists($this->controller, 'exportPDF')) {
+                                        $this->method = 'exportPDF';
+                                        $this->params = [$url[3]];
+                                        call_user_func_array([$this->controller, $this->method], $this->params);
+                                        return;
+                                    }
                                 } elseif ($url[2] === 'show' && isset($url[3]) && method_exists($this->controller, 'show')) {
                                     // GET /panel/vacation/show/{request_id}
                                     $this->method = 'show';
@@ -449,6 +462,10 @@ class App
                                     // GET /panel/vacation/calendar
                                     $this->method = 'calendar';
                                     $this->params = [];
+                                } elseif ($url[2] === 'export-pdf' && isset($url[3]) && method_exists($this->controller, 'exportPDF')) {
+                                    // GET /panel/vacation/export-pdf/{request_id}
+                                    $this->method = 'exportPDF';
+                                    $this->params = [$url[3]];
                                 } elseif ($url[2] === 'reports' && method_exists($this->controller, 'reports')) {
                                     // GET /panel/vacation/reports (si existe)
                                     $this->method = 'reports';
@@ -472,6 +489,10 @@ class App
                                 } elseif ($url[2] === 'reject' && isset($url[3]) && method_exists($this->controller, 'reject')) {
                                     // POST /panel/vacation/reject/{request_id}
                                     $this->method = 'reject';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'generate-missing-years' && isset($url[3]) && method_exists($this->controller, 'generateMissingYears')) {
+                                    // POST /panel/vacation/generate-missing-years/{employee_id}
+                                    $this->method = 'generateMissingYears';
                                     $this->params = [$url[3]];
                                 } else {
                                     // Fallback a index en POST no reconocido
@@ -513,6 +534,10 @@ class App
                                     // POST /panel/business-calendar/store
                                     $this->method = 'store';
                                     $this->params = [];
+                                } elseif ($url[2] === 'update' && isset($url[3]) && method_exists($this->controller, 'update')) {
+                                    // POST /panel/business-calendar/update/{id}
+                                    $this->method = 'update';
+                                    $this->params = [$url[3]];
                                 } elseif ($url[2] === 'delete' && isset($url[3]) && method_exists($this->controller, 'delete')) {
                                     // POST /panel/business-calendar/delete/{id}
                                     $this->method = 'delete';

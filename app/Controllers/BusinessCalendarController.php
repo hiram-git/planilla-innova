@@ -177,11 +177,15 @@ class BusinessCalendarController extends Controller
         }
 
         try {
+            // Obtener campo is_paid_holiday
+            $isPaidHoliday = isset($data['is_paid_holiday']) && $data['is_paid_holiday'] == '1' ? 1 : 0;
+
             $success = $businessCalendar->addSpecialDay(
                 $data['date_value'],
                 $data['day_type'],
                 $data['status'] ?? 'NORMAL',
-                $data['description']
+                $data['description'],
+                $isPaidHoliday
             );
 
             if ($success) {
@@ -190,11 +194,89 @@ class BusinessCalendarController extends Controller
                 $_SESSION['error'] = 'Error al agregar día especial';
             }
 
-            $this->redirect(UrlHelper::route('panel/business-calendar'));
+            $this->redirect(UrlHelper::route('panel/business-calendar/listado'));
         } catch (\Exception $e) {
             $_SESSION['error'] = 'Error al agregar día especial: ' . $e->getMessage();
-            $this->redirect(UrlHelper::route('panel/business-calendar'));
+            $this->redirect(UrlHelper::route('panel/business-calendar/listado'));
         }
+    }
+
+    /**
+     * Actualizar día especial existente
+     * ✅ NUEVO: Permite editar días del calendario
+     */
+    public function update($id)
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Método no permitido'
+            ]);
+            exit;
+        }
+
+        AuthMiddleware::validateCSRF();
+
+        $data = Security::sanitizeInput($_POST);
+        $businessCalendar = $this->model('BusinessCalendar');
+
+        try {
+            // Verificar que el día existe
+            $day = $businessCalendar->find($id);
+
+            if (!$day) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Día no encontrado'
+                ]);
+                exit;
+            }
+
+            // Preparar datos para actualizar
+            $updateData = [];
+
+            if (isset($data['day_type'])) {
+                $updateData['day_type'] = $data['day_type'];
+            }
+
+            if (isset($data['status'])) {
+                $updateData['status'] = $data['status'];
+            }
+
+            if (isset($data['description'])) {
+                $updateData['description'] = $data['description'];
+            }
+
+            // Campo is_paid_holiday
+            if (isset($data['is_paid_holiday'])) {
+                $updateData['is_paid_holiday'] = $data['is_paid_holiday'] == '1' ? 1 : 0;
+            }
+
+            $success = $businessCalendar->updateDay($id, $updateData);
+
+            if ($success) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Día actualizado exitosamente'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error al actualizar el día'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en update: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al actualizar: ' . $e->getMessage()
+            ]);
+        }
+
+        exit;
     }
 
     /**

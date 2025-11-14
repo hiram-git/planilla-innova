@@ -276,6 +276,62 @@
   - [ ] Alertas automáticas: ausencias injustificadas, excesos jornada
   - [ ] Exportación PDF: reportes de asistencias con logos empresariales
 
+### 💰 **PROCESAMIENTO AUTOMÁTICO FERIADOS PAGADOS** *(Prioridad Media - Desarrollo Futuro)*
+**Objetivo**: Automatizar la generación de registros de asistencia con 8 horas trabajadas para feriados pagados
+**Tiempo Estimado**: 1-2 semanas
+**Progreso**: ✅ Funcionalidad Base Implementada | 📋 Automatización Pendiente
+
+- [x] **Funcionalidad Manual COMPLETADA** ✅ **(13-Nov-2025)**
+  - [x] Campo `is_paid_holiday` en tabla `business_calendar`
+  - [x] Modal edición feriados con checkbox "Feriado Pagado" en `/panel/business-calendar/listado`
+  - [x] Integración CalendarSyncService con API Base44 (campo `paid`)
+  - [x] Generación automática en `processDay()`: 8 horas trabajadas para todos los empleados
+  - [x] Lógica implementada en AttendanceController.php:1400-1488
+  - [x] Fix DataTables en sync-history cuando no hay registros
+  - [x] **Flujo Actual**: Manual - ejecutar `processDay()` desde UI para fechas específicas
+
+- [ ] **Automatización Completa** *(1-2 semanas)* 📋 **PENDIENTE**
+  - [ ] **Opción 1: Cron Job Diario** *(Recomendado)*
+    - [ ] Script PHP ejecutable vía cron: `/scripts/cron_process_paid_holidays.php`
+    - [ ] Lógica: Consultar `business_calendar` para día actual con `is_paid_holiday = 1`
+    - [ ] Si es feriado pagado, ejecutar `AttendanceController->processDay()` automáticamente
+    - [ ] Logging completo en archivo dedicado: `storage/logs/paid_holidays_{fecha}.log`
+    - [ ] Configuración cron: `0 6 * * * php /path/to/cron_process_paid_holidays.php`
+    - [ ] Notificaciones email a RRHH cuando se procesan feriados pagados
+    - [ ] **Ventajas**: Simple, confiable, no depende de sincronización API
+    - [ ] **Desventajas**: Requiere configuración servidor cron
+
+  - [ ] **Opción 2: Trigger en CalendarSyncService** *(Integrado)*
+    - [ ] Modificar `CalendarSyncService->processCalendarEntity()`
+    - [ ] Detectar cuando `is_paid_holiday = 1` en datos sincronizados desde API
+    - [ ] Ejecutar `AttendanceController->processDay()` automáticamente
+    - [ ] Validar que la fecha sea futura o día actual (no reprocesar históricos)
+    - [ ] Logging integrado en sync log existente
+    - [ ] **Ventajas**: Totalmente automático, integrado con sincronización API
+    - [ ] **Desventajas**: Depende de sincronización API funcionando correctamente
+
+  - [ ] **Opción 3: Procesamiento Anticipado** *(Proactivo)*
+    - [ ] Script batch semanal: consultar feriados pagados próximos 7 días
+    - [ ] Pre-generar registros con X días de anticipación (configurable)
+    - [ ] Vista dashboard mostrando feriados pagados pre-procesados
+    - [ ] Opción manual de reversión si hay cambios en calendario
+    - [ ] **Ventajas**: Permite revisión anticipada, reduce carga día del feriado
+    - [ ] **Desventajas**: Más complejo, requiere lógica de reversión
+
+  - [ ] **Mejoras Adicionales**
+    - [ ] Dashboard visual: calendario con feriados pagados marcados (FullCalendar.js)
+    - [ ] Notificaciones automáticas: email RRHH X días antes de feriado pagado
+    - [ ] Reportes: empleados incluidos/excluidos en feriados pagados
+    - [ ] Configuración empresa: habilitar/deshabilitar procesamiento automático
+    - [ ] Auditoría: log completo de todos los feriados pagados procesados
+
+  - [ ] **Archivos a Crear/Modificar**
+    - [ ] Nuevo: `/scripts/cron_process_paid_holidays.php`
+    - [ ] Nuevo: `/app/Services/PaidHolidayProcessor.php` (servicio dedicado)
+    - [ ] Modificar: `CalendarSyncService.php` (si Opción 2)
+    - [ ] Nuevo: Vista dashboard feriados pagados
+    - [ ] Nuevo: Migración para tabla `paid_holiday_processing_log`
+
 ### 🏖️ **MÓDULO VACACIONES PANAMÁ** *(Alta Prioridad - En Progreso)*
 - [ ] **Fase 1: Calculadora + Base de Datos**
   - [ ] VacationCalculator class con cálculos legislación panameña

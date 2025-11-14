@@ -129,14 +129,23 @@ foreach ($holidays as $holiday) {
                             <td><span class="badge badge-secondary">' . $holiday['status'] . '</span></td>
                             <td>';
 
+    // Botón editar para FERIADOS (para configurar si es pagado)
+    if ($holiday['day_type'] === 'FERIADO') {
+        $isPaidHoliday = isset($holiday['is_paid_holiday']) && $holiday['is_paid_holiday'] == 1 ? 1 : 0;
+        $content .= '
+                                <button type="button" class="btn btn-sm btn-primary"
+                                        onclick="editHoliday(' . $holiday['id'] . ', \'' . htmlspecialchars($holiday['description']) . '\', \'' . $holiday['day_type'] . '\', \'' . $holiday['status'] . '\', ' . $isPaidHoliday . ')">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>';
+    }
     // Solo permitir eliminar días ESPECIALES (no feriados nacionales)
-    if ($holiday['day_type'] === 'ESPECIAL') {
+    elseif ($holiday['day_type'] === 'ESPECIAL') {
         $content .= '
                                 <button type="button" class="btn btn-sm btn-danger" onclick="deleteSpecialDay(' . $holiday['id'] . ', \'' . htmlspecialchars($holiday['description']) . '\')">
                                     <i class="fas fa-trash"></i>
                                 </button>';
     } else {
-        $content .= '<span class="text-muted">Feriado permanente</span>';
+        $content .= '<span class="text-muted">—</span>';
     }
 
     $content .= '
@@ -195,6 +204,18 @@ $content .= '
                         <label for="description">Descripción *</label>
                         <input type="text" class="form-control" id="description" name="description"
                                placeholder="Ej: Día de la Constitución" required>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch custom-switch-on-success">
+                            <input type="checkbox" class="custom-control-input" id="is_paid_holiday" name="is_paid_holiday" value="1">
+                            <label class="custom-control-label" for="is_paid_holiday">
+                                <strong>Feriado Pagado</strong>
+                                <br>
+                                <small class="text-muted">
+                                    Genera automáticamente 8 horas trabajadas en asistencias para todos los empleados
+                                </small>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -276,6 +297,76 @@ $content .= '
     </div>
 </div>
 
+<!-- Modal: Editar Feriado -->
+<div class="modal fade" id="modalEditHoliday" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit mr-2"></i>
+                    Editar Feriado
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit_holiday_id">
+
+                <div class="form-group">
+                    <label for="edit_description">Descripción *</label>
+                    <input type="text" class="form-control" id="edit_description"
+                           placeholder="Nombre del feriado" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_day_type">Tipo de Día</label>
+                    <select class="form-control" id="edit_day_type">
+                        <option value="FERIADO">Feriado</option>
+                        <option value="DUELO_NACIONAL">Duelo Nacional</option>
+                        <option value="ESPECIAL">Día Especial</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_status">Estado</label>
+                    <select class="form-control" id="edit_status">
+                        <option value="NORMAL">Normal</option>
+                        <option value="RECUPERABLE">Recuperable</option>
+                        <option value="MEDIO_DIA">Medio Día</option>
+                        <option value="HORARIO_ESPECIAL">Horario Especial</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="custom-control custom-switch custom-switch-on-success">
+                        <input type="checkbox" class="custom-control-input" id="edit_is_paid_holiday" value="1">
+                        <label class="custom-control-label" for="edit_is_paid_holiday">
+                            <strong>Feriado Pagado</strong>
+                            <br>
+                            <small class="text-muted">
+                                Si está activado, se generarán automáticamente 8 horas trabajadas en asistencias para todos los empleados
+                            </small>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Nota:</strong> Los feriados pagados generan automáticamente registros de asistencia con 8 horas trabajadas
+                    para integración con planillas.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveHolidayChanges()">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Form para eliminar (oculto) -->
 <form id="deleteForm" method="POST" style="display:none;">
     <input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrf_token) . '">
@@ -310,6 +401,95 @@ function deleteSpecialDay(id, description) {
             var form = document.getElementById("deleteForm");
             form.action = "' . \App\Core\UrlHelper::route('panel/business-calendar/delete') . '/" + id;
             form.submit();
+        }
+    });
+}
+
+/**
+ * Abrir modal de edición de feriado
+ */
+function editHoliday(id, description, dayType, status, isPaidHoliday) {
+    // Establecer valores en el formulario
+    document.getElementById("edit_holiday_id").value = id;
+    document.getElementById("edit_description").value = description;
+    document.getElementById("edit_day_type").value = dayType;
+    document.getElementById("edit_status").value = status;
+    document.getElementById("edit_is_paid_holiday").checked = (isPaidHoliday == 1);
+
+    // Mostrar modal
+    $("#modalEditHoliday").modal("show");
+}
+
+/**
+ * Guardar cambios del feriado mediante AJAX
+ */
+function saveHolidayChanges() {
+    var holidayId = document.getElementById("edit_holiday_id").value;
+    var description = document.getElementById("edit_description").value.trim();
+    var dayType = document.getElementById("edit_day_type").value;
+    var status = document.getElementById("edit_status").value;
+    var isPaidHoliday = document.getElementById("edit_is_paid_holiday").checked ? 1 : 0;
+
+    // Validación básica
+    if (!description) {
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "La descripción es obligatoria"
+        });
+        return;
+    }
+
+    // Mostrar loading
+    Swal.fire({
+        title: "Guardando...",
+        text: "Por favor espere",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Enviar mediante AJAX
+    $.ajax({
+        url: "' . \App\Core\UrlHelper::route('panel/business-calendar/update') . '/" + holidayId,
+        type: "POST",
+        data: {
+            csrf_token: "' . htmlspecialchars($csrf_token) . '",
+            description: description,
+            day_type: dayType,
+            status: status,
+            is_paid_holiday: isPaidHoliday
+        },
+        dataType: "json",
+        success: function(response) {
+            if (response.success) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Éxito",
+                    text: response.message || "Feriado actualizado exitosamente",
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Cerrar modal y recargar página
+                    $("#modalEditHoliday").modal("hide");
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: response.message || "Error al actualizar el feriado"
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error("Error AJAX:", error);
+            Swal.fire({
+                icon: "error",
+                title: "Error de Conexión",
+                text: "No se pudo conectar con el servidor. Por favor intente nuevamente."
+            });
         }
     });
 }

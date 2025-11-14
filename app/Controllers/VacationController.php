@@ -25,6 +25,80 @@ class VacationController extends Controller
     }
 
     /**
+     * Reportes de Vacaciones (esqueleto mínimo)
+     * Filtros básicos + tabla con DataTables
+     */
+    public function reports()
+    {
+        try {
+            // Filtros básicos
+            $employeeId   = $_GET['employee_id'] ?? null;
+            $status       = $_GET['status'] ?? null; // PENDING, APPROVED, REJECTED
+            $type         = $_GET['vacation_type'] ?? null; // ANNUAL, COMPENSATION
+            $startDate    = $_GET['start_date'] ?? null; // filtra por request_date
+            $endDate      = $_GET['end_date'] ?? null;
+            $year         = $_GET['year'] ?? null;
+
+            // Listado de empleados activos para el filtro
+            $employees = $this->db->query("SELECT id, employee_id, firstname, lastname
+                                           FROM employees WHERE situacion_id = 1
+                                           ORDER BY firstname, lastname")
+                                   ->fetchAll(PDO::FETCH_ASSOC);
+
+            // Construir consulta base de solicitudes
+            $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id
+                    FROM vacation_requests vr
+                    INNER JOIN employees e ON vr.employee_id = e.id
+                    WHERE 1=1";
+            $params = [];
+
+            if (!empty($employeeId)) {
+                $sql .= " AND vr.employee_id = ?";
+                $params[] = $employeeId;
+            }
+            if (!empty($status)) {
+                $sql .= " AND vr.status = ?";
+                $params[] = $status;
+            }
+            if (!empty($type)) {
+                $sql .= " AND vr.vacation_type = ?";
+                $params[] = $type;
+            }
+            if (!empty($startDate) && !empty($endDate)) {
+                $sql .= " AND vr.request_date BETWEEN ? AND ?";
+                $params[] = $startDate;
+                $params[] = $endDate;
+            } elseif (!empty($year)) {
+                $sql .= " AND YEAR(vr.request_date) = ?";
+                $params[] = $year;
+            }
+
+            $sql .= " ORDER BY vr.request_date DESC LIMIT 200";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $this->render('admin/vacation/reports', [
+                'employees'     => $employees,
+                'requests'      => $requests,
+                'filters'       => [
+                    'employee_id'   => $employeeId,
+                    'status'        => $status,
+                    'vacation_type' => $type,
+                    'start_date'    => $startDate,
+                    'end_date'      => $endDate,
+                    'year'          => $year,
+                ],
+                'pageTitle'     => 'Reportes de Vacaciones'
+            ]);
+
+        } catch (PDOException $e) {
+            $this->redirectWithToastr('/panel/vacation', 'error', 'Error al cargar reportes: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Lista de empleados activos con sus balances de vacaciones
      */
     public function index()
@@ -292,6 +366,8 @@ class VacationController extends Controller
         }
     }
 
+    
+
     /**
      * Mostrar detalles de una solicitud de vacaciones
      */
@@ -493,6 +569,33 @@ class VacationController extends Controller
     }
 
     /**
+     * Generar años faltantes de vacaciones para un empleado (AJAX)
+     * ✅ NUEVO: Detecta y crea automáticamente años desde fecha_ingreso hasta año actual
+     */
+    public function generateMissingYears($employee_id)
+    {
+        try {
+            $this->validateCsrfToken();
+
+            // Generar años faltantes usando el servicio
+            $result = $this->balanceService->generateMissingYears($employee_id);
+
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            exit;
+
+        } catch (\Exception $e) {
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al generar años: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+
+    /**
      * Vista calendario de vacaciones
      * ✅ UNIFICADO: Usa calendario empresarial (business_calendar) como base
      */
@@ -542,6 +645,7 @@ class VacationController extends Controller
 
     /**
      * Reporte de balance por empleado
+     * ✅ ACTUALIZADO: Usa sistema simplificado vacation_annual_balances
      */
     public function balance($employee_id)
     {
@@ -561,10 +665,26 @@ class VacationController extends Controller
                 return;
             }
 
+            // ✅ NUEVO: Usar sistema simplificado vacation_annual_balances
+            $annual_balances = $this->balanceService->getVacationHistory($employee_id);
+
+            // Calcular totales desde vacation_annual_balances
+            $total_days_earned = 0;
+            $total_days_taken = 0;
+
+            foreach ($annual_balances as $balance) {
+                $total_days_earned += $balance['dias_vacaciones_anuales'] ?? 0;
+                $total_days_taken += $balance['dias_pagados_year'] ?? 0;
+            }
+
+            // Balance actual = Total ganado - Total pagado (tomado)
+            $current_balance = $this->balanceService->getTotalAccumulatedBalance($employee_id);
+
             // Calcular balance detallado
             $vacation_data = [
-                'days_earned' => $this->calculator->VACATION_DAYS_EARNED($employee_id),
-                'current_balance' => $this->calculator->VACATION_BALANCE($employee_id),
+                'days_earned' => $total_days_earned, // Total días ganados de todos los años
+                'days_taken' => $total_days_taken, // Total días pagados (tomados) de todos los años
+                'current_balance' => $current_balance, // Saldo disponible total
                 'accrual_rate' => $this->calculator->VACATION_ACCRUAL_RATE($employee_id),
                 'eligible' => $this->calculator->VACATION_ELIGIBLE($employee_id),
                 'daily_salary' => $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1)
@@ -577,9 +697,6 @@ class VacationController extends Controller
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employee_id]);
             $vacation_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Obtener balance anual usando el nuevo sistema
-            $annual_balances = $this->balanceService->getVacationHistory($employee_id);
 
             $this->render('admin/vacation/balance', [
                 'employee' => $employee,
@@ -647,6 +764,24 @@ class VacationController extends Controller
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$request_id, $type, $days, $calculated_days, $amount, $formula]);
+    }
+
+    /**
+     * Exportar PDF de la solicitud de vacaciones (delegado a PDFReportController)
+     */
+    public function exportPDF($request_id)
+    {
+        try {
+            $pdfController = new \App\Controllers\PDFReportController();
+            if (method_exists($pdfController, 'generateVacationRequestPDF')) {
+                return $pdfController->generateVacationRequestPDF($request_id);
+            }
+            throw new \Exception('Método generateVacationRequestPDF no disponible');
+        } catch (\Exception $e) {
+            error_log('Error generating vacation PDF: ' . $e->getMessage());
+            $this->setFlashMessage('Error al generar PDF: ' . $e->getMessage(), 'error');
+            return $this->redirect('/panel/vacation/show/' . $request_id);
+        }
     }
 
 }

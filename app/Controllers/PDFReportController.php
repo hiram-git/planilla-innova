@@ -90,6 +90,111 @@ class PDFReportController extends Controller
     }
 
     /**
+     * Generar PDF de una solicitud de vacaciones
+     */
+    public function generateVacationRequestPDF($requestId)
+    {
+        try {
+            // Permisos (usa la misma clave que otros PDF)
+            $this->checkPermission('reports_pdf');
+
+            if (!$requestId) {
+                throw new \Exception('ID de solicitud requerido');
+            }
+
+            // Obtener datos de la solicitud
+            $db = $this->model('Report')->getDatabase()->getConnection();
+            $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id, e.document_id, e.fecha_ingreso,
+                           c.nombre AS cargo_nombre
+                    FROM vacation_requests vr
+                    INNER JOIN employees e ON e.id = vr.employee_id
+                    LEFT JOIN cargos c ON c.id = e.cargo_id
+                    WHERE vr.id = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$requestId]);
+            $req = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$req) {
+                throw new \Exception('Solicitud de vacaciones no encontrada');
+            }
+
+            // Info de empresa y TCPDF
+            $companyInfo = $this->getCompanyInfo();
+            $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+            $pdf->SetCreator('Sistema de Planillas MVC');
+            $pdf->SetAuthor($companyInfo['company_name']);
+            $pdf->SetTitle('Solicitud de Vacaciones #' . $req['id']);
+            $pdf->SetMargins(12, 10, 12);
+            $pdf->SetAutoPageBreak(TRUE, 12);
+            $pdf->AddPage();
+
+            // Encabezado con logos y título
+            $this->insertLogosInPDF($pdf, $companyInfo);
+            $pdf->Ln(2);
+            $pdf->SetFont('helvetica', 'B', 14);
+            $pdf->Cell(0, 8, 'SOLICITUD DE VACACIONES', 0, 1, 'C');
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->Cell(0, 6, 'N. Solicitud: ' . $req['id'] . '   •   Fecha: ' . date('d/m/Y', strtotime($req['request_date'])), 0, 1, 'C');
+            $pdf->Ln(2);
+
+            // Bloque de empleado
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, 7, 'Datos del Empleado', 0, 1, 'L');
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->Cell(100, 6, 'Nombre: ' . ($req['firstname'] . ' ' . $req['lastname']), 0, 0, 'L');
+            $pdf->Cell(0, 6, 'Código: ' . ($req['employee_id'] ?? ''), 0, 1, 'L');
+            $pdf->Cell(100, 6, 'Cargo: ' . ($req['cargo_nombre'] ?? 'N/A'), 0, 0, 'L');
+            $pdf->Cell(0, 6, 'Cédula: ' . ($req['document_id'] ?? 'N/A'), 0, 1, 'L');
+            $pdf->Cell(0, 6, 'Fecha de Ingreso: ' . date('d/m/Y', strtotime($req['fecha_ingreso'])), 0, 1, 'L');
+            $pdf->Ln(2);
+
+            // Bloque de solicitud
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, 7, 'Detalle de la Solicitud', 0, 1, 'L');
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->Cell(0, 6, 'Período: ' . date('d/m/Y', strtotime($req['start_date'])) . ' al ' . date('d/m/Y', strtotime($req['end_date'])), 0, 1, 'L');
+            $pdf->Cell(65, 6, 'Días Totales: ' . (int)($req['total_days'] ?? 0), 0, 0, 'L');
+            $pdf->Cell(65, 6, 'Días Hábiles: ' . (int)($req['business_days'] ?? 0), 0, 0, 'L');
+            $pdf->Cell(0, 6, 'Tipo: ' . ($req['vacation_type'] ?? 'ANNUAL'), 0, 1, 'L');
+            $pdf->Cell(65, 6, 'Días por Pagar: ' . number_format((float)($req['dias_solicitados_pagar'] ?? 0), 1), 0, 0, 'L');
+            $pdf->Cell(65, 6, 'Días de Disfrute: ' . number_format((float)($req['dias_solicitados_disfrute'] ?? 0), 1), 0, 0, 'L');
+            $pdf->Cell(0, 6, 'Estado: ' . ($req['status'] ?? 'PENDING'), 0, 1, 'L');
+
+            // Compensación (si aplica)
+            if (($req['vacation_type'] ?? '') === 'COMPENSATION' && (float)($req['compensation_amount'] ?? 0) > 0) {
+                $pdf->Ln(2);
+                $pdf->SetFont('helvetica', 'B', 11);
+                $pdf->Cell(0, 7, 'Compensación', 0, 1, 'L');
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Cell(0, 6, 'Salario Diario: ' . number_format((float)($req['daily_salary'] ?? 0), 2) .
+                    '   •   Monto: ' . number_format((float)($req['compensation_amount'] ?? 0), 2), 0, 1, 'L');
+            }
+
+            // Comentarios
+            if (!empty($req['comments'])) {
+                $pdf->Ln(2);
+                $pdf->SetFont('helvetica', 'B', 11);
+                $pdf->Cell(0, 7, 'Comentarios', 0, 1, 'L');
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->MultiCell(0, 6, $req['comments'], 0, 'L');
+            }
+
+            $pdf->Ln(6);
+            // Firmas de responsables reutilizando helper existente
+            $this->addSignatures($pdf, $companyInfo);
+
+            $filename = 'vacacion_' . $req['id'] . '_' . date('Y-m-d') . '.pdf';
+            $pdf->Output($filename, 'I');
+            exit;
+        } catch (\Exception $e) {
+            error_log('PDF Vacation Request Error: ' . $e->getMessage());
+            $this->redirect('/panel/vacation?error=' . urlencode('Error generando PDF de vacaciones'));
+        }
+    }
+
+    /**
      * Generar el documento PDF de la planilla
      */
     private function generatePDFReport($planillaData, $companyInfo)
