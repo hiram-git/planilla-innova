@@ -406,8 +406,8 @@ class VacationController extends Controller
             $stmt->execute([$request_id]);
             $calculations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Calcular balance actual del empleado
-            $current_balance = $this->calculator->VACATION_BALANCE($request['employee_id']);
+            // Calcular balance actual del empleado usando vacation_annual_balances
+            $current_balance = $this->balanceService->getTotalAccumulatedBalance($request['employee_id']);
 
             $this->render('admin/vacation/show', [
                 'request' => $request,
