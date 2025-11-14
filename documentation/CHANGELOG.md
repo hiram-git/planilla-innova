@@ -8,6 +8,60 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.5.6]** - 2025-11-13 - *Sincronización Calendario API + Feriados Pagados + Unificación*
+**Tipo**: Feature - Sincronización automática calendario empresarial + Unificación vista vacaciones
+**Fase**: Calendario Empresarial - Integración API Base44
+**Criticidad**: Media
+
+**Componentes Principales**:
+- ✅ **CalendarSyncService** (~500 líneas):
+  - Sincronización manual calendario desde API Base44
+  - Soporte sincronización completa o por año específico
+  - Modo `replace`: elimina registros existentes antes de importar
+  - Modo `dry_run`: simulación sin modificar BD
+  - Mapeo tipos de día (LABORAL, FERIADO, DUELO_NACIONAL, ESPECIAL)
+  - Logging detallado de operaciones
+- ✅ **Campo is_paid_holiday**:
+  - Nuevo campo en tabla `business_calendar`
+  - Integración con API Base44 (campo `paid`)
+  - Identificación de feriados pagados para procesamiento asistencias
+  - Modal edición con checkbox "Feriado Pagado"
+- ✅ **Endpoint Sincronización**:
+  - POST `/panel/business-calendar/sync-api`
+  - Validación CSRF obligatoria
+  - Parámetros: year, replace, dry_run
+  - Respuesta JSON con estadísticas detalladas
+- ✅ **UI Sincronización** (calendar.php):
+  - Botón "Sincronizar desde API"
+  - Modal confirmación con SweetAlert2
+  - Tabla de estadísticas al completar
+  - Recarga automática de página
+- ✅ **Tabla calendar_sync_log** (~40 líneas SQL):
+  - Tracking completo de sincronizaciones
+  - Campos: tipo, tiempos, duración, status, estadísticas
+  - 4 índices optimizados
+- ✅ **Unificación Calendario Vacaciones**:
+  - VacationController usa `business_calendar` (antes: `vacation_calendar`)
+  - Query unificado con filtros por `day_type`
+  - Vista vacation/calendar.php actualizada (~100 líneas)
+  - Eventos con colores dinámicos por tipo de día
+  - Modal información mejorado
+- ✅ **Procesamiento Feriados Pagados**:
+  - AttendanceController->processDay() genera 8 horas trabajadas
+  - Aplicable a todos los empleados en feriados pagados
+  - Integración con campo `is_paid_holiday`
+- ✅ **Fix DataTables**: Corrección sync-history cuando no hay registros
+
+**📈 Estadísticas**:
+- 5 archivos modificados | 2 archivos nuevos | ~825 líneas código agregadas
+- 1 tabla BD nueva (calendar_sync_log) | 1 campo nuevo (is_paid_holiday)
+- 1 endpoint nuevo | 1 servicio nuevo (CalendarSyncService)
+- Deployment: 5-10 minutos
+
+**[📄 Ver detalles completos →](./changelog/v3.5.6.md)**
+
+---
+
 ### **[v3.5.5]** - 2025-11-03 - *Almuerzo en Asistencias: marcaciones y cálculos*
 **Tipo**: Feature - Cálculos de Asistencia + UI
 **Fase**: Subfase 7.2 (Cálculos) mejorada + 7.5 (Interfaz)
@@ -514,6 +568,6 @@ Al crear una nueva versión:
 
 ---
 
-**Última Actualización**: 3 de Noviembre, 2025
-**Sistema**: Planillas MVC v3.5.5
+**Última Actualización**: 13 de Noviembre, 2025
+**Sistema**: Planillas MVC v3.5.6
 **Progreso Global**: Core 100% | Calendario 100% | API Asistencias 90% | Liquidaciones 100% | Seguridad 100%

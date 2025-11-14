@@ -1,6 +1,6 @@
 # 📋 TODO - Sistema de Planillas MVC
 
-## 🎯 **ESTADO ACTUAL V3.5.5** *(03 Nov 2025)*
+## 🎯 **ESTADO ACTUAL V3.5.6** *(13 Nov 2025)*
 - **Sistema Core**: ✅ 100% Completado
 - **Acumulados XIII Mes**: ✅ 100% Completado
 - **XIII Mes Trimestral**: ✅ 100% Completado
@@ -35,6 +35,11 @@
   - `Process Day` usa `RecordsProcessor` para escribir `attendance_detail` y marcar `attendance_records`
   - Checklist en modal: procesar registros, ausencias, omisiones, recálculo
   - Filtro global por `employees.marca_asistencia = 1`; ausencias guardan `schedule_id`
+- **🆕 Sincronización Calendario API + Feriados Pagados**: ✅ Completado *(V3.5.6)*
+  - CalendarSyncService: sincronización calendario desde API Base44 + campo `is_paid_holiday`
+  - Unificación calendario vacaciones con calendario empresarial
+  - Procesamiento automático feriados pagados (8 horas trabajadas)
+  - Fix DataTables sync-history cuando no hay registros
 
 ---
 

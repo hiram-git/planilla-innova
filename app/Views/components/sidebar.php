@@ -560,21 +560,6 @@ class SidebarComponent
                                 </li>
                             </ul>
                         </li>
-
-                        <!-- System Info -->
-                        <li class="nav-header">INFORMACIÓN DEL SISTEMA</li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link disabled">
-                                <i class="nav-icon fas fa-info-circle"></i>
-                                <p>
-                                    Versión <?php
-                                    use App\Helpers\VersionHelper;
-                                    echo VersionHelper::getCurrentVersion();
-                                    ?>
-                                    <span class="right badge badge-success">MVC</span>
-                                </p>
-                            </a>
-                        </li>
                     </ul>
                 </nav>
             </div>

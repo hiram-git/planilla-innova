@@ -1,20 +1,18 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 3 de Noviembre, 2025
-**Versión**: 3.5.5 - Almuerzo en Asistencias: marcaciones y cálculos (Cálculos + UI)
-**Versión Anterior**: 3.5.3 - Eliminación Completa eval() + Arquitectura Segura (Seguridad - 100%)
+**Fecha**: 13 de Noviembre, 2025
+**Versión**: 3.5.6 - Sincronización Calendario API + Feriados Pagados + Unificación
+**Versión Anterior**: 3.5.5 - Almuerzo en Asistencias: marcaciones y cálculos (Cálculos + UI)
 
-### 🆕 Hitos Recientes (Asistencias v3.5.5)
-- DB: campos de almuerzo en `schedules` y `attendance_detail` (+ índices, vista y procedimiento)
-- Trigger: `trg_calculate_lunch_duration` para duración/exceso de almuerzo
-- Processor: clasificación 4 marcaciones (entrada, salida almuerzo, entrada almuerzo, salida)
-- Calculator: descuenta almuerzo de horas trabajadas e incluye métricas
-- UI: columnas y campos de almuerzo en detalle y modal de edición
-- Process Day: consolida `attendance_records` → `attendance_detail` y marca records como procesados
-- Filtro `marca_asistencia`: procesamiento y ausencias sólo para empleados que marcan asistencia
-- Modal “Procesar día”: checklist de opciones (procesar registros, ausencias, omisiones, recálculo)
-- Fix: `AttendanceHeader::getById()` para soporte de reconstrucción de DATETIME en almuerzo
+### 🆕 Hitos Recientes (Calendario v3.5.6)
+- **CalendarSyncService**: Sincronización completa calendario desde API Base44
+- **Campo is_paid_holiday**: Identificación feriados pagados en business_calendar
+- **Integración API**: Mapeo campo `paid` de API Base44 a `is_paid_holiday` local
+- **Procesamiento Automático**: Generación 8 horas trabajadas para feriados pagados
+- **Unificación Calendario**: Vacaciones ahora usa calendario empresarial unificado
+- **Fix DataTables**: Corrección vista sync-history cuando no hay registros
+- **Modal Edición**: Checkbox "Feriado Pagado" en interfaz calendario empresarial
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
