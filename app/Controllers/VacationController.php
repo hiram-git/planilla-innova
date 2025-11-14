@@ -270,17 +270,22 @@ class VacationController extends Controller
             $end_datetime = new DateTime($end_date);
             $today = new DateTime();
 
+            // COMENTADO: Permitir solicitudes de fechas pasadas para registros históricos
+            /*
             if ($start_datetime < $today) {
                 $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', 'La fecha de inicio no puede ser en el pasado');
                 return;
             }
+            */
 
-            // Validar anticipación de 15 días
+            // COMENTADO: Validar anticipación de 15 días - Se permite para permitir solicitudes anteriores en el sistema
+            /*
             $anticipation_days = $today->diff($start_datetime)->days;
             if ($start_datetime > $today && $anticipation_days < 15) {
                 $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', "Las vacaciones deben solicitarse con al menos 15 días de anticipación. Días de anticipación actual: {$anticipation_days} días.");
                 return;
             }
+            */
 
             if ($end_datetime <= $start_datetime) {
                 $this->redirectWithToastr('/panel/vacation/create/' . $employee_id, 'error', 'La fecha de fin debe ser posterior a la fecha de inicio');
@@ -677,19 +682,26 @@ class VacationController extends Controller
             // Calcular totales desde vacation_annual_balances
             $total_days_earned = 0;
             $total_days_taken = 0;
+            $total_days_enjoyed = 0; // Días de disfrute tomados (informativo)
 
             foreach ($annual_balances as $balance) {
                 $total_days_earned += $balance['dias_vacaciones_anuales'] ?? 0;
                 $total_days_taken += $balance['dias_pagados_year'] ?? 0;
+                $total_days_enjoyed += $balance['dias_disfrutados_year'] ?? 0;
             }
 
             // Balance actual = Total ganado - Total pagado (tomado)
             $current_balance = $this->balanceService->getTotalAccumulatedBalance($employee_id);
 
+            // Calcular días de disfrute pendientes: Días Tomados - Días Disfrutados
+            $total_disfrute_pendiente = $total_days_taken - $total_days_enjoyed;
+
             // Calcular balance detallado
             $vacation_data = [
                 'days_earned' => $total_days_earned, // Total días ganados de todos los años
                 'days_taken' => $total_days_taken, // Total días pagados (tomados) de todos los años
+                'days_enjoyed' => $total_days_enjoyed, // Total días disfrutados (informativo)
+                'days_enjoyed_pending' => max(0, $total_disfrute_pendiente), // Días pendientes de disfrutar (informativo)
                 'current_balance' => $current_balance, // Saldo disponible total
                 'accrual_rate' => $this->calculator->VACATION_ACCRUAL_RATE($employee_id),
                 'eligible' => $this->calculator->VACATION_ELIGIBLE($employee_id),

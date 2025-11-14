@@ -116,6 +116,30 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
             </div>
         </div>
 
+        <!-- Información de Días de Disfrute (Informativo) -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-box bg-purple">
+                    <span class="info-box-icon"><i class="fas fa-umbrella-beach"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Días Disfrute Tomados</span>
+                        <span class="info-box-number"><?= number_format($vacation_data['days_enjoyed'], 1) ?></span>
+                        <span class="info-box-more">informativo (no afecta balance)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-box bg-secondary">
+                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Días Disfrute Pendientes</span>
+                        <span class="info-box-number"><?= number_format($vacation_data['days_enjoyed_pending'], 1) ?></span>
+                        <span class="info-box-more">informativo (no afecta balance)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Explicación del Cálculo -->
         <div class="row">
             <div class="col-12">
@@ -152,9 +176,9 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                             <?= number_format($vacation_data['current_balance'], 1) ?> días × <?= currency_symbol() ?><?= number_format($vacation_data['daily_salary'], 2) ?> por día
                         </p>
                         <?php if ($vacation_data['current_balance'] > 0): ?>
-                            <a href="<?= \App\Core\UrlHelper::route('panel/vacation/create/' . $employee['id']) ?>?type=compensation"
+                            <a href="<?= \App\Core\UrlHelper::route('panel/vacation/create/' . $employee['id']) ?>"
                                class="btn btn-success">
-                                <i class="fas fa-money-bill mr-1"></i> Solicitar Compensación Monetaria
+                                <i class="fas fa-calendar-plus mr-1"></i> Generar Planilla de Vacaciones
                             </a>
                         <?php endif; ?>
                     </div>
@@ -390,6 +414,22 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
 
     </div>
 </section>
+
+<style>
+    /* Color púrpura personalizado para info-box */
+    .info-box.bg-purple {
+        background-color: #6f42c1 !important;
+        color: #fff !important;
+    }
+    .info-box.bg-purple .info-box-icon {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+    .info-box.bg-purple .info-box-text,
+    .info-box.bg-purple .info-box-number,
+    .info-box.bg-purple .info-box-more {
+        color: #fff !important;
+    }
+</style>
 
 <style media="print">
     .card-tools, .btn, .breadcrumb, .card-footer {
