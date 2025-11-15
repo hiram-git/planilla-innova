@@ -104,7 +104,11 @@ class PDFReportController extends Controller
 
             // Obtener datos de la solicitud
             $db = $this->model('Report')->getDatabase()->getConnection();
-            $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id, e.document_id, e.fecha_ingreso,
+            $sql = "SELECT vr.*, 
+                           e.id AS employee_db_id,
+                           e.firstname, e.lastname,
+                           e.employee_id AS employee_code,
+                           e.document_id, e.fecha_ingreso,
                            c.nombre AS cargo_nombre
                     FROM vacation_requests vr
                     INNER JOIN employees e ON e.id = vr.employee_id
@@ -145,10 +149,10 @@ class PDFReportController extends Controller
             $pdf->Cell(0, 7, 'Datos del Empleado', 0, 1, 'L');
             $pdf->SetFont('helvetica', '', 10);
             $pdf->Cell(100, 6, 'Nombre: ' . ($req['firstname'] . ' ' . $req['lastname']), 0, 0, 'L');
-            $pdf->Cell(0, 6, 'Código: ' . ($req['employee_id'] ?? ''), 0, 1, 'L');
+            $pdf->Cell(100, 6, 'Código: ' . ($req['employee_code'] ?? ''), 0, 0, 'L');
+            $pdf->Cell(100, 6, 'Fecha de Ingreso: ' . date('d/m/Y', strtotime($req['fecha_ingreso'])), 0, 1, 'L');
             $pdf->Cell(100, 6, 'Cargo: ' . ($req['cargo_nombre'] ?? 'N/A'), 0, 0, 'L');
-            $pdf->Cell(0, 6, 'Cédula: ' . ($req['document_id'] ?? 'N/A'), 0, 1, 'L');
-            $pdf->Cell(0, 6, 'Fecha de Ingreso: ' . date('d/m/Y', strtotime($req['fecha_ingreso'])), 0, 1, 'L');
+            $pdf->Cell(100, 6, 'Cédula: ' . ($req['document_id'] ?? 'N/A'), 0, 1, 'L');
             $pdf->Ln(2);
 
             // Bloque de solicitud
@@ -156,10 +160,15 @@ class PDFReportController extends Controller
             $pdf->Cell(0, 7, 'Detalle de la Solicitud', 0, 1, 'L');
             $pdf->SetFont('helvetica', '', 10);
             $pdf->Cell(0, 6, 'Período: ' . date('d/m/Y', strtotime($req['start_date'])) . ' al ' . date('d/m/Y', strtotime($req['end_date'])), 0, 1, 'L');
-            // Ancho de columnas para alinear celdas de detalle (dos columnas)
-            $colW = 95; // Aproximado para A4 horizontal con márgenes usados
+            // Distribución dinámica de columnas (dos columnas + espacio)
+            $margins = $pdf->getMargins();
+            $usableW = $pdf->getPageWidth() - $margins['left'] - $margins['right'];
+            $gap = 6; // espacio entre columnas
+            $colW = ($usableW - $gap) / 2;
 
+            // Fila 1: Días Totales | Tipo
             $pdf->Cell($colW, 6, 'Días Totales: ' . (int)($req['total_days'] ?? 0), 0, 0, 'L');
+            $pdf->Cell($gap, 6, '', 0, 0);
 
             // Mapear tipo de vacaciones a etiquetas en español
             $vacType = $req['vacation_type'] ?? 'ANNUAL';
@@ -182,19 +191,68 @@ class PDFReportController extends Controller
             ];
             $estadoEs = $statusLabels[$status] ?? $status;
 
+            // Fila 2: Días por Pagar | Estado
             $pdf->Cell($colW, 6, 'Días por Pagar: ' . number_format((float)($req['dias_solicitados_pagar'] ?? 0), 1), 0, 0, 'L');
+            $pdf->Cell($gap, 6, '', 0, 0);
             $pdf->Cell($colW, 6, 'Estado: ' . $estadoEs, 0, 1, 'L');
 
             // (Estado ya impreso en la fila anterior como segunda columna)
 
-            // Compensación (si aplica)
-            if (($req['vacation_type'] ?? '') === 'COMPENSATION' && (float)($req['compensation_amount'] ?? 0) > 0) {
+            // Compensación (si aplica) y monto a pagar
+            $pdf->Ln(2);
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, 7, 'Compensación / Monto a Pagar', 0, 1, 'L');
+            $pdf->SetFont('helvetica', '', 10);
+
+            $salarioDiario = (float)($req['daily_salary'] ?? 0);
+            $diasPagar = (float)($req['dias_solicitados_pagar'] ?? 0);
+            $montoComp = (float)($req['compensation_amount'] ?? 0);
+            // Si no hay compensation_amount, calcularlo de forma informativa
+            if ($montoComp <= 0 && $salarioDiario > 0 && $diasPagar > 0) {
+                $montoComp = $salarioDiario * $diasPagar;
+            }
+            $pdf->Cell(0, 6, 'Salario Diario: ' . number_format($salarioDiario, 2) .
+                '   •   Días por Pagar: ' . number_format($diasPagar, 1) .
+                '     Monto: ' . number_format($montoComp, 2), 0, 1, 'L');
+
+            // Resumen de Días (usar los mismos campos de "Balance Actual" de la vista)
+            try {
+                $sqlTotals = "SELECT 
+                                COALESCE(SUM(dias_vacaciones_anuales),0) AS total_earned,
+                                COALESCE(SUM(dias_pagados_year),0) AS total_paid
+                              FROM vacation_annual_balances
+                              WHERE employee_id = ?";
+                $stmtTotals = $db->prepare($sqlTotals);
+                // Usar el ID numérico del empleado para consultar balances anuales
+                $stmtTotals->execute([$req['employee_db_id']]);
+                $totals = $stmtTotals->fetch(\PDO::FETCH_ASSOC);
+
+                $totalEarned = (float)($totals['total_earned'] ?? 0);
+                $totalPaid = (float)($totals['total_paid'] ?? 0);
+                $currentBalance = $totalEarned - $totalPaid; // saldo disponible actual
+
+                $diasAcumulados = (float)($req['accumulated_days'] ?? 0);
+                $diasSolicitados = (float)($req['dias_solicitados_pagar'] ?? 0);
+                $balanceResultante = $currentBalance - $diasSolicitados;
+
                 $pdf->Ln(2);
                 $pdf->SetFont('helvetica', 'B', 11);
-                $pdf->Cell(0, 7, 'Compensación', 0, 1, 'L');
+                $pdf->Cell(0, 7, 'Resumen de Días (Balance Actual)', 0, 1, 'L');
                 $pdf->SetFont('helvetica', '', 10);
-                $pdf->Cell(0, 6, 'Salario Diario: ' . number_format((float)($req['daily_salary'] ?? 0), 2) .
-                    '   •   Monto: ' . number_format((float)($req['compensation_amount'] ?? 0), 2), 0, 1, 'L');
+
+                // Balance disponible actual destacado
+                $pdf->Cell(0, 6, 'Balance Disponible Actual: ' . number_format($currentBalance, 1) . ' días', 0, 1, 'L');
+
+                // Desglose como en la vista
+                $pdf->Cell($colW, 6, 'Días acumulados: ' . number_format($diasAcumulados, 1), 0, 0, 'L');
+                $pdf->Cell($gap, 6, '', 0, 0);
+                $pdf->Cell($colW, 6, 'Días solicitados: ' . number_format($diasSolicitados, 1), 0, 1, 'L');
+                $pdf->Cell($colW, 6, 'Balance resultante: ' . number_format($balanceResultante, 1), 0, 0, 'L');
+                $pdf->Cell($gap, 6, '', 0, 0);
+                $pdf->Cell($colW, 6, '', 0, 1, 'L');
+
+            } catch (\Exception $e) {
+                error_log('Error calculando Resumen de Días (Balance Actual) para PDF: ' . $e->getMessage());
             }
 
             // Comentarios

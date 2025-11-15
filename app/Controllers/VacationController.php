@@ -811,12 +811,12 @@ class VacationController extends Controller
             $fechaDesde = $fecha_11_meses_antes->format('Y-m-d');
             $fechaHasta = $fecha_inicio_vacaciones->format('Y-m-d');
 
-            // Obtener total de ingresos de los últimos 11 meses
-            $sql = "SELECT SUM(ape.monto) as total_ingresos
+            // Obtener acumulados del concepto SALARIO_BASE en los últimos 11 meses
+            $sql = "SELECT SUM(ape.monto) as total_salario_base
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     WHERE ape.employee_id = ?
-                    AND c.tipo_concepto = 'A'
+                    AND (UPPER(c.codigo) = 'SALARIO_BASE' OR UPPER(c.descripcion) = 'SALARIO_BASE')
                     AND ape.fecha >= ?
                     AND ape.fecha < ?";
 
@@ -824,7 +824,7 @@ class VacationController extends Controller
             $stmt->execute([$employee_id, $fechaDesde, $fechaHasta]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $total_ingresos = (float)($result['total_ingresos'] ?? 0);
+            $total_ingresos = (float)($result['total_salario_base'] ?? 0);
 
             // Si no hay acumulados, usar el salario actual
             if ($total_ingresos <= 0) {
@@ -833,13 +833,13 @@ class VacationController extends Controller
                 return $daily_salary;
             }
 
-            // Calcular salario diario: Total ingresos / 11 meses / 30 días
-            $salario_mensual_promedio = $total_ingresos / 11;
-            $salario_diario = $salario_mensual_promedio / 30;
+            // Calcular salario diario: ACUMULADOS(SALARIO_BASE) / 11 / 30
+            $salario_mensual_promedio = $total_ingresos / 11.0;
+            $salario_diario = $salario_mensual_promedio / 30.0;
 
-            error_log("Vacaciones empleado $employee_id: Total ingresos 11 meses = $total_ingresos, Mensual promedio = $salario_mensual_promedio, Diario = $salario_diario");
+            error_log("Vacaciones empleado $employee_id: SALARIO_BASE 11m = $total_ingresos, mensual = $salario_mensual_promedio, diario = $salario_diario");
 
-            return $salario_diario;
+            return round($salario_diario, 2);
 
         } catch (\Exception $e) {
             error_log("Error calculando salario de vacaciones: " . $e->getMessage());
