@@ -120,7 +120,8 @@ class PDFReportController extends Controller
 
             // Info de empresa y TCPDF
             $companyInfo = $this->getCompanyInfo();
-            $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+            // Orientación horizontal (Landscape) para mejor visualización
+            $pdf = new TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
             $pdf->setPrintHeader(false);
             $pdf->setPrintFooter(false);
             $pdf->SetCreator('Sistema de Planillas MVC');
@@ -155,12 +156,36 @@ class PDFReportController extends Controller
             $pdf->Cell(0, 7, 'Detalle de la Solicitud', 0, 1, 'L');
             $pdf->SetFont('helvetica', '', 10);
             $pdf->Cell(0, 6, 'Período: ' . date('d/m/Y', strtotime($req['start_date'])) . ' al ' . date('d/m/Y', strtotime($req['end_date'])), 0, 1, 'L');
-            $pdf->Cell(65, 6, 'Días Totales: ' . (int)($req['total_days'] ?? 0), 0, 0, 'L');
-            $pdf->Cell(65, 6, 'Días Hábiles: ' . (int)($req['business_days'] ?? 0), 0, 0, 'L');
-            $pdf->Cell(0, 6, 'Tipo: ' . ($req['vacation_type'] ?? 'ANNUAL'), 0, 1, 'L');
-            $pdf->Cell(65, 6, 'Días por Pagar: ' . number_format((float)($req['dias_solicitados_pagar'] ?? 0), 1), 0, 0, 'L');
-            $pdf->Cell(65, 6, 'Días de Disfrute: ' . number_format((float)($req['dias_solicitados_disfrute'] ?? 0), 1), 0, 0, 'L');
-            $pdf->Cell(0, 6, 'Estado: ' . ($req['status'] ?? 'PENDING'), 0, 1, 'L');
+            // Ancho de columnas para alinear celdas de detalle (dos columnas)
+            $colW = 95; // Aproximado para A4 horizontal con márgenes usados
+
+            $pdf->Cell($colW, 6, 'Días Totales: ' . (int)($req['total_days'] ?? 0), 0, 0, 'L');
+
+            // Mapear tipo de vacaciones a etiquetas en español
+            $vacType = $req['vacation_type'] ?? 'ANNUAL';
+            $typeLabels = [
+                'ANNUAL' => 'Anuales',
+                'ACCUMULATED' => 'Acumuladas',
+                'COMPENSATION' => 'Compensación',
+                'PROPORTIONAL' => 'Proporcionales'
+            ];
+            $tipoEs = $typeLabels[$vacType] ?? $vacType;
+            $pdf->Cell($colW, 6, 'Tipo: ' . $tipoEs, 0, 1, 'L');
+            // Mapear estado a etiqueta en español (usado en columna derecha)
+            $status = $req['status'] ?? 'PENDING';
+            $statusLabels = [
+                'PENDING' => 'Pendiente de Aprobación',
+                'APPROVED' => 'Aprobada',
+                'REJECTED' => 'Rechazada',
+                'TAKEN' => 'Vacaciones Tomadas',
+                'CANCELLED' => 'Cancelada'
+            ];
+            $estadoEs = $statusLabels[$status] ?? $status;
+
+            $pdf->Cell($colW, 6, 'Días por Pagar: ' . number_format((float)($req['dias_solicitados_pagar'] ?? 0), 1), 0, 0, 'L');
+            $pdf->Cell($colW, 6, 'Estado: ' . $estadoEs, 0, 1, 'L');
+
+            // (Estado ya impreso en la fila anterior como segunda columna)
 
             // Compensación (si aplica)
             if (($req['vacation_type'] ?? '') === 'COMPENSATION' && (float)($req['compensation_amount'] ?? 0) > 0) {
