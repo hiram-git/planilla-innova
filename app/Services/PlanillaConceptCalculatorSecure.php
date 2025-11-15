@@ -122,6 +122,27 @@ class PlanillaConceptCalculatorSecure
             return $this->calcularAcumuladosSeguro($conceptos, $fechaDesde, $fechaHasta);
         }, 3);
 
+        // Función CONCEPTO para referenciar y evaluar otros conceptos
+        $this->executor->addFunction('CONCEPTO', function ($nombreConcepto) {
+            try {
+                // Remover comillas si existen
+                $nombreConcepto = trim($nombreConcepto, '"\'');
+
+                // Verificar si el concepto existe
+                if (!isset($this->conceptos[$nombreConcepto])) {
+                    // Retornar 0 si el concepto no existe (en lugar de error)
+                    // Esto permite que las fórmulas con SI(CONCEPTO("X") > 0, ..., ...) funcionen
+                    return 0;
+                }
+
+                // Evaluar el concepto de forma segura
+                return $this->evaluarConceptoSeguro($nombreConcepto);
+            } catch (\Exception $e) {
+                error_log("Error en función CONCEPTO('$nombreConcepto'): " . $e->getMessage());
+                return 0;
+            }
+        }, 1);
+
         // Función para obtener días entre fechas
         $this->executor->addFunction('DIAS', function ($fechaInicio, $fechaFin) {
             try {
