@@ -704,6 +704,9 @@ class VacationController extends Controller
             // Calcular días de disfrute pendientes: Días Tomados - Días Disfrutados
             $total_disfrute_pendiente = $total_days_taken - $total_days_enjoyed;
 
+            // Calcular salario diario usando promedio de 11 meses (fecha actual como referencia)
+            $daily_salary_11_months = $this->calculateVacationDailySalary($employee_id, date('Y-m-d'));
+
             // Calcular balance detallado
             $vacation_data = [
                 'days_earned' => $total_days_earned, // Total días ganados de todos los años
@@ -713,10 +716,10 @@ class VacationController extends Controller
                 'current_balance' => $current_balance, // Saldo disponible total
                 'accrual_rate' => $this->calculator->VACATION_ACCRUAL_RATE($employee_id),
                 'eligible' => $this->calculator->VACATION_ELIGIBLE($employee_id),
-                'daily_salary' => $this->calculator->VACATION_COMPENSATION_AMOUNT($employee_id, 1)
+                'daily_salary' => $daily_salary_11_months // Usar salario calculado con promedio 11 meses
             ];
 
-            // Obtener historial de solicitudes
+            // Obtener historial de solicitudes (incluir payroll_id para control en vista)
             $sql = "SELECT * FROM vacation_requests
                     WHERE employee_id = ?
                     ORDER BY request_date DESC";
@@ -904,6 +907,17 @@ class VacationController extends Controller
                 exit;
             }
 
+            // Validar que no se haya generado ya una planilla para esta solicitud
+            if (!empty($request['payroll_id'])) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Ya existe una planilla generada para esta solicitud (Planilla #' . $request['payroll_id'] . ')'
+                ]);
+                exit;
+            }
+
             // Obtener tipo de planilla del sessionStorage (viene por POST)
             $tipo_planilla_id = $_POST['tipo_planilla_id'] ?? null;
             if (!$tipo_planilla_id) {
@@ -1048,6 +1062,11 @@ class VacationController extends Controller
             $sql_update = "UPDATE planilla_cabecera SET estado = 'PROCESADA' WHERE id = ?";
             $stmt_update = $this->db->prepare($sql_update);
             $stmt_update->execute([$payroll_id]);
+
+            // Actualizar solicitud de vacaciones con el payroll_id generado
+            $sql_update_request = "UPDATE vacation_requests SET payroll_id = ? WHERE id = ?";
+            $stmt_update_request = $this->db->prepare($sql_update_request);
+            $stmt_update_request->execute([$payroll_id, $request_id]);
 
             // Retornar respuesta JSON exitosa
             header('Content-Type: application/json');

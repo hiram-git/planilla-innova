@@ -175,12 +175,9 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                         <p class="text-muted">
                             <?= number_format($vacation_data['current_balance'], 1) ?> días × <?= currency_symbol() ?><?= number_format($vacation_data['daily_salary'], 2) ?> por día
                         </p>
-                        <?php if ($vacation_data['current_balance'] > 0): ?>
-                            <a href="<?= \App\Core\UrlHelper::route('panel/vacation/create/' . $employee['id']) ?>"
-                               class="btn btn-success">
-                                <i class="fas fa-calendar-plus mr-1"></i> Generar Planilla de Vacaciones
-                            </a>
-                        <?php endif; ?>
+                        <p class="text-muted mb-0">
+                            <small><i class="fas fa-info-circle"></i> <strong>Salario diario calculado</strong> con base en el promedio de SALARIO_BASE de los últimos 11 meses: <strong>ACUMULADOS("SALARIO_BASE") ÷ 11 ÷ 30</strong></small>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -326,15 +323,25 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($request['status'] === 'APPROVED' && $request['compensation_amount'] > 0): ?>
-                                                <button type="button"
-                                                        class="btn btn-sm btn-success btn-generate-payroll"
-                                                        data-request-id="<?= $request['id'] ?>"
-                                                        data-employee-name="<?= htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']) ?>"
-                                                        data-compensation="<?= number_format($request['compensation_amount'], 2) ?>"
-                                                        data-dias-solicitados="<?= $request['dias_solicitados_pagar'] ?? 0 ?>"
-                                                        title="Generar Planilla de Vacaciones">
-                                                    <i class="fas fa-file-invoice-dollar"></i>
-                                                </button>
+                                                <?php if (empty($request['payroll_id'])): ?>
+                                                    <!-- Solo mostrar botón si no existe planilla generada -->
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-success btn-generate-payroll"
+                                                            data-request-id="<?= $request['id'] ?>"
+                                                            data-employee-name="<?= htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']) ?>"
+                                                            data-compensation="<?= number_format($request['compensation_amount'], 2) ?>"
+                                                            data-dias-solicitados="<?= $request['dias_solicitados_pagar'] ?? 0 ?>"
+                                                            title="Generar Planilla de Vacaciones">
+                                                        <i class="fas fa-file-invoice-dollar"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <!-- Mostrar enlace a planilla existente -->
+                                                    <a href="<?= \App\Core\UrlHelper::route('panel/payrolls/' . $request['payroll_id']) ?>"
+                                                       class="btn btn-sm btn-secondary"
+                                                       title="Ver Planilla Generada #<?= $request['payroll_id'] ?>">
+                                                        <i class="fas fa-file-alt"></i>
+                                                    </a>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
