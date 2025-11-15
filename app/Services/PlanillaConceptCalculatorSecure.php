@@ -195,9 +195,14 @@ class PlanillaConceptCalculatorSecure
             return $campo;
         }, 0);
 
-        // Horas en domingos
+        // Horas en domingos (solo domingos, no incluye sábados)
         $this->executor->addFunction('HORAS_DOMINICALES', function () {
             return $this->obtenerDatoAsistencia('sunday_hours');
+        }, 0);
+
+        // Horas en sábados
+        $this->executor->addFunction('HORAS_SABADO', function () {
+            return $this->obtenerDatoAsistencia('saturday_hours');
         }, 0);
 
         // Minutos de tardanzas
@@ -844,7 +849,8 @@ class PlanillaConceptCalculatorSecure
 
         // Campos que requieren query especial
         $mapeoEspecial = [
-            'sunday_hours' => 'SUM(total_hours) WHERE is_weekend = 1',
+            'sunday_hours' => 'SUM(total_hours) WHERE DAYOFWEEK(date) = 1',  // Solo domingos (DAYOFWEEK: 1=Domingo, 7=Sábado)
+            'saturday_hours' => 'SUM(total_hours) WHERE DAYOFWEEK(date) = 7',  // Solo sábados
             'unjustified_absences' => 'absence_log_unjustified',
             'total_absences' => 'absence_log_total',
             'justified_absences' => 'absence_log_justified',
