@@ -145,6 +145,27 @@ $content = '
                         </div>
                     </div>
 
+                    <!-- Campo Permite Horas Extras -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>
+                                    Horas Extras <i class="fas fa-info-circle text-info" title="Controla si el empleado es elegible para generar horas extras"></i>
+                                </label>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="edit_permite_horas_extras" name="edit_permite_horas_extras" value="1" ' . ((isset($employee['permite_horas_extras']) && $employee['permite_horas_extras'] == 1) ? 'checked' : '') . '>
+                                    <label class="custom-control-label" for="edit_permite_horas_extras">
+                                        <strong>Permite horas extras</strong> (elegible para overtime)
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-user-clock text-success"></i> <strong>Habilitado:</strong> Horas extras se calcularán y aparecerán como PENDIENTE de aprobación<br>
+                                    <i class="fas fa-user-tie text-warning"></i> <strong>Deshabilitado:</strong> Empleado exento (gerentes, ejecutivos) - no genera horas extras
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Campos condicionales según tipo de empresa -->
                     <div id="edit-public-institution-fields" style="display: none;">
                         <div class="row">

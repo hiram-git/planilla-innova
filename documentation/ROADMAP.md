@@ -250,28 +250,134 @@
   - [ ] Motor fórmulas variables DIAS_VACACIONES + BALANCE_DISPONIBLE
 
 ### 🏢 **FASE 6: MULTITENANCY EMPRESARIAL** *(Q1 2026 - Mediana Prioridad)*
-**Objetivo**: Sistema multi-empresa con wizard automático
-**Tiempo Estimado**: 6-8 semanas
-- [ ] **Subfase 6.1: Wizard Configuración** *(2 semanas)*
-  - [ ] Formulario datos empresa (nombre, RUC, dirección)
-  - [ ] Validación distribuidor/licencia API
-  - [ ] Configuración inicial automática
-  - [ ] Template inicial con datos de prueba
-- [ ] **Subfase 6.2: Database per Tenant** *(2-3 semanas)*
-  - [ ] Script creación BD automática por empresa
-  - [ ] Migración schema automática completa
-  - [ ] Seeders datos iniciales (roles, conceptos base)
-  - [ ] Sistema backup automático por tenant
-- [ ] **Subfase 6.3: Tenant Middleware** *(2 semanas)*
-  - [ ] Detección tenant por dominio/subdirectorio
-  - [ ] Conexión BD dinámica por tenant
-  - [ ] Aislamiento completo datos empresa
-  - [ ] Session management por tenant
-- [ ] **Subfase 6.4: Dashboard Distribuidor** *(1-2 semanas)*
-  - [ ] Gestión empresas clientes
-  - [ ] Monitoreo licencias activas
-  - [ ] Estadísticas uso sistema
-  - [ ] Panel administración central
+**Objetivo**: Sistema multi-empresa con base de datos central y base de datos separada por tenant
+**Tiempo Estimado**: 4-5 semanas (160-200 horas)
+**Estado**: 0% Completado
+
+**Arquitectura**: Híbrida (Central DB + Tenant DB)
+```
+┌─────────────────────────────────────┐
+│   BASE DE DATOS CENTRAL (master)   │
+├─────────────────────────────────────┤
+│ - companies (tenants)               │
+│ - usuarios_central (login)          │
+│ - tenant_connections (DB configs)   │
+│   * db_host, db_name, db_user, etc. │
+└─────────────────────────────────────┘
+              │
+              │ Login → Obtiene tenant_id
+              │ Guarda en $_SESSION['tenant_id']
+              ↓
+    ┌─────────────────────────┐
+    │  Switch Conexión BD     │
+    │  según tenant_id        │
+    └─────────────────────────┘
+              │
+       ┌──────┴──────┬──────────────┐
+       ↓             ↓              ↓
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│ TENANT 1 DB │ │ TENANT 2 DB │ │ TENANT N DB │
+├─────────────┤ ├─────────────┤ ├─────────────┤
+│ employees   │ │ employees   │ │ employees   │
+│ planillas   │ │ planillas   │ │ planillas   │
+│ attendance  │ │ attendance  │ │ attendance  │
+│ ...         │ │ ...         │ │ ...         │
+└─────────────┘ └─────────────┘ └─────────────┘
+```
+
+**Flujo de Trabajo**:
+1. Usuario → Login en **BD Central**
+2. Sistema identifica `tenant_id` del usuario
+3. Sistema consulta credenciales BD del tenant en tabla `tenant_connections`
+4. Guarda `tenant_id` + credenciales BD en `$_SESSION`
+5. **Todas las consultas subsecuentes usan la conexión BD del tenant**
+6. Datos 100% aislados entre tenants
+
+- [ ] **Subfase 6.1: Base de Datos Central** *(1 semana / 40 horas)*
+  - [ ] Migración `2025_11_create_central_database.sql`: crear BD central
+  - [ ] Tabla `companies`: id, uuid, nombre, ruc, logo, activo, created_at
+  - [ ] Tabla `tenant_connections`: company_id, db_host, db_name, db_user, db_password, db_port
+  - [ ] Tabla `usuarios_central`: company_id, username, password, email, role (superadmin/admin/user)
+  - [ ] Foreign keys + índices optimizados
+  - [ ] Seeders: empresa demo + usuario superadmin
+  - **Archivos a crear**:
+    - `database/migrations/2025_11_create_central_database.sql`
+    - `database/migrations/2025_11_create_tenants_table.sql`
+    - `database/migrations/2025_11_create_tenant_connections_table.sql`
+
+- [ ] **Subfase 6.2: Conexión Dinámica a BD Tenant** *(1-1.5 semanas / 40-60 horas)*
+  - [ ] `TenantConnectionManager.php`: gestión 2 conexiones simultáneas (central + tenant)
+  - [ ] Métodos: `getCentralConnection()`, `switchToTenant($tenantId)`, `getTenantConnection()`
+  - [ ] Modificar `Database.php`: agregar método `switchTenant()` + usar `TenantConnectionManager`
+  - [ ] `TenantMiddleware.php`: validar tenant_id en sesión + protección rutas
+  - [ ] Session management: persistir tenant_id + tenant_db_name
+  - [ ] Validación tenant activo + manejo errores conexión
+  - **Archivos a crear**:
+    - `app/Core/TenantConnectionManager.php` (300 líneas)
+    - `app/Middleware/TenantMiddleware.php` (150 líneas)
+  - **Archivos a modificar**:
+    - `app/Core/Database.php`: agregar `switchTenant()` + usar TenantConnectionManager
+
+- [ ] **Subfase 6.3: Modificar Models & Controllers** *(1.5-2 semanas / 60-80 horas)*
+  - [ ] Verificar que TODOS los modelos usan `$this->db->getConnection()` (no conexión directa)
+  - [ ] Testing exhaustivo: verificar aislamiento entre tenants
+  - [ ] Modificar `Database->getConnection()`: usar `TenantConnectionManager->getTenantConnection()`
+  - [ ] Validar que ningún query use BD central después del login
+  - [ ] Testing de switch entre tenants (logout/login diferentes empresas)
+  - [ ] Auditoría código: identificar queries hardcoded
+  - **Ventaja**: Como ya usamos `$this->db->getConnection()`, el cambio es transparente
+  - **Archivos a revisar**: ~40 modelos + validar que usen getConnection()
+
+- [ ] **Subfase 6.4: Wizard de Creación de Tenants** *(0.5-1 semana / 20-40 horas)*
+  - [ ] `TenantController.php`: CRUD completo tenants (solo superadmin)
+  - [ ] `TenantProvisioningService.php`: orquestador creación tenants
+  - [ ] Flujo creación:
+    - 1. Crear registro en `companies` (BD central)
+    - 2. Crear nueva base de datos para el tenant (`planilla_tenant_XXXX`)
+    - 3. Ejecutar TODAS las migraciones en la nueva BD
+    - 4. Ejecutar seeders datos iniciales (roles, conceptos base, horarios)
+    - 5. Crear credenciales acceso únicas
+    - 6. Registrar en `tenant_connections`
+    - 7. Crear usuario admin inicial para el tenant
+  - [ ] Vista `create.php`: formulario wizard paso a paso (datos empresa → configuración)
+  - [ ] Vista `index.php`: listado tenants + estadísticas + acciones
+  - [ ] Validaciones: nombre único, RUC válido, credenciales BD
+  - **Archivos a crear**:
+    - `app/Controllers/Admin/TenantController.php` (400 líneas)
+    - `app/Services/TenantProvisioningService.php` (500 líneas)
+    - `views/admin/tenants/create.php` (200 líneas)
+    - `views/admin/tenants/index.php` (180 líneas)
+
+- [ ] **Subfase 6.5: Testing & Seguridad** *(0.5-1 semana / 20-40 horas)*
+  - [ ] Testing aislamiento: verificar que tenant A no ve datos de tenant B
+  - [ ] Testing switch conexiones: logout/login diferentes tenants
+  - [ ] Testing concurrencia: múltiples usuarios diferentes tenants simultáneos
+  - [ ] Validación session hijacking: no permitir cambiar tenant_id manualmente
+  - [ ] Performance testing: múltiples conexiones BD simultáneas
+  - [ ] Security audit: verificar que no hay leaks de datos entre tenants
+  - [ ] Documentación técnica: arquitectura + flujos + troubleshooting
+  - [ ] Scripts verificación: `verify_tenant_isolation.php`
+  - **Deliverables**:
+    - Suite testing 20+ tests
+    - Documentación arquitectura
+    - Scripts deployment producción
+
+**Ventajas de esta arquitectura**:
+- ✅ **Aislamiento Total**: Cada tenant tiene su propia BD (seguridad máxima)
+- ✅ **Escalabilidad Horizontal**: Tenants pueden estar en diferentes servidores MySQL
+- ✅ **Backups Independientes**: Cada tenant se respalda por separado
+- ✅ **Customización por Tenant**: Esquemas pueden variar si es necesario
+- ✅ **Gestión Centralizada**: BD central para administración y autenticación
+- ✅ **Migración de Datos Simple**: BD completa por tenant (fácil exportar/importar)
+- ✅ **Performance Aislado**: Problemas de un tenant no afectan otros
+
+**Complejidad**: MEDIA-ALTA
+**Puntos Críticos**:
+- Manejo correcto de 2 conexiones simultáneas (central + tenant)
+- Middleware debe verificar tenant_id en TODAS las rutas
+- Scripts de migración deben ejecutarse en BD correcta
+- Manejo de errores cuando tenant está inactivo o BD no disponible
+- Testing exhaustivo para evitar leaks de datos entre tenants
 
 ### ⏰ **FASE 7: INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(Q4 2025/Q1 2026 - ⭐ PRIORIDAD ALTA)*
 **Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas

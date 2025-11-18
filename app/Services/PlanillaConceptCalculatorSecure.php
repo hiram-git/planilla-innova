@@ -167,18 +167,27 @@ class PlanillaConceptCalculatorSecure
             return $this->obtenerDatoAsistencia('regular_hours');
         }, 0);
 
-        // Horas extras al 25%
+        // Horas extras al 25% (solo si empleado permite horas extras)
         $this->executor->addFunction('HORAS_EXTRAS_25', function () {
+            if (!$this->empleadoPermiteHorasExtras()) {
+                return 0;
+            }
             return $this->obtenerDatoAsistencia('overtime_hours_25');
         }, 0);
 
-        // Horas extras al 50%
+        // Horas extras al 50% (solo si empleado permite horas extras)
         $this->executor->addFunction('HORAS_EXTRAS_50', function () {
+            if (!$this->empleadoPermiteHorasExtras()) {
+                return 0;
+            }
             return $this->obtenerDatoAsistencia('overtime_hours_50');
         }, 0);
 
-        // Total horas extras (25% + 50%)
+        // Total horas extras (25% + 50%) (solo si empleado permite horas extras)
         $this->executor->addFunction('HORAS_EXTRAS', function () {
+            if (!$this->empleadoPermiteHorasExtras()) {
+                return 0;
+            }
             $h25 = $this->obtenerDatoAsistencia('overtime_hours_25');
             $h50 = $this->obtenerDatoAsistencia('overtime_hours_50');
             return $h25 + $h50;
@@ -984,6 +993,42 @@ class PlanillaConceptCalculatorSecure
         } catch (PDOException $e) {
             error_log("Error en queryAbsences: " . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * ⏰ Verificar si el empleado actual permite horas extras
+     *
+     * Consulta el campo permite_horas_extras de la tabla employees.
+     * Si el empleado no permite horas extras (exento/gerente), las funciones
+     * HORAS_EXTRAS_25(), HORAS_EXTRAS_50() y HORAS_EXTRAS() retornarán 0.
+     *
+     * @return bool True si permite horas extras, False si es exento
+     */
+    protected function empleadoPermiteHorasExtras(): bool
+    {
+        try {
+            // Validar que hay empleado establecido
+            if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                return true; // Default permite horas extras si no hay empleado
+            }
+
+            $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+            $sql = "SELECT permite_horas_extras FROM employees WHERE id = ? LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                return (bool) $result['permite_horas_extras'];
+            }
+
+            return true; // Default permite horas extras si no se encuentra
+
+        } catch (PDOException $e) {
+            error_log("Error verificando permite_horas_extras empleado: " . $e->getMessage());
+            return true; // Default permite horas extras en caso de error
         }
     }
 

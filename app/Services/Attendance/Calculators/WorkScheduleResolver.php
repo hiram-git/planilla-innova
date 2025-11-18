@@ -55,13 +55,26 @@ class WorkScheduleResolver
             return null;
         }
 
-        // Preparar resultado con información completa
+        // Preparar resultado con información completa incluyendo tolerancias
         return [
             'schedule_id' => $schedule['id'],
             'codigo' => $schedule['codigo'] ?? null,
             'nombre' => $schedule['nombre'] ?? null,
             'time_in' => $schedule['time_in'],
             'time_out' => $schedule['time_out'],
+            'salida_almuerzo' => $schedule['salida_almuerzo'] ?? null,
+            'entrada_almuerzo' => $schedule['entrada_almuerzo'] ?? null,
+            // Tolerancias de entrada
+            'time_in_tolerance_before' => $schedule['time_in_tolerance_before'] ?? 0,
+            'time_in_tolerance_after' => $schedule['time_in_tolerance_after'] ?? 0,
+            // Tolerancias de salida
+            'time_out_tolerance_before' => $schedule['time_out_tolerance_before'] ?? 0,
+            'time_out_tolerance_after' => $schedule['time_out_tolerance_after'] ?? 0,
+            // Tolerancias de almuerzo
+            'lunch_out_tolerance_before' => $schedule['lunch_out_tolerance_before'] ?? 0,
+            'lunch_out_tolerance_after' => $schedule['lunch_out_tolerance_after'] ?? 0,
+            'lunch_in_tolerance_before' => $schedule['lunch_in_tolerance_before'] ?? 0,
+            'lunch_in_tolerance_after' => $schedule['lunch_in_tolerance_after'] ?? 0,
             'date' => $date,
             'employee_id' => $employeeId
         ];
@@ -138,7 +151,7 @@ class WorkScheduleResolver
     }
 
     /**
-     * Calcular minutos de tardanza
+     * Calcular minutos de tardanza (sin tolerancia)
      *
      * @param string $actualTimeIn Hora real de entrada (HH:MM:SS)
      * @param string $scheduledTimeIn Hora programada (HH:MM:SS)
@@ -158,7 +171,34 @@ class WorkScheduleResolver
     }
 
     /**
-     * Calcular minutos de salida anticipada
+     * Calcular minutos de tardanza considerando tolerancia
+     *
+     * @param string $actualTimeIn Hora real de entrada (HH:MM:SS)
+     * @param string $scheduledTimeIn Hora programada (HH:MM:SS)
+     * @param int $toleranceAfter Minutos de tolerancia después de la hora programada
+     * @return int Minutos de tardanza después de aplicar tolerancia (0 si está dentro de tolerancia)
+     */
+    public function calculateTardinessWithTolerance($actualTimeIn, $scheduledTimeIn, $toleranceAfter = 0)
+    {
+        $actual = new DateTime($actualTimeIn);
+        $scheduled = new DateTime($scheduledTimeIn);
+
+        // Agregar tolerancia a la hora programada
+        $scheduledWithTolerance = clone $scheduled;
+        $scheduledWithTolerance->modify("+{$toleranceAfter} minutes");
+
+        // Si llegó antes o dentro de la tolerancia, no hay tardanza
+        if ($actual <= $scheduledWithTolerance) {
+            return 0;
+        }
+
+        // Calcular minutos de tardanza después de la tolerancia
+        $interval = $scheduledWithTolerance->diff($actual);
+        return ($interval->h * 60) + $interval->i;
+    }
+
+    /**
+     * Calcular minutos de salida anticipada (sin tolerancia)
      *
      * @param string $actualTimeOut Hora real de salida (HH:MM:SS)
      * @param string $scheduledTimeOut Hora programada (HH:MM:SS)
@@ -178,6 +218,37 @@ class WorkScheduleResolver
         }
 
         $interval = $actual->diff($scheduled);
+        return ($interval->h * 60) + $interval->i;
+    }
+
+    /**
+     * Calcular minutos de salida anticipada considerando tolerancia
+     *
+     * @param string $actualTimeOut Hora real de salida (HH:MM:SS)
+     * @param string $scheduledTimeOut Hora programada (HH:MM:SS)
+     * @param int $toleranceBefore Minutos de tolerancia antes de la hora programada de salida
+     * @return int Minutos de salida anticipada después de aplicar tolerancia (0 si está dentro de tolerancia)
+     */
+    public function calculateEarlyDepartureWithTolerance($actualTimeOut, $scheduledTimeOut, $toleranceBefore = 0)
+    {
+        if (empty($actualTimeOut) || empty($scheduledTimeOut)) {
+            return 0;
+        }
+
+        $actual = new DateTime($actualTimeOut);
+        $scheduled = new DateTime($scheduledTimeOut);
+
+        // Restar tolerancia a la hora programada (puede salir X minutos antes)
+        $scheduledWithTolerance = clone $scheduled;
+        $scheduledWithTolerance->modify("-{$toleranceBefore} minutes");
+
+        // Si salió después o dentro de la tolerancia, no hay salida anticipada
+        if ($actual >= $scheduledWithTolerance) {
+            return 0;
+        }
+
+        // Calcular minutos de salida anticipada después de aplicar tolerancia
+        $interval = $actual->diff($scheduledWithTolerance);
         return ($interval->h * 60) + $interval->i;
     }
 

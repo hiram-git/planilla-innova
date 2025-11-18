@@ -58,9 +58,31 @@ class AttendanceCalculator
         $timeOut = $attendance['time_out'];
         $lunchOut = $attendance['lunch_out'] ?? null;
         $lunchIn = $attendance['lunch_in'] ?? null;
+        $hoursBreakdown = [];
+
+        // Obtener información del empleado (permite horas extras)
+        $employeeAllowsOvertime = $this->getEmployeeOvertimeEligibility($employeeId);
 
         // Obtener horario del empleado para ese día
         $schedule = $this->scheduleResolver->getScheduleForEmployeeOnDate($employeeId, $date);
+
+        // Determinar si el horario requiere marcaciones de almuerzo
+        $hasLunchPeriod = false;
+        if ($schedule && !empty($schedule['salida_almuerzo']) && !empty($schedule['entrada_almuerzo'])) {
+            $hasLunchPeriod = true;
+        }
+
+        // Si el horario NO requiere almuerzo O solo hay 2 marcaciones válidas (entrada/salida)
+        // entonces ignorar/limpiar las marcaciones de almuerzo
+        if (!$hasLunchPeriod || (empty($lunchOut) && empty($lunchIn))) {
+            $lunchOut = null;
+            $lunchIn = null;
+        }
+        // Si el horario requiere almuerzo pero solo hay una marcación de almuerzo, invalidar ambas
+        elseif ($hasLunchPeriod && (empty($lunchOut) || empty($lunchIn))) {
+            $lunchOut = null;
+            $lunchIn = null;
+        }
 
         // Verificar tipo de día (laboral, feriado, etc.)
         $dayInfo = $this->overtimeCalculator->checkHolidayStatus($date);
@@ -75,12 +97,26 @@ class AttendanceCalculator
             return $this->getPartialCalculation($attendance, $schedule, $dayInfo);
         }
 
-        // Calcular duración real del almuerzo
-        $lunchTimeMinutes = $this->calculateLunchDuration($lunchOut, $lunchIn);
+        // Calcular duración del almuerzo para descontar de horas trabajadas
+        $lunchTimeMinutes = 0;
 
-        // Calcular minutos de exceso en el almuerzo
+        if ($lunchOut && $lunchIn) {
+            // Caso 1: El empleado marcó salida/entrada de almuerzo → usar duración real
+            $lunchTimeMinutes = $this->calculateLunchDuration($lunchOut, $lunchIn);
+        } elseif ($hasLunchPeriod) {
+            // Caso 2: El horario tiene almuerzo programado pero el empleado NO marcó
+            // → usar duración programada del horario
+            $scheduledLunchDuration = $this->calculateLunchDuration(
+                $schedule['salida_almuerzo'],
+                $schedule['entrada_almuerzo']
+            );
+            $lunchTimeMinutes = $scheduledLunchDuration;
+        }
+        // Caso 3: No hay almuerzo programado ni marcado → 0 minutos
+
+        // Calcular minutos de exceso en el almuerzo (solo si marcó)
         $lunchExceededMinutes = 0;
-        if ($schedule) {
+        if ($lunchOut && $lunchIn && $schedule) {
             $lunchExceededMinutes = $this->calculateLunchExceeded(
                 $lunchTimeMinutes,
                 $schedule['salida_almuerzo'] ?? null,
@@ -97,25 +133,39 @@ class AttendanceCalculator
             $lunchTimeMinutes
         );
 
-        // Calcular tardanzas si tiene horario asignado (NO en feriados)
+        // Si el empleado NO permite horas extras, eliminar overtime (solo para empleados exentos/gerentes)
+        if (!$employeeAllowsOvertime) {
+            // Mantener total_hours y regular_hours, pero eliminar horas extras
+            $hoursBreakdown['overtime_hours'] = 0;
+            $hoursBreakdown['overtime_25_hours'] = 0;
+            $hoursBreakdown['overtime_50_hours'] = 0;
+            // Ajustar regular_hours al total trabajado (sin distinguir extras)
+            $hoursBreakdown['regular_hours'] = $hoursBreakdown['total_hours'];
+        }
+
+        // Calcular tardanzas si tiene horario asignado (NO en feriados) - CON TOLERANCIA
         $tardinessMinutes = 0;
         $isLate = false;
         // En días feriados no se calculan tardanzas (el empleado no está obligado a trabajar)
         if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
-            $tardinessMinutes = $this->scheduleResolver->calculateTardinessMinutes(
+            $toleranceAfter = $schedule['time_in_tolerance_after'] ?? 0;
+            $tardinessMinutes = $this->scheduleResolver->calculateTardinessWithTolerance(
                 $timeIn,
-                $schedule['time_in']
+                $schedule['time_in'],
+                $toleranceAfter
             );
             $isLate = $tardinessMinutes > 0;
         }
 
-        // Calcular salida anticipada (NO en feriados)
+        // Calcular salida anticipada (NO en feriados) - CON TOLERANCIA
         $earlyDepartureMinutes = 0;
         // En días feriados no se calcula salida anticipada
         if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
-            $earlyDepartureMinutes = $this->scheduleResolver->calculateEarlyDepartureMinutes(
+            $toleranceBefore = $schedule['time_out_tolerance_before'] ?? 0;
+            $earlyDepartureMinutes = $this->scheduleResolver->calculateEarlyDepartureWithTolerance(
                 $timeOut,
-                $schedule['time_out']
+                $schedule['time_out'],
+                $toleranceBefore
             );
         }
 
@@ -133,6 +183,9 @@ class AttendanceCalculator
             $hoursBreakdown['total_hours'],
             $schedule
         );
+
+        // Determinar estado de aprobación de horas extras
+        $overtimeStatus = $this->determineOvertimeStatus($hoursBreakdown['overtime_hours'], $employeeAllowsOvertime);
 
         // Construir resultado completo
         return [
@@ -159,6 +212,9 @@ class AttendanceCalculator
             'overtime_50_hours' => $hoursBreakdown['overtime_50_hours'],
             'night_hours' => $hoursBreakdown['night_hours'],
             'holiday_hours' => $hoursBreakdown['holiday_hours'],
+
+            // Estado de aprobación de horas extras
+            'overtime_status' => $overtimeStatus,
 
             // Tardanzas y ausencias
             'tardiness_minutes' => $tardinessMinutes,
@@ -455,17 +511,43 @@ class AttendanceCalculator
         $tardinessMinutes = 0;
         $isLate = false;
 
-        // No calcular tardanzas en feriados
+        // Determinar si el horario requiere marcaciones de almuerzo
+        $hasLunchPeriod = false;
+        if ($schedule && !empty($schedule['salida_almuerzo']) && !empty($schedule['entrada_almuerzo'])) {
+            $hasLunchPeriod = true;
+        }
+
+        // Validar marcaciones de almuerzo (misma lógica que calculate())
+        if (!$hasLunchPeriod || (empty($lunchOut) && empty($lunchIn))) {
+            $lunchOut = null;
+            $lunchIn = null;
+        } elseif ($hasLunchPeriod && (empty($lunchOut) || empty($lunchIn))) {
+            $lunchOut = null;
+            $lunchIn = null;
+        }
+
+        // No calcular tardanzas en feriados - CON TOLERANCIA
         if ($schedule && $timeIn && !($dayInfo['is_holiday'] ?? false)) {
-            $tardinessMinutes = $this->scheduleResolver->calculateTardinessMinutes(
+            $toleranceAfter = $schedule['time_in_tolerance_after'] ?? 0;
+            $tardinessMinutes = $this->scheduleResolver->calculateTardinessWithTolerance(
                 $timeIn,
-                $schedule['time_in']
+                $schedule['time_in'],
+                $toleranceAfter
             );
             $isLate = $tardinessMinutes > 0;
         }
 
-        // Calcular duración de almuerzo incluso sin hora de salida
-        $lunchTimeMinutes = $this->calculateLunchDuration($lunchOut, $lunchIn);
+        // Calcular duración del almuerzo (misma lógica que calculate())
+        $lunchTimeMinutes = 0;
+        if ($lunchOut && $lunchIn) {
+            $lunchTimeMinutes = $this->calculateLunchDuration($lunchOut, $lunchIn);
+        } elseif ($hasLunchPeriod) {
+            // Usar duración programada si el horario tiene almuerzo pero no marcó
+            $lunchTimeMinutes = $this->calculateLunchDuration(
+                $schedule['salida_almuerzo'],
+                $schedule['entrada_almuerzo']
+            );
+        }
 
         return [
             'attendance_detail_id' => $attendance['id'],
@@ -633,6 +715,7 @@ class AttendanceCalculator
             time_in, time_out, scheduled_time_in, scheduled_time_out,
             total_hours, regular_hours, overtime_hours,
             overtime_25_hours, overtime_50_hours, night_hours, holiday_hours,
+            overtime_status,
             tardiness_minutes, is_late, early_departure_minutes,
             is_absent, absence_type,
             is_working_day, is_holiday, is_weekend, day_type,
@@ -644,6 +727,7 @@ class AttendanceCalculator
             ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?,
+            ?,
             ?, ?, ?,
             ?, ?,
             ?, ?, ?, ?,
@@ -668,6 +752,7 @@ class AttendanceCalculator
             $calculation['overtime_50_hours'],
             $calculation['night_hours'],
             $calculation['holiday_hours'],
+            $calculation['overtime_status'] ?? 'NOT_APPLICABLE',
             $calculation['tardiness_minutes'],
             $calculation['is_late'],
             $calculation['early_departure_minutes'],
@@ -707,6 +792,7 @@ class AttendanceCalculator
             total_hours = ?, regular_hours = ?, overtime_hours = ?,
             overtime_25_hours = ?, overtime_50_hours = ?,
             night_hours = ?, holiday_hours = ?,
+            overtime_status = ?,
             tardiness_minutes = ?, is_late = ?, early_departure_minutes = ?,
             is_absent = ?, absence_type = ?,
             is_working_day = ?, is_holiday = ?, is_weekend = ?, day_type = ?,
@@ -728,6 +814,7 @@ class AttendanceCalculator
             $calculation['overtime_50_hours'],
             $calculation['night_hours'],
             $calculation['holiday_hours'],
+            $calculation['overtime_status'] ?? 'NOT_APPLICABLE',
             $calculation['tardiness_minutes'],
             $calculation['is_late'],
             $calculation['early_departure_minutes'],
@@ -1039,5 +1126,57 @@ class AttendanceCalculator
     public function getEmployeeAlertStats(int $employeeId, int $days = 30): array
     {
         return $this->alertsSystem->getEmployeeAlertStats($employeeId, $days);
+    }
+
+    /**
+     * Determinar estado de aprobación de horas extras
+     *
+     * @param float $overtimeHours Total de horas extras
+     * @param bool $employeeAllowsOvertime Si el empleado permite horas extras
+     * @return string Estado: NOT_APPLICABLE | PENDING
+     */
+    private function determineOvertimeStatus($overtimeHours, $employeeAllowsOvertime = true)
+    {
+        // Si el empleado NO permite horas extras (empleado exento)
+        if (!$employeeAllowsOvertime) {
+            return 'NOT_APPLICABLE';
+        }
+
+        // Si no hay horas extras, marcar como NO APLICABLE
+        if ($overtimeHours == 0 || $overtimeHours === null) {
+            return 'NOT_APPLICABLE';
+        }
+
+        // Si hay horas extras Y el empleado permite, marcar como PENDIENTE de aprobación
+        return 'PENDING';
+    }
+
+    /**
+     * Obtener si un empleado es elegible para horas extras
+     *
+     * @param int $employeeId ID del empleado
+     * @return bool True si permite horas extras, False si es exento
+     */
+    private function getEmployeeOvertimeEligibility($employeeId)
+    {
+        try {
+            $sql = "SELECT permite_horas_extras FROM employees WHERE id = ? LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId]);
+
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($result) {
+                return (bool) $result['permite_horas_extras'];
+            }
+
+            // Por defecto, si no se encuentra el empleado, asumimos que NO permite horas extras
+            return false;
+
+        } catch (Exception $e) {
+            error_log("Error consultando elegibilidad horas extras para empleado {$employeeId}: " . $e->getMessage());
+            // En caso de error, asumimos que SÍ permite por seguridad
+            return true;
+        }
     }
 }

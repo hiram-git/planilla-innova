@@ -56,6 +56,15 @@ class Schedule extends ReferenceController
                 'time_out' => $data['time_out'],
                 'salida_almuerzo' => !empty($data['salida_almuerzo']) ? $data['salida_almuerzo'] : null,
                 'entrada_almuerzo' => !empty($data['entrada_almuerzo']) ? $data['entrada_almuerzo'] : null,
+                // Tolerancias de marcación
+                'time_in_tolerance_before' => (int)($data['time_in_tolerance_before'] ?? 0),
+                'time_in_tolerance_after' => (int)($data['time_in_tolerance_after'] ?? 0),
+                'time_out_tolerance_before' => (int)($data['time_out_tolerance_before'] ?? 0),
+                'time_out_tolerance_after' => (int)($data['time_out_tolerance_after'] ?? 0),
+                'lunch_out_tolerance_before' => (int)($data['lunch_out_tolerance_before'] ?? 0),
+                'lunch_out_tolerance_after' => (int)($data['lunch_out_tolerance_after'] ?? 0),
+                'lunch_in_tolerance_before' => (int)($data['lunch_in_tolerance_before'] ?? 0),
+                'lunch_in_tolerance_after' => (int)($data['lunch_in_tolerance_after'] ?? 0),
                 'activo' => 1
             ];
 
@@ -111,6 +120,15 @@ class Schedule extends ReferenceController
                 'time_out' => $data['edit_time_out'],
                 'salida_almuerzo' => !empty($data['edit_salida_almuerzo']) ? $data['edit_salida_almuerzo'] : null,
                 'entrada_almuerzo' => !empty($data['edit_entrada_almuerzo']) ? $data['edit_entrada_almuerzo'] : null,
+                // Tolerancias de marcación
+                'time_in_tolerance_before' => (int)($data['edit_time_in_tolerance_before'] ?? 0),
+                'time_in_tolerance_after' => (int)($data['edit_time_in_tolerance_after'] ?? 0),
+                'time_out_tolerance_before' => (int)($data['edit_time_out_tolerance_before'] ?? 0),
+                'time_out_tolerance_after' => (int)($data['edit_time_out_tolerance_after'] ?? 0),
+                'lunch_out_tolerance_before' => (int)($data['edit_lunch_out_tolerance_before'] ?? 0),
+                'lunch_out_tolerance_after' => (int)($data['edit_lunch_out_tolerance_after'] ?? 0),
+                'lunch_in_tolerance_before' => (int)($data['edit_lunch_in_tolerance_before'] ?? 0),
+                'lunch_in_tolerance_after' => (int)($data['edit_lunch_in_tolerance_after'] ?? 0),
                 'activo' => isset($data['edit_activo']) ? 1 : 0
             ];
 

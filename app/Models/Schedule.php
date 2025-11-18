@@ -14,12 +14,17 @@ class Schedule extends ReferenceModel
     
     /**
      * Campos permitidos para inserción masiva
-     * Incluye campos base de ReferenceModel + campos específicos de horarios
+     * Incluye campos base de ReferenceModel + campos específicos de horarios + tolerancias
      */
     protected $fillable = [
         'codigo', 'nombre', 'descripcion', 'activo',
         'time_in', 'time_out',
-        'salida_almuerzo', 'entrada_almuerzo'
+        'salida_almuerzo', 'entrada_almuerzo',
+        // Tolerancias para marcaciones
+        'time_in_tolerance_before', 'time_in_tolerance_after',
+        'time_out_tolerance_before', 'time_out_tolerance_after',
+        'lunch_out_tolerance_before', 'lunch_out_tolerance_after',
+        'lunch_in_tolerance_before', 'lunch_in_tolerance_after'
     ];
 
     /**
@@ -147,10 +152,82 @@ class Schedule extends ReferenceModel
      */
     public function getActiveSchedules()
     {
-        $sql = "SELECT *, CONCAT(TIME_FORMAT(time_in, '%h:%i %p'), ' - ', TIME_FORMAT(time_out, '%h:%i %p')) as schedule_display 
-                FROM {$this->table} 
-                WHERE activo = 1 
+        $sql = "SELECT *, CONCAT(TIME_FORMAT(time_in, '%h:%i %p'), ' - ', TIME_FORMAT(time_out, '%h:%i %p')) as schedule_display
+                FROM {$this->table}
+                WHERE activo = 1
                 ORDER BY time_in";
         return $this->db->findAll($sql);
+    }
+
+    /**
+     * Obtener tolerancias de entrada para un horario
+     *
+     * @param array $schedule Datos del horario
+     * @return array ['before' => minutos antes, 'after' => minutos después]
+     */
+    public function getTimeInTolerances($schedule)
+    {
+        return [
+            'before' => $schedule['time_in_tolerance_before'] ?? 0,
+            'after' => $schedule['time_in_tolerance_after'] ?? 0
+        ];
+    }
+
+    /**
+     * Obtener tolerancias de salida para un horario
+     *
+     * @param array $schedule Datos del horario
+     * @return array ['before' => minutos antes, 'after' => minutos después]
+     */
+    public function getTimeOutTolerances($schedule)
+    {
+        return [
+            'before' => $schedule['time_out_tolerance_before'] ?? 0,
+            'after' => $schedule['time_out_tolerance_after'] ?? 0
+        ];
+    }
+
+    /**
+     * Obtener tolerancias de salida a almuerzo para un horario
+     *
+     * @param array $schedule Datos del horario
+     * @return array ['before' => minutos antes, 'after' => minutos después]
+     */
+    public function getLunchOutTolerances($schedule)
+    {
+        return [
+            'before' => $schedule['lunch_out_tolerance_before'] ?? 0,
+            'after' => $schedule['lunch_out_tolerance_after'] ?? 0
+        ];
+    }
+
+    /**
+     * Obtener tolerancias de entrada de almuerzo para un horario
+     *
+     * @param array $schedule Datos del horario
+     * @return array ['before' => minutos antes, 'after' => minutos después]
+     */
+    public function getLunchInTolerances($schedule)
+    {
+        return [
+            'before' => $schedule['lunch_in_tolerance_before'] ?? 0,
+            'after' => $schedule['lunch_in_tolerance_after'] ?? 0
+        ];
+    }
+
+    /**
+     * Obtener todas las tolerancias de un horario
+     *
+     * @param array $schedule Datos del horario
+     * @return array Todas las tolerancias organizadas
+     */
+    public function getAllTolerances($schedule)
+    {
+        return [
+            'time_in' => $this->getTimeInTolerances($schedule),
+            'time_out' => $this->getTimeOutTolerances($schedule),
+            'lunch_out' => $this->getLunchOutTolerances($schedule),
+            'lunch_in' => $this->getLunchInTolerances($schedule)
+        ];
     }
 }

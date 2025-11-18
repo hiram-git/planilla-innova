@@ -8,6 +8,43 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 
 ## 🆕 **Últimas Versiones**
 
+### **[v3.5.7]** - 2025-11-15 - *Módulo Vacaciones: Cálculo 11 Meses + Control Planillas Únicas*
+**Tipo**: Feature - Módulo Vacaciones Panamá
+**Fase**: FASE 5 - Módulo Vacaciones (Subfase 5.1 40%)
+**Criticidad**: Alta
+
+**Componentes Principales**:
+- ✅ **Cálculo Salario Diario 11 Meses** (VacationController.php):
+  - Método `calculateVacationDailySalary()` nuevo (47 líneas)
+  - Fórmula: `ACUMULADOS("SALARIO_BASE", últimos 11 meses) ÷ 11 ÷ 30`
+  - Integración en métodos `store()`, `approve()`, `balance()`
+  - Fallback a salario actual si no hay acumulados
+  - Logging detallado para auditoría
+- ✅ **Control Planillas Únicas**:
+  - Campo `payroll_id` en tabla `vacation_requests`
+  - Validación para evitar generación duplicada de planillas
+  - Actualización automática después de crear planilla
+  - Foreign Key a `planilla_cabecera` con CASCADE
+- ✅ **Mejoras UI Vista Balance** (balance.php):
+  - Explicación visible de fórmula de cálculo
+  - Lógica condicional botón generar planilla
+  - Botón gris para ver planilla existente
+  - Eliminación botón grande innecesario
+- ✅ **Mejoras PDF Solicitud** (PDFReportController.php):
+  - Sección "Compensación / Monto a Pagar"
+  - Sección "Resumen de Días (Balance Actual)"
+  - Cálculo balance resultante después de aprobación
+  - Layout mejorado con columnas dinámicas
+
+**📈 Estadísticas**:
+- 3 archivos modificados | 1 archivo nuevo | +203 líneas código agregadas | -63 líneas eliminadas
+- 1 tabla modificada | 1 campo nuevo | 1 índice nuevo | 1 foreign key nueva
+- Deployment: 5-10 minutos
+
+**[📄 Ver detalles completos →](./changelog/v3.5.7.md)**
+
+---
+
 ### **[v3.5.6]** - 2025-11-13 - *Sincronización Calendario API + Feriados Pagados + Unificación*
 **Tipo**: Feature - Sincronización automática calendario empresarial + Unificación vista vacaciones
 **Fase**: Calendario Empresarial - Integración API Base44

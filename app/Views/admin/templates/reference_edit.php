@@ -53,57 +53,205 @@ $content .= '
 // Campos específicos para horarios
 if ($route_name === 'schedules') {
     $content .= '
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_time_in">Hora de Entrada *</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="edit_time_in" name="edit_time_in"
-                                           value="' . $item['time_in'] . '" required>
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
+                    <!-- Entrada al Trabajo -->
+                    <div class="card card-outline card-primary mb-3">
+                        <div class="card-header py-2">
+                            <h3 class="card-title"><i class="fas fa-sign-in-alt"></i> Entrada al Trabajo</h3>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_time_in">Hora de Entrada *</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control timepicker" id="edit_time_in" name="edit_time_in"
+                                                   value="' . $item['time_in'] . '" required>
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_time_out">Hora de Salida *</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="edit_time_out" name="edit_time_out"
-                                           value="' . $item['time_out'] . '" required>
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_time_in_tolerance_before">Tolerancia Antes <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_time_in_tolerance_before"
+                                                   name="edit_time_in_tolerance_before" min="0" max="60" step="1"
+                                                   value="' . (int)($item['time_in_tolerance_before'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Puede marcar X min antes</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_time_in_tolerance_after">Gracia Tardanza <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_time_in_tolerance_after"
+                                                   name="edit_time_in_tolerance_after" min="0" max="60" step="1"
+                                                   value="' . (int)($item['time_in_tolerance_after'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Sin marcar tardanza</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_salida_almuerzo">Salida a Almuerzo</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="edit_salida_almuerzo" name="edit_salida_almuerzo"
-                                           value="' . ($item['salida_almuerzo'] ?? '') . '">
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
+
+                    <!-- Salida del Trabajo -->
+                    <div class="card card-outline card-danger mb-3">
+                        <div class="card-header py-2">
+                            <h3 class="card-title"><i class="fas fa-sign-out-alt"></i> Salida del Trabajo</h3>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_time_out">Hora de Salida *</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control timepicker" id="edit_time_out" name="edit_time_out"
+                                                   value="' . $item['time_out'] . '" required>
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <small class="form-text text-muted">Opcional - Hora programada para salir a almuerzo</small>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_time_out_tolerance_before">Tolerancia Antes <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_time_out_tolerance_before"
+                                                   name="edit_time_out_tolerance_before" min="0" max="60" step="1"
+                                                   value="' . (int)($item['time_out_tolerance_before'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Puede salir X min antes</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_time_out_tolerance_after">Tolerancia Después <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_time_out_tolerance_after"
+                                                   name="edit_time_out_tolerance_after" min="0" max="60" step="1"
+                                                   value="' . (int)($item['time_out_tolerance_after'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Permitido después</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_entrada_almuerzo">Entrada de Almuerzo</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="edit_entrada_almuerzo" name="edit_entrada_almuerzo"
-                                           value="' . ($item['entrada_almuerzo'] ?? '') . '">
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
+                    </div>
+
+                    <!-- Salida a Almuerzo -->
+                    <div class="card card-outline card-warning mb-3">
+                        <div class="card-header py-2">
+                            <h3 class="card-title"><i class="fas fa-utensils"></i> Salida a Almuerzo</h3>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_salida_almuerzo">Hora Salida Almuerzo</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control timepicker" id="edit_salida_almuerzo" name="edit_salida_almuerzo"
+                                                   value="' . ($item['salida_almuerzo'] ?? '') . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Opcional</small>
                                     </div>
                                 </div>
-                                <small class="form-text text-muted">Opcional - Hora programada para regresar de almuerzo</small>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_lunch_out_tolerance_before">Tolerancia Antes <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_lunch_out_tolerance_before"
+                                                   name="edit_lunch_out_tolerance_before" min="0" max="60" step="1"
+                                                   value="' . (int)($item['lunch_out_tolerance_before'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_lunch_out_tolerance_after">Tolerancia Después <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_lunch_out_tolerance_after"
+                                                   name="edit_lunch_out_tolerance_after" min="0" max="60" step="1"
+                                                   value="' . (int)($item['lunch_out_tolerance_after'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Regreso de Almuerzo -->
+                    <div class="card card-outline card-success mb-3">
+                        <div class="card-header py-2">
+                            <h3 class="card-title"><i class="fas fa-utensils"></i> Regreso de Almuerzo</h3>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_entrada_almuerzo">Hora Regreso Almuerzo</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control timepicker" id="edit_entrada_almuerzo" name="edit_entrada_almuerzo"
+                                                   value="' . ($item['entrada_almuerzo'] ?? '') . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Opcional</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_lunch_in_tolerance_before">Tolerancia Antes <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_lunch_in_tolerance_before"
+                                                   name="edit_lunch_in_tolerance_before" min="0" max="60" step="1"
+                                                   value="' . (int)($item['lunch_in_tolerance_before'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-0">
+                                        <label for="edit_lunch_in_tolerance_after">Gracia Tardanza <small class="text-muted">(min)</small></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="edit_lunch_in_tolerance_after"
+                                                   name="edit_lunch_in_tolerance_after" min="0" max="60" step="1"
+                                                   value="' . (int)($item['lunch_in_tolerance_after'] ?? 0) . '">
+                                            <div class="input-group-append">
+                                                <div class="input-group-text"><i class="fas fa-stopwatch"></i></div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Sin marcar tardanza</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>';
