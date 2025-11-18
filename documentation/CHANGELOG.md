@@ -35,6 +35,11 @@ Este archivo sirve como índice principal para el historial de cambios del siste
   - Sección "Resumen de Días (Balance Actual)"
   - Cálculo balance resultante después de aprobación
   - Layout mejorado con columnas dinámicas
+ - ✅ **Motor Fórmulas Seguro** (PlanillaConceptCalculatorSecure.php):
+   - Nueva función `CONCEPTO("NOMBRE")` para referenciar/evaluar otros conceptos con retorno 0 si no existe
+ - ✅ **Preparación Horas Extra**:
+   - Migraciones: `employees.overtime_eligible`, tolerancias en `schedules`, `attendance_calculations.overtime_approval`
+   - Cableado inicial en controladores/modelos/calculadores
 
 **📈 Estadísticas**:
 - 3 archivos modificados | 1 archivo nuevo | +203 líneas código agregadas | -63 líneas eliminadas

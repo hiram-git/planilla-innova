@@ -124,10 +124,61 @@ class AttendanceCalculator
             );
         }
 
-        // Calcular breakdown completo de horas (pasando minutos reales de almuerzo)
+        // Calcular tardanzas y ajustar horas ANTES de calcular horas trabajadas
+        $tardinessMinutes = 0;
+        $isLate = false;
+        $adjustedTimeIn = $timeIn;
+        $adjustedTimeOut = $timeOut;
+
+        // En días feriados no se calculan tardanzas (el empleado no está obligado a trabajar)
+        if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
+            $toleranceAfter = $schedule['time_in_tolerance_after'] ?? 0;
+            $tardinessMinutes = $this->scheduleResolver->calculateTardinessWithTolerance(
+                $timeIn,
+                $schedule['time_in'],
+                $toleranceAfter
+            );
+            $isLate = $tardinessMinutes > 0;
+
+            // Si está dentro de tolerancia (tardanza = 0), ajustar a hora programada
+            if ($tardinessMinutes == 0 && $toleranceAfter > 0) {
+                $actualTimeIn = new \DateTime($timeIn);
+                $scheduledTimeIn = new \DateTime($schedule['time_in']);
+                // Solo ajustar si marcó DESPUÉS de la hora programada (dentro de tolerancia)
+                if ($actualTimeIn > $scheduledTimeIn) {
+                    $adjustedTimeIn = $schedule['time_in'];
+                }
+            }
+        }
+
+        // Calcular salida anticipada (NO en feriados) - CON TOLERANCIA
+        $earlyDepartureMinutes = 0;
+
+        // En días feriados no se calcula salida anticipada
+        if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
+            $toleranceBefore = $schedule['time_out_tolerance_before'] ?? 0;
+            $earlyDepartureMinutes = $this->scheduleResolver->calculateEarlyDepartureWithTolerance(
+                $timeOut,
+                $schedule['time_out'],
+                $toleranceBefore
+            );
+
+            // Si está dentro de tolerancia (salida anticipada = 0), ajustar a hora programada
+            if ($earlyDepartureMinutes == 0 && $toleranceBefore > 0) {
+                $actualTimeOut = new \DateTime($timeOut);
+                $scheduledTimeOut = new \DateTime($schedule['time_out']);
+                // Solo ajustar si salió ANTES de la hora programada (dentro de tolerancia)
+                if ($actualTimeOut < $scheduledTimeOut) {
+                    $adjustedTimeOut = $schedule['time_out'];
+                }
+            }
+        }
+
+        // Calcular breakdown completo de horas usando las horas AJUSTADAS
+        // Si está dentro de tolerancia, se considera puntual y se calculan horas como si hubiera llegado exactamente
         $hoursBreakdown = $this->overtimeCalculator->calculateCompleteBreakdown(
-            $timeIn,
-            $timeOut,
+            $adjustedTimeIn,
+            $adjustedTimeOut,
             $date,
             $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8,
             $lunchTimeMinutes
@@ -141,32 +192,6 @@ class AttendanceCalculator
             $hoursBreakdown['overtime_50_hours'] = 0;
             // Ajustar regular_hours al total trabajado (sin distinguir extras)
             $hoursBreakdown['regular_hours'] = $hoursBreakdown['total_hours'];
-        }
-
-        // Calcular tardanzas si tiene horario asignado (NO en feriados) - CON TOLERANCIA
-        $tardinessMinutes = 0;
-        $isLate = false;
-        // En días feriados no se calculan tardanzas (el empleado no está obligado a trabajar)
-        if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
-            $toleranceAfter = $schedule['time_in_tolerance_after'] ?? 0;
-            $tardinessMinutes = $this->scheduleResolver->calculateTardinessWithTolerance(
-                $timeIn,
-                $schedule['time_in'],
-                $toleranceAfter
-            );
-            $isLate = $tardinessMinutes > 0;
-        }
-
-        // Calcular salida anticipada (NO en feriados) - CON TOLERANCIA
-        $earlyDepartureMinutes = 0;
-        // En días feriados no se calcula salida anticipada
-        if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
-            $toleranceBefore = $schedule['time_out_tolerance_before'] ?? 0;
-            $earlyDepartureMinutes = $this->scheduleResolver->calculateEarlyDepartureWithTolerance(
-                $timeOut,
-                $schedule['time_out'],
-                $toleranceBefore
-            );
         }
 
         // Calcular score de puntualidad (0-100)
@@ -194,9 +219,9 @@ class AttendanceCalculator
             'date' => $date,
             'schedule_id' => $schedule['schedule_id'] ?? null,
 
-            // Marcaciones
-            'time_in' => $this->extractTime($timeIn),
-            'time_out' => $this->extractTime($timeOut),
+            // Marcaciones (usar ajustadas si están dentro de tolerancia)
+            'time_in' => $this->extractTime($adjustedTimeIn),
+            'time_out' => $this->extractTime($adjustedTimeOut),
             'lunch_out' => $this->extractTime($lunchOut),
             'lunch_in' => $this->extractTime($lunchIn),
             'scheduled_time_in' => $schedule['time_in'] ?? null,
@@ -526,6 +551,9 @@ class AttendanceCalculator
             $lunchIn = null;
         }
 
+        // Ajustar hora de entrada si está dentro de tolerancia
+        $adjustedTimeIn = $timeIn;
+
         // No calcular tardanzas en feriados - CON TOLERANCIA
         if ($schedule && $timeIn && !($dayInfo['is_holiday'] ?? false)) {
             $toleranceAfter = $schedule['time_in_tolerance_after'] ?? 0;
@@ -535,6 +563,15 @@ class AttendanceCalculator
                 $toleranceAfter
             );
             $isLate = $tardinessMinutes > 0;
+
+            // Si está dentro de tolerancia, ajustar a hora programada
+            if ($tardinessMinutes == 0 && $toleranceAfter > 0) {
+                $actualTimeIn = new \DateTime($timeIn);
+                $scheduledTimeIn = new \DateTime($schedule['time_in']);
+                if ($actualTimeIn > $scheduledTimeIn) {
+                    $adjustedTimeIn = $schedule['time_in'];
+                }
+            }
         }
 
         // Calcular duración del almuerzo (misma lógica que calculate())
@@ -554,7 +591,7 @@ class AttendanceCalculator
             'employee_id' => $attendance['employee_id'],
             'date' => $attendance['date'],
             'schedule_id' => $schedule['schedule_id'] ?? null,
-            'time_in' => $this->extractTime($timeIn),
+            'time_in' => $this->extractTime($adjustedTimeIn),
             'time_out' => null,
             'lunch_out' => $this->extractTime($lunchOut),
             'lunch_in' => $this->extractTime($lunchIn),

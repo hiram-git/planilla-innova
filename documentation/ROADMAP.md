@@ -1,18 +1,20 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 13 de Noviembre, 2025
-**Versión**: 3.5.6 - Sincronización Calendario API + Feriados Pagados + Unificación
-**Versión Anterior**: 3.5.5 - Almuerzo en Asistencias: marcaciones y cálculos (Cálculos + UI)
+**Fecha**: 15 de Noviembre, 2025
+**Versión**: 3.5.7 - Vacaciones: Cálculo 11 meses + Control planillas únicas + PDF mejorado
+**Versión Anterior**: 3.5.6 - Sincronización Calendario API + Feriados Pagados + Unificación
 
-### 🆕 Hitos Recientes (Calendario v3.5.6)
-- **CalendarSyncService**: Sincronización completa calendario desde API Base44
-- **Campo is_paid_holiday**: Identificación feriados pagados en business_calendar
-- **Integración API**: Mapeo campo `paid` de API Base44 a `is_paid_holiday` local
-- **Procesamiento Automático**: Generación 8 horas trabajadas para feriados pagados
-- **Unificación Calendario**: Vacaciones ahora usa calendario empresarial unificado
-- **Fix DataTables**: Corrección vista sync-history cuando no hay registros
-- **Modal Edición**: Checkbox "Feriado Pagado" en interfaz calendario empresarial
+### 🆕 Hitos Recientes (v3.5.7 Vacaciones)
+- Vacaciones: salario diario por acumulados 11 meses `ACUMULADOS("SALARIO_BASE") ÷ 11 ÷ 30`
+- Vacaciones: control planillas únicas vía `vacation_requests.payroll_id` (FK a `planilla_cabecera`)
+- Vacaciones: vista Balance muestra fórmula y evita duplicados (link a planilla existente)
+- PDF Vacaciones: orientación horizontal, etiquetas en español, columnas alineadas, resumen de días sincronizado con “Balance Actual”
+- Motor de fórmulas: función `CONCEPTO("NOMBRE")` en evaluador seguro
+
+### 🆕 Hitos de Preparación (Horas Extra)
+- Migraciones: `employees.overtime_eligible`, tolerancias en `schedules`, `attendance_calculations.overtime_approval`
+- Controladores/Modelos: cableado inicial de elegibilidad y tolerancias
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware
