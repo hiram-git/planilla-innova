@@ -23,6 +23,42 @@ $pageTitle = "Gestión de Vacaciones";
 
 <section class="content">
     <div class="container-fluid">
+        <script>
+        (function() {
+            try {
+                var sel = sessionStorage.getItem('selectedPayrollType');
+                if (sel) {
+                    var data = JSON.parse(sel);
+                    var id = data && data.id ? String(data.id) : null;
+                    if (id) {
+                        var url = new URL(window.location.href);
+                        var current = url.searchParams.get('tipo_planilla_id');
+                        if (current !== id) {
+                            url.searchParams.set('tipo_planilla_id', id);
+                            // Evitar loops innecesarios: solo redirigir si cambia
+                            window.location.replace(url.toString());
+                        }
+                    }
+                }
+
+                // Escuchar cambios de tipo de planilla desde el navbar y aplicar filtro inmediato
+                window.addEventListener('payrollTypeChanged', function(ev) {
+                    try {
+                        var id = ev && ev.detail && ev.detail.id ? String(ev.detail.id) : null;
+                        if (!id) return;
+                        var url = new URL(window.location.href);
+                        var current = url.searchParams.get('tipo_planilla_id');
+                        if (current !== id) {
+                            url.searchParams.set('tipo_planilla_id', id);
+                            window.location.replace(url.toString());
+                        }
+                    } catch (e2) { console.warn('payrollTypeChanged handler error:', e2); }
+                });
+            } catch (e) {
+                console.warn('Payroll type filter not applied:', e);
+            }
+        })();
+        </script>
 
         <!-- Solicitudes Pendientes -->
         <?php if (!empty($pending_requests)): ?>
