@@ -954,8 +954,8 @@ class VacationController extends Controller
             // Frecuencia de Vacaciones (ID 11)
             $frecuencia_id = 11;
 
-            // Crear cabecera de planilla
-            $descripcion = "Planilla de Vacaciones - Solicitud #{$request_id}";
+            // Crear cabecera de planilla (en mayúsculas)
+            $descripcion = strtoupper("Planilla de Vacaciones - Solicitud #{$request_id}");
             $payrollData = [
                 'descripcion' => $descripcion,
                 'tipo_planilla_id' => $tipo_planilla_id,
