@@ -104,6 +104,9 @@ class VacationController extends Controller
     public function index()
     {
         try {
+            // Filtro por tipo de planilla (desde querystring)
+            $tipoPlanillaId = $_GET['tipo_planilla_id'] ?? null;
+
             // Obtener empleados activos con datos de vacaciones
             $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.document_id,
                            e.fecha_ingreso, e.sueldo_individual, cargo.nombre as cargo_nombre,
@@ -113,10 +116,20 @@ class VacationController extends Controller
                     FROM employees e
                     LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN situaciones s ON e.situacion_id = s.id
-                    WHERE e.situacion_id = 1
+                    WHERE e.situacion_id = 1";
+
+            $params = [];
+            if (!empty($tipoPlanillaId)) {
+                // e.tipo_planilla_id puede ser CSV; usar FIND_IN_SET
+                $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = $tipoPlanillaId;
+            }
+
+            $sql .= "
                     ORDER BY e.firstname, e.lastname";
 
-            $stmt = $this->db->query($sql);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
             $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Calcular balances usando el nuevo sistema (vacation_annual_balances)
@@ -142,10 +155,18 @@ class VacationController extends Controller
             $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id
                     FROM vacation_requests vr
                     INNER JOIN employees e ON vr.employee_id = e.id
-                    WHERE vr.status = 'PENDING'
-                    ORDER BY vr.request_date DESC";
+                    WHERE vr.status = 'PENDING'";
 
-            $stmt = $this->db->query($sql);
+            $pParams = [];
+            if (!empty($tipoPlanillaId)) {
+                $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+                $pParams[] = $tipoPlanillaId;
+            }
+
+            $sql .= " ORDER BY vr.request_date DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($pParams);
             $pending_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $this->render('admin/vacation/index', [
