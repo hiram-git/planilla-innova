@@ -103,6 +103,127 @@ class WorkScheduleResolver
     }
 
     /**
+     * Calcular minutos de almuerzo aplicando tolerancias configuradas.
+     *
+     * Regla:
+     * - Se parte de la duración programada (scheduledDuration).
+     * - Si la salida a almuerzo ocurre ANTES de (salida_programada - tol_before) se suma el exceso a la deducción.
+     * - Si el retorno ocurre DESPUÉS de (entrada_programada + tol_after) se suma el exceso a la deducción.
+     * - Si la salida ocurre DESPUÉS de (salida_programada + tol_after) se resta el exceso (acorta el almuerzo).
+     * - Si el retorno ocurre ANTES de (entrada_programada - tol_before) se resta el exceso (acorta el almuerzo).
+     *
+     * @param string|null $actualOut     Timestamp real de salida a almuerzo (Y-m-d H:i:s o H:i:s)
+     * @param string|null $actualIn      Timestamp real de retorno de almuerzo
+     * @param string|null $scheduledOut  Hora programada de salida a almuerzo (H:i:s)
+     * @param string|null $scheduledIn   Hora programada de retorno de almuerzo (H:i:s)
+     * @param int $tolOutBefore          Minutos de tolerancia antes de salida a almuerzo
+     * @param int $tolOutAfter           Minutos de tolerancia después de salida a almuerzo
+     * @param int $tolInBefore           Minutos de tolerancia antes de entrada de almuerzo
+     * @param int $tolInAfter            Minutos de tolerancia después de entrada de almuerzo
+     * @return array [ 'lunch_minutes' => int, 'exceeded_minutes' => int, 'scheduled_minutes' => int ]
+     */
+    public function calculateLunchWithTolerance(
+        ?string $actualOut,
+        ?string $actualIn,
+        ?string $scheduledOut,
+        ?string $scheduledIn,
+        int $tolOutBefore = 0,
+        int $tolOutAfter = 0,
+        int $tolInBefore = 0,
+        int $tolInAfter = 0
+    ): array {
+        // Si no hay horario programado de almuerzo, no aplicar tolerancias
+        if (empty($scheduledOut) || empty($scheduledIn)) {
+            return [ 'lunch_minutes' => 0, 'exceeded_minutes' => 0, 'scheduled_minutes' => 0 ];
+        }
+
+        // Si faltan marcaciones reales, usar duración programada y sin exceso
+        if (empty($actualOut) || empty($actualIn)) {
+            $scheduledMinutes = $this->diffMinutes($scheduledOut, $scheduledIn);
+            return [ 'lunch_minutes' => $scheduledMinutes, 'exceeded_minutes' => 0, 'scheduled_minutes' => $scheduledMinutes ];
+        }
+
+        $scheduledMinutes = $this->diffMinutes($scheduledOut, $scheduledIn);
+
+        // Construir ventanas de tolerancia
+        $winOutStart = $this->modifyTime($scheduledOut, -$tolOutBefore);
+        $winOutEnd   = $this->modifyTime($scheduledOut, +$tolOutAfter);
+        $winInStart  = $this->modifyTime($scheduledIn, -$tolInBefore);
+        $winInEnd    = $this->modifyTime($scheduledIn, +$tolInAfter);
+
+        // Normalizar formatos a DateTime completos si vienen en HH:MM:SS
+        $actualOutDT = $this->toDateTime($actualOut);
+        $actualInDT  = $this->toDateTime($actualIn);
+        $winOutStartDT = $this->toDateTime($winOutStart);
+        $winOutEndDT   = $this->toDateTime($winOutEnd);
+        $winInStartDT  = $this->toDateTime($winInStart);
+        $winInEndDT    = $this->toDateTime($winInEnd);
+        $scheduledOutDT= $this->toDateTime($scheduledOut);
+        $scheduledInDT = $this->toDateTime($scheduledIn);
+
+        // Excesos positivos (extienden el almuerzo)
+        $positiveExtra = 0;
+        if ($actualOutDT < $winOutStartDT) {
+            $positiveExtra += $this->diffMinutesDT($actualOutDT, $winOutStartDT);
+        }
+        if ($actualInDT > $winInEndDT) {
+            $positiveExtra += $this->diffMinutesDT($winInEndDT, $actualInDT);
+        }
+
+        // Excesos negativos (acortan el almuerzo)
+        $negativeExtra = 0;
+        if ($actualOutDT > $winOutEndDT) {
+            $negativeExtra += $this->diffMinutesDT($winOutEndDT, $actualOutDT);
+        }
+        if ($actualInDT < $winInStartDT) {
+            $negativeExtra += $this->diffMinutesDT($actualInDT, $winInStartDT);
+        }
+
+        $lunchMinutes = max(0, $scheduledMinutes + $positiveExtra - $negativeExtra);
+        $exceeded = $positiveExtra; // Exceso de almuerzo solo cuando se excede fuera de tolerancia
+
+        return [
+            'lunch_minutes' => (int)$lunchMinutes,
+            'exceeded_minutes' => (int)$exceeded,
+            'scheduled_minutes' => (int)$scheduledMinutes
+        ];
+    }
+
+    // ==========================
+    // Helpers internos de tiempo
+    // ==========================
+    private function toDateTime(string $timeOrDate): \DateTime
+    {
+        // Si viene solo hora, usar fecha de hoy
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $timeOrDate)) {
+            $timeOrDate = date('Y-m-d') . ' ' . $timeOrDate;
+        }
+        return new \DateTime($timeOrDate);
+    }
+
+    private function modifyTime(string $baseTime, int $minutes): string
+    {
+        $dt = $this->toDateTime($baseTime);
+        $op = $minutes >= 0 ? "+{$minutes} minutes" : "{$minutes} minutes";
+        $dt->modify($op);
+        return $dt->format('H:i:s');
+    }
+
+    private function diffMinutes(string $timeA, string $timeB): int
+    {
+        $a = $this->toDateTime($timeA);
+        $b = $this->toDateTime($timeB);
+        $diff = abs($b->getTimestamp() - $a->getTimestamp());
+        return (int) round($diff / 60);
+    }
+
+    private function diffMinutesDT(\DateTime $a, \DateTime $b): int
+    {
+        $diff = abs($b->getTimestamp() - $a->getTimestamp());
+        return (int) round($diff / 60);
+    }
+
+    /**
      * Calcular duración esperada de jornada en horas
      *
      * @param array $schedule Array con time_in y time_out

@@ -1476,21 +1476,50 @@ class AttendanceController extends Controller
             foreach ($existingDetails as $detail) {
                 $employeesWithAttendance[$detail['employee_id']] = true;
 
-                // Actualizar horarios programados si están NULL
-                if (empty($detail['scheduled_time_in']) || empty($detail['scheduled_time_out'])) {
-                    if (!empty($detail['schedule_id'])) {
-                        $sql = "SELECT time_in, time_out FROM schedules WHERE id = ?";
-                        $stmt = $this->employeeModel->db->prepare($sql);
-                        $stmt->execute([$detail['schedule_id']]);
-                        $schedule = $stmt->fetch(\PDO::FETCH_ASSOC);
+                // Sincronizar horario programado del detalle con el horario ACTUAL del empleado
+                try {
+                    // Obtener schedule_id actual del empleado
+                    $empSql = "SELECT schedule_id FROM employees WHERE id = ?";
+                    $empStmt = $this->employeeModel->db->prepare($empSql);
+                    $empStmt->execute([$detail['employee_id']]);
+                    $empRow = $empStmt->fetch(\PDO::FETCH_ASSOC);
 
-                        if ($schedule) {
-                            $this->detailModel->update($detail['id'], [
-                                'scheduled_time_in' => $schedule['time_in'],
-                                'scheduled_time_out' => $schedule['time_out']
-                            ]);
+                    $currentScheduleId = $empRow['schedule_id'] ?? null;
+
+                    if (!empty($currentScheduleId)) {
+                        // Cargar horario actual
+                        $schSql = "SELECT time_in, time_out FROM schedules WHERE id = ?";
+                        $schStmt = $this->employeeModel->db->prepare($schSql);
+                        $schStmt->execute([$currentScheduleId]);
+                        $sch = $schStmt->fetch(\PDO::FETCH_ASSOC);
+
+                        if ($sch) {
+                            $needsUpdate = false;
+                            $updateData = [];
+
+                            // Si el schedule_id cambió o está vacío en el detalle, actualizar
+                            if (empty($detail['schedule_id']) || (int)$detail['schedule_id'] !== (int)$currentScheduleId) {
+                                $updateData['schedule_id'] = $currentScheduleId;
+                                $needsUpdate = true;
+                            }
+
+                            // Si los horarios programados difieren o están vacíos, actualizar
+                            if (empty($detail['scheduled_time_in']) || $detail['scheduled_time_in'] !== $sch['time_in']) {
+                                $updateData['scheduled_time_in'] = $sch['time_in'];
+                                $needsUpdate = true;
+                            }
+                            if (empty($detail['scheduled_time_out']) || $detail['scheduled_time_out'] !== $sch['time_out']) {
+                                $updateData['scheduled_time_out'] = $sch['time_out'];
+                                $needsUpdate = true;
+                            }
+
+                            if ($needsUpdate) {
+                                $this->detailModel->update($detail['id'], $updateData);
+                            }
                         }
                     }
+                } catch (\Exception $e) {
+                    error_log("processDay: error syncing scheduled times for detail {$detail['id']}: " . $e->getMessage());
                 }
             }
 

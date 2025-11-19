@@ -27,10 +27,12 @@ class OvertimeCalculator
     const NIGHT_SHIFT_END = 6;    // 6:00 AM
 
     private $businessCalendar;
+    private $schedule;
 
     public function __construct()
     {
         $this->businessCalendar = new BusinessCalendar();
+        $this->schedule = null;
     }
 
     /**
@@ -166,14 +168,14 @@ class OvertimeCalculator
      * @param int $lunchMinutes Minutos de almuerzo
      * @return array Breakdown completo con todas las horas calculadas
      */
-    public function calculateCompleteBreakdown($timeIn, $timeOut, $date, $regularHours = self::REGULAR_DAILY_HOURS, $lunchMinutes = 60)
+    public function calculateCompleteBreakdown($timeIn, $timeOut, $date, $regularHours = self::REGULAR_DAILY_HOURS, $lunchMinutes = 60, $schedule = null)
     {
         if (empty($timeIn) || empty($timeOut)) {
             return $this->getEmptyBreakdown();
         }
 
-        // Calcular horas totales trabajadas
-        $totalHours = $this->calculateTotalHours($timeIn, $timeOut, $lunchMinutes);
+        // Calcular horas totales trabajadas (aplicando tolerancias si hay horario)
+        $totalHours = $this->calculateTotalHours($timeIn, $timeOut, $lunchMinutes, $schedule);
 
         // Verificar si es feriado/domingo
         $holidayStatus = $this->checkHolidayStatus($date);
@@ -233,7 +235,7 @@ class OvertimeCalculator
      * @param int $lunchMinutes
      * @return float
      */
-    private function calculateTotalHours($timeIn, $timeOut, $lunchMinutes = 60)
+    private function calculateTotalHours($timeIn, $timeOut, $lunchMinutes = 60, $schedule = null)
     {
         $start = new DateTime($timeIn);
         $end = new DateTime($timeOut);
@@ -243,8 +245,46 @@ class OvertimeCalculator
             $end->modify('+1 day');
         }
 
-        $interval = $start->diff($end);
-        $totalMinutes = ($interval->h * 60) + $interval->i;
+        // Aplicar tolerancias de horario si están disponibles para ajustar entrada/salida efectivas
+        $effectiveStart = clone $start;
+        $effectiveEnd = clone $end;
+
+        if (is_array($schedule) && !empty($schedule['time_in']) && !empty($schedule['time_out'])) {
+            $schedIn = new DateTime($schedule['time_in']);
+            $schedOut = new DateTime($schedule['time_out']);
+
+            if ($schedOut < $schedIn) {
+                $schedOut->modify('+1 day');
+            }
+
+            $inBefore = (int)($schedule['time_in_tolerance_before'] ?? 0);
+            $inAfter  = (int)($schedule['time_in_tolerance_after'] ?? 0);
+            $outBefore= (int)($schedule['time_out_tolerance_before'] ?? 0);
+            $outAfter = (int)($schedule['time_out_tolerance_after'] ?? 0);
+
+            $inWinStart = (clone $schedIn)->modify("-{$inBefore} minutes");
+            $inWinEnd   = (clone $schedIn)->modify("+{$inAfter} minutes");
+            $outWinStart= (clone $schedOut)->modify("-{$outBefore} minutes");
+            $outWinEnd  = (clone $schedOut)->modify("+{$outAfter} minutes");
+
+            // Ajuste entrada efectiva
+            if ($effectiveStart <= $schedIn) {
+                $effectiveStart = ($effectiveStart >= $inWinStart) ? clone $schedIn : $effectiveStart; 
+            } else {
+                $effectiveStart = ($effectiveStart <= $inWinEnd) ? clone $schedIn : $effectiveStart;
+            }
+
+            // Ajuste salida efectiva
+            if ($effectiveEnd >= $schedOut) {
+                $effectiveEnd = ($effectiveEnd <= $outWinEnd) ? clone $schedOut : $effectiveEnd;
+            } else {
+                $effectiveEnd = ($effectiveEnd >= $outWinStart) ? clone $schedOut : $effectiveEnd;
+            }
+
+        }
+
+        $interval = $effectiveStart->diff($effectiveEnd);
+        $totalMinutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
 
         // Descontar almuerzo si trabajó más de 4 horas
         if ($totalMinutes > 240) { // 4 horas = 240 minutos

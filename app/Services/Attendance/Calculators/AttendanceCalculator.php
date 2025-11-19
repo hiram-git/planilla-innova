@@ -97,31 +97,39 @@ class AttendanceCalculator
             return $this->getPartialCalculation($attendance, $schedule, $dayInfo);
         }
 
-        // Calcular duración del almuerzo para descontar de horas trabajadas
+        // Calcular duración del almuerzo aplicando tolerancias del horario
         $lunchTimeMinutes = 0;
-
-        if ($lunchOut && $lunchIn) {
-            // Caso 1: El empleado marcó salida/entrada de almuerzo → usar duración real
-            $lunchTimeMinutes = $this->calculateLunchDuration($lunchOut, $lunchIn);
-        } elseif ($hasLunchPeriod) {
-            // Caso 2: El horario tiene almuerzo programado pero el empleado NO marcó
-            // → usar duración programada del horario
-            $scheduledLunchDuration = $this->calculateLunchDuration(
-                $schedule['salida_almuerzo'],
-                $schedule['entrada_almuerzo']
-            );
-            $lunchTimeMinutes = $scheduledLunchDuration;
-        }
-        // Caso 3: No hay almuerzo programado ni marcado → 0 minutos
-
-        // Calcular minutos de exceso en el almuerzo (solo si marcó)
         $lunchExceededMinutes = 0;
-        if ($lunchOut && $lunchIn && $schedule) {
-            $lunchExceededMinutes = $this->calculateLunchExceeded(
-                $lunchTimeMinutes,
-                $schedule['salida_almuerzo'] ?? null,
-                $schedule['entrada_almuerzo'] ?? null
-            );
+
+        if ($hasLunchPeriod) {
+            // Si hay horario programado de almuerzo, aplicar tolerancias
+            if ($lunchOut && $lunchIn) {
+                $lunchTol = $this->scheduleResolver->calculateLunchWithTolerance(
+                    $lunchOut,
+                    $lunchIn,
+                    $schedule['salida_almuerzo'],
+                    $schedule['entrada_almuerzo'],
+                    (int)($schedule['lunch_out_tolerance_before'] ?? 0),
+                    (int)($schedule['lunch_out_tolerance_after'] ?? 0),
+                    (int)($schedule['lunch_in_tolerance_before'] ?? 0),
+                    (int)($schedule['lunch_in_tolerance_after'] ?? 0)
+                );
+                $lunchTimeMinutes = $lunchTol['lunch_minutes'];
+                $lunchExceededMinutes = $lunchTol['exceeded_minutes'];
+            } else {
+                // No hay ambas marcaciones: usar duración programada
+                $lunchTimeMinutes = $this->calculateLunchDuration(
+                    $schedule['salida_almuerzo'],
+                    $schedule['entrada_almuerzo']
+                );
+                $lunchExceededMinutes = 0;
+            }
+        } else {
+            // No hay horario de almuerzo definido
+            $lunchTimeMinutes = ($lunchOut && $lunchIn)
+                ? $this->calculateLunchDuration($lunchOut, $lunchIn)
+                : 0;
+            $lunchExceededMinutes = 0;
         }
 
         // Calcular tardanzas y ajustar horas ANTES de calcular horas trabajadas
@@ -181,8 +189,35 @@ class AttendanceCalculator
             $adjustedTimeOut,
             $date,
             $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8,
-            $lunchTimeMinutes
+            $lunchTimeMinutes,
+            $schedule
         );
+
+        // Corrección: si el horario NO es nocturno y la salida ajustada no excede la hora programada,
+        // y ambas horas ajustadas caen en la ventana diurna (06:00-18:00), forzar horas nocturnas = 0
+        if ($schedule && !($dayInfo['is_holiday'] ?? false) && ($hoursBreakdown['night_hours'] ?? 0) > 0) {
+            $isNightShift = $this->scheduleResolver->isNightShift($schedule);
+            if (!$isNightShift) {
+                try {
+                    $adjIn = new \DateTime($adjustedTimeIn);
+                    $adjOut = new \DateTime($adjustedTimeOut);
+                    $schedOut = new \DateTime($schedule['time_out']);
+                    $tolOutAfter = (int)($schedule['time_out_tolerance_after'] ?? 0);
+                    $schedOutPlusTol = (clone $schedOut)->modify("+{$tolOutAfter} minutes");
+
+                    $inHour = (int)$adjIn->format('H');
+                    $inIsDay = ($inHour >= 6 && $inHour < 18);
+                    // Permitir que la salida esté hasta dentro de la tolerancia sin contar nocturnas
+                    $outWithinTolerance = $adjOut <= $schedOutPlusTol;
+
+                    if ($inIsDay && $outWithinTolerance) {
+                        $hoursBreakdown['night_hours'] = 0;
+                    }
+                } catch (\Exception $e) {
+                    // ignorar, mantener cálculo original
+                }
+            }
+        }
 
         // Si el empleado NO permite horas extras, eliminar overtime (solo para empleados exentos/gerentes)
         if (!$employeeAllowsOvertime) {
@@ -190,6 +225,7 @@ class AttendanceCalculator
             $hoursBreakdown['overtime_hours'] = 0;
             $hoursBreakdown['overtime_25_hours'] = 0;
             $hoursBreakdown['overtime_50_hours'] = 0;
+            $hoursBreakdown['night_hours'] = 0;
             // Ajustar regular_hours al total trabajado (sin distinguir extras)
             $hoursBreakdown['regular_hours'] = $hoursBreakdown['total_hours'];
         }
