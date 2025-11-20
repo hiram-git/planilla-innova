@@ -53,168 +53,148 @@ $content .= '
 // Campos específicos para horarios
 if ($route_name === 'schedules') {
     $content .= '
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="time_in">Hora de Entrada *</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="time_in" name="time_in"
-                                           value="' . ($_SESSION['old_data']['time_in'] ?? '') . '" required>
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="card card-outline card-primary mt-2">
+                        <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                            <h3 class="card-title mb-0"><i class="fas fa-clock"></i> Horario y tolerancias</h3>
+                            <span class="text-sm text-muted">Entrada, almuerzo y salida en una vista compacta</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="time_out">Hora de Salida *</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="time_out" name="time_out"
-                                           value="' . ($_SESSION['old_data']['time_out'] ?? '') . '" required>
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="salida_almuerzo">Salida a Almuerzo</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="salida_almuerzo" name="salida_almuerzo"
-                                           value="' . ($_SESSION['old_data']['salida_almuerzo'] ?? '') . '">
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
-                                    </div>
-                                </div>
-                                <small class="form-text text-muted">Opcional - Hora programada para salir a almuerzo</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="entrada_almuerzo">Entrada de Almuerzo</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control timepicker" id="entrada_almuerzo" name="entrada_almuerzo"
-                                           value="' . ($_SESSION['old_data']['entrada_almuerzo'] ?? '') . '">
-                                    <div class="input-group-append">
-                                        <div class="input-group-text"><i class="far fa-clock"></i></div>
-                                    </div>
-                                </div>
-                                <small class="form-text text-muted">Opcional - Hora programada para regresar de almuerzo</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sección de Tolerancias -->
-                    <div class="card card-outline card-info mt-3">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-stopwatch"></i> Configuración de Tolerancias (minutos)
-                            </h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <strong>Tolerancias:</strong> Configure los minutos de tolerancia permitidos para cada tipo de marcación.
-                                Un valor de 0 significa que no hay tolerancia. Valores por defecto: 0 minutos.
-                            </div>
-
-                            <!-- Tolerancias de Entrada -->
-                            <h5 class="text-primary"><i class="fas fa-sign-in-alt"></i> Entrada al Trabajo</h5>
+                        <div class="card-body pt-3 pb-2">
                             <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="time_in_tolerance_before">Tolerancia Antes (minutos)</label>
-                                        <input type="number" class="form-control" id="time_in_tolerance_before"
-                                               name="time_in_tolerance_before" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['time_in_tolerance_before'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos antes de la hora programada</small>
+                                <div class="col-lg-3 col-md-6 col-12 mb-3">
+                                    <label class="font-weight-bold mb-1" for="time_in">Entrada *</label>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control timepicker text-center" id="time_in" name="time_in"
+                                               value="' . ($_SESSION['old_data']['time_in'] ?? '') . '" required>
+                                        <div class="input-group-append">
+                                            <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 pr-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                                                </div>
+                                                <input type="number" class="form-control" id="time_in_tolerance_before"
+                                                       name="time_in_tolerance_before" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['time_in_tolerance_before'] ?? 0) . '"
+                                                       placeholder="Antes">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de entrada</small>
+                                        </div>
+                                        <div class="col-6 pl-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                                                </div>
+                                                <input type="number" class="form-control" id="time_in_tolerance_after"
+                                                       name="time_in_tolerance_after" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['time_in_tolerance_after'] ?? 0) . '"
+                                                       placeholder="Después">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de salida</small>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="time_in_tolerance_after">Tolerancia Después (minutos)</label>
-                                        <input type="number" class="form-control" id="time_in_tolerance_after"
-                                               name="time_in_tolerance_after" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['time_in_tolerance_after'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos después sin marcar tardanza (gracia)</small>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <!-- Tolerancias de Salida -->
-                            <h5 class="text-danger mt-3"><i class="fas fa-sign-out-alt"></i> Salida del Trabajo</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="time_out_tolerance_before">Tolerancia Antes (minutos)</label>
-                                        <input type="number" class="form-control" id="time_out_tolerance_before"
-                                               name="time_out_tolerance_before" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['time_out_tolerance_before'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos para salir antes sin marcar salida anticipada</small>
+                                <div class="col-lg-3 col-md-6 col-12 mb-3">
+                                    <label class="font-weight-bold mb-1" for="salida_almuerzo">Salida almuerzo</label>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control timepicker text-center" id="salida_almuerzo" name="salida_almuerzo"
+                                               value="' . ($_SESSION['old_data']['salida_almuerzo'] ?? '') . '">
+                                        <div class="input-group-append">
+                                            <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="time_out_tolerance_after">Tolerancia Después (minutos)</label>
-                                        <input type="number" class="form-control" id="time_out_tolerance_after"
-                                               name="time_out_tolerance_after" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['time_out_tolerance_after'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos después de la hora de salida</small>
+                                    <div class="row">
+                                        <div class="col-6 pr-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-clock"></i></span></div>
+                                                <input type="number" class="form-control" id="lunch_out_tolerance_before"
+                                                       name="lunch_out_tolerance_before" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['lunch_out_tolerance_before'] ?? 0) . '"
+                                                       placeholder="Antes">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de entrada</small>
+                                        </div>
+                                        <div class="col-6 pl-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-clock"></i></span></div>
+                                                <input type="number" class="form-control" id="lunch_out_tolerance_after"
+                                                       name="lunch_out_tolerance_after" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['lunch_out_tolerance_after'] ?? 0) . '"
+                                                       placeholder="Después">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de salida</small>
+                                        </div>
                                     </div>
+                                    <small class="form-text text-muted">Opcional</small>
                                 </div>
-                            </div>
 
-                            <!-- Tolerancias de Almuerzo (Salida) -->
-                            <h5 class="text-warning mt-3"><i class="fas fa-utensils"></i> Salida a Almuerzo</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="lunch_out_tolerance_before">Tolerancia Antes (minutos)</label>
-                                        <input type="number" class="form-control" id="lunch_out_tolerance_before"
-                                               name="lunch_out_tolerance_before" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['lunch_out_tolerance_before'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos antes de la hora de salida a almuerzo</small>
+                                <div class="col-lg-3 col-md-6 col-12 mb-3">
+                                    <label class="font-weight-bold mb-1" for="entrada_almuerzo">Regreso almuerzo</label>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control timepicker text-center" id="entrada_almuerzo" name="entrada_almuerzo"
+                                               value="' . ($_SESSION['old_data']['entrada_almuerzo'] ?? '') . '">
+                                        <div class="input-group-append">
+                                            <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="lunch_out_tolerance_after">Tolerancia Después (minutos)</label>
-                                        <input type="number" class="form-control" id="lunch_out_tolerance_after"
-                                               name="lunch_out_tolerance_after" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['lunch_out_tolerance_after'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos después de la hora de salida a almuerzo</small>
+                                    <div class="row">
+                                        <div class="col-6 pr-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-clock"></i></span></div>
+                                                <input type="number" class="form-control" id="lunch_in_tolerance_before"
+                                                       name="lunch_in_tolerance_before" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['lunch_in_tolerance_before'] ?? 0) . '"
+                                                       placeholder="Antes">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de entrada</small>
+                                        </div>
+                                        <div class="col-6 pl-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-clock"></i></span></div>
+                                                <input type="number" class="form-control" id="lunch_in_tolerance_after"
+                                                       name="lunch_in_tolerance_after" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['lunch_in_tolerance_after'] ?? 0) . '"
+                                                       placeholder="Después">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de salida</small>
+                                        </div>
                                     </div>
+                                    <small class="form-text text-muted">Opcional</small>
                                 </div>
-                            </div>
 
-                            <!-- Tolerancias de Almuerzo (Entrada) -->
-                            <h5 class="text-success mt-3"><i class="fas fa-utensils"></i> Regreso de Almuerzo</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="lunch_in_tolerance_before">Tolerancia Antes (minutos)</label>
-                                        <input type="number" class="form-control" id="lunch_in_tolerance_before"
-                                               name="lunch_in_tolerance_before" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['lunch_in_tolerance_before'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos para regresar antes del almuerzo</small>
+                                <div class="col-lg-3 col-md-6 col-12 mb-3">
+                                    <label class="font-weight-bold mb-1" for="time_out">Salida *</label>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control timepicker text-center" id="time_out" name="time_out"
+                                               value="' . ($_SESSION['old_data']['time_out'] ?? '') . '" required>
+                                        <div class="input-group-append">
+                                            <div class="input-group-text"><i class="far fa-clock"></i></div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="lunch_in_tolerance_after">Tolerancia Después (minutos)</label>
-                                        <input type="number" class="form-control" id="lunch_in_tolerance_after"
-                                               name="lunch_in_tolerance_after" min="0" max="60" step="1"
-                                               value="' . ($_SESSION['old_data']['lunch_in_tolerance_after'] ?? 0) . '">
-                                        <small class="form-text text-muted">Minutos permitidos después sin marcar tardanza de almuerzo</small>
+                                    <div class="row">
+                                        <div class="col-6 pr-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-clock"></i></span></div>
+                                                <input type="number" class="form-control" id="time_out_tolerance_before"
+                                                       name="time_out_tolerance_before" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['time_out_tolerance_before'] ?? 0) . '"
+                                                       placeholder="Antes">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de entrada</small>
+                                        </div>
+                                        <div class="col-6 pl-1">
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-clock"></i></span></div>
+                                                <input type="number" class="form-control" id="time_out_tolerance_after"
+                                                       name="time_out_tolerance_after" min="0" max="60" step="1"
+                                                       value="' . ($_SESSION['old_data']['time_out_tolerance_after'] ?? 0) . '"
+                                                       placeholder="Después">
+                                            </div>
+                                            <small class="text-muted">Tolerancia de salida</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

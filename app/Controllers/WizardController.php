@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Controllers;
+
 /**
  * WizardController - Sistema Multitenancy
  * Controlador para wizard de creación de empresas y bases de datos
@@ -12,8 +14,10 @@
  */
 
 use App\Core\Database;
+use App\Models\WizardModel;
+use Exception;
 
-require_once dirname(__DIR__) . '/Models/WizardModel.php';
+// Autoloaded via Composer (PSR-4): App\\Models\\WizardModel
 
 class WizardController {
     private $wizardModel;
@@ -68,12 +72,14 @@ class WizardController {
         if ($distributorResult['success']) {
             $_SESSION['wizard_distributor_validated'] = true;
             $_SESSION['wizard_distributor_email'] = $distributorResult['email'];
+            $_SESSION['wizard_distributor_username'] = $username;
             $_SESSION['wizard_step'] = 2;
             
             $this->jsonResponse([
                 'success' => true,
                 'message' => 'Distribuidor encontrado',
                 'email' => $distributorResult['email'],
+                'username' => $username,
                 'next_step' => 2
             ]);
         } else {

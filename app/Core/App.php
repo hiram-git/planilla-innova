@@ -1119,9 +1119,9 @@ class App
                 return;
             }
 
-            // Incluir el controlador wizard
+            // Incluir el controlador wizard (autoload PSR-4)
             require_once __DIR__ . '/../Controllers/WizardController.php';
-            $wizardController = new \WizardController();
+            $wizardController = new \App\Controllers\WizardController();
 
             // Manejar diferentes acciones del wizard
             $action = $url[2] ?? 'index';
@@ -1183,9 +1183,9 @@ class App
     protected function handleCrearEmpresaRoute()
     {
         try {
-            // Incluir el controlador wizard
+            // Incluir el controlador wizard (autoload PSR-4)
             require_once __DIR__ . '/../Controllers/WizardController.php';
-            $wizardController = new \WizardController();
+            $wizardController = new \App\Controllers\WizardController();
 
             // Solo maneja GET para mostrar el formulario
             if ($_SERVER['REQUEST_METHOD'] === 'GET') {

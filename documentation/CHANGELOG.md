@@ -1,144 +1,144 @@
-# 📋 CHANGELOG - Sistema de Planillas MVC
+﻿# ðŸ“‹ CHANGELOG - Sistema de Planillas MVC
 
-## 📖 **Índice de Versiones**
+## ðŸ“– **Ãndice de Versiones**
 
-Este archivo sirve como índice principal para el historial de cambios del sistema. Cada versión tiene su propio archivo detallado en el directorio `changelog/`.
+Este archivo sirve como Ã­ndice principal para el historial de cambios del sistema. Cada versiÃ³n tiene su propio archivo detallado en el directorio `changelog/`.
 
 ---
 
-## 🆕 **Últimas Versiones**
+## ðŸ†• **Ãšltimas Versiones**
 
-### **[v3.5.7]** - 2025-11-15 - *Módulo Vacaciones: Cálculo 11 Meses + Control Planillas Únicas*
-**Tipo**: Feature - Módulo Vacaciones Panamá
-**Fase**: FASE 5 - Módulo Vacaciones (Subfase 5.1 40%)
+### **[v3.5.7]** - 2025-11-15 - *MÃ³dulo Vacaciones: CÃ¡lculo 11 Meses + Control Planillas Ãšnicas*
+**Tipo**: Feature - MÃ³dulo Vacaciones PanamÃ¡
+**Fase**: FASE 5 - MÃ³dulo Vacaciones (Subfase 5.1 40%)
 **Criticidad**: Alta
 
 **Componentes Principales**:
-- ✅ **Cálculo Salario Diario 11 Meses** (VacationController.php):
-  - Método `calculateVacationDailySalary()` nuevo (47 líneas)
-  - Fórmula: `ACUMULADOS("SALARIO_BASE", últimos 11 meses) ÷ 11 ÷ 30`
-  - Integración en métodos `store()`, `approve()`, `balance()`
+- âœ… **CÃ¡lculo Salario Diario 11 Meses** (VacationController.php):
+  - MÃ©todo `calculateVacationDailySalary()` nuevo (47 lÃ­neas)
+  - FÃ³rmula: `ACUMULADOS("SALARIO_BASE", Ãºltimos 11 meses) Ã· 11 Ã· 30`
+  - IntegraciÃ³n en mÃ©todos `store()`, `approve()`, `balance()`
   - Fallback a salario actual si no hay acumulados
-  - Logging detallado para auditoría
-- ✅ **Control Planillas Únicas**:
+  - Logging detallado para auditorÃ­a
+- âœ… **Control Planillas Ãšnicas**:
   - Campo `payroll_id` en tabla `vacation_requests`
-  - Validación para evitar generación duplicada de planillas
-  - Actualización automática después de crear planilla
+  - ValidaciÃ³n para evitar generaciÃ³n duplicada de planillas
+  - ActualizaciÃ³n automÃ¡tica despuÃ©s de crear planilla
   - Foreign Key a `planilla_cabecera` con CASCADE
-- ✅ **Mejoras UI Vista Balance** (balance.php):
-  - Explicación visible de fórmula de cálculo
-  - Lógica condicional botón generar planilla
-  - Botón gris para ver planilla existente
-  - Eliminación botón grande innecesario
-- ✅ **Mejoras PDF Solicitud** (PDFReportController.php):
-  - Sección "Compensación / Monto a Pagar"
-  - Sección "Resumen de Días (Balance Actual)"
-  - Cálculo balance resultante después de aprobación
-  - Layout mejorado con columnas dinámicas
- - ✅ **Motor Fórmulas Seguro** (PlanillaConceptCalculatorSecure.php):
-   - Nueva función `CONCEPTO("NOMBRE")` para referenciar/evaluar otros conceptos con retorno 0 si no existe
- - ✅ **Preparación Horas Extra**:
+- âœ… **Mejoras UI Vista Balance** (balance.php):
+  - ExplicaciÃ³n visible de fÃ³rmula de cÃ¡lculo
+  - LÃ³gica condicional botÃ³n generar planilla
+  - BotÃ³n gris para ver planilla existente
+  - EliminaciÃ³n botÃ³n grande innecesario
+- âœ… **Mejoras PDF Solicitud** (PDFReportController.php):
+  - SecciÃ³n "CompensaciÃ³n / Monto a Pagar"
+  - SecciÃ³n "Resumen de DÃ­as (Balance Actual)"
+  - CÃ¡lculo balance resultante despuÃ©s de aprobaciÃ³n
+  - Layout mejorado con columnas dinÃ¡micas
+ - âœ… **Motor FÃ³rmulas Seguro** (PlanillaConceptCalculatorSecure.php):
+   - Nueva funciÃ³n `CONCEPTO("NOMBRE")` para referenciar/evaluar otros conceptos con retorno 0 si no existe
+ - âœ… **PreparaciÃ³n Horas Extra**:
    - Migraciones: `employees.overtime_eligible`, tolerancias en `schedules`, `attendance_calculations.overtime_approval`
    - Cableado inicial en controladores/modelos/calculadores
 
-**📈 Estadísticas**:
-- 3 archivos modificados | 1 archivo nuevo | +203 líneas código agregadas | -63 líneas eliminadas
-- 1 tabla modificada | 1 campo nuevo | 1 índice nuevo | 1 foreign key nueva
+**ðŸ“ˆ EstadÃ­sticas**:
+- 3 archivos modificados | 1 archivo nuevo | +203 lÃ­neas cÃ³digo agregadas | -63 lÃ­neas eliminadas
+- 1 tabla modificada | 1 campo nuevo | 1 Ã­ndice nuevo | 1 foreign key nueva
 - Deployment: 5-10 minutos
 
-**[📄 Ver detalles completos →](./changelog/v3.5.7.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.5.7.md)**
 
 ---
 
-### **[v3.5.6]** - 2025-11-13 - *Sincronización Calendario API + Feriados Pagados + Unificación*
-**Tipo**: Feature - Sincronización automática calendario empresarial + Unificación vista vacaciones
-**Fase**: Calendario Empresarial - Integración API Base44
+### **[v3.5.6]** - 2025-11-13 - *SincronizaciÃ³n Calendario API + Feriados Pagados + UnificaciÃ³n*
+**Tipo**: Feature - SincronizaciÃ³n automÃ¡tica calendario empresarial + UnificaciÃ³n vista vacaciones
+**Fase**: Calendario Empresarial - IntegraciÃ³n API Base44
 **Criticidad**: Media
 
 **Componentes Principales**:
-- ✅ **CalendarSyncService** (~500 líneas):
-  - Sincronización manual calendario desde API Base44
-  - Soporte sincronización completa o por año específico
+- âœ… **CalendarSyncService** (~500 lÃ­neas):
+  - SincronizaciÃ³n manual calendario desde API Base44
+  - Soporte sincronizaciÃ³n completa o por aÃ±o especÃ­fico
   - Modo `replace`: elimina registros existentes antes de importar
-  - Modo `dry_run`: simulación sin modificar BD
-  - Mapeo tipos de día (LABORAL, FERIADO, DUELO_NACIONAL, ESPECIAL)
+  - Modo `dry_run`: simulaciÃ³n sin modificar BD
+  - Mapeo tipos de dÃ­a (LABORAL, FERIADO, DUELO_NACIONAL, ESPECIAL)
   - Logging detallado de operaciones
-- ✅ **Campo is_paid_holiday**:
+- âœ… **Campo is_paid_holiday**:
   - Nuevo campo en tabla `business_calendar`
-  - Integración con API Base44 (campo `paid`)
-  - Identificación de feriados pagados para procesamiento asistencias
-  - Modal edición con checkbox "Feriado Pagado"
-- ✅ **Endpoint Sincronización**:
+  - IntegraciÃ³n con API Base44 (campo `paid`)
+  - IdentificaciÃ³n de feriados pagados para procesamiento asistencias
+  - Modal ediciÃ³n con checkbox "Feriado Pagado"
+- âœ… **Endpoint SincronizaciÃ³n**:
   - POST `/panel/business-calendar/sync-api`
-  - Validación CSRF obligatoria
-  - Parámetros: year, replace, dry_run
-  - Respuesta JSON con estadísticas detalladas
-- ✅ **UI Sincronización** (calendar.php):
-  - Botón "Sincronizar desde API"
-  - Modal confirmación con SweetAlert2
-  - Tabla de estadísticas al completar
-  - Recarga automática de página
-- ✅ **Tabla calendar_sync_log** (~40 líneas SQL):
+  - ValidaciÃ³n CSRF obligatoria
+  - ParÃ¡metros: year, replace, dry_run
+  - Respuesta JSON con estadÃ­sticas detalladas
+- âœ… **UI SincronizaciÃ³n** (calendar.php):
+  - BotÃ³n "Sincronizar desde API"
+  - Modal confirmaciÃ³n con SweetAlert2
+  - Tabla de estadÃ­sticas al completar
+  - Recarga automÃ¡tica de pÃ¡gina
+- âœ… **Tabla calendar_sync_log** (~40 lÃ­neas SQL):
   - Tracking completo de sincronizaciones
-  - Campos: tipo, tiempos, duración, status, estadísticas
-  - 4 índices optimizados
-- ✅ **Unificación Calendario Vacaciones**:
+  - Campos: tipo, tiempos, duraciÃ³n, status, estadÃ­sticas
+  - 4 Ã­ndices optimizados
+- âœ… **UnificaciÃ³n Calendario Vacaciones**:
   - VacationController usa `business_calendar` (antes: `vacation_calendar`)
   - Query unificado con filtros por `day_type`
-  - Vista vacation/calendar.php actualizada (~100 líneas)
-  - Eventos con colores dinámicos por tipo de día
-  - Modal información mejorado
-- ✅ **Procesamiento Feriados Pagados**:
+  - Vista vacation/calendar.php actualizada (~100 lÃ­neas)
+  - Eventos con colores dinÃ¡micos por tipo de dÃ­a
+  - Modal informaciÃ³n mejorado
+- âœ… **Procesamiento Feriados Pagados**:
   - AttendanceController->processDay() genera 8 horas trabajadas
   - Aplicable a todos los empleados en feriados pagados
-  - Integración con campo `is_paid_holiday`
-- ✅ **Fix DataTables**: Corrección sync-history cuando no hay registros
+  - IntegraciÃ³n con campo `is_paid_holiday`
+- âœ… **Fix DataTables**: CorrecciÃ³n sync-history cuando no hay registros
 
-**📈 Estadísticas**:
-- 5 archivos modificados | 2 archivos nuevos | ~825 líneas código agregadas
+**ðŸ“ˆ EstadÃ­sticas**:
+- 5 archivos modificados | 2 archivos nuevos | ~825 lÃ­neas cÃ³digo agregadas
 - 1 tabla BD nueva (calendar_sync_log) | 1 campo nuevo (is_paid_holiday)
 - 1 endpoint nuevo | 1 servicio nuevo (CalendarSyncService)
 - Deployment: 5-10 minutos
 
-**[📄 Ver detalles completos →](./changelog/v3.5.6.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.5.6.md)**
 
 ---
 
-### **[v3.5.5]** - 2025-11-03 - *Almuerzo en Asistencias: marcaciones y cálculos*
-**Tipo**: Feature - Cálculos de Asistencia + UI
-**Fase**: Subfase 7.2 (Cálculos) mejorada + 7.5 (Interfaz)
+### **[v3.5.5]** - 2025-11-03 - *Almuerzo en Asistencias: marcaciones y cÃ¡lculos*
+**Tipo**: Feature - CÃ¡lculos de Asistencia + UI
+**Fase**: Subfase 7.2 (CÃ¡lculos) mejorada + 7.5 (Interfaz)
 **Criticidad**: Media
 
 **Componentes Principales**:
-- ✅ **Base de Datos**:
-  - `schedules`: agrega `salida_almuerzo`, `entrada_almuerzo` (+ índice)
-  - `attendance_detail`: agrega `lunch_out`, `lunch_in`, `scheduled_lunch_out`, `scheduled_lunch_in`, `lunch_duration_minutes`, `lunch_exceeded_minutes` (+ índices)
-  - Trigger `trg_calculate_lunch_duration` para calcular duración/exceso de almuerzo
+- âœ… **Base de Datos**:
+  - `schedules`: agrega `salida_almuerzo`, `entrada_almuerzo` (+ Ã­ndice)
+  - `attendance_detail`: agrega `lunch_out`, `lunch_in`, `scheduled_lunch_out`, `scheduled_lunch_in`, `lunch_duration_minutes`, `lunch_exceeded_minutes` (+ Ã­ndices)
+  - Trigger `trg_calculate_lunch_duration` para calcular duraciÃ³n/exceso de almuerzo
   - Vista `v_attendance_detail_with_lunch` y procedimiento `sp_validate_attendance_completeness`
-- ✅ **Cálculos**:
-  - `AttendanceCalculator`: resta tiempo de almuerzo de horas trabajadas, incluye métricas y horarios programados de almuerzo
-- ✅ **Procesamiento**:
+- âœ… **CÃ¡lculos**:
+  - `AttendanceCalculator`: resta tiempo de almuerzo de horas trabajadas, incluye mÃ©tricas y horarios programados de almuerzo
+- âœ… **Procesamiento**:
   - `RecordsProcessor`: clasifica marcaciones en entrada/salida y almuerzo (salida/entrada) cuando el horario lo define
   - Estado requiere 4 marcaciones si hay almuerzo programado; `getSchedule` incluye campos de almuerzo
-- ✅ **Interfaz**:
-  - `attendance/detail.php`: nuevas columnas “Salida Almuerzo / Entrada Almuerzo” y campos en el modal de edición
-  - Modal de “Procesar día”: checklist para opciones (procesar registros, detectar ausencias, marcar omisiones, recalcular métricas)
-  - Modal de métricas ampliado: desglose (tipo de día, marcaciones y horarios programados, horas totales/regulares/extras +25/+50, nocturnas, feriados, almuerzo y puntualidad)
+- âœ… **Interfaz**:
+  - `attendance/detail.php`: nuevas columnas â€œSalida Almuerzo / Entrada Almuerzoâ€ y campos en el modal de ediciÃ³n
+  - Modal de â€œProcesar dÃ­aâ€: checklist para opciones (procesar registros, detectar ausencias, marcar omisiones, recalcular mÃ©tricas)
+  - Modal de mÃ©tricas ampliado: desglose (tipo de dÃ­a, marcaciones y horarios programados, horas totales/regulares/extras +25/+50, nocturnas, feriados, almuerzo y puntualidad)
 
-- ✅ **Flujo de Procesamiento Unificado**:
-  - `Process Day` delega consolidación a `RecordsProcessor->processDay(date)`
+- âœ… **Flujo de Procesamiento Unificado**:
+  - `Process Day` delega consolidaciÃ³n a `RecordsProcessor->processDay(date)`
   - Persiste todas las marcaciones en `attendance_detail` y marca `attendance_records` como procesadas
   - Filtro global por `employees.marca_asistencia = 1` en procesamiento y ausencias
   - Ausencias almacenan `schedule_id`
   - Agrupado robusto: si `punch_date` es NULL se usa `DATE(timestamp)`
   - Fix: se agrega `AttendanceHeader::getById()` para reconstruir DATETIME de almuerzo al actualizar detalles
 
-**📈 Estadísticas**:
+**ðŸ“ˆ EstadÃ­sticas**:
 - 9 archivos cambiados | +1200 inserciones | -80 eliminaciones | 3 migraciones nuevas
 
 ---
 
-**[📄 Ver detalles completos →](./changelog/v3.5.5.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.5.5.md)**
 
 ---
 
@@ -148,468 +148,479 @@ Este archivo sirve como índice principal para el historial de cambios del siste
 **Criticidad**: Media
 
 **Componentes Principales**:
-- ✅ **Reporte de Marcaciones Completo** (408 líneas):
-  - ReportsGenerator->generateDetailedPunchesReport() (145 líneas)
-  - ExcelExporter->exportPunchesReport() con formato profesional (188 líneas)
-  - AttendanceController->punchesReport() endpoint completo (75 líneas)
+- âœ… **Reporte de Marcaciones Completo** (408 lÃ­neas):
+  - ReportsGenerator->generateDetailedPunchesReport() (145 lÃ­neas)
+  - ExcelExporter->exportPunchesReport() con formato profesional (188 lÃ­neas)
+  - AttendanceController->punchesReport() endpoint completo (75 lÃ­neas)
   - Ruta /panel/attendance/reports/punches configurada
-  - 8 estadísticas resumen + top 10 tardanzas + detalle por departamento (10 columnas)
-- ✅ **Fix Label Liquidaciones** (2 líneas):
-  - "Posición:" → "Cargo:" en PDF y Excel
+  - 8 estadÃ­sticas resumen + top 10 tardanzas + detalle por departamento (10 columnas)
+- âœ… **Fix Label Liquidaciones** (2 lÃ­neas):
+  - "PosiciÃ³n:" â†’ "Cargo:" en PDF y Excel
   - LiquidationController.php (exportPayrollPdf, exportPayrollExcel)
-- ✅ **Mejoras Comprobantes Horizontales** (~203 líneas):
-  - Eliminación headers/footers TCPDF automáticos
+- âœ… **Mejoras Comprobantes Horizontales** (~203 lÃ­neas):
+  - EliminaciÃ³n headers/footers TCPDF automÃ¡ticos
   - Colores profesionales liquidaciones (naranja intenso, gris claro, azul profundo)
-  - Sección firmas 3 columnas (Elaborado/Autorizado/Recibido por Colaborador)
+  - SecciÃ³n firmas 3 columnas (Elaborado/Autorizado/Recibido por Colaborador)
   - ReportController.php (generateAllPayslipsHorizontalPDF, generateIndividualPaySlipPDF)
-- 📈 **Estadísticas**:
-  - 6 archivos modificados | ~620 líneas código agregadas
-  - 3 métodos nuevos | 1 ruta nueva | 0 cambios BD
+- ðŸ“ˆ **EstadÃ­sticas**:
+  - 6 archivos modificados | ~620 lÃ­neas cÃ³digo agregadas
+  - 3 mÃ©todos nuevos | 1 ruta nueva | 0 cambios BD
   - Deployment: 10-15 minutos
 
-**[📄 Ver detalles completos →](./changelog/v3.5.4.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.5.4.md)**
 
 ---
 
-### **[v3.5.3]** - 2025-11-01 - *Eliminación Completa eval() + Arquitectura Segura*
-**Tipo**: Refactorización - Seguridad
+### **[v3.5.3]** - 2025-11-01 - *EliminaciÃ³n Completa eval() + Arquitectura Segura*
+**Tipo**: RefactorizaciÃ³n - Seguridad
 **Fase**: Core System - Mejoras de Seguridad
 **Criticidad**: Alta
 
 **Componentes Principales**:
-- ✅ **Eliminación Total de eval()**:
-  - 862 líneas de código corrupto/duplicado eliminadas (líneas 166-1030)
-  - Archivo PlanillaConceptCalculator.php reducido de 2058 a 1196 líneas
-  - 100% evaluación de fórmulas mediante NXP\MathExecutor (sin eval())
+- âœ… **EliminaciÃ³n Total de eval()**:
+  - 862 lÃ­neas de cÃ³digo corrupto/duplicado eliminadas (lÃ­neas 166-1030)
+  - Archivo PlanillaConceptCalculator.php reducido de 2058 a 1196 lÃ­neas
+  - 100% evaluaciÃ³n de fÃ³rmulas mediante NXP\MathExecutor (sin eval())
   - Arquitectura de herencia: `class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure`
-- ✅ **Refactorización Visibilidad**:
-  - 9 propiedades `private`→`protected` en clase padre (incluye $db, $executor, etc.)
-  - 18 métodos `private`→`protected` para permitir herencia completa
-  - Fix crítico acceso $db que causaba error null pointer
-- ✅ **Validación Variables Extendida**:
+- âœ… **RefactorizaciÃ³n Visibilidad**:
+  - 9 propiedades `private`â†’`protected` en clase padre (incluye $db, $executor, etc.)
+  - 18 mÃ©todos `private`â†’`protected` para permitir herencia completa
+  - Fix crÃ­tico acceso $db que causaba error null pointer
+- âœ… **ValidaciÃ³n Variables Extendida**:
   - Variables string permitidas: EMPLEADO, CLAVE_SS, CLAVE_SEGURO_SOCIAL
-  - Mejora validación en configurarValidacionesEstritas() (líneas 54-70)
-- ✅ **Testing Runtime Completo**:
+  - Mejora validaciÃ³n en configurarValidacionesEstritas() (lÃ­neas 54-70)
+- âœ… **Testing Runtime Completo**:
   - 3 errores resueltos: null $db, private methods, variable validation
-  - Validación con planillas reales (ID 85, tipo planilla 2, empleado 1)
-- ✅ **Mejoras de Seguridad**:
-  - Eliminación de vectores de inyección de código
-  - Sandbox aislado para evaluación de fórmulas
-  - Validación estricta de variables antes de evaluación
-- 📈 **Estadísticas**:
-  - 2 archivos modificados | -1085 líneas inseguras | +321 líneas seguras
-  - 9 propiedades refactorizadas | 18 métodos refactorizados
+  - ValidaciÃ³n con planillas reales (ID 85, tipo planilla 2, empleado 1)
+- âœ… **Mejoras de Seguridad**:
+  - EliminaciÃ³n de vectores de inyecciÃ³n de cÃ³digo
+  - Sandbox aislado para evaluaciÃ³n de fÃ³rmulas
+  - ValidaciÃ³n estricta de variables antes de evaluaciÃ³n
+- ðŸ“ˆ **EstadÃ­sticas**:
+  - 2 archivos modificados | -1085 lÃ­neas inseguras | +321 lÃ­neas seguras
+  - 9 propiedades refactorizadas | 18 mÃ©todos refactorizados
   - 0 cambios BD | 3 errores runtime resueltos | 0 uso eval() restante
   - Deployment: 10-15 minutos
 
-**[📄 Ver detalles completos →](./changelog/v3.5.3.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.5.3.md)**
 
 ---
 
 ### **[v3.5.2]** - 2025-10-30 - *Mejora Reportes PDF/Excel Liquidaciones*
-**Tipo**: Mejora - Reportes de Liquidación
-**Fase**: Mejora de UX - Documentación Profesional
+**Tipo**: Mejora - Reportes de LiquidaciÃ³n
+**Fase**: Mejora de UX - DocumentaciÃ³n Profesional
 **Criticidad**: Media
 
 **Componentes Principales**:
-- ✅ **Campos Adicionales en Reportes** (4 nuevos campos):
+- âœ… **Campos Adicionales en Reportes** (4 nuevos campos):
   - Fecha Fin de Contrato (desde employee_terminations)
-  - Posición (desde tabla cargos)
-  - Tiempo en la Empresa (calculado automáticamente: "X años, Y meses, Z días")
+  - PosiciÃ³n (desde tabla cargos)
+  - Tiempo en la Empresa (calculado automÃ¡ticamente: "X aÃ±os, Y meses, Z dÃ­as")
   - Salario (desde employees.sueldo_individual con formato $X,XXX.XX)
-- ✅ **Sección de Firmas Profesionales**:
+- âœ… **SecciÃ³n de Firmas Profesionales**:
   - 3 columnas: Autorizado por (Gerencia), Elaborado por (RRHH), Recibido por (Colaborador)
-  - Líneas para firma física en PDF
+  - LÃ­neas para firma fÃ­sica en PDF
   - Formato profesional en Excel
-  - Espaciado optimizado para impresión
-- ✅ **Mejoras SQL Queries**:
+  - Espaciado optimizado para impresiÃ³n
+- âœ… **Mejoras SQL Queries**:
   - JOINs adicionales a posiciones, cargos, employee_terminations
-  - Query optimizado para obtener toda la información en una sola consulta
-- ✅ **Implementación Dual**:
-  - Método exportPayrollPdf() actualizado (~300 líneas modificadas)
-  - Método exportPayrollExcel() actualizado (~280 líneas modificadas)
-  - Cálculo de tiempo en empresa reutilizable
-- 📈 **Estadísticas**:
-  - 1 archivo modificado | 2 métodos actualizados | ~250 líneas código agregadas
-  - 4 campos nuevos | 1 sección nueva (firmas) | 3 JOINs SQL adicionales
+  - Query optimizado para obtener toda la informaciÃ³n en una sola consulta
+- âœ… **ImplementaciÃ³n Dual**:
+  - MÃ©todo exportPayrollPdf() actualizado (~300 lÃ­neas modificadas)
+  - MÃ©todo exportPayrollExcel() actualizado (~280 lÃ­neas modificadas)
+  - CÃ¡lculo de tiempo en empresa reutilizable
+- ðŸ“ˆ **EstadÃ­sticas**:
+  - 1 archivo modificado | 2 mÃ©todos actualizados | ~250 lÃ­neas cÃ³digo agregadas
+  - 4 campos nuevos | 1 secciÃ³n nueva (firmas) | 3 JOINs SQL adicionales
   - 0 cambios en BD | Deployment: 5-10 minutos
 
-**[📄 Ver detalles completos →](./changelog/v3.5.2.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.5.2.md)**
 
 ---
 
-### **[v3.5.1]** - 2025-10-28 - *Data Cleanup y Fixes Críticos Sistema Asistencias*
+### **[v3.5.1]** - 2025-10-28 - *Data Cleanup y Fixes CrÃ­ticos Sistema Asistencias*
 **Tipo**: Hotfix / Data Cleanup
-**Fase**: Mantenimiento - Correcciones Críticas Sistema Asistencias
+**Fase**: Mantenimiento - Correcciones CrÃ­ticas Sistema Asistencias
 **Criticidad**: Alta
 
 **Componentes Principales**:
-- ✅ **Fix Error "Data truncated for column 'synced_from'"**:
-  - Valores incorrectos corregidos: 'API_SYNC' → 'API', 'MANUAL_PROCESSING' → 'MANUAL'
-  - Archivos modificados: AttendanceSyncService.php línea 436, AttendanceController.php línea 992
+- âœ… **Fix Error "Data truncated for column 'synced_from'"**:
+  - Valores incorrectos corregidos: 'API_SYNC' â†’ 'API', 'MANUAL_PROCESSING' â†’ 'MANUAL'
+  - Archivos modificados: AttendanceSyncService.php lÃ­nea 436, AttendanceController.php lÃ­nea 992
   - Script SQL limpieza datos existentes
-- ✅ **Normalización Campo Timestamp**:
-  - Soporte para `actual_timestamp`, `registered_timestamp` además de `timestamp`
+- âœ… **NormalizaciÃ³n Campo Timestamp**:
+  - Soporte para `actual_timestamp`, `registered_timestamp` ademÃ¡s de `timestamp`
   - Mejora compatibilidad con API Base44
-  - AttendanceSyncService.php líneas 268-275
-- ✅ **Corrección Emails Empleados**:
+  - AttendanceSyncService.php lÃ­neas 268-275
+- âœ… **CorrecciÃ³n Emails Empleados**:
   - 3 empleados actualizados para coincidir con API Base44
   - ID 2 (KATHY GONZALEZ), ID 3 (NESTOR MOLINA), ID 5 (DILSA QUINTANA)
-- ✅ **Limpieza Registros Inválidos**:
+- âœ… **Limpieza Registros InvÃ¡lidos**:
   - 10 registros attendance_detail con time_in/time_out NULL eliminados
   - 179 registros raw duplicados marcados como procesados
-- ✅ **Fix CSRF Dispositivos de Asistencia**:
-  - Token CSRF agregado a vista index dispositivos (línea 32)
-  - Validación CSRF agregada a métodos delete(), testConnection(), toggle()
-  - Funciones edit, test conexión, desactivar y eliminar ahora funcionan correctamente
-- ✅ **Script Deployment Producción**:
-  - Migración SQL completa con backups automáticos (2025_10_28_fix_attendance_data_cleanup.sql)
-  - Guía deployment paso a paso (GUIA_DEPLOYMENT_PRODUCCION.md)
-  - Script verificación pre/post deployment (verify_attendance_system.sql)
+- âœ… **Fix CSRF Dispositivos de Asistencia**:
+  - Token CSRF agregado a vista index dispositivos (lÃ­nea 32)
+  - ValidaciÃ³n CSRF agregada a mÃ©todos delete(), testConnection(), toggle()
+  - Funciones edit, test conexiÃ³n, desactivar y eliminar ahora funcionan correctamente
+- âœ… **Script Deployment ProducciÃ³n**:
+  - MigraciÃ³n SQL completa con backups automÃ¡ticos (2025_10_28_fix_attendance_data_cleanup.sql)
+  - GuÃ­a deployment paso a paso (GUIA_DEPLOYMENT_PRODUCCION.md)
+  - Script verificaciÃ³n pre/post deployment (verify_attendance_system.sql)
   - Plan rollback incluido (5-10 minutos)
-- 📈 **Estadísticas**:
-  - Mejora tasa éxito sincronización: 50% → 93% (+86%)
-  - Registros procesados: 30 → 209 (+597%)
-  - 5 archivos modificados | 4 archivos nuevos | ~1,500 líneas documentación
+- ðŸ“ˆ **EstadÃ­sticas**:
+  - Mejora tasa Ã©xito sincronizaciÃ³n: 50% â†’ 93% (+86%)
+  - Registros procesados: 30 â†’ 209 (+597%)
+  - 5 archivos modificados | 4 archivos nuevos | ~1,500 lÃ­neas documentaciÃ³n
 
-**[📄 Ver detalles completos →](./changelog/v3.5.1.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.5.1.md)**
 
 ---
 
-### **[v3.4.8]** - 2025-10-23 - *Procesamiento Completo Día Asistencias*
+### **[v3.4.8]** - 2025-10-23 - *Procesamiento Completo DÃ­a Asistencias*
 **Tipo**: Mejora - Procesamiento Batch + Reprocess + Filtros
-**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (80%)
+**Fase**: Subfase 7.2 - CÃ¡lculos Avanzados de Asistencias (80%)
 
 **Componentes Principales**:
-- ✅ **Procesamiento Completo Día** (220+ líneas):
-  - Pipeline 3 pasos: ausencias → omisiones → cálculos completos
-  - Botón "Procesar Marcaciones" con feedback SweetAlert2
-  - Detección automática empleados sin marcación → registro ABSENT
-  - Detección single punch (solo entrada o salida) → estado INCOMPLETE/OMISIÓN
-  - Cálculo completo métricas (horas trabajadas, extras, tardanzas)
-- ✅ **Reprocesamiento con Recarga** (90 líneas):
-  - Método AttendanceDetail->deleteByHeader() para limpiar detalles
+- âœ… **Procesamiento Completo DÃ­a** (220+ lÃ­neas):
+  - Pipeline 3 pasos: ausencias â†’ omisiones â†’ cÃ¡lculos completos
+  - BotÃ³n "Procesar Marcaciones" con feedback SweetAlert2
+  - DetecciÃ³n automÃ¡tica empleados sin marcaciÃ³n â†’ registro ABSENT
+  - DetecciÃ³n single punch (solo entrada o salida) â†’ estado INCOMPLETE/OMISIÃ“N
+  - CÃ¡lculo completo mÃ©tricas (horas trabajadas, extras, tardanzas)
+- âœ… **Reprocesamiento con Recarga** (90 lÃ­neas):
+  - MÃ©todo AttendanceDetail->deleteByHeader() para limpiar detalles
   - Recarga desde tabla attendance (marcaciones originales)
-  - Recreación completa + pipeline detección + cálculos
-- ✅ **Filtrado Tipo Planilla SessionStorage** (50 líneas):
+  - RecreaciÃ³n completa + pipeline detecciÃ³n + cÃ¡lculos
+- âœ… **Filtrado Tipo Planilla SessionStorage** (50 lÃ­neas):
   - Lectura desde sessionStorage (navbar selection)
-  - Validación frontend + backend con FIND_IN_SET()
-  - Sin duplicación de selectores (reutiliza infraestructura existente)
-- ✅ **Columna Horas Extras** (40 líneas):
+  - ValidaciÃ³n frontend + backend con FIND_IN_SET()
+  - Sin duplicaciÃ³n de selectores (reutiliza infraestructura existente)
+- âœ… **Columna Horas Extras** (40 lÃ­neas):
   - Badge azul con total horas extras
   - Desglose +25% y +50% en tooltip
   - Formato decimal 2 decimales
-- ✅ **Fixes jQuery Loading** (30 líneas):
+- âœ… **Fixes jQuery Loading** (30 lÃ­neas):
   - Output buffering (ob_start/ob_get_clean) en sync-history y list views
-  - Scripts renderizados al final de página
+  - Scripts renderizados al final de pÃ¡gina
   - Variable baseUrl para URLs relativas
-- ✅ **Fixes Errores Críticos**:
+- âœ… **Fixes Errores CrÃ­ticos**:
   - Undefined array key "date" en AbsenceDetector
   - Undefined array key "attendance_date" en AttendanceHeader
-  - Refactor AttendanceHeader->update() para campos dinámicos
-- 📈 **Estadísticas**: 7 archivos modificados | ~500 líneas código | 2 métodos nuevos | 1 ruta nueva | 4 bugs fixed
+  - Refactor AttendanceHeader->update() para campos dinÃ¡micos
+- ðŸ“ˆ **EstadÃ­sticas**: 7 archivos modificados | ~500 lÃ­neas cÃ³digo | 2 mÃ©todos nuevos | 1 ruta nueva | 4 bugs fixed
 
-**[📄 Ver detalles completos →](./changelog/v3.4.8.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.8.md)**
 
 ---
 
-### **[v3.4.7]** - 2025-10-20 - *Integración Completa Planillas-Asistencias*
-**Tipo**: Feature - Subfase 7.4 Integración Planillas-Asistencias
-**Fase**: Subfase 7.4 - Mapeo Automático Asistencias → Conceptos (100%)
+### **[v3.4.7]** - 2025-10-20 - *IntegraciÃ³n Completa Planillas-Asistencias*
+**Tipo**: Feature - Subfase 7.4 IntegraciÃ³n Planillas-Asistencias
+**Fase**: Subfase 7.4 - Mapeo AutomÃ¡tico Asistencias â†’ Conceptos (100%)
 
 **Componentes Principales**:
-- ✅ **Migración BD Integración** (342 líneas SQL):
+- âœ… **MigraciÃ³n BD IntegraciÃ³n** (342 lÃ­neas SQL):
   - Tabla `payroll_attendance_summary` (38 campos) - resumen por empleado/planilla
-  - Tabla `attendance_concepts_mapping` (22 campos) - configuración mapeos
-  - Tabla `payroll_attendance_details` (16 campos) - detalles día por día
-  - 3 vistas útiles + 10 Foreign Keys + 15 índices optimizados
-- ✅ **PeriodAttendanceSummary Service** (349 líneas):
-  - Generación resúmenes: horas trabajadas, overtime, tardanzas, ausencias, puntualidad
-  - Integración LegalComplianceChecker para compliance
-  - Cálculos monetarios: regular_pay, overtime_pay, night_pay, holiday_pay
-- ✅ **AttendanceConceptMapper Service** (636 líneas):
-  - 10 métodos especializados mapeo (regular, overtime25/50, night, holidays, etc.)
-  - Soporte fórmulas dinámicas: {SUELDO}, {TARIFA_HORA}, {CANTIDAD}
-  - Evaluación segura con MathExecutor (sin eval())
+  - Tabla `attendance_concepts_mapping` (22 campos) - configuraciÃ³n mapeos
+  - Tabla `payroll_attendance_details` (16 campos) - detalles dÃ­a por dÃ­a
+  - 3 vistas Ãºtiles + 10 Foreign Keys + 15 Ã­ndices optimizados
+- âœ… **PeriodAttendanceSummary Service** (349 lÃ­neas):
+  - GeneraciÃ³n resÃºmenes: horas trabajadas, overtime, tardanzas, ausencias, puntualidad
+  - IntegraciÃ³n LegalComplianceChecker para compliance
+  - CÃ¡lculos monetarios: regular_pay, overtime_pay, night_pay, holiday_pay
+- âœ… **AttendanceConceptMapper Service** (636 lÃ­neas):
+  - 10 mÃ©todos especializados mapeo (regular, overtime25/50, night, holidays, etc.)
+  - Soporte fÃ³rmulas dinÃ¡micas: {SUELDO}, {TARIFA_HORA}, {CANTIDAD}
+  - EvaluaciÃ³n segura con MathExecutor (sin eval())
   - Mapeo configurable por tipo_planilla_id + situacion_id
-- ✅ **PayrollAttendanceIntegrator Service** (415 líneas):
+- âœ… **PayrollAttendanceIntegrator Service** (415 lÃ­neas):
   - Procesamiento batch con transacciones
-  - Métodos: processPayrollAttendance(), processEmployeeAttendance()
+  - MÃ©todos: processPayrollAttendance(), processEmployeeAttendance()
   - Persistencia completa: summary + details
-  - Estadísticas: processed, summaries_created, concepts_generated, errors
-- ✅ **Integración PayrollController** (+217 líneas):
+  - EstadÃ­sticas: processed, summaries_created, concepts_generated, errors
+- âœ… **IntegraciÃ³n PayrollController** (+217 lÃ­neas):
   - 4 endpoints AJAX: process-attendance, attendance-summary, attendance-details, delete-attendance-data
-  - Método getEmployeesByPayroll() agregado a PayrollDetail
+  - MÃ©todo getEmployeesByPayroll() agregado a PayrollDetail
   - Rutas configuradas en App.php
-- ✅ **Script Testing Completo** (481 líneas):
-  - 5 fases testing (preparación, summary, mapper, integrator, batch)
-  - Color-coded output + auto-detección datos test
+- âœ… **Script Testing Completo** (481 lÃ­neas):
+  - 5 fases testing (preparaciÃ³n, summary, mapper, integrator, batch)
+  - Color-coded output + auto-detecciÃ³n datos test
   - Verbose mode + success rate calculation
-- ✅ **Fixes**: AttendanceDeviceController layout (render() vs view()) + sync-history navigation
-- 📈 **Estadísticas**: 3 servicios nuevos | 3 tablas BD | ~2,600 líneas código | 80% módulo asistencias completado
+- âœ… **Fixes**: AttendanceDeviceController layout (render() vs view()) + sync-history navigation
+- ðŸ“ˆ **EstadÃ­sticas**: 3 servicios nuevos | 3 tablas BD | ~2,600 lÃ­neas cÃ³digo | 80% mÃ³dulo asistencias completado
 
-**[📄 Ver detalles completos →](./changelog/v3.4.7.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.7.md)**
 
 ---
 
-### **[v3.4.6]** - 2025-10-20 - *Sistema de Alertas Legales Automáticas*
-**Tipo**: Feature - Subfase 7.3 Consideraciones Legales Panamá
+### **[v3.4.6]** - 2025-10-20 - *Sistema de Alertas Legales AutomÃ¡ticas*
+**Tipo**: Feature - Subfase 7.3 Consideraciones Legales PanamÃ¡
 **Fase**: Subfase 7.3 - Sistema de Alertas (100%)
 
 **Componentes Principales**:
-- ✅ **AlertsSystem** (675 líneas):
-  - 14 métodos públicos gestión completa de alertas
-  - Generación automática desde LegalComplianceChecker
-  - Workflow: PENDING → ACKNOWLEDGED → RESOLVED/DISMISSED
+- âœ… **AlertsSystem** (675 lÃ­neas):
+  - 14 mÃ©todos pÃºblicos gestiÃ³n completa de alertas
+  - GeneraciÃ³n automÃ¡tica desde LegalComplianceChecker
+  - Workflow: PENDING â†’ ACKNOWLEDGED â†’ RESOLVED/DISMISSED
   - 10+ tipos de alertas (excesos jornada, ausencias graves, tardanzas)
   - 3 niveles severidad: INFO, WARNING, CRITICAL
   - Metadata JSON flexible + referencias legales (Art. 31, 35, 38, 39, 48, 213)
-- ✅ **Migración BD attendance_alerts** (342 líneas):
+- âœ… **MigraciÃ³n BD attendance_alerts** (342 lÃ­neas):
   - Tabla completa 20 campos + metadata JSON
-  - 11 índices optimizados + 4 Foreign Keys
-  - 4 vistas útiles + 2 triggers + 3 stored procedures
-- ✅ **Integración AttendanceCalculator** (+180 líneas):
-  - Métodos: checkLegalComplianceAndAlert(), calculateSaveAndAlert(), etc.
-  - Flujo completo: calcular → guardar → verificar → alertar automático
-- ✅ **Script Testing Completo** (481 líneas, 33 tests):
+  - 11 Ã­ndices optimizados + 4 Foreign Keys
+  - 4 vistas Ãºtiles + 2 triggers + 3 stored procedures
+- âœ… **IntegraciÃ³n AttendanceCalculator** (+180 lÃ­neas):
+  - MÃ©todos: checkLegalComplianceAndAlert(), calculateSaveAndAlert(), etc.
+  - Flujo completo: calcular â†’ guardar â†’ verificar â†’ alertar automÃ¡tico
+- âœ… **Script Testing Completo** (481 lÃ­neas, 33 tests):
   - Tests componentes legales: LegalComplianceChecker, OvertimeRateCalculator, WorkingDayClassifier
-  - Tests AlertsSystem: CRUD, workflow, estadísticas
-  - Tests Integración completa
+  - Tests AlertsSystem: CRUD, workflow, estadÃ­sticas
+  - Tests IntegraciÃ³n completa
   - **Resultado**: 21/22 tests funcionales (95.5%)
-- 📈 **Estadísticas**: 3 archivos creados | 1 modificado | ~1,678 líneas código | 1 tabla BD
+- ðŸ“ˆ **EstadÃ­sticas**: 3 archivos creados | 1 modificado | ~1,678 lÃ­neas cÃ³digo | 1 tabla BD
 
-**[📄 Ver detalles completos →](./changelog/v3.4.6.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.6.md)**
 
 ---
 
-### **[v3.4.5]** - 2025-10-17 - *Integración UI Calculadores Asistencias*
-**Tipo**: Mejora - Integración UI + Endpoints AJAX
-**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (75%)
+### **[v3.4.5]** - 2025-10-17 - *IntegraciÃ³n UI Calculadores Asistencias*
+**Tipo**: Mejora - IntegraciÃ³n UI + Endpoints AJAX
+**Fase**: Subfase 7.2 - CÃ¡lculos Avanzados de Asistencias (75%)
 
 **Componentes Principales**:
-- ✅ **AttendanceController Integración** (+370 líneas):
-  - 7 métodos AJAX: calculateAttendance(), detectAbsences(), processCalculations(), etc.
-  - Integración completa calculadores con interfaz visual
-  - Validación CSRF + manejo errores robusto
-- ✅ **Vista detail.php Mejorada** (+120 líneas):
-  - Botón "Procesar Cálculos Día" para batch processing
-  - Nueva columna "Puntualidad" con badges coloreados (verde ≥80%, amarillo 50-79%, rojo <50%)
+- âœ… **AttendanceController IntegraciÃ³n** (+370 lÃ­neas):
+  - 7 mÃ©todos AJAX: calculateAttendance(), detectAbsences(), processCalculations(), etc.
+  - IntegraciÃ³n completa calculadores con interfaz visual
+  - ValidaciÃ³n CSRF + manejo errores robusto
+- âœ… **Vista detail.php Mejorada** (+120 lÃ­neas):
+  - BotÃ³n "Procesar CÃ¡lculos DÃ­a" para batch processing
+  - Nueva columna "Puntualidad" con badges coloreados (verde â‰¥80%, amarillo 50-79%, rojo <50%)
   - Icono estrella dorada para asistencia perfecta
-  - Modal detalles cálculo completo (horas, tardanzas, extras, score)
-- ✅ **Vista list.php Mejorada** (+100 líneas):
-  - Botón "Detectar Ausencias" con modal completo
-  - Validaciones JavaScript + confirmación SweetAlert2
-  - Checkbox "Guardar en BD" + estadísticas resultados
-- ✅ **Vista pending-absences.php NUEVA** (410 líneas):
-  - 4 estadísticas cards (total pendientes, injustificadas, por revisar, empleados afectados)
+  - Modal detalles cÃ¡lculo completo (horas, tardanzas, extras, score)
+- âœ… **Vista list.php Mejorada** (+100 lÃ­neas):
+  - BotÃ³n "Detectar Ausencias" con modal completo
+  - Validaciones JavaScript + confirmaciÃ³n SweetAlert2
+  - Checkbox "Guardar en BD" + estadÃ­sticas resultados
+- âœ… **Vista pending-absences.php NUEVA** (410 lÃ­neas):
+  - 4 estadÃ­sticas cards (total pendientes, injustificadas, por revisar, empleados afectados)
   - Filtros avanzados con Select2 (empleado, fecha inicio/fin)
-  - DataTable con listado completo + ordenamiento español
-  - Modal justificación con 6 tipos (MEDICAL, PERMISSION, VACATION, BEREAVEMENT, MATERNITY, OTHER)
-- ✅ **Routing + Fixes Críticos**:
+  - DataTable con listado completo + ordenamiento espaÃ±ol
+  - Modal justificaciÃ³n con 6 tipos (MEDICAL, PERMISSION, VACATION, BEREAVEMENT, MATERNITY, OTHER)
+- âœ… **Routing + Fixes CrÃ­ticos**:
   - 6 rutas nuevas en App.php (calculate, detect-absences, justify, etc.)
-  - Fix controller mapping: 'Attendance' → 'AttendanceController' (línea 60)
+  - Fix controller mapping: 'Attendance' â†’ 'AttendanceController' (lÃ­nea 60)
   - Fix jQuery/DataTables en sync-history/index.php
-- 📈 **Estadísticas**: 4 archivos modificados | 1 vista nueva | ~850 líneas código UI | 7 endpoints AJAX | 2 fixes críticos
+- ðŸ“ˆ **EstadÃ­sticas**: 4 archivos modificados | 1 vista nueva | ~850 lÃ­neas cÃ³digo UI | 7 endpoints AJAX | 2 fixes crÃ­ticos
 
-**[📄 Ver detalles completos →](./changelog/v3.4.5.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.5.md)**
 
 ---
 
 ### **[v3.4.4]** - 2025-10-16 - *AttendanceCalculator + AbsenceDetector con Persistencia BD*
-**Tipo**: Mejora - Implementación Core Calculators
-**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (60%)
+**Tipo**: Mejora - ImplementaciÃ³n Core Calculators
+**Fase**: Subfase 7.2 - CÃ¡lculos Avanzados de Asistencias (60%)
 
 **Componentes Principales**:
-- ✅ **AttendanceCalculator Mejorado** (+280 líneas, total 708):
-  - Método `saveCalculation()` - Guarda en attendance_calculations (INSERT/UPDATE automático)
-  - Método `calculateAndSave()` - All-in-one (calcula + guarda + retorna con ID)
-  - Método `calculateAndSaveBulk()` - Procesamiento batch con estadísticas
-  - Métodos CRUD: `getCalculation()`, `deleteCalculation()`, `getConfig()`
-  - Integración completa con WorkScheduleResolver, OvertimeCalculator, WorkingDayClassifier
-- ✅ **AbsenceDetector Mejorado** (+385 líneas, total 693):
-  - Método `saveAbsence()` - Guarda en attendance_absence_log (INSERT/UPDATE automático)
-  - Método `detectAndSaveAbsences()` - Detecta y guarda con estadísticas por empleado
-  - Método `detectAndSaveBulk()` - Procesamiento batch múltiples empleados
+- âœ… **AttendanceCalculator Mejorado** (+280 lÃ­neas, total 708):
+  - MÃ©todo `saveCalculation()` - Guarda en attendance_calculations (INSERT/UPDATE automÃ¡tico)
+  - MÃ©todo `calculateAndSave()` - All-in-one (calcula + guarda + retorna con ID)
+  - MÃ©todo `calculateAndSaveBulk()` - Procesamiento batch con estadÃ­sticas
+  - MÃ©todos CRUD: `getCalculation()`, `deleteCalculation()`, `getConfig()`
+  - IntegraciÃ³n completa con WorkScheduleResolver, OvertimeCalculator, WorkingDayClassifier
+- âœ… **AbsenceDetector Mejorado** (+385 lÃ­neas, total 693):
+  - MÃ©todo `saveAbsence()` - Guarda en attendance_absence_log (INSERT/UPDATE automÃ¡tico)
+  - MÃ©todo `detectAndSaveAbsences()` - Detecta y guarda con estadÃ­sticas por empleado
+  - MÃ©todo `detectAndSaveBulk()` - Procesamiento batch mÃºltiples empleados
   - Workflow justificaciones: `justifyAbsence()`, `rejectJustification()`
   - Consultas: `getPendingAbsences()`, `getEmployeeAbsences()`, `getAbsenceStatistics()`
-  - Estados: JUSTIFIED, UNJUSTIFIED, PENDING con resolución tracking
-- ✅ **Suite Testing Completa** (370+ líneas):
-  - 22 tests organizados en 6 módulos temáticos
-  - 90.9% tasa de éxito (20/22 tests pasaron)
-  - Módulos: Cálculos Básicos, Tardanzas, Asistencia Perfecta, Jornadas Especiales, BD, Batch
-- 📈 **Estadísticas**: 3 archivos (2 modificados + 1 creado) | ~1,035 líneas código
+  - Estados: JUSTIFIED, UNJUSTIFIED, PENDING con resoluciÃ³n tracking
+- âœ… **Suite Testing Completa** (370+ lÃ­neas):
+  - 22 tests organizados en 6 mÃ³dulos temÃ¡ticos
+  - 90.9% tasa de Ã©xito (20/22 tests pasaron)
+  - MÃ³dulos: CÃ¡lculos BÃ¡sicos, Tardanzas, Asistencia Perfecta, Jornadas Especiales, BD, Batch
+- ðŸ“ˆ **EstadÃ­sticas**: 3 archivos (2 modificados + 1 creado) | ~1,035 lÃ­neas cÃ³digo
 
-**[📄 Ver detalles completos →](./changelog/v3.4.4.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.4.md)**
 
 ---
 
 ### **[v3.4.3]** - 2025-10-16 - *Vistas Separadas Sistema Asistencias*
-**Tipo**: Mejora - Refactorización Arquitectura
-**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (35%)
+**Tipo**: Mejora - RefactorizaciÃ³n Arquitectura
+**Fase**: Subfase 7.2 - CÃ¡lculos Avanzados de Asistencias (35%)
 
 **Componentes Principales**:
-- ✅ **AttendanceController Completo** (135 líneas): Controlador dedicado con 4 métodos (index, detail, sync, export)
-- ✅ **3 Vistas Separadas**:
-  - `list.php` (230 líneas): Listado marcaciones agrupadas por día + filtros año/mes/rango
-  - `detail.php` (260 líneas): Detalle completo día específico + estadísticas + tabla empleados
-  - `sync.php` (180 líneas): Panel sincronización manual (Full/Hoy/Rango)
-- ✅ **Attendance Model Extendido**: 5 métodos nuevos para estadísticas
+- âœ… **AttendanceController Completo** (135 lÃ­neas): Controlador dedicado con 4 mÃ©todos (index, detail, sync, export)
+- âœ… **3 Vistas Separadas**:
+  - `list.php` (230 lÃ­neas): Listado marcaciones agrupadas por dÃ­a + filtros aÃ±o/mes/rango
+  - `detail.php` (260 lÃ­neas): Detalle completo dÃ­a especÃ­fico + estadÃ­sticas + tabla empleados
+  - `sync.php` (180 lÃ­neas): Panel sincronizaciÃ³n manual (Full/Hoy/Rango)
+- âœ… **Attendance Model Extendido**: 5 mÃ©todos nuevos para estadÃ­sticas
   - getAttendanceSummaryByMonth(), getAttendanceSummaryByDateRange()
   - getAttendancesByDate(), getDayStatistics(), getAvailableYears()
-- ✅ **Routing Mejorado**: App.php con rutas específicas attendance (líneas 130-163)
-- ✅ **Sidebar Reorganizado**: 5 opciones separadas (Marcaciones, Sincronizar, Reportes, Config API, Sistema Marcaciones)
-- 📈 **Estadísticas**: 4 vistas nuevas | 1 controller | 5 métodos modelo | ~968 líneas código
+- âœ… **Routing Mejorado**: App.php con rutas especÃ­ficas attendance (lÃ­neas 130-163)
+- âœ… **Sidebar Reorganizado**: 5 opciones separadas (Marcaciones, Sincronizar, Reportes, Config API, Sistema Marcaciones)
+- ðŸ“ˆ **EstadÃ­sticas**: 4 vistas nuevas | 1 controller | 5 mÃ©todos modelo | ~968 lÃ­neas cÃ³digo
 
-**[📄 Ver detalles completos →](./changelog/v3.4.3.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.3.md)**
 
 ---
 
-### **[v3.4.2]** - 2025-10-10 - *Checkbox Validación Situación + Análisis Reproceso Histórico*
-**Tipo**: Mejora + Análisis
+### **[v3.4.2]** - 2025-10-10 - *Checkbox ValidaciÃ³n SituaciÃ³n + AnÃ¡lisis Reproceso HistÃ³rico*
+**Tipo**: Mejora + AnÃ¡lisis
 **Fase**: Sistema Reprocesamiento Planillas
 
 **Componentes Principales**:
-- ✅ **Checkbox Validación Situación Empleado** (COMPLETADO)
+- âœ… **Checkbox ValidaciÃ³n SituaciÃ³n Empleado** (COMPLETADO)
   - Checkbox condicional en modal reprocesar planilla
-  - Parámetro `validate_situacion` flujo completo (Vista→JS→Controller→Model)
-  - Validación condicional `validateConceptConditions()` en Payroll.php
+  - ParÃ¡metro `validate_situacion` flujo completo (Vistaâ†’JSâ†’Controllerâ†’Model)
+  - ValidaciÃ³n condicional `validateConceptConditions()` en Payroll.php
   - Default checked + logging detallado
-- 📋 **Análisis Reprocesamiento Histórico** (PROPUESTO)
-  - Documento técnico `ANALISIS_REPROCESO_HISTORICO.md` (400+ líneas)
-  - 5 fases planificadas: Detección + Queries Históricas + Modal + JavaScript + Testing
-  - Query empleados históricos con cálculo situación por fechas
-  - Query salarios históricos con validación vigencias
-  - Modal 3 opciones: Histórico/Actual/Cancelar
-- 📈 **Estadísticas**: 4 archivos modificados | 57 líneas código agregadas
+- ðŸ“‹ **AnÃ¡lisis Reprocesamiento HistÃ³rico** (PROPUESTO)
+  - Documento tÃ©cnico `ANALISIS_REPROCESO_HISTORICO.md` (400+ lÃ­neas)
+  - 5 fases planificadas: DetecciÃ³n + Queries HistÃ³ricas + Modal + JavaScript + Testing
+  - Query empleados histÃ³ricos con cÃ¡lculo situaciÃ³n por fechas
+  - Query salarios histÃ³ricos con validaciÃ³n vigencias
+  - Modal 3 opciones: HistÃ³rico/Actual/Cancelar
+- ðŸ“ˆ **EstadÃ­sticas**: 4 archivos modificados | 57 lÃ­neas cÃ³digo agregadas
 
-**[📄 Ver detalles completos →](./changelog/v3.4.2.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.2.md)**
 
 ---
 
-### **[v3.4.1]** - 2025-10-10 - *Preparación BD Cálculos Asistencias*
+### **[v3.4.1]** - 2025-10-10 - *PreparaciÃ³n BD CÃ¡lculos Asistencias*
 **Tipo**: Infraestructura Base de Datos
-**Fase**: Subfase 7.2 - Cálculos Avanzados de Asistencias (25%)
+**Fase**: Subfase 7.2 - CÃ¡lculos Avanzados de Asistencias (25%)
 
 **Componentes Principales**:
-- 📊 Migraciones BD para cálculos de asistencias
-  - Tabla `attendance_calculations` (horas, tardanzas, métricas)
+- ðŸ“Š Migraciones BD para cÃ¡lculos de asistencias
+  - Tabla `attendance_calculations` (horas, tardanzas, mÃ©tricas)
   - Tabla `attendance_absence_log` (ausencias con justificaciones)
-  - Tabla `employee_payroll_salaries` (salarios múltiples por tipo planilla)
-- 📈 **Estadísticas**: 298 líneas SQL | 3 tablas | 14 Foreign Keys | 22 Índices
+  - Tabla `employee_payroll_salaries` (salarios mÃºltiples por tipo planilla)
+- ðŸ“ˆ **EstadÃ­sticas**: 298 lÃ­neas SQL | 3 tablas | 14 Foreign Keys | 22 Ãndices
 
-**[📄 Ver detalles completos →](./changelog/v3.4.1.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.1.md)**
 
 ---
 
-### **[v3.4.0]** - 2025-10-09 - *Integración API Base44*
-**Tipo**: Nueva Funcionalidad - Integración Externa
-**Fase**: Subfase 7.1 - Integración API Asistencias Base44 (COMPLETADA)
+### **[v3.4.0]** - 2025-10-09 - *IntegraciÃ³n API Base44*
+**Tipo**: Nueva Funcionalidad - IntegraciÃ³n Externa
+**Fase**: Subfase 7.1 - IntegraciÃ³n API Asistencias Base44 (COMPLETADA)
 
 **Componentes Principales**:
-- 🔌 Base44ApiClient (367 líneas) con retry logic
-- 🔄 AttendanceSyncService (510 líneas) sincronización automática
-- 📡 Webhook Receiver para notificaciones tiempo real
-- ⚙️ Interfaz AdminLTE configuración completa
-- ⏰ Cron job sincronización cada 15 minutos
-- 📈 **Estadísticas**: ~2,417 líneas código | 12 archivos nuevos | 3 tablas BD
+- ðŸ”Œ Base44ApiClient (367 lÃ­neas) con retry logic
+- ðŸ”„ AttendanceSyncService (510 lÃ­neas) sincronizaciÃ³n automÃ¡tica
+- ðŸ“¡ Webhook Receiver para notificaciones tiempo real
+- âš™ï¸ Interfaz AdminLTE configuraciÃ³n completa
+- â° Cron job sincronizaciÃ³n cada 15 minutos
+- ðŸ“ˆ **EstadÃ­sticas**: ~2,417 lÃ­neas cÃ³digo | 12 archivos nuevos | 3 tablas BD
 
-**[📄 Ver detalles completos →](./changelog/v3.4.0.md)**
+**[ðŸ“„ Ver detalles completos â†’](./changelog/v3.4.0.md)**
 
 ---
 
-### **[v3.3.22]** - 2025-10-06 - *Inicialización Automática Calendario*
+### **[v3.3.22]** - 2025-10-06 - *InicializaciÃ³n AutomÃ¡tica Calendario*
 **Tipo**: Mejora + Bugfix
-**Fase**: Calendario Empresarial Panamá
+**Fase**: Calendario Empresarial PanamÃ¡
 
 **Componentes Principales**:
-- ✅ Script CLI `fill_business_calendar_2025.php`
-- ✅ Método `BusinessCalendar->initializeYear($year)`
-- ✅ Interfaz web con botón "Inicializar Año"
-- ✅ Fix namespace Security (`App\Core\Security`)
+- âœ… Script CLI `fill_business_calendar_2025.php`
+- âœ… MÃ©todo `BusinessCalendar->initializeYear($year)`
+- âœ… Interfaz web con botÃ³n "Inicializar AÃ±o"
+- âœ… Fix namespace Security (`App\Core\Security`)
 
 ---
 
-### **[v3.3.21]** - 2025-10-06 - *Calendario Empresarial Panamá*
+### **[v3.3.21]** - 2025-10-06 - *Calendario Empresarial PanamÃ¡*
 **Tipo**: Nueva Funcionalidad
 **Fase**: FASE 4 Subfases 4.1-4.3 (75%)
 
 **Componentes Principales**:
-- 📅 Tabla `business_calendar` (731 registros 2024-2025)
-- 📊 BusinessCalendar Model (355+ líneas, 14 métodos)
-- 🖥️ Interfaz AdminLTE completa + FullCalendar.js 6.1.8
-- 🔧 CRUD completo + API AJAX + DataTables
+- ðŸ“… Tabla `business_calendar` (731 registros 2024-2025)
+- ðŸ“Š BusinessCalendar Model (355+ lÃ­neas, 14 mÃ©todos)
+- ðŸ–¥ï¸ Interfaz AdminLTE completa + FullCalendar.js 6.1.8
+- ðŸ”§ CRUD completo + API AJAX + DataTables
 
 ---
 
-## 📚 **Versiones Anteriores**
+## ðŸ“š **Versiones Anteriores**
 
-Para consultar versiones anteriores (v3.3.20 y previas), consulte el archivo histórico:
-**[📄 CHANGELOG_LEGACY.md →](./CHANGELOG_LEGACY.md)**
+Para consultar versiones anteriores (v3.3.20 y previas), consulte el archivo histÃ³rico:
+**[ðŸ“„ CHANGELOG_LEGACY.md â†’](./CHANGELOG_LEGACY.md)**
 
-*(Próximamente: migración de versiones legacy a archivos individuales)*
+*(PrÃ³ximamente: migraciÃ³n de versiones legacy a archivos individuales)*
 
 ---
 
-## 📁 **Estructura de Archivos**
+## ðŸ“ **Estructura de Archivos**
 
 ```
 documentation/
-├── CHANGELOG.md                    # Este archivo (índice principal)
-├── CHANGELOG_LEGACY.md             # Versiones 3.3.20 y anteriores
-└── changelog/                      # Directorio de versiones individuales
-    ├── v3.4.1.md                  # Migraciones BD Cálculos (10-Oct-2025)
-    ├── v3.4.0.md                  # Integración API Base44 (9-Oct-2025)
-    └── [versiones futuras...]
+â”œâ”€â”€ CHANGELOG.md                    # Este archivo (Ã­ndice principal)
+â”œâ”€â”€ CHANGELOG_LEGACY.md             # Versiones 3.3.20 y anteriores
+â””â”€â”€ changelog/                      # Directorio de versiones individuales
+    â”œâ”€â”€ v3.4.1.md                  # Migraciones BD CÃ¡lculos (10-Oct-2025)
+    â”œâ”€â”€ v3.4.0.md                  # IntegraciÃ³n API Base44 (9-Oct-2025)
+    â””â”€â”€ [versiones futuras...]
 ```
 
 ---
 
-## 🔍 **Cómo Usar Este Índice**
+## ðŸ” **CÃ³mo Usar Este Ãndice**
 
-1. **Ver Últimas Versiones**: Las versiones más recientes están listadas arriba con resumen ejecutivo
-2. **Detalles Completos**: Click en el enlace "Ver detalles completos →" para abrir el archivo específico de la versión
-3. **Versiones Legacy**: Versiones anteriores a v3.4.0 están en `CHANGELOG_LEGACY.md`
-4. **Búsqueda Rápida**: Usa Ctrl+F para buscar por número de versión, fecha o componente
+1. **Ver Ãšltimas Versiones**: Las versiones mÃ¡s recientes estÃ¡n listadas arriba con resumen ejecutivo
+2. **Detalles Completos**: Click en el enlace "Ver detalles completos â†’" para abrir el archivo especÃ­fico de la versiÃ³n
+3. **Versiones Legacy**: Versiones anteriores a v3.4.0 estÃ¡n en `CHANGELOG_LEGACY.md`
+4. **BÃºsqueda RÃ¡pida**: Usa Ctrl+F para buscar por nÃºmero de versiÃ³n, fecha o componente
 
 ---
 
-## 📊 **Convenciones**
+## ðŸ“Š **Convenciones**
 
 ### **Tipos de Versiones**:
-- **Major** (vX.0.0): Cambios arquitectónicos significativos
-- **Minor** (v3.X.0): Nuevas funcionalidades o módulos completos
+- **Major** (vX.0.0): Cambios arquitectÃ³nicos significativos
+- **Minor** (v3.X.0): Nuevas funcionalidades o mÃ³dulos completos
 - **Patch** (v3.4.X): Bugfixes, mejoras menores, migraciones BD
 
 ### **Tipos de Releases**:
-- 🚀 **Nueva Funcionalidad**: Nuevos módulos o características importantes
-- 🔧 **Mejora**: Optimizaciones o ampliaciones de funcionalidad existente
-- 🐛 **Bugfix**: Corrección de errores
-- 📊 **Infraestructura**: Migraciones BD, configuración, estructura
-- 🔒 **Seguridad**: Parches de seguridad y validaciones
+- ðŸš€ **Nueva Funcionalidad**: Nuevos mÃ³dulos o caracterÃ­sticas importantes
+- ðŸ”§ **Mejora**: Optimizaciones o ampliaciones de funcionalidad existente
+- ðŸ› **Bugfix**: CorrecciÃ³n de errores
+- ðŸ“Š **Infraestructura**: Migraciones BD, configuraciÃ³n, estructura
+- ðŸ”’ **Seguridad**: Parches de seguridad y validaciones
 
 ### **Fases del Proyecto**:
 - **FASE 1-3**: Core System completado
 - **FASE 4**: Calendario Empresarial (completado)
-- **FASE 5**: Módulo Vacaciones (pendiente)
+- **FASE 5**: MÃ³dulo Vacaciones (pendiente)
 - **FASE 6**: Multitenancy (pendiente)
-- **FASE 7**: Integración API Asistencias (en progreso 25%)
-- **FASE 8-9**: Reportería + Integraciones (pendiente)
+- **FASE 7**: IntegraciÃ³n API Asistencias (en progreso 25%)
+- **FASE 8-9**: ReporterÃ­a + Integraciones (pendiente)
 
 ---
 
-## 📝 **Guía para Nuevas Versiones**
+## ðŸ“ **GuÃ­a para Nuevas Versiones**
 
-Al crear una nueva versión:
+Al crear una nueva versiÃ³n:
 
 1. **Crear archivo individual**: `documentation/changelog/vX.Y.Z.md`
 2. **Usar template**: Copiar estructura de `v3.4.1.md` o `v3.4.0.md`
-3. **Actualizar este índice**: Agregar entrada en sección "Últimas Versiones"
-4. **Mantener orden**: Versiones más recientes primero
-5. **Incluir estadísticas**: Líneas de código, archivos, tablas BD
+3. **Actualizar este Ã­ndice**: Agregar entrada en secciÃ³n "Ãšltimas Versiones"
+4. **Mantener orden**: Versiones mÃ¡s recientes primero
+5. **Incluir estadÃ­sticas**: LÃ­neas de cÃ³digo, archivos, tablas BD
 6. **Referencias cruzadas**: Enlazar versiones relacionadas
 
 ---
 
-**Última Actualización**: 13 de Noviembre, 2025
+**Ãšltima ActualizaciÃ³n**: 13 de Noviembre, 2025
 **Sistema**: Planillas MVC v3.5.6
 **Progreso Global**: Core 100% | Calendario 100% | API Asistencias 90% | Liquidaciones 100% | Seguridad 100%
+
+### [v3.5.8] - 2025-11-18 - Multitenancy scaffolding + Vacations filters + Attendance tolerances + PDF
+Tipo: Feature/Improvement
+
+- Ver detalles: documentation/changelog/v3.5.8.md
+
+### [v3.5.8] - 2025-11-18 - Multitenancy scaffolding + Vacations filters + Attendance tolerances + PDF
+Tipo: Feature/Improvement
+
+- Ver detalles: documentation/changelog/v3.5.8.md
+

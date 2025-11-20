@@ -246,10 +246,29 @@
                             </v-stepper-step>
 
                             <v-stepper-content step="2" class="pa-0">
-                                <div class="step-content">
-                                    <v-form @submit.prevent="validarPaso2" ref="companyForm">
-                                        <!-- Company Section -->
-                                        <v-card flat class="mb-6">
+                        <div class="step-content">
+                            <v-form @submit.prevent="validarPaso2" ref="companyForm">
+                                <v-card class="mb-6 company-summary-card" outlined elevation="3">
+                                    <v-card-title class="pb-2">
+                                        <v-icon color="primary" class="mr-3">mdi-account-tie</v-icon>
+                                        <span class="subtitle-1 font-weight-bold">Distribuidor validado</span>
+                                    </v-card-title>
+                                    <v-card-text>
+                                        <v-row>
+                                            <v-col cols="12" md="6">
+                                                <div class="grey--text text--darken-1 text-caption mb-1">Usuario</div>
+                                                <div class="subtitle-2 font-weight-bold">{{ distributorInfo.username || 'N/D' }}</div>
+                                            </v-col>
+                                            <v-col cols="12" md="6">
+                                                <div class="grey--text text--darken-1 text-caption mb-1">Email</div>
+                                                <div class="subtitle-2 font-weight-bold">{{ distributorInfo.email || 'N/D' }}</div>
+                                            </v-col>
+                                        </v-row>
+                                    </v-card-text>
+                                </v-card>
+
+                                <!-- Company Section -->
+                                <v-card flat class="mb-6">
                                             <v-card-title class="primary--text pa-0 pb-4">
                                                 <v-icon color="primary" class="mr-3">mdi-domain</v-icon>
                                                 <span class="headline">Datos de la Empresa</span>
@@ -454,34 +473,39 @@
                                                 <span class="headline">Resumen de Configuración</span>
                                             </v-card-title>
                                             <v-card-text>
-                                                <v-simple-table>
-                                                    <tbody>
-                                                        <tr>
-                                                            <td class="font-weight-bold">Empresa:</td>
-                                                            <td class="text-right">{{ empresa.nombre }}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="font-weight-bold">RUC:</td>
-                                                            <td class="text-right">{{ empresa.ruc }}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="font-weight-bold">Administrador:</td>
-                                                            <td class="text-right">{{ adminUser.firstname }} {{ adminUser.lastname }}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="font-weight-bold">Email:</td>
-                                                            <td class="text-right">{{ empresa.email }}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="font-weight-bold">Base de Datos:</td>
-                                                            <td class="text-right">
-                                                                <code class="grey--text text--darken-2">
-                                                                    planilla_empresa_{{ empresa.ruc }}
-                                                                </code>
-                                                            </td>
-                                                        </tr>
-                                                    </tbody>
-                                                </v-simple-table>
+                                                <v-row dense>
+                                                    <v-col cols="12" sm="6" class="mb-2">
+                                                        <div class="grey--text text--darken-1 text-caption">Empresa</div>
+                                                        <div class="subtitle-1 font-weight-bold">{{ empresa.nombre || 'N/D' }}</div>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" class="mb-2">
+                                                        <div class="grey--text text--darken-1 text-caption">RUC</div>
+                                                        <div class="subtitle-1 font-weight-bold">{{ empresa.ruc || 'N/D' }}</div>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" class="mb-2">
+                                                        <div class="grey--text text--darken-1 text-caption">Administrador</div>
+                                                        <div class="subtitle-1 font-weight-bold">
+                                                            {{ adminUser.firstname }} {{ adminUser.lastname }}
+                                                        </div>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" class="mb-2">
+                                                        <div class="grey--text text--darken-1 text-caption">Email</div>
+                                                        <div class="subtitle-1 font-weight-bold">{{ empresa.email || 'N/D' }}</div>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" class="mb-2">
+                                                        <div class="grey--text text--darken-1 text-caption">Base de Datos</div>
+                                                        <div class="subtitle-1 font-weight-bold">
+                                                            <code class="grey--text text--darken-2">planilla_empresa_{{ empresa.ruc }}</code>
+                                                        </div>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="6" class="mb-2">
+                                                        <div class="grey--text text--darken-1 text-caption">Distribuidor</div>
+                                                        <div class="subtitle-1 font-weight-bold">
+                                                            {{ distributorInfo.username || 'N/D' }}
+                                                            <span v-if="distributorInfo.email" class="grey--text text--darken-1">({{ distributorInfo.email }})</span>
+                                                        </div>
+                                                    </v-col>
+                                                </v-row>
                                             </v-card-text>
                                         </v-card>
 
@@ -667,6 +691,10 @@
                 loadingMessage: 'Procesando...',
                 loginUrl: '#',
                 resultadoCreacion: {},
+                distributorInfo: {
+                    username: '',
+                    email: ''
+                },
                 
                 empresa: {
                     nombre: '',
@@ -753,6 +781,8 @@
                             
                             this.loading = false;
                             if (response.data.success) {
+                                this.distributorInfo.username = response.data.username || this.usuario.user;
+                                this.distributorInfo.email = response.data.email || '';
                                 if (response.data.email) {
                                     this.empresa.email = response.data.email;
                                 }
