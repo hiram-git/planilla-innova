@@ -112,7 +112,8 @@ class AttendanceCalculator
                     (int)($schedule['lunch_out_tolerance_before'] ?? 0),
                     (int)($schedule['lunch_out_tolerance_after'] ?? 0),
                     (int)($schedule['lunch_in_tolerance_before'] ?? 0),
-                    (int)($schedule['lunch_in_tolerance_after'] ?? 0)
+                    (int)($schedule['lunch_in_tolerance_after'] ?? 0),
+                    $date
                 );
                 $lunchTimeMinutes = $lunchTol['lunch_minutes'];
                 $lunchExceededMinutes = $lunchTol['exceeded_minutes'];
@@ -190,7 +191,9 @@ class AttendanceCalculator
             $date,
             $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8,
             $lunchTimeMinutes,
-            $schedule
+            $schedule,
+            $lunchOut,
+            $lunchIn
         );
 
         // Corrección: si el horario NO es nocturno y la salida ajustada no excede la hora programada,

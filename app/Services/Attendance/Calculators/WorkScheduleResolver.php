@@ -120,6 +120,7 @@ class WorkScheduleResolver
      * @param int $tolOutAfter           Minutos de tolerancia después de salida a almuerzo
      * @param int $tolInBefore           Minutos de tolerancia antes de entrada de almuerzo
      * @param int $tolInAfter            Minutos de tolerancia después de entrada de almuerzo
+     * @param string|null $baseDate      Fecha base (Y-m-d) para normalizar timestamps sin fecha
      * @return array [ 'lunch_minutes' => int, 'exceeded_minutes' => int, 'scheduled_minutes' => int ]
      */
     public function calculateLunchWithTolerance(
@@ -130,7 +131,8 @@ class WorkScheduleResolver
         int $tolOutBefore = 0,
         int $tolOutAfter = 0,
         int $tolInBefore = 0,
-        int $tolInAfter = 0
+        int $tolInAfter = 0,
+        ?string $baseDate = null
     ): array {
         // Si no hay horario programado de almuerzo, no aplicar tolerancias
         if (empty($scheduledOut) || empty($scheduledIn)) {
@@ -146,20 +148,20 @@ class WorkScheduleResolver
         $scheduledMinutes = $this->diffMinutes($scheduledOut, $scheduledIn);
 
         // Construir ventanas de tolerancia
-        $winOutStart = $this->modifyTime($scheduledOut, -$tolOutBefore);
-        $winOutEnd   = $this->modifyTime($scheduledOut, +$tolOutAfter);
-        $winInStart  = $this->modifyTime($scheduledIn, -$tolInBefore);
-        $winInEnd    = $this->modifyTime($scheduledIn, +$tolInAfter);
+        $winOutStart = $this->modifyTime($scheduledOut, -$tolOutBefore, $baseDate);
+        $winOutEnd   = $this->modifyTime($scheduledOut, +$tolOutAfter, $baseDate);
+        $winInStart  = $this->modifyTime($scheduledIn, -$tolInBefore, $baseDate);
+        $winInEnd    = $this->modifyTime($scheduledIn, +$tolInAfter, $baseDate);
 
         // Normalizar formatos a DateTime completos si vienen en HH:MM:SS
-        $actualOutDT = $this->toDateTime($actualOut);
-        $actualInDT  = $this->toDateTime($actualIn);
-        $winOutStartDT = $this->toDateTime($winOutStart);
-        $winOutEndDT   = $this->toDateTime($winOutEnd);
-        $winInStartDT  = $this->toDateTime($winInStart);
-        $winInEndDT    = $this->toDateTime($winInEnd);
-        $scheduledOutDT= $this->toDateTime($scheduledOut);
-        $scheduledInDT = $this->toDateTime($scheduledIn);
+        $actualOutDT = $this->toDateTime($actualOut, $baseDate);
+        $actualInDT  = $this->toDateTime($actualIn, $baseDate);
+        $winOutStartDT = $this->toDateTime($winOutStart, $baseDate);
+        $winOutEndDT   = $this->toDateTime($winOutEnd, $baseDate);
+        $winInStartDT  = $this->toDateTime($winInStart, $baseDate);
+        $winInEndDT    = $this->toDateTime($winInEnd, $baseDate);
+        $scheduledOutDT= $this->toDateTime($scheduledOut, $baseDate);
+        $scheduledInDT = $this->toDateTime($scheduledIn, $baseDate);
 
         // Excesos positivos (extienden el almuerzo)
         $positiveExtra = 0;
@@ -192,18 +194,18 @@ class WorkScheduleResolver
     // ==========================
     // Helpers internos de tiempo
     // ==========================
-    private function toDateTime(string $timeOrDate): \DateTime
+    private function toDateTime(string $timeOrDate, ?string $baseDate = null): \DateTime
     {
         // Si viene solo hora, usar fecha de hoy
         if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $timeOrDate)) {
-            $timeOrDate = date('Y-m-d') . ' ' . $timeOrDate;
+            $timeOrDate = ($baseDate ?: date('Y-m-d')) . ' ' . $timeOrDate;
         }
         return new \DateTime($timeOrDate);
     }
 
-    private function modifyTime(string $baseTime, int $minutes): string
+    private function modifyTime(string $baseTime, int $minutes, ?string $baseDate = null): string
     {
-        $dt = $this->toDateTime($baseTime);
+        $dt = $this->toDateTime($baseTime, $baseDate);
         $op = $minutes >= 0 ? "+{$minutes} minutes" : "{$minutes} minutes";
         $dt->modify($op);
         return $dt->format('H:i:s');

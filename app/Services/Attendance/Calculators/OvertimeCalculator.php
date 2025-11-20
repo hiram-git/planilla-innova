@@ -28,11 +28,13 @@ class OvertimeCalculator
 
     private $businessCalendar;
     private $schedule;
+    private $scheduleResolver;
 
     public function __construct()
     {
         $this->businessCalendar = new BusinessCalendar();
         $this->schedule = null;
+        $this->scheduleResolver = new WorkScheduleResolver();
     }
 
     /**
@@ -168,14 +170,23 @@ class OvertimeCalculator
      * @param int $lunchMinutes Minutos de almuerzo
      * @return array Breakdown completo con todas las horas calculadas
      */
-    public function calculateCompleteBreakdown($timeIn, $timeOut, $date, $regularHours = self::REGULAR_DAILY_HOURS, $lunchMinutes = 60, $schedule = null)
+    public function calculateCompleteBreakdown(
+        $timeIn,
+        $timeOut,
+        $date,
+        $regularHours = self::REGULAR_DAILY_HOURS,
+        $lunchMinutes = 60,
+        $schedule = null,
+        $lunchOut = null,
+        $lunchIn = null
+    )
     {
         if (empty($timeIn) || empty($timeOut)) {
             return $this->getEmptyBreakdown();
         }
 
         // Calcular horas totales trabajadas (aplicando tolerancias si hay horario)
-        $totalHours = $this->calculateTotalHours($timeIn, $timeOut, $lunchMinutes, $schedule);
+        $totalHours = $this->calculateTotalHours($timeIn, $timeOut, $lunchMinutes, $schedule, $date, $lunchOut, $lunchIn);
 
         // Verificar si es feriado/domingo
         $holidayStatus = $this->checkHolidayStatus($date);
@@ -235,10 +246,11 @@ class OvertimeCalculator
      * @param int $lunchMinutes
      * @return float
      */
-    private function calculateTotalHours($timeIn, $timeOut, $lunchMinutes = 60, $schedule = null)
+    private function calculateTotalHours($timeIn, $timeOut, $lunchMinutes = 60, $schedule = null, ?string $date = null, $lunchOut = null, $lunchIn = null)
     {
-        $start = new DateTime($timeIn);
-        $end = new DateTime($timeOut);
+        $baseDate = $date ?: date('Y-m-d');
+        $start = $this->toDateTimeWithBase($timeIn, $baseDate);
+        $end = $this->toDateTimeWithBase($timeOut, $baseDate);
 
         // Si time_out es menor, asumimos cruce de medianoche
         if ($end < $start) {
@@ -250,8 +262,8 @@ class OvertimeCalculator
         $effectiveEnd = clone $end;
 
         if (is_array($schedule) && !empty($schedule['time_in']) && !empty($schedule['time_out'])) {
-            $schedIn = new DateTime($schedule['time_in']);
-            $schedOut = new DateTime($schedule['time_out']);
+            $schedIn = $this->toDateTimeWithBase($schedule['time_in'], $baseDate);
+            $schedOut = $this->toDateTimeWithBase($schedule['time_out'], $baseDate);
 
             if ($schedOut < $schedIn) {
                 $schedOut->modify('+1 day');
@@ -286,12 +298,46 @@ class OvertimeCalculator
         $interval = $effectiveStart->diff($effectiveEnd);
         $totalMinutes = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
 
+        // Calcular minutos de almuerzo reales con tolerancia cuando hay marcaciones y horario
+        $computedLunchMinutes = $lunchMinutes;
+
+        if (is_array($schedule) && (!empty($lunchOut) || !empty($lunchIn))) {
+            $lunchCalc = $this->scheduleResolver->calculateLunchWithTolerance(
+                $lunchOut,
+                $lunchIn,
+                $schedule['salida_almuerzo'] ?? null,
+                $schedule['entrada_almuerzo'] ?? null,
+                (int)($schedule['lunch_out_tolerance_before'] ?? 0),
+                (int)($schedule['lunch_out_tolerance_after'] ?? 0),
+                (int)($schedule['lunch_in_tolerance_before'] ?? 0),
+                (int)($schedule['lunch_in_tolerance_after'] ?? 0),
+                $baseDate
+            );
+            $computedLunchMinutes = $lunchCalc['lunch_minutes'];
+        } elseif (!empty($lunchOut) && !empty($lunchIn)) {
+            $outDT = $this->toDateTimeWithBase($lunchOut, $baseDate);
+            $inDT = $this->toDateTimeWithBase($lunchIn, $baseDate);
+            $computedLunchMinutes = max(0, (int)round(($inDT->getTimestamp() - $outDT->getTimestamp()) / 60));
+        }
+
         // Descontar almuerzo si trabajó más de 4 horas
         if ($totalMinutes > 240) { // 4 horas = 240 minutos
-            $totalMinutes -= $lunchMinutes;
+            $totalMinutes -= $computedLunchMinutes;
         }
 
         return round($totalMinutes / 60, 2);
+    }
+
+    /**
+     * Normalizar hora o timestamp usando la fecha base si solo se recibe la hora.
+     */
+    private function toDateTimeWithBase($timeOrDate, string $baseDate): DateTime
+    {
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $timeOrDate)) {
+            return new DateTime("{$baseDate} {$timeOrDate}");
+        }
+
+        return new DateTime($timeOrDate);
     }
 
     /**
