@@ -12,12 +12,29 @@ class Database
 
     private function __construct()
     {
-        $app_config = require './config/database.php';
-        $config = $app_config['connections']['mysql'] ?? [];
+        // Intentar resolver tenant primero
+        TenantResolver::resolve();
+
+        // Obtener configuración de base de datos (tenant o default)
+        if (TenantResolver::hasTenant()) {
+            $config = TenantResolver::getDatabaseConfig();
+        } else {
+            // Fallback a configuración por defecto
+            $app_config = require './config/database.php';
+            $config = $app_config['connections']['mysql'] ?? [];
+        }
 
         try {
+            $dsn = sprintf(
+                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                $config['host'],
+                $config['port'] ?? 3306,
+                $config['database'],
+                $config['charset'] ?? 'utf8mb4'
+            );
+
             $this->connection = new PDO(
-                "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
+                $dsn,
                 $config['username'],
                 $config['password'],
                 [
@@ -26,7 +43,14 @@ class Database
                     PDO::ATTR_EMULATE_PREPARES => false
                 ]
             );
+
+            // Log tenant conectado (solo en desarrollo)
+            if (TenantResolver::hasTenant()) {
+                error_log("Connected to tenant database: " . TenantResolver::getCurrentTenant());
+            }
+
         } catch (PDOException $e) {
+            error_log("Database connection failed: " . $e->getMessage());
             die("Database connection failed: " . $e->getMessage());
         }
     }
@@ -37,6 +61,14 @@ class Database
             self::$instance = new self();
         }
         return self::$instance;
+    }
+
+    /**
+     * Resetear instancia de Database (útil cuando cambia el tenant)
+     */
+    public static function resetInstance()
+    {
+        self::$instance = null;
     }
 
     public function getConnection()

@@ -17,11 +17,28 @@ class Admin extends Controller
 
     public function index()
     {
+
+        // Resolver tenant si viene parámetro ?tenant=
+        if (isset($_GET['tenant'])) {
+            \App\Core\TenantResolver::resolve();
+
+            // Si se resolvió correctamente, resetear Database para usar nuevo tenant
+            if (\App\Core\TenantResolver::hasTenant()) {
+                \App\Core\Database::resetInstance();
+
+                $tenantInfo = \App\Core\TenantResolver::getTenantInfo();
+                error_log("Tenant resolved in index: " . ($tenantInfo['company_name'] ?? 'Unknown'));
+            }
+        }
+
         AuthMiddleware::redirectIfAuthenticated();
 
         $data = [
             'title' => 'Administración - Login',
-            'csrf_token' => AuthMiddleware::generateCSRF()
+            'csrf_token' => AuthMiddleware::generateCSRF(),
+            'tenant_name' => \App\Core\TenantResolver::hasTenant()
+                ? \App\Core\TenantResolver::getTenantInfo()['company_name'] ?? null
+                : null
         ];
 
         $this->view('admin/login', $data);
@@ -31,13 +48,29 @@ class Admin extends Controller
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             // Si es GET, mostrar el formulario de login
+
+            // Resolver tenant si viene parámetro ?tenant=
+            if (isset($_GET['tenant'])) {
+                \App\Core\TenantResolver::resolve();
+
+                // Si se resolvió correctamente, resetear Database para usar nuevo tenant
+                if (\App\Core\TenantResolver::hasTenant()) {
+                    \App\Core\Database::resetInstance();
+
+                    // Opcional: Log para debugging
+                    $tenantInfo = \App\Core\TenantResolver::getTenantInfo();
+                    error_log("Tenant resolved: " . ($tenantInfo['company_name'] ?? 'Unknown'));
+                }
+            }
             AuthMiddleware::redirectIfAuthenticated();
-            
+
             $data = [
                 'title' => 'Administración - Login',
-                'csrf_token' => AuthMiddleware::generateCSRF()
+                'csrf_token' => AuthMiddleware::generateCSRF(),
+                'tenant_name' => \App\Core\TenantResolver::hasTenant()
+                    ? \App\Core\TenantResolver::getTenantInfo()['company_name'] ?? null
+                    : null
             ];
-
             $this->view('admin/login', $data);
             return;
         }
@@ -47,6 +80,32 @@ class Admin extends Controller
 
         $username = Security::sanitizeInput($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
+        $companyCode = Security::sanitizeInput($_POST['company_code'] ?? '');
+
+        // Intentar resolver tenant por código de empresa antes de autenticar
+        if (!empty($companyCode)) {
+            $tenantResolved = \App\Core\TenantResolver::resolveByCompanyCode($companyCode);
+
+            if ($tenantResolved) {
+                // Tenant encontrado - resetear conexión de base de datos
+                \App\Core\Database::resetInstance();
+
+                $tenantInfo = \App\Core\TenantResolver::getTenantInfo();
+                error_log("Tenant resolved for login: {$tenantInfo['company_name']} (RUC/Code: {$companyCode})");
+            } else {
+                // Código de empresa no encontrado
+                Security::logSecurityEvent('login_invalid_company_code', [
+                    'username' => $username,
+                    'company_code' => $companyCode
+                ]);
+                $_SESSION['error'] = 'Código de empresa no válido o inactivo';
+                $this->redirect('/panel');
+                return;
+            }
+        } else {
+            // Sin código de empresa - usar base de datos por defecto (planilla_prod)
+            error_log("Login without company code - using default database");
+        }
 
         if (empty($username) || empty($password)) {
             Security::logSecurityEvent('login_attempt_empty_fields', ['username' => $username]);
@@ -69,6 +128,19 @@ class Admin extends Controller
             $_SESSION['is_super_admin'] = $adminModel->isSuperAdmin($admin);
             $_SESSION['admin_login_time'] = date('Y-m-d H:i:s');
             $_SESSION['success'] = 'Sesión iniciada con éxito';
+
+            // Guardar información del tenant para validación de storage
+            if (\App\Core\TenantResolver::hasTenant()) {
+                $tenantInfo = \App\Core\TenantResolver::getTenantInfo();
+                $_SESSION['tenant_id'] = $tenantInfo['id'] ?? null;
+                $_SESSION['tenant_license'] = $tenantInfo['license_key'] ?? null;
+                $_SESSION['tenant_db'] = $tenantInfo['db_name'] ?? null;
+            } else {
+                // BD principal (planilla_prod)
+                $_SESSION['tenant_id'] = 'default';
+                $_SESSION['tenant_license'] = 'default';
+                $_SESSION['tenant_db'] = $_ENV['DB_NAME'] ?? 'planilla_prod';
+            }
 
             // Log successful login
             ActivityLogger::logLogin($admin['id'], $username, true);
@@ -506,16 +578,18 @@ class Admin extends Controller
         if (isset($_SESSION['admin']) && isset($_SESSION['admin_username'])) {
             ActivityLogger::logLogout($_SESSION['admin'], $_SESSION['admin_username']);
         }
-        
+
         // Limpiar sesión completa
         session_unset();
         session_destroy();
-        
+
         // Iniciar nueva sesión para mensaje de éxito
         session_start();
         $_SESSION['success'] = 'Sesión cerrada con éxito';
-        
-        $this->redirect('/panel');
+        $_SESSION['clear_storage'] = true;  // Flag para limpiar storage en el frontend
+
+        // Redirigir con parámetro logout=1 para trigger limpieza de storage
+        $this->redirect('/panel?logout=1');
     }
 
     protected function requireAuth()

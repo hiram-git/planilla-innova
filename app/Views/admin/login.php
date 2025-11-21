@@ -32,7 +32,7 @@ $content = '
                     
                     <form action="' . \App\Core\UrlHelper::panel('login') . '" method="POST">
                         <input type="hidden" name="csrf_token" value="' . $csrf_token . '">
-                        
+
                         <div class="input-group mb-3">
                             <input type="text" class="form-control" name="username" placeholder="Usuario" required autofocus>
                             <div class="input-group-append">
@@ -41,7 +41,7 @@ $content = '
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="input-group mb-3">
                             <input type="password" class="form-control" name="password" placeholder="Clave" required>
                             <div class="input-group-append">
@@ -50,7 +50,19 @@ $content = '
                                 </div>
                             </div>
                         </div>
-                        
+
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" name="company_code" placeholder="Licencia (Opcional)" value="' . ($_GET['company'] ?? '') . '">
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <span class="fas fa-key"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mb-3">
+                            <i class="fas fa-info-circle"></i> Ingresa tu código de licencia (formato: PINN1234567890) o deja vacío para BD principal
+                        </small>
+
                         <div class="row text-right">
                             <div class="col-12 pull-right">
                                 <button type="submit" class="btn btn-primary" name="login">
@@ -75,7 +87,26 @@ $content .= '
     </div>
 </div>';
 
-$scripts = '';
+$scripts = '
+<script src="' . url('js/tenant-storage-manager.js') . '"></script>
+<script>
+    // Limpiar storage al cargar la página de login
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log("[Login] Limpiando storage al cargar página de login");
+
+        // Verificar si viene de logout
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromLogout = urlParams.get("logout") === "1";
+
+        if (fromLogout) {
+            console.log("[Login] Usuario viene de logout - limpieza completa");
+            TenantStorageManager.clearOnLogout();
+        } else {
+            console.log("[Login] Carga normal - limpieza de datos de tenant");
+            TenantStorageManager.clearTenantData();
+        }
+    });
+</script>';
 
 include __DIR__ . '/../layouts/main.php';
 ?>

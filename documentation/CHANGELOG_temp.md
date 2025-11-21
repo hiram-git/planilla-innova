@@ -608,9 +608,6 @@ Al crear una nueva versiÃ³n:
 5. **Incluir estadÃ­sticas**: LÃ­neas de cÃ³digo, archivos, tablas BD
 6. **Referencias cruzadas**: Enlazar versiones relacionadas
 
----
-
-Última Actualización: 20 de Noviembre, 2025
-Sistema: Planillas MVC v3.5.8
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 30%
-
+**Última Actualización**: 20 de Noviembre, 2025
+**Sistema**: Planillas MVC v3.5.8
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 30%

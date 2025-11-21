@@ -19,7 +19,7 @@ use Exception;
 
 // Autoloaded via Composer (PSR-4): App\\Models\\WizardModel
 
-class WizardController {
+class WizardController{
     private $wizardModel;
     private $db;
 
@@ -48,10 +48,10 @@ class WizardController {
      */
     public function crearEmpresa() {
         // Verificar si ya hay empresas configuradas
-        if ($this->wizardModel->hasConfiguredCompanies()) {
-            $this->redirectToLogin();
-            return;
-        }
+        //if ($this->wizardModel->hasConfiguredCompanies()) {
+        //    $this->redirectToLogin();
+        //    return;
+        //}
 
         $this->renderVuetifyWizard();
     }
@@ -176,29 +176,29 @@ class WizardController {
             // Iniciar transacción
             $this->db->beginTransaction();
 
-            // 1. Crear empresa en BD master
+            // 1. GENERAR LICENCIA PRIMERO (antes de crear BD)
+            $license = $this->wizardModel->generateUniqueLicense();
+            $companyData['license_key'] = $license;
+
+            // 2. Crear empresa en BD master CON licencia
             $companyId = $this->wizardModel->createCompanyRecord($companyData);
 
-            // 2. Crear base de datos específica para la empresa
-            $databaseName = $this->wizardModel->generateTenantDatabaseName($companyData['ruc']);
+            // 3. Generar nombre de BD basado en LICENCIA
+            $databaseName = $this->wizardModel->generateTenantDatabaseName($license);
+
+            // 4. Crear base de datos específica para la empresa
             $this->wizardModel->createTenantDatabase($databaseName);
 
-            // 3. Importar estructura completa en BD tenant
+            // 5. Importar estructura completa en BD tenant
             $this->wizardModel->importTenantSchema($databaseName);
 
-            // 4. Configurar datos iniciales empresa en BD tenant
+            // 6. Configurar datos iniciales empresa en BD tenant
             $this->wizardModel->setupTenantCompanyData($databaseName, $companyData, $companyId);
 
-            // 5. Crear usuario administrador en BD tenant
+            // 7. Crear usuario administrador en BD tenant
             $adminUserId = $this->wizardModel->createTenantAdminUser($databaseName, $companyData);
 
-            // 6. Generar y validar licencia remota
-            $licenseResult = $this->wizardModel->generateAndValidateLicense($companyId, $companyData);
-            if (!$licenseResult['success']) {
-                throw new Exception('Error en validación de licencia: ' . $licenseResult['message']);
-            }
-
-            // 7. Actualizar registro empresa con BD asignada
+            // 8. Actualizar registro empresa con BD asignada
             $this->wizardModel->updateCompanyDatabase($companyId, $databaseName);
 
             // Confirmar transacción
@@ -214,9 +214,10 @@ class WizardController {
                 'success' => true,
                 'message' => 'Empresa creada exitosamente',
                 'company_id' => $companyId,
+                'license_key' => $license,
                 'database_name' => $databaseName,
                 'admin_user_id' => $adminUserId,
-                'login_url' => $this->getCompanyLoginUrl($databaseName),
+                'login_url' => $this->getCompanyLoginUrl($license),
                 'next_action' => 'redirect_to_login'
             ]);
 
@@ -336,14 +337,42 @@ class WizardController {
     }
 
     private function validateGuatemalanRUC($ruc) {
-        // Validación básica RUC guatemalteco (8-12 dígitos)
-        return preg_match('/^[0-9]{8,12}$/', $ruc);
+        // Validación RUC panameño
+        // Formatos aceptados:
+        // - Persona Natural: X-XXX-XXXX (8 dígitos con guiones)
+        // - Persona Jurídica: XXXXXX-X-XXXX (hasta 14 caracteres)
+        // - RUC simplificado: solo dígitos sin guiones (8-14 dígitos)
+
+        // Remover espacios
+        $ruc = trim($ruc);
+
+        // Validar que no esté vacío
+        if (empty($ruc)) {
+            return false;
+        }
+
+        // Aceptar RUC con guiones (formato estándar panameño)
+        if (preg_match('/^[0-9]{1,8}-[0-9]{1,5}-[0-9]{1,6}$/', $ruc)) {
+            return true;
+        }
+
+        // Aceptar RUC sin guiones (solo dígitos, 8-14 caracteres)
+        if (preg_match('/^[0-9]{8,14}$/', $ruc)) {
+            return true;
+        }
+
+        // Aceptar formato NIT/DV (con letras al final)
+        if (preg_match('/^[0-9]{8,14}[A-Z]{0,2}$/', $ruc)) {
+            return true;
+        }
+
+        return false;
     }
 
 
-    private function getCompanyLoginUrl($databaseName) {
-        // En futuro: subdomain o tenant parameter
-        return '/panel/login?tenant=' . $databaseName;
+    private function getCompanyLoginUrl($license) {
+        // Retornar URL con instrucciones para usar licencia en formulario
+        return '/panel/login'; // Usuario ingresará licencia en el campo "Código de Empresa"
     }
 
     private function sendWelcomeEmail($companyData, $databaseName) {
@@ -362,7 +391,7 @@ class WizardController {
     }
 
     private function redirectToLogin() {
-        header('Location: /panel/login');
+        $this->redirect('/crear-empresa');
         exit;
     }
 

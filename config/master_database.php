@@ -3,7 +3,7 @@
 return [
     'host' => $_ENV['MASTER_DB_HOST'] ?? 'localhost',
     'port' => (int)($_ENV['MASTER_DB_PORT'] ?? 3306),
-    'database' => $_ENV['MASTER_DB_NAME'] ?? 'planilla_prod',
+    'database' => $_ENV['MASTER_DB_NAME'] ?? 'planilla_master',
     'username' => $_ENV['MASTER_DB_USER'] ?? 'root',
     'password' => $_ENV['MASTER_DB_PASS'] ?? '',
     'charset'  => $_ENV['MASTER_DB_CHARSET'] ?? 'utf8mb4',

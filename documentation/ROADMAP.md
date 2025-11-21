@@ -1,20 +1,21 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 15 de Noviembre, 2025
-**Versión**: 3.5.7 - Vacaciones: Cálculo 11 meses + Control planillas únicas + PDF mejorado
-**Versión Anterior**: 3.5.6 - Sincronización Calendario API + Feriados Pagados + Unificación
+**Fecha**: 20 de Noviembre, 2025
+**Versión**: 3.5.8 - Multitenancy + Filtros Vacaciones + Tolerancias Asistencias
+**Versión Anterior**: 3.5.7 - Vacaciones: Cálculo 11 meses + Control planillas únicas + PDF mejorado
 
-### 🆕 Hitos Recientes (v3.5.7 Vacaciones)
+### 🆕 Hitos Recientes (v3.5.8 Multitenancy + Mejoras)
+- **Multitenancy Scaffolding**: Infraestructura base para BD por tenant con validación distribuidor
+- **Vacaciones Mejoradas**: Filtros por tipo planilla + descripción MAYÚSCULAS + PDF refinado
+- **Asistencias Precisas**: Tolerancias aplicadas correctamente + clamp horas nocturnas
+- **Estabilidad UI**: Guards jQuery + fallbacks para evitar errores en vistas
+
+### 🆕 Hitos Anteriores (v3.5.7 Vacaciones)
 - Vacaciones: salario diario por acumulados 11 meses `ACUMULADOS("SALARIO_BASE") ÷ 11 ÷ 30`
 - Vacaciones: control planillas únicas vía `vacation_requests.payroll_id` (FK a `planilla_cabecera`)
-- Vacaciones: vista Balance muestra fórmula y evita duplicados (link a planilla existente)
-- PDF Vacaciones: orientación horizontal, etiquetas en español, columnas alineadas, resumen de días sincronizado con “Balance Actual”
+- PDF Vacaciones: orientación horizontal, etiquetas en español, columnas alineadas
 - Motor de fórmulas: función `CONCEPTO("NOMBRE")` en evaluador seguro
-
-### 🆕 Hitos de Preparación (Horas Extra)
-- Migraciones: `employees.overtime_eligible`, tolerancias en `schedules`, `attendance_calculations.overtime_approval`
-- Controladores/Modelos: cableado inicial de elegibilidad y tolerancias
 
 ### ✅ **FASE 1: CORE SYSTEM (100% COMPLETADO)**
 - [x] **Arquitectura MVC**: Router + Database + Config + Middleware

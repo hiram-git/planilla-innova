@@ -389,6 +389,25 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
     <!-- Date Range Picker -->
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 
+    <!-- Tenant Storage Manager -->
+    <script src="<?= url('js/tenant-storage-manager.js') ?>"></script>
+    <script>
+    // Validación automática de tenant en cada carga de página
+    (function() {
+        <?php if (isset($_SESSION['tenant_id']) && isset($_SESSION['tenant_license'])): ?>
+        const sessionTenantId = '<?= $_SESSION['tenant_id'] ?>';
+        const sessionTenantLicense = '<?= $_SESSION['tenant_license'] ?>';
+
+        console.log('[Tenant Validation] Validando tenant de sesión:', sessionTenantId, sessionTenantLicense);
+
+        // Validar y limpiar storage si el tenant cambió
+        TenantStorageManager.validateAndClean(sessionTenantId, sessionTenantLicense);
+        <?php else: ?>
+        console.log('[Tenant Validation] No hay tenant en sesión');
+        <?php endif; ?>
+    })();
+    </script>
+
     <!-- Global Scripts -->
     <script>
     (function() {

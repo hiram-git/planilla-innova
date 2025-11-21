@@ -20,5 +20,6 @@ CREATE TABLE IF NOT EXISTS tenants (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status);
+-- Add index for status lookups
+ALTER TABLE tenants ADD INDEX idx_tenants_status (status);
 

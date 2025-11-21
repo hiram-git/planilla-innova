@@ -23,37 +23,123 @@
         .empresa-container {
             min-height: 100vh;
             background: linear-gradient(135deg, #FF5722 0%, #FF9800 100%);
+            padding: 32px 20px;
         }
-        
+
         .empresa-card {
-            margin: 20px;
+            margin: 40px auto;
             border-radius: 20px !important;
             box-shadow: 0 25px 80px rgba(255,87,34,0.2) !important;
         }
-        
+
         .empresa-header {
             background: linear-gradient(135deg, #FF5722 0%, #FF9800 100%) !important;
             border-radius: 20px 20px 0 0 !important;
-            padding: 40px 30px !important;
+            padding: 48px !important;
         }
-        
+
         .step-content {
-            padding: 30px 40px;
+            padding: 40px;
+        }
+
+        /* Asegurar márgenes simétricos en los formularios */
+        .step-content .v-form {
+            padding: 0;
+            margin: 0;
+        }
+
+        .step-content .v-row {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        .step-content .v-col {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+        }
+
+        .v-text-field .v-input__control,
+        .v-select .v-input__control {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        /* Alineación perfecta de los campos con iconos */
+        .v-text-field--outlined .v-input__prepend-outer,
+        .v-text-field--outlined .v-input__append-outer {
+            margin-top: 16px;
+        }
+
+        .v-btn {
+            padding: 12px 28px !important;
+            min-height: 48px !important;
+        }
+
+        .v-btn.x-large {
+            min-height: 56px !important;
+            font-size: 16px !important;
+        }
+
+        .button-group {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #e0e0e0;
         }
         
         .company-summary-card {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border-radius: 15px;
             border-left: 5px solid #FF5722 !important;
+            margin-bottom: 32px !important;
         }
-        
+
+        .v-card.mb-6 {
+            margin-bottom: 32px !important;
+        }
+
+        .v-divider.mb-6 {
+            margin-bottom: 28px !important;
+        }
+
+        .v-text-field.mb-3,
+        .v-select.mb-3 {
+            margin-bottom: 20px !important;
+        }
+
+        .v-row.mb-8 {
+            margin-bottom: 40px !important;
+        }
+
+        .v-avatar {
+            margin-bottom: 24px !important;
+        }
+
+        .v-card-title {
+            padding: 20px !important;
+        }
+
+        .v-card-text {
+            padding: 20px !important;
+        }
+
+        .company-summary-card .v-card-title,
+        .company-summary-card .v-card-text {
+            padding: 20px 24px !important;
+        }
+
+        .v-alert {
+            margin-bottom: 32px !important;
+        }
+
         .result-message {
             white-space: pre-wrap;
             font-family: 'Courier New', monospace;
             background: #f8f9fa;
-            padding: 15px;
+            padding: 20px;
+            padding-left: 24px;
             border-radius: 8px;
             border-left: 4px solid #28a745;
+            line-height: 1.6;
         }
         
         .v-stepper__step--active .v-stepper__label {
@@ -107,6 +193,76 @@
                 transform: scale(1);
             }
         }
+
+        .loading-box {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 32px 28px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+            max-width: 380px;
+            width: 100%;
+        }
+
+        .loading-box h2 {
+            margin-bottom: 12px;
+        }
+
+        .loading-box p {
+            margin-top: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .empresa-container {
+                padding: 16px;
+            }
+
+            .empresa-card {
+                margin: 20px;
+            }
+
+            .empresa-header {
+                padding: 32px !important;
+            }
+
+            .step-content {
+                padding: 28px;
+            }
+
+            .step-content .v-col {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+
+            .v-btn {
+                padding: 10px 20px !important;
+                min-height: 44px !important;
+            }
+
+            .v-btn.x-large {
+                min-height: 52px !important;
+                font-size: 15px !important;
+            }
+
+            .button-group {
+                margin-top: 32px;
+                padding-top: 20px;
+            }
+        }
+
+        @media (min-width: 601px) and (max-width: 960px) {
+            .step-content {
+                padding: 36px;
+            }
+
+            .empresa-header {
+                padding: 40px !important;
+            }
+
+            .step-content .v-col {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -130,17 +286,17 @@
                         </div>
 
                         <!-- Loading Overlay -->
-                        <v-overlay :value="loading" color="rgba(255,255,255,0.95)" z-index="1000">
-                            <div class="text-center">
+                        <v-overlay :value="loading" color="rgba(0,0,0,0.68)" z-index="1000">
+                            <div class="text-center loading-box elevation-8">
                                 <v-progress-circular
-                                    :size="80"
-                                    :width="8"
+                                    :size="70"
+                                    :width="7"
                                     color="primary"
                                     indeterminate
                                     class="mb-4"
                                 ></v-progress-circular>
                                 <h2 class="primary--text mb-2" v-html="loadingMessage">Procesando...</h2>
-                                <p class="grey--text">Por favor espere mientras configuramos su empresa</p>
+                                <p class="grey--text text--darken-1 mb-0">Espere mientras validamos y configuramos los datos.</p>
                             </div>
                         </v-overlay>
 
@@ -164,7 +320,7 @@
                                 </div>
                             </v-stepper-step>
 
-                            <v-stepper-content step="1" class="pa-0">
+                            <v-stepper-content step="1" class="pa-4">
                                 <div class="step-content">
                                     <v-row justify="center" class="mb-8">
                                         <div class="text-center">
@@ -209,7 +365,7 @@
                                             </v-col>
                                         </v-row>
 
-                                        <v-row justify="center" class="mt-6">
+                                        <v-row justify="center" class="button-group">
                                             <v-btn
                                                 type="submit"
                                                 color="primary"
@@ -217,7 +373,7 @@
                                                 :loading="loading"
                                                 :disabled="!usuario.user || !usuario.password"
                                                 elevation="6"
-                                                min-width="200"
+                                                min-width="220"
                                             >
                                                 <v-icon left>mdi-shield-check</v-icon>
                                                 Validar Distribuidor
@@ -245,7 +401,7 @@
                                 </div>
                             </v-stepper-step>
 
-                            <v-stepper-content step="2" class="pa-0">
+                            <v-stepper-content step="2" class="pa-4">
                         <div class="step-content">
                             <v-form @submit.prevent="validarPaso2" ref="companyForm">
                                 <v-card class="mb-6 company-summary-card" outlined elevation="3">
@@ -269,7 +425,7 @@
 
                                 <!-- Company Section -->
                                 <v-card flat class="mb-6">
-                                            <v-card-title class="primary--text pa-0 pb-4">
+                                            <v-card-title class="primary--text pa-4 pb-4">
                                                 <v-icon color="primary" class="mr-3">mdi-domain</v-icon>
                                                 <span class="headline">Datos de la Empresa</span>
                                             </v-card-title>
@@ -307,7 +463,7 @@
 
                                         <!-- Admin User Section -->
                                         <v-card flat>
-                                            <v-card-title class="primary--text pa-0 pb-4">
+                                            <v-card-title class="primary--text pa-4 pb-4">
                                                 <v-icon color="primary" class="mr-3">mdi-account-cog</v-icon>
                                                 <span class="headline">Usuario Administrador</span>
                                             </v-card-title>
@@ -405,27 +561,33 @@
                                             </v-row>
                                         </v-card>
 
-                                        <v-row justify="space-between" class="mt-8">
-                                            <v-btn
-                                                @click="step = 1"
-                                                color="grey"
-                                                text
-                                                x-large
-                                            >
-                                                <v-icon left>mdi-arrow-left</v-icon>
-                                                Anterior
-                                            </v-btn>
-                                            
-                                            <v-btn
-                                                type="submit"
-                                                color="primary"
-                                                x-large
-                                                :disabled="!isStep2Valid"
-                                                elevation="6"
-                                            >
-                                                Continuar
-                                                <v-icon right>mdi-arrow-right</v-icon>
-                                            </v-btn>
+                                        <v-row justify="space-between" align="center" class="button-group">
+                                            <v-col cols="auto">
+                                                <v-btn
+                                                    @click="step = 1"
+                                                    color="grey"
+                                                    text
+                                                    x-large
+                                                    min-width="160"
+                                                >
+                                                    <v-icon left>mdi-arrow-left</v-icon>
+                                                    Anterior
+                                                </v-btn>
+                                            </v-col>
+
+                                            <v-col cols="auto">
+                                                <v-btn
+                                                    type="submit"
+                                                    color="primary"
+                                                    x-large
+                                                    :disabled="!isStep2Valid"
+                                                    elevation="6"
+                                                    min-width="180"
+                                                >
+                                                    Continuar
+                                                    <v-icon right>mdi-arrow-right</v-icon>
+                                                </v-btn>
+                                            </v-col>
                                         </v-row>
                                     </v-form>
                                 </div>
@@ -452,7 +614,7 @@
                                 </div>
                             </v-stepper-step>
 
-                            <v-stepper-content step="3" class="pa-0">
+                            <v-stepper-content step="3" class="pa-4">
                                 <div class="step-content">
                                     <!-- Pre-creation summary -->
                                     <div v-if="!finProceso">
@@ -530,28 +692,33 @@
                                             </v-row>
                                         </v-alert>
 
-                                        <v-row justify="space-between" class="mt-8">
-                                            <v-btn
-                                                @click="step = 2"
-                                                color="grey"
-                                                text
-                                                x-large
-                                            >
-                                                <v-icon left>mdi-arrow-left</v-icon>
-                                                Anterior
-                                            </v-btn>
-                                            
-                                            <v-btn
-                                                @click="confirmarCreacion"
-                                                color="success"
-                                                x-large
-                                                :loading="loading"
-                                                elevation="8"
-                                                min-width="200"
-                                            >
-                                                <v-icon left>mdi-rocket</v-icon>
-                                                Crear Empresa
-                                            </v-btn>
+                                        <v-row justify="space-between" align="center" class="button-group">
+                                            <v-col cols="auto">
+                                                <v-btn
+                                                    @click="step = 2"
+                                                    color="grey"
+                                                    text
+                                                    x-large
+                                                    min-width="160"
+                                                >
+                                                    <v-icon left>mdi-arrow-left</v-icon>
+                                                    Anterior
+                                                </v-btn>
+                                            </v-col>
+
+                                            <v-col cols="auto">
+                                                <v-btn
+                                                    @click="confirmarCreacion"
+                                                    color="success"
+                                                    x-large
+                                                    :loading="loading"
+                                                    elevation="8"
+                                                    min-width="220"
+                                                >
+                                                    <v-icon left>mdi-rocket</v-icon>
+                                                    Crear Empresa
+                                                </v-btn>
+                                            </v-col>
                                         </v-row>
                                     </div>
 
@@ -604,28 +771,29 @@
                                             </v-card-text>
                                         </v-card>
 
-                                        <v-row justify="center" class="mt-8">
-                                            <v-col cols="auto">
+                                        <v-row justify="center" class="button-group">
+                                            <v-col cols="12" sm="auto" class="text-center mb-3 mb-sm-0">
                                                 <v-btn
                                                     :href="loginUrl"
                                                     color="primary"
                                                     x-large
                                                     elevation="8"
-                                                    min-width="200"
-                                                    class="mr-4"
+                                                    min-width="220"
+                                                    class="mx-2"
                                                 >
                                                     <v-icon left>mdi-login</v-icon>
                                                     Ir al Sistema
                                                 </v-btn>
                                             </v-col>
-                                            
-                                            <v-col cols="auto">
+
+                                            <v-col cols="12" sm="auto" class="text-center">
                                                 <v-btn
                                                     @click="reiniciarFormulario"
                                                     color="grey"
                                                     outlined
                                                     x-large
-                                                    min-width="200"
+                                                    min-width="220"
+                                                    class="mx-2"
                                                 >
                                                     <v-icon left>mdi-plus</v-icon>
                                                     Crear Otra Empresa
@@ -900,19 +1068,19 @@
                                     'X-Requested-With': 'XMLHttpRequest'
                                 }
                             });
-                            
+
                             this.loading = false;
                             this.finProceso = true;
-                            
+
                             if (createResponse.data.success) {
                                 this.resultadoCreacion = createResponse.data;
-                                this.loginUrl = createResponse.data.login_url || '/panel/login';
+                                this.loginUrl = createResponse.data.login_url ||  window.BASE_URL +'/panel/login';
                                 this.mensajeResultado = `✅ Empresa creada exitosamente
 📊 Base de datos: ${createResponse.data.database_name}
 🔑 Licencia generada y validada
 👤 Usuario administrador configurado
 🚀 Sistema listo para usar`;
-                                
+
                                 await Swal.fire({
                                     title: '¡Empresa Creada!',
                                     text: 'Su empresa ha sido configurada correctamente y está lista para usar.',
@@ -923,6 +1091,28 @@
                             } else {
                                 this.mensajeResultado = '❌ Error: ' + createResponse.data.message;
                             }
+                        } else {
+                            // Handle validation errors from register-company
+                            this.loading = false;
+
+                            // Set error messages in form fields
+                            if (registerResponse.data.errors) {
+                                const errors = registerResponse.data.errors;
+                                if (errors.ruc) this.rucErrors.push(errors.ruc);
+                                if (errors.company_name) this.nombreErrors.push(errors.company_name);
+                                if (errors.admin_email) this.emailErrors.push(errors.admin_email);
+                            }
+
+                            // Go back to step 2
+                            this.step = 2;
+
+                            await Swal.fire({
+                                title: 'Error de Validación',
+                                text: registerResponse.data.message || 'Por favor corrija los errores en el formulario',
+                                icon: 'warning',
+                                confirmButtonText: 'Entendido',
+                                confirmButtonColor: '#FF5722'
+                            });
                         }
                     } catch (error) {
                         this.loading = false;
