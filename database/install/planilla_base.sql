@@ -172,8 +172,8 @@ CREATE TABLE `attendance_alerts`  (
   `article_reference` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Referencia legal (Ej: Art. 31 - C├│digo de Trabajo)',
   `metadata` json NULL COMMENT 'Datos adicionales espec├¡ficos del tipo de alerta',
   `date` date NOT NULL COMMENT 'Fecha principal de la alerta',
-  `period_start` date NULL DEFAULT NULL COMMENT 'Fecha inicial del per├¡odo (para alertas de rango)',
-  `period_end` date NULL DEFAULT NULL COMMENT 'Fecha final del per├¡odo (para alertas de rango)',
+  `period_start` date NULL DEFAULT NULL COMMENT 'Fecha inicial del PERÍODO (para alertas de rango)',
+  `period_end` date NULL DEFAULT NULL COMMENT 'Fecha final del PERÍODO (para alertas de rango)',
   `status` enum('PENDING','ACKNOWLEDGED','RESOLVED','DISMISSED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT 'Estado de la alerta',
   `acknowledged_by` int NULL DEFAULT NULL COMMENT 'Usuario que reconoci├│ la alerta',
   `acknowledged_at` datetime NULL DEFAULT NULL COMMENT 'Fecha y hora de reconocimiento',
@@ -355,7 +355,7 @@ CREATE TABLE `attendance_detail`  (
   `scheduled_lunch_out` time NULL DEFAULT NULL COMMENT 'Hora programada de salida a almuerzo (del schedule)',
   `scheduled_lunch_in` time NULL DEFAULT NULL COMMENT 'Hora programada de entrada despu├®s de almuerzo (del schedule)',
   `lunch_duration_minutes` int NULL DEFAULT 0 COMMENT 'Duraci├│n real del almuerzo en minutos',
-  `lunch_exceeded_minutes` int NULL DEFAULT 0 COMMENT 'Minutos de exceso en el per├¡odo de almuerzo',
+  `lunch_exceeded_minutes` int NULL DEFAULT 0 COMMENT 'Minutos de exceso en el PERÍODO de almuerzo',
   `scheduled_time_in` time NULL DEFAULT NULL,
   `scheduled_time_out` time NULL DEFAULT NULL,
   `device_id` int NULL DEFAULT NULL,
@@ -678,12 +678,9 @@ CREATE TABLE `cargos`  (
 -- ----------------------------
 -- Records of cargos
 -- ----------------------------
-INSERT INTO `cargos` VALUES (1, 'CAR-001', 'SALES MANAGER', 'Gerente de Ventas', 1, '2025-09-10 02:17:23', '2025-09-12 18:56:18');
-INSERT INTO `cargos` VALUES (2, 'CAR-002', 'HELP DESK SUPPORT', 'Agente de Soporte Técnico', 1, '2025-09-11 18:42:43', '2025-09-12 18:55:53');
-INSERT INTO `cargos` VALUES (3, 'CAR-003', 'HELP DESK MANAGER', 'Gerente de Soporte Técnico', 1, '2025-09-12 18:47:25', '2025-09-12 18:55:06');
-INSERT INTO `cargos` VALUES (5, 'CAR-004', 'ADMINISTRATIVE ASSISTANT', 'Asistente Administrativo', 1, '2025-09-12 18:54:16', '2025-09-12 18:56:06');
-INSERT INTO `cargos` VALUES (6, 'CAR-005', 'CEO', 'Gerente General', 1, '2025-09-12 19:06:46', '2025-09-12 19:06:46');
-INSERT INTO `cargos` VALUES (7, 'CAR-006', 'PROGRAMADOR SENIOR', 'Programador Junior', 1, '2025-09-12 19:10:47', '2025-09-12 19:10:47');
+INSERT INTO `cargos` VALUES (1, 'CAR-001', 'GERENCIA', 'GERENCIAw', 1, '2025-09-10 02:17:23', '2025-09-12 18:56:18');
+INSERT INTO `cargos` VALUES (2, 'CAR-002', 'SUPERVISIÓN', 'SUPERVISIÓN', 1, '2025-09-11 18:42:43', '2025-09-12 18:55:53');
+INSERT INTO `cargos` VALUES (3, 'CAR-003', 'OPERATIVO', 'OPERATIVO', 1, '2025-09-12 18:47:25', '2025-09-12 18:55:06');
 
 -- ----------------------------
 -- Table structure for cashadvance
@@ -1151,11 +1148,9 @@ CREATE TABLE `funciones`  (
 -- ----------------------------
 -- Records of funciones
 -- ----------------------------
-INSERT INTO `funciones` VALUES (1, 'FUNC01', 'GERENTE DE VENTAS', 'VENTAS', 1, '2025-09-10 02:18:03', '2025-09-15 16:03:10');
-INSERT INTO `funciones` VALUES (2, 'FUNC02', 'SOPORTE TECNICO', 'SOPORTE TECNICO', 1, '2025-09-11 18:43:22', '2025-09-11 18:52:31');
-INSERT INTO `funciones` VALUES (3, 'FUNC03', 'ASISTENTE ADMINISTRATIVO', 'ADMINISTRACION Y CONTABILIDAD', 1, '2025-09-15 16:03:50', '2025-09-15 16:03:50');
+INSERT INTO `funciones` VALUES (1, 'FUNC01', 'GERENTE', 'GERENTE', 1, '2025-09-10 02:18:03', '2025-09-15 16:03:10');
+INSERT INTO `funciones` VALUES (2, 'FUNC02', 'TECNICO', 'SOPORTE', 1, '2025-09-11 18:43:22', '2025-09-11 18:52:31');
 INSERT INTO `funciones` VALUES (4, 'FUNC04', 'CEO', 'GERENTE GENERAL', 1, '2025-09-15 16:04:19', '2025-09-15 16:04:19');
-INSERT INTO `funciones` VALUES (5, 'FUNC05', 'PROGRAMADOR SENIOR', 'PROGRAMADOR SENIOR', 1, '2025-09-25 22:48:19', '2025-09-25 22:48:51');
 
 -- ----------------------------
 -- Table structure for liquidation_calculations
@@ -1288,10 +1283,7 @@ CREATE TABLE `organigrama`  (
 -- Records of organigrama
 -- ----------------------------
 INSERT INTO `organigrama` VALUES (1, 'DIRECCIÓN GENERAL', NULL, '/direcci-n-general/', 0, '2025-09-16 19:59:46', '2025-09-17 10:53:05');
-INSERT INTO `organigrama` VALUES (2, 'SOPORTE TÉCNICO', 1, '/direcci-n-general/soporte-t-cnico/', 1, '2025-09-16 19:59:46', '2025-09-17 10:53:15');
-INSERT INTO `organigrama` VALUES (6, 'VENTAS', 1, '/direcci-n-general/ventas/', 0, '2025-09-17 10:53:43', '2025-09-17 10:53:43');
-INSERT INTO `organigrama` VALUES (7, 'DESARROLLO', 1, '/direcci-n-general/desarrollo/', 0, '2025-09-17 10:53:53', '2025-09-17 10:53:53');
-INSERT INTO `organigrama` VALUES (8, 'ADMINISTRACIÓN', 1, '/direcci-n-general/administraci-n/', 0, '2025-09-17 10:54:18', '2025-09-17 10:54:18');
+INSERT INTO `organigrama` VALUES (2, 'ADMINISTRACIÓN', 1, '/direcci-n-general/administraci-n/', 0, '2025-09-17 10:54:18', '2025-09-17 10:54:18');
 
 -- ----------------------------
 -- Table structure for overtime
@@ -1361,10 +1353,10 @@ INSERT INTO `partidas` VALUES (25, '6.10.15.012.', 'Honorarios por administracio
 -- ----------------------------
 DROP TABLE IF EXISTS `payroll_attendance_details`;
 CREATE TABLE `payroll_attendance_details`  (
-  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID ├║nico del detalle',
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID único del detalle',
   `summary_id` int NOT NULL COMMENT 'ID del resumen en payroll_attendance_summary',
   `attendance_id` int NULL DEFAULT NULL COMMENT 'ID de la asistencia en tabla attendance',
-  `calculation_id` int NULL DEFAULT NULL COMMENT 'ID del c├ílculo en attendance_calculations',
+  `calculation_id` int NULL DEFAULT NULL COMMENT 'ID del cálculo en attendance_calculations',
   `attendance_date` date NOT NULL COMMENT 'Fecha de la asistencia',
   `day_of_week` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'D├¡a de la semana',
   `day_type` enum('LABORAL','FERIADO','DUELO_NACIONAL','FIN_SEMANA','ESPECIAL') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'LABORAL' COMMENT 'Tipo de d├¡a',
@@ -1404,11 +1396,11 @@ CREATE TABLE `payroll_attendance_details`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `payroll_attendance_summary`;
 CREATE TABLE `payroll_attendance_summary`  (
-  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID ├║nico del resumen',
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID único del resumen',
   `planilla_cabecera_id` int NOT NULL COMMENT 'ID de la planilla',
   `employee_id` int NOT NULL COMMENT 'ID del empleado',
-  `period_start` date NOT NULL COMMENT 'Fecha inicio del per├¡odo',
-  `period_end` date NOT NULL COMMENT 'Fecha fin del per├¡odo',
+  `period_start` date NOT NULL COMMENT 'Fecha inicio del PERÍODO',
+  `period_end` date NOT NULL COMMENT 'Fecha fin del PERÍODO',
   `total_hours_worked` decimal(10, 2) NULL DEFAULT 0.00 COMMENT 'Total horas trabajadas',
   `regular_hours` decimal(10, 2) NULL DEFAULT 0.00 COMMENT 'Horas regulares (hasta 8h/d├¡a)',
   `overtime_hours_25` decimal(10, 2) NULL DEFAULT 0.00 COMMENT 'Horas extras con recargo 25%',
@@ -1438,7 +1430,7 @@ CREATE TABLE `payroll_attendance_summary`  (
   `legal_compliant` tinyint(1) NULL DEFAULT 1 COMMENT 'Si cumple con normativa legal',
   `legal_violations_count` int NULL DEFAULT 0 COMMENT 'Cantidad de violaciones legales',
   `legal_warnings_count` int NULL DEFAULT 0 COMMENT 'Cantidad de advertencias legales',
-  `legal_risk_level` enum('NINGUNO','BAJO','MEDIO','ALTO','CR├ìTICO') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'NINGUNO' COMMENT 'Nivel de riesgo legal',
+  `legal_risk_level` enum('NINGUNO','BAJO','MEDIO','ALTO','CRÍTICO') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'NINGUNO' COMMENT 'Nivel de riesgo legal',
   `legal_compliance_notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT 'Notas sobre cumplimiento legal',
   `alerts_generated` int NULL DEFAULT 0 COMMENT 'Cantidad de alertas generadas',
   `critical_alerts` int NULL DEFAULT 0 COMMENT 'Cantidad de alertas cr├¡ticas',
