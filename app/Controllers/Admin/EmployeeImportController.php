@@ -11,6 +11,7 @@ use App\Models\TipoPlanilla;
 use App\Models\Cargo;
 use App\Models\Funcion;
 use App\Models\Partida;
+use App\Models\EmployeePayrollSalary;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -28,6 +29,7 @@ class EmployeeImportController extends Controller
     private $cargoModel;
     private $funcionModel;
     private $partidaModel;
+    private $employeePayrollSalaryModel;
 
     public function __construct()
     {
@@ -40,6 +42,7 @@ class EmployeeImportController extends Controller
         $this->cargoModel = new Cargo();
         $this->funcionModel = new Funcion();
         $this->partidaModel = new Partida();
+        $this->employeePayrollSalaryModel = new EmployeePayrollSalary();
     }
 
     /**
@@ -80,30 +83,33 @@ class EmployeeImportController extends Controller
                 'A1' => ['value' => 'CÓDIGO EMPLEADO*', 'width' => 18],
                 'B1' => ['value' => 'NOMBRES*', 'width' => 20],
                 'C1' => ['value' => 'APELLIDOS*', 'width' => 20],
-                'D1' => ['value' => 'DIRECCIÓN', 'width' => 30],
-                'E1' => ['value' => 'FECHA NACIMIENTO*', 'width' => 18],
-                'F1' => ['value' => 'FECHA INGRESO*', 'width' => 18],
-                'G1' => ['value' => 'CONTACTO', 'width' => 15],
-                'H1' => ['value' => 'GÉNERO*', 'width' => 12],
-                'I1' => ['value' => 'POSICIÓN ID (Ver Ref)', 'width' => 18],
-                'J1' => ['value' => 'HORARIO ID* (Ver Ref)', 'width' => 18],
-                'K1' => ['value' => 'DOCUMENTO ID', 'width' => 18],
-                'L1' => ['value' => 'SEGURO SOCIAL', 'width' => 18],
-                'M1' => ['value' => 'SITUACIÓN ID* (Ver Ref)', 'width' => 18],
-                'N1' => ['value' => 'TIPO PLANILLA ID* (Ver Ref)', 'width' => 22],
-                'O1' => ['value' => 'CARGO ID (Ver Ref)', 'width' => 15],
-                'P1' => ['value' => 'FUNCIÓN ID (Ver Ref)', 'width' => 17],
-                'Q1' => ['value' => 'PARTIDA ID (Ver Ref)', 'width' => 17],
-                'R1' => ['value' => 'SUELDO INDIVIDUAL', 'width' => 18],
-                'S1' => ['value' => 'GASTOS REPRES.', 'width' => 16],
-                'T1' => ['value' => 'TIPO CONTRATO', 'width' => 16],
-                'U1' => ['value' => 'NÚMERO CONTRATO', 'width' => 18],
-                'V1' => ['value' => 'FECHA INICIO CONTRATO', 'width' => 20],
-                'W1' => ['value' => 'FECHA VENC. CONTRATO', 'width' => 20],
-                'X1' => ['value' => 'FORMA PAGO', 'width' => 14],
-                'Y1' => ['value' => 'BANCO', 'width' => 20],
-                'Z1' => ['value' => 'NÚMERO CUENTA', 'width' => 18],
-                'AA1' => ['value' => 'TIPO CUENTA', 'width' => 14]
+                'D1' => ['value' => 'EMAIL*', 'width' => 25],
+                'E1' => ['value' => 'DIRECCIÓN', 'width' => 30],
+                'F1' => ['value' => 'FECHA NACIMIENTO*', 'width' => 18],
+                'G1' => ['value' => 'FECHA INGRESO*', 'width' => 18],
+                'H1' => ['value' => 'CONTACTO', 'width' => 15],
+                'I1' => ['value' => 'GÉNERO*', 'width' => 12],
+                'J1' => ['value' => 'POSICIÓN ID (Ver Ref)', 'width' => 18],
+                'K1' => ['value' => 'HORARIO ID* (Ver Ref)', 'width' => 18],
+                'L1' => ['value' => 'DOCUMENTO ID', 'width' => 18],
+                'M1' => ['value' => 'SEGURO SOCIAL', 'width' => 18],
+                'N1' => ['value' => 'SITUACIÓN ID* (Ver Ref)', 'width' => 18],
+                'O1' => ['value' => 'TIPO PLANILLA ID* (Ver Ref)', 'width' => 22],
+                'P1' => ['value' => 'CARGO ID (Ver Ref)', 'width' => 15],
+                'Q1' => ['value' => 'FUNCIÓN ID (Ver Ref)', 'width' => 17],
+                'R1' => ['value' => 'PARTIDA ID (Ver Ref)', 'width' => 17],
+                'S1' => ['value' => 'SUELDO INDIVIDUAL', 'width' => 18],
+                'T1' => ['value' => 'GASTOS REPRES.', 'width' => 16],
+                'U1' => ['value' => 'MARCA ASISTENCIA (1=SI, 0=NO)', 'width' => 22],
+                'V1' => ['value' => 'PERMITE HORAS EXTRAS (1=SI, 0=NO)', 'width' => 26],
+                'W1' => ['value' => 'TIPO CONTRATO', 'width' => 16],
+                'X1' => ['value' => 'NÚMERO CONTRATO', 'width' => 18],
+                'Y1' => ['value' => 'FECHA INICIO CONTRATO', 'width' => 20],
+                'Z1' => ['value' => 'FECHA VENC. CONTRATO', 'width' => 20],
+                'AA1' => ['value' => 'FORMA PAGO', 'width' => 14],
+                'AB1' => ['value' => 'BANCO', 'width' => 20],
+                'AC1' => ['value' => 'NÚMERO CUENTA', 'width' => 18],
+                'AD1' => ['value' => 'TIPO CUENTA', 'width' => 14]
             ];
 
             // Aplicar headers y estilos
@@ -119,12 +125,12 @@ class EmployeeImportController extends Controller
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
             ];
-            $sheet->getStyle('A1:AA1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:AD1')->applyFromArray($headerStyle);
 
             // Agregar ejemplos de datos
             $exampleData = [
-                ['EMP001', 'Juan Carlos', 'Pérez González', 'Calle Principal #123', '1985-03-15', '2023-01-15', '6677-8899', 'M', '1', '1', '8-123-456', 'SS123456', '1', '1', '1', '1', '1', '1500.00', '200.00', 'INDEFINIDO', 'CT-2023-001', '2023-01-15', '', 'ACH', 'Banco Nacional', '123456789', 'AHORROS'],
-                ['EMP002', 'María Elena', 'García López', 'Avenida Central #456', '1990-07-22', '2023-02-01', '6688-9900', 'F', '2', '1', '8-234-567', 'SS234567', '1', '2', '2', '2', '2', '1200.00', '150.00', 'DEFINIDO', 'CT-2023-002', '2023-02-01', '2024-02-01', 'CHEQUE', 'Banco Industrial', '987654321', 'CORRIENTE']
+                ['EMP001', 'Juan Carlos', 'Pérez González', 'jperez@empresa.com', 'Calle Principal #123', '1985-03-15', '2023-01-15', '6677-8899', 'M', '1', '1', '8-123-456', 'SS123456', '1', '1', '1', '1', '1', '1500.00', '200.00', '1', '1', 'INDEFINIDO', 'CT-2023-001', '2023-01-15', '', 'ACH', 'Banco Nacional', '123456789', 'AHORROS'],
+                ['EMP002', 'María Elena', 'García López', 'mgarcia@empresa.com', 'Avenida Central #456', '1990-07-22', '2023-02-01', '6688-9900', 'F', '2', '1', '8-234-567', 'SS234567', '1', '2', '2', '2', '2', '1200.00', '150.00', '1', '0', 'DEFINIDO', 'CT-2023-002', '2023-02-01', '2024-02-01', 'CHEQUE', 'Banco Industrial', '987654321', 'CORRIENTE']
             ];
 
             $row = 2;
@@ -250,6 +256,7 @@ class EmployeeImportController extends Controller
             '   - CÓDIGO EMPLEADO: Debe ser único',
             '   - NOMBRES: Nombre del empleado',
             '   - APELLIDOS: Apellidos del empleado',
+            '   - EMAIL: Correo electrónico válido',
             '   - FECHA NACIMIENTO: Formato YYYY-MM-DD',
             '   - FECHA INGRESO: Formato YYYY-MM-DD',
             '   - GÉNERO: M (Masculino) o F (Femenino)',
@@ -257,24 +264,42 @@ class EmployeeImportController extends Controller
             '   - SITUACIÓN ID: ID de situación laboral (ver hoja Referencias)',
             '   - TIPO PLANILLA ID: ID del tipo de planilla (ver hoja Referencias)',
             '',
-            '2. CAMPOS CONDICIONALES:',
+            '2. CAMPOS OPCIONALES (con valores por defecto):',
+            '   - MARCA ASISTENCIA: 1=Sí, 0=No (Por defecto: 1)',
+            '   - PERMITE HORAS EXTRAS: 1=Sí, 0=No (Por defecto: 1)',
+            '   - Si se dejan vacíos, el sistema asignará 1 (Sí) automáticamente',
+            '',
+            '3. CAMPOS CONDICIONALES:',
             '   - FECHA VENC. CONTRATO: Obligatorio para contratos DEFINIDO, PROYECTO, TEMPORAL',
             '   - BANCO, NÚMERO CUENTA, TIPO CUENTA: Obligatorios para forma de pago CHEQUE/ACH',
             '',
-            '3. VALORES PERMITIDOS:',
+            '4. VALORES PERMITIDOS:',
             '   - GÉNERO: M, F',
+            '   - MARCA ASISTENCIA: 1, 0, SI, NO, YES, NO',
+            '   - PERMITE HORAS EXTRAS: 1, 0, SI, NO, YES, NO',
             '   - TIPO CONTRATO: INDEFINIDO, DEFINIDO, PROYECTO, TEMPORAL',
             '   - FORMA PAGO: EFECTIVO, CHEQUE, ACH',
             '   - TIPO CUENTA: AHORROS, CORRIENTE',
             '',
-            '4. FORMATO DE FECHAS: YYYY-MM-DD (ejemplo: 2023-12-31)',
+            '5. FORMATO DE FECHAS: YYYY-MM-DD (ejemplo: 2023-12-31)',
             '',
-            '5. NOTAS IMPORTANTES:',
+            '6. CAMPOS ASIGNADOS AUTOMÁTICAMENTE:',
+            '   - FOTO: Se asigna automáticamente la imagen por defecto',
+            '     Ruta: images/facebook-profile-image.jpeg',
+            '   - SALARIO POR TIPO DE PLANILLA: Se crea automáticamente un registro de salario',
+            '     con el Sueldo Individual y Gastos de Representación especificados',
+            '     para el Tipo de Planilla asignado al empleado',
+            '   - FECHA INICIO SALARIO: Se usa la Fecha de Ingreso del empleado',
+            '   - Puede modificar estos datos posteriormente desde el sistema',
+            '',
+            '7. NOTAS IMPORTANTES:',
             '   - No modifique los headers (primera fila)',
             '   - Elimine las filas de ejemplo antes de importar',
             '   - Consulte la hoja "Referencias" para IDs válidos',
             '   - Los campos numéricos deben ser números válidos',
-            '   - El sistema validará duplicados de CÓDIGO EMPLEADO'
+            '   - El sistema validará duplicados de CÓDIGO EMPLEADO',
+            '   - El email debe tener formato válido (ejemplo@dominio.com)',
+            '   - Todos los empleados importados recibirán la foto por defecto'
         ];
 
         $row = 1;
@@ -350,7 +375,36 @@ class EmployeeImportController extends Controller
                     // Limpiar valores null de foreign keys para evitar errores de constraint
                     $cleanData = $this->cleanForeignKeyNulls($data);
                     $cleanData['created_on'] = date('Y-m-d H:i:s');
-                    $this->employeeModel->create($cleanData);
+
+                    // Asignar foto por defecto
+                    $cleanData['photo'] = 'images/facebook-profile-image.jpeg';
+
+                    // Crear empleado y obtener su ID
+                    $employeeId = $this->employeeModel->create($cleanData);
+
+                    if (!$employeeId) {
+                        throw new \Exception('No se pudo crear el empleado');
+                    }
+
+                    // Crear registro de salario por tipo de planilla
+                    $salaryData = [
+                        'employee_id' => $employeeId,
+                        'tipo_planilla_id' => $data['tipo_planilla_id'],
+                        'sueldo_base' => $data['sueldo_individual'] ?? 0,
+                        'gastos_representacion' => $data['gastos_representacion'] ?? 0,
+                        'fecha_inicio' => $data['fecha_ingreso'],
+                        'fecha_fin' => null,
+                        'is_active' => 1,
+                        'notes' => 'Creado automáticamente desde importación Excel',
+                        'created_by' => $_SESSION['admin'] ?? null
+                    ];
+
+                    $salaryResult = $this->employeePayrollSalaryModel->saveSalary($salaryData);
+
+                    if (!$salaryResult) {
+                        error_log("Warning: No se pudo crear salario para empleado {$employeeId}, tipo_planilla {$data['tipo_planilla_id']}");
+                    }
+
                     $imported++;
 
                 } catch (\Exception $e) {
@@ -388,30 +442,33 @@ class EmployeeImportController extends Controller
             'employee_id' => $this->safeTrim($worksheet->getCell("A{$row}")->getCalculatedValue() ?? ''),
             'firstname' => $this->safeTrim($worksheet->getCell("B{$row}")->getCalculatedValue() ?? ''),
             'lastname' => $this->safeTrim($worksheet->getCell("C{$row}")->getCalculatedValue() ?? ''),
-            'address' => $this->safeTrim($worksheet->getCell("D{$row}")->getCalculatedValue() ?? ''),
-            'birthdate' => $this->formatDate($worksheet->getCell("E{$row}")->getCalculatedValue()),
-            'fecha_ingreso' => $this->formatDate($worksheet->getCell("F{$row}")->getCalculatedValue()),
-            'contact_info' => $this->safeTrim($worksheet->getCell("G{$row}")->getCalculatedValue() ?? ''),
-            'gender' => strtoupper($this->safeTrim($worksheet->getCell("H{$row}")->getCalculatedValue() ?? '')),
-            'position_id' => $this->formatNumber($worksheet->getCell("I{$row}")->getCalculatedValue()),
-            'schedule_id' => $this->formatNumber($worksheet->getCell("J{$row}")->getCalculatedValue()),
-            'document_id' => $this->safeTrim($worksheet->getCell("K{$row}")->getCalculatedValue() ?? ''),
-            'clave_seguro_social' => $this->safeTrim($worksheet->getCell("L{$row}")->getCalculatedValue() ?? ''),
-            'situacion_id' => $this->formatNumber($worksheet->getCell("M{$row}")->getCalculatedValue()),
-            'tipo_planilla_id' => $this->formatNumber($worksheet->getCell("N{$row}")->getCalculatedValue()),
-            'cargo_id' => $this->formatNumber($worksheet->getCell("O{$row}")->getCalculatedValue()),
-            'funcion_id' => $this->formatNumber($worksheet->getCell("P{$row}")->getCalculatedValue()),
-            'partida_id' => $this->formatNumber($worksheet->getCell("Q{$row}")->getCalculatedValue()),
-            'sueldo_individual' => $this->formatDecimal($worksheet->getCell("R{$row}")->getCalculatedValue()),
-            'gastos_representacion' => $this->formatDecimal($worksheet->getCell("S{$row}")->getCalculatedValue()),
-            'tipo_contrato' => strtoupper($this->safeTrim($worksheet->getCell("T{$row}")->getCalculatedValue() ?? '')),
-            'numero_contrato' => $this->safeTrim($worksheet->getCell("U{$row}")->getCalculatedValue() ?? ''),
-            'fecha_inicio_contrato' => $this->formatDate($worksheet->getCell("V{$row}")->getCalculatedValue()),
-            'fecha_vencimiento_contrato' => $this->formatDate($worksheet->getCell("W{$row}")->getCalculatedValue()),
-            'forma_pago' => strtoupper($this->safeTrim($worksheet->getCell("X{$row}")->getCalculatedValue() ?? '')),
-            'banco' => $this->safeTrim($worksheet->getCell("Y{$row}")->getCalculatedValue() ?? ''),
-            'numero_cuenta' => $this->safeTrim($worksheet->getCell("Z{$row}")->getCalculatedValue() ?? ''),
-            'tipo_cuenta' => strtoupper($this->safeTrim($worksheet->getCell("AA{$row}")->getCalculatedValue() ?? ''))
+            'email' => $this->safeTrim($worksheet->getCell("D{$row}")->getCalculatedValue() ?? ''),
+            'address' => $this->safeTrim($worksheet->getCell("E{$row}")->getCalculatedValue() ?? ''),
+            'birthdate' => $this->formatDate($worksheet->getCell("F{$row}")->getCalculatedValue()),
+            'fecha_ingreso' => $this->formatDate($worksheet->getCell("G{$row}")->getCalculatedValue()),
+            'contact_info' => $this->safeTrim($worksheet->getCell("H{$row}")->getCalculatedValue() ?? ''),
+            'gender' => strtoupper($this->safeTrim($worksheet->getCell("I{$row}")->getCalculatedValue() ?? '')),
+            'position_id' => $this->formatNumber($worksheet->getCell("J{$row}")->getCalculatedValue()),
+            'schedule_id' => $this->formatNumber($worksheet->getCell("K{$row}")->getCalculatedValue()),
+            'document_id' => $this->safeTrim($worksheet->getCell("L{$row}")->getCalculatedValue() ?? ''),
+            'clave_seguro_social' => $this->safeTrim($worksheet->getCell("M{$row}")->getCalculatedValue() ?? ''),
+            'situacion_id' => $this->formatNumber($worksheet->getCell("N{$row}")->getCalculatedValue()),
+            'tipo_planilla_id' => $this->formatNumber($worksheet->getCell("O{$row}")->getCalculatedValue()),
+            'cargo_id' => $this->formatNumber($worksheet->getCell("P{$row}")->getCalculatedValue()),
+            'funcion_id' => $this->formatNumber($worksheet->getCell("Q{$row}")->getCalculatedValue()),
+            'partida_id' => $this->formatNumber($worksheet->getCell("R{$row}")->getCalculatedValue()),
+            'sueldo_individual' => $this->formatDecimal($worksheet->getCell("S{$row}")->getCalculatedValue()),
+            'gastos_representacion' => $this->formatDecimal($worksheet->getCell("T{$row}")->getCalculatedValue()),
+            'marca_asistencia' => $this->formatBoolean($worksheet->getCell("U{$row}")->getCalculatedValue()),
+            'permite_horas_extras' => $this->formatBoolean($worksheet->getCell("V{$row}")->getCalculatedValue()),
+            'tipo_contrato' => strtoupper($this->safeTrim($worksheet->getCell("W{$row}")->getCalculatedValue() ?? '')),
+            'numero_contrato' => $this->safeTrim($worksheet->getCell("X{$row}")->getCalculatedValue() ?? ''),
+            'fecha_inicio_contrato' => $this->formatDate($worksheet->getCell("Y{$row}")->getCalculatedValue()),
+            'fecha_vencimiento_contrato' => $this->formatDate($worksheet->getCell("Z{$row}")->getCalculatedValue()),
+            'forma_pago' => strtoupper($this->safeTrim($worksheet->getCell("AA{$row}")->getCalculatedValue() ?? '')),
+            'banco' => $this->safeTrim($worksheet->getCell("AB{$row}")->getCalculatedValue() ?? ''),
+            'numero_cuenta' => $this->safeTrim($worksheet->getCell("AC{$row}")->getCalculatedValue() ?? ''),
+            'tipo_cuenta' => strtoupper($this->safeTrim($worksheet->getCell("AD{$row}")->getCalculatedValue() ?? ''))
         ];
     }
 
@@ -426,12 +483,18 @@ class EmployeeImportController extends Controller
         if (empty($data['employee_id'])) $errors[] = 'Código empleado requerido (Columna A)';
         if (empty($data['firstname'])) $errors[] = 'Nombres requeridos (Columna B)';
         if (empty($data['lastname'])) $errors[] = 'Apellidos requeridos (Columna C)';
-        if (empty($data['birthdate'])) $errors[] = 'Fecha nacimiento requerida (Columna E) - Formato: YYYY-MM-DD o DD/MM/YYYY';
-        if (empty($data['fecha_ingreso'])) $errors[] = 'Fecha ingreso requerida (Columna F) - Formato: YYYY-MM-DD o DD/MM/YYYY';
-        if (empty($data['gender'])) $errors[] = 'Género requerido (Columna H) - Valores: M o F';
-        if (empty($data['schedule_id'])) $errors[] = 'Horario ID requerido (Columna J) - Ver hoja Referencias';
-        if (empty($data['situacion_id'])) $errors[] = 'Situación ID requerida (Columna M) - Ver hoja Referencias';
-        if (empty($data['tipo_planilla_id'])) $errors[] = 'Tipo planilla ID requerido (Columna N) - Ver hoja Referencias';
+        if (empty($data['email'])) $errors[] = 'Email requerido (Columna D)';
+        if (empty($data['birthdate'])) $errors[] = 'Fecha nacimiento requerida (Columna F) - Formato: YYYY-MM-DD o DD/MM/YYYY';
+        if (empty($data['fecha_ingreso'])) $errors[] = 'Fecha ingreso requerida (Columna G) - Formato: YYYY-MM-DD o DD/MM/YYYY';
+        if (empty($data['gender'])) $errors[] = 'Género requerido (Columna I) - Valores: M o F';
+        if (empty($data['schedule_id'])) $errors[] = 'Horario ID requerido (Columna K) - Ver hoja Referencias';
+        if (empty($data['situacion_id'])) $errors[] = 'Situación ID requerida (Columna N) - Ver hoja Referencias';
+        if (empty($data['tipo_planilla_id'])) $errors[] = 'Tipo planilla ID requerido (Columna O) - Ver hoja Referencias';
+
+        // Validar formato de email
+        if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email inválido (Columna D)';
+        }
 
         // Validar género
         if (!empty($data['gender']) && !in_array($data['gender'], ['M', 'F'])) {
@@ -469,49 +532,49 @@ class EmployeeImportController extends Controller
         if (!empty($data['position_id'])) {
             $position = $this->positionModel->find($data['position_id']);
             if (!$position) {
-                $errors[] = "Position ID '{$data['position_id']}' no existe (Columna I) - Ver hoja Referencias";
+                $errors[] = "Position ID '{$data['position_id']}' no existe (Columna J) - Ver hoja Referencias";
             }
         }
 
         if (!empty($data['schedule_id'])) {
             $schedule = $this->scheduleModel->find($data['schedule_id']);
             if (!$schedule) {
-                $errors[] = "Schedule ID '{$data['schedule_id']}' no existe (Columna J) - Ver hoja Referencias";
+                $errors[] = "Schedule ID '{$data['schedule_id']}' no existe (Columna K) - Ver hoja Referencias";
             }
         }
 
         if (!empty($data['situacion_id'])) {
             $situacion = $this->situacionModel->find($data['situacion_id']);
             if (!$situacion) {
-                $errors[] = "Situación ID '{$data['situacion_id']}' no existe (Columna M) - Ver hoja Referencias";
+                $errors[] = "Situación ID '{$data['situacion_id']}' no existe (Columna N) - Ver hoja Referencias";
             }
         }
 
         if (!empty($data['tipo_planilla_id'])) {
             $tipoPlanilla = $this->tipoPlanillaModel->find($data['tipo_planilla_id']);
             if (!$tipoPlanilla) {
-                $errors[] = "Tipo planilla ID '{$data['tipo_planilla_id']}' no existe (Columna N) - Ver hoja Referencias";
+                $errors[] = "Tipo planilla ID '{$data['tipo_planilla_id']}' no existe (Columna O) - Ver hoja Referencias";
             }
         }
 
         if (!empty($data['cargo_id'])) {
             $cargo = $this->cargoModel->find($data['cargo_id']);
             if (!$cargo) {
-                $errors[] = "Cargo ID '{$data['cargo_id']}' no existe (Columna O) - Ver hoja Referencias";
+                $errors[] = "Cargo ID '{$data['cargo_id']}' no existe (Columna P) - Ver hoja Referencias";
             }
         }
 
         if (!empty($data['funcion_id'])) {
             $funcion = $this->funcionModel->find($data['funcion_id']);
             if (!$funcion) {
-                $errors[] = "Función ID '{$data['funcion_id']}' no existe (Columna P) - Ver hoja Referencias";
+                $errors[] = "Función ID '{$data['funcion_id']}' no existe (Columna Q) - Ver hoja Referencias";
             }
         }
 
         if (!empty($data['partida_id'])) {
             $partida = $this->partidaModel->find($data['partida_id']);
             if (!$partida) {
-                $errors[] = "Partida ID '{$data['partida_id']}' no existe (Columna Q) - Ver hoja Referencias";
+                $errors[] = "Partida ID '{$data['partida_id']}' no existe (Columna R) - Ver hoja Referencias";
             }
         }
 
@@ -600,6 +663,35 @@ class EmployeeImportController extends Controller
     {
         if ($value === null || $value === '') return '';
         return trim((string)$value);
+    }
+
+    /**
+     * Formatear valor boolean
+     */
+    private function formatBoolean($value)
+    {
+        if ($value === null || $value === '') return 1; // Default: true
+
+        // Convertir string a minúsculas para comparación
+        $stringValue = strtolower(trim((string)$value));
+
+        // Valores que se consideran false
+        if (in_array($stringValue, ['0', 'no', 'false', 'n'])) {
+            return 0;
+        }
+
+        // Valores que se consideran true
+        if (in_array($stringValue, ['1', 'yes', 'si', 'sí', 'true', 's', 'y'])) {
+            return 1;
+        }
+
+        // Por defecto, si es numérico mayor a 0, es true
+        if (is_numeric($value)) {
+            return $value > 0 ? 1 : 0;
+        }
+
+        // Default: true
+        return 1;
     }
 
     /**
