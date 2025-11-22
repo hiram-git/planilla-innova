@@ -47,14 +47,35 @@ abstract class Model
 
     public function create($data)
     {
+        // 🔍 DEBUG: Log entrada al método create()
+        error_log("=== Model::create() llamado ===");
+        error_log("Tabla: {$this->table}");
+        error_log("Datos originales (" . count($data) . " campos): " . implode(', ', array_keys($data)));
+
         $data = $this->filterFillable($data);
-        
+
+        error_log("Datos después de filterFillable (" . count($data) . " campos): " . implode(', ', array_keys($data)));
+
         if ($this->timestamps) {
             $data['created_at'] = date('Y-m-d H:i:s');
             $data['updated_at'] = date('Y-m-d H:i:s');
+            error_log("Timestamps agregados: created_at, updated_at");
         }
-        
-        return $this->db->insert($this->table, $data);
+
+        error_log("Llamando a db->insert() con tabla '{$this->table}'");
+
+        try {
+            $insertId = $this->db->insert($this->table, $data);
+            error_log("=== Model::create() exitoso ===");
+            error_log("ID insertado: " . ($insertId ?: 'NULL/0'));
+            return $insertId;
+        } catch (\Exception $e) {
+            error_log("=== Model::create() FALLÓ ===");
+            error_log("Error: " . $e->getMessage());
+            error_log("Código: " . $e->getCode());
+            error_log("Archivo: " . $e->getFile() . ":" . $e->getLine());
+            throw $e;
+        }
     }
 
     public function update($id, $data)

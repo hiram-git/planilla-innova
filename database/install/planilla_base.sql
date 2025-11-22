@@ -103,7 +103,7 @@ CREATE TABLE `admin`  (
 -- Records of admin
 -- ----------------------------
 INSERT INTO `admin` VALUES (1, 'admin', '$2y$10$t.JVHifbU5z7GnwL3/1Z/uMo8jwCwYBD2FHF/j2swOz9BnW.B9NRe', 'Admin', 'Admin', '', '2025-05-12', 1, 1);
-INSERT INTO `admin` VALUES (9, 'innova', '$2y$10$vrZ029jSGiZFG5mv5/tO3.L.1zQf9jgnup0inwRscJtSt7D.uwa96', 'innova', 'innova', '', '2025-09-03', 1, 1);
+INSERT INTO `admin` VALUES (2, 'innova', '$2y$10$vrZ029jSGiZFG5mv5/tO3.L.1zQf9jgnup0inwRscJtSt7D.uwa96', 'innova', 'innova', '', '2025-09-03', 1, 1);
 
 -- ----------------------------
 -- Table structure for attendance
@@ -679,8 +679,7 @@ CREATE TABLE `cargos`  (
 -- Records of cargos
 -- ----------------------------
 INSERT INTO `cargos` VALUES (1, 'CAR-001', 'GERENCIA', 'GERENCIAw', 1, '2025-09-10 02:17:23', '2025-09-12 18:56:18');
-INSERT INTO `cargos` VALUES (2, 'CAR-002', 'SUPERVISIÓN', 'SUPERVISIÓN', 1, '2025-09-11 18:42:43', '2025-09-12 18:55:53');
-INSERT INTO `cargos` VALUES (3, 'CAR-003', 'OPERATIVO', 'OPERATIVO', 1, '2025-09-12 18:47:25', '2025-09-12 18:55:06');
+INSERT INTO `cargos` VALUES (2, 'CAR-002', 'OPERATIVO', 'OPERATIVO', 1, '2025-09-12 18:47:25', '2025-09-12 18:55:06');
 
 -- ----------------------------
 -- Table structure for cashadvance
@@ -1125,9 +1124,9 @@ CREATE TABLE `frecuencias`  (
 INSERT INTO `frecuencias` VALUES (1, 'quincenal', 'Quincenal', 'Se aplica quincenalmente', 1, '2025-08-21 22:52:07', '2025-08-21 22:52:07');
 INSERT INTO `frecuencias` VALUES (2, 'mensual', 'Mensual', 'Se aplica mensualmente', 1, '2025-08-21 22:52:07', '2025-08-21 22:52:07');
 INSERT INTO `frecuencias` VALUES (3, 'semanal', 'Semanal', 'Se aplica semanalmente', 0, '2025-08-21 22:52:07', '2025-08-26 16:52:10');
-INSERT INTO `frecuencias` VALUES (8, 'XIII', 'DECIMO', 'DECIMO TERCER MES', 1, '2025-09-08 09:55:09', '2025-09-08 09:55:20');
-INSERT INTO `frecuencias` VALUES (9, 'LIQUIDACION', 'Liquidación', 'Frecuencia especial para planillas de liquidación', 1, '2025-09-24 12:04:02', '2025-09-24 12:04:02');
-INSERT INTO `frecuencias` VALUES (11, 'Vacaciones', 'Vacaciones', 'Vacaciones', 1, '2025-11-14 14:53:52', '2025-11-14 14:53:52');
+INSERT INTO `frecuencias` VALUES (4, 'XIII', 'DECIMO', 'DECIMO TERCER MES', 1, '2025-09-08 09:55:09', '2025-09-08 09:55:20');
+INSERT INTO `frecuencias` VALUES (5, 'LIQUIDACION', 'Liquidación', 'Frecuencia especial para planillas de liquidación', 1, '2025-09-24 12:04:02', '2025-09-24 12:04:02');
+INSERT INTO `frecuencias` VALUES (6, 'Vacaciones', 'Vacaciones', 'Vacaciones', 1, '2025-11-14 14:53:52', '2025-11-14 14:53:52');
 
 -- ----------------------------
 -- Table structure for funciones
@@ -1150,7 +1149,7 @@ CREATE TABLE `funciones`  (
 -- ----------------------------
 INSERT INTO `funciones` VALUES (1, 'FUNC01', 'GERENTE', 'GERENTE', 1, '2025-09-10 02:18:03', '2025-09-15 16:03:10');
 INSERT INTO `funciones` VALUES (2, 'FUNC02', 'TECNICO', 'SOPORTE', 1, '2025-09-11 18:43:22', '2025-09-11 18:52:31');
-INSERT INTO `funciones` VALUES (4, 'FUNC04', 'CEO', 'GERENTE GENERAL', 1, '2025-09-15 16:04:19', '2025-09-15 16:04:19');
+INSERT INTO `funciones` VALUES (3, 'FUNC033', 'CEO', 'GERENTE GENERAL', 1, '2025-09-15 16:04:19', '2025-09-15 16:04:19');
 
 -- ----------------------------
 -- Table structure for liquidation_calculations

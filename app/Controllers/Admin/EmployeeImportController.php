@@ -323,6 +323,16 @@ class EmployeeImportController extends Controller
             $this->redirect(\App\Core\UrlHelper::route('panel/employees/import'));
         }
 
+        // 🔍 DEBUG: Verificar conexión a BD correcta
+        error_log("=== INICIO IMPORTACIÓN EXCEL ===");
+        error_log("Tenant en sesión: " . ($_SESSION['tenant_db'] ?? 'NONE'));
+        try {
+            $currentDb = $this->db->query("SELECT DATABASE()")->fetchColumn();
+            error_log("BD conectada: {$currentDb}");
+        } catch (\Exception $e) {
+            error_log("Error verificando BD: " . $e->getMessage());
+        }
+
         // Iniciar output buffering para evitar headers sent
         ob_start();
 
@@ -352,6 +362,11 @@ class EmployeeImportController extends Controller
                 try {
                     $data = $this->extractRowData($worksheet, $row);
 
+                    // Saltar filas completamente vacías (sin código de empleado y sin nombres)
+                    if ($this->isEmptyRow($data)) {
+                        continue; // No contar como error, simplemente saltar
+                    }
+
                     // Debug: Log raw data para análisis
                     error_log("Fila {$row} - Datos extraídos: " . print_r($data, true));
 
@@ -374,17 +389,36 @@ class EmployeeImportController extends Controller
 
                     // Limpiar valores null de foreign keys para evitar errores de constraint
                     $cleanData = $this->cleanForeignKeyNulls($data);
-                    $cleanData['created_on'] = date('Y-m-d H:i:s');
+                    $cleanData['created_on'] = date('Y-m-d'); // Solo fecha, no hora (campo es DATE no DATETIME)
 
                     // Asignar foto por defecto
                     $cleanData['photo'] = 'images/facebook-profile-image.jpeg';
 
+                    // 🔍 DEBUG: Log datos antes de create()
+                    error_log("=== ANTES DE CREATE() - Fila {$row} ===");
+                    error_log("Clean Data Keys: " . implode(', ', array_keys($cleanData)));
+                    error_log("Clean Data JSON: " . json_encode($cleanData, JSON_UNESCAPED_UNICODE));
+
                     // Crear empleado y obtener su ID
-                    $employeeId = $this->employeeModel->create($cleanData);
+                    try {
+                        $employeeId = $this->employeeModel->create($cleanData);
+                        error_log("=== DESPUÉS DE CREATE() - Fila {$row} ===");
+                        error_log("Employee ID retornado: " . ($employeeId ?: 'NULL/FALSE'));
+                    } catch (\Exception $createException) {
+                        error_log("=== EXCEPCIÓN EN CREATE() - Fila {$row} ===");
+                        error_log("Error: " . $createException->getMessage());
+                        error_log("Trace: " . $createException->getTraceAsString());
+                        throw $createException;
+                    }
 
                     if (!$employeeId) {
-                        throw new \Exception('No se pudo crear el empleado');
+                        error_log("=== FALLO EN CREATE() - Fila {$row} ===");
+                        error_log("create() retornó: " . var_export($employeeId, true));
+                        throw new \Exception('No se pudo crear el empleado - create() retornó ID vacío');
                     }
+
+                    error_log("=== EMPLEADO CREADO EXITOSAMENTE - Fila {$row} ===");
+                    error_log("Employee ID: {$employeeId}");
 
                     // Crear registro de salario por tipo de planilla
                     $salaryData = [
@@ -496,24 +530,24 @@ class EmployeeImportController extends Controller
             $errors[] = 'Email inválido (Columna D)';
         }
 
-        // Validar género
+        // Validar género (convertir a mayúsculas en extractRowData, aquí solo validar)
         if (!empty($data['gender']) && !in_array($data['gender'], ['M', 'F'])) {
-            $errors[] = 'Género debe ser M o F';
+            $errors[] = 'Género debe ser M o F (Columna I) - Valores permitidos: M, F';
         }
 
         // Validar tipo contrato
         if (!empty($data['tipo_contrato']) && !in_array($data['tipo_contrato'], ['INDEFINIDO', 'DEFINIDO', 'PROYECTO', 'TEMPORAL'])) {
-            $errors[] = 'Tipo contrato inválido';
+            $errors[] = 'Tipo contrato inválido (Columna W) - Valores permitidos: INDEFINIDO, DEFINIDO, PROYECTO, TEMPORAL';
         }
 
         // Validar fecha vencimiento para contratos definidos
         if (in_array($data['tipo_contrato'], ['DEFINIDO', 'PROYECTO', 'TEMPORAL']) && empty($data['fecha_vencimiento_contrato'])) {
-            $errors[] = 'Fecha vencimiento requerida para este tipo de contrato';
+            $errors[] = 'Fecha vencimiento requerida para contratos DEFINIDO/PROYECTO/TEMPORAL (Columna Z)';
         }
 
         // Validar forma de pago
         if (!empty($data['forma_pago']) && !in_array($data['forma_pago'], ['EFECTIVO', 'CHEQUE', 'ACH'])) {
-            $errors[] = 'Forma de pago inválida';
+            $errors[] = 'Forma de pago inválida (Columna AA) - Valores permitidos: EFECTIVO, CHEQUE, ACH';
         }
 
         // Validar datos bancarios para CHEQUE/ACH
@@ -528,53 +562,54 @@ class EmployeeImportController extends Controller
             $errors[] = 'Tipo cuenta debe ser AHORROS o CORRIENTE';
         }
 
-        // Validar foreign keys si se proporcionan
-        if (!empty($data['position_id'])) {
-            $position = $this->positionModel->find($data['position_id']);
-            if (!$position) {
-                $errors[] = "Position ID '{$data['position_id']}' no existe (Columna J) - Ver hoja Referencias";
-            }
-        }
-
+        // Validar foreign keys OBLIGATORIOS
         if (!empty($data['schedule_id'])) {
             $schedule = $this->scheduleModel->find($data['schedule_id']);
             if (!$schedule) {
-                $errors[] = "Schedule ID '{$data['schedule_id']}' no existe (Columna K) - Ver hoja Referencias";
+                $errors[] = "Horario ID '{$data['schedule_id']}' no existe (Columna K) - Ver hoja Referencias para IDs válidos";
             }
         }
 
         if (!empty($data['situacion_id'])) {
             $situacion = $this->situacionModel->find($data['situacion_id']);
             if (!$situacion) {
-                $errors[] = "Situación ID '{$data['situacion_id']}' no existe (Columna N) - Ver hoja Referencias";
+                $errors[] = "Situación ID '{$data['situacion_id']}' no existe (Columna N) - Ver hoja Referencias para IDs válidos";
             }
         }
 
         if (!empty($data['tipo_planilla_id'])) {
             $tipoPlanilla = $this->tipoPlanillaModel->find($data['tipo_planilla_id']);
             if (!$tipoPlanilla) {
-                $errors[] = "Tipo planilla ID '{$data['tipo_planilla_id']}' no existe (Columna O) - Ver hoja Referencias";
+                $errors[] = "Tipo planilla ID '{$data['tipo_planilla_id']}' no existe (Columna O) - Ver hoja Referencias para IDs válidos";
+            }
+        }
+
+        // Validar foreign keys OPCIONALES (solo si se proporcionan)
+        if (!empty($data['position_id'])) {
+            $position = $this->positionModel->find($data['position_id']);
+            if (!$position) {
+                $errors[] = "Posición ID '{$data['position_id']}' no existe (Columna J) - Ver hoja Referencias o deje vacío";
             }
         }
 
         if (!empty($data['cargo_id'])) {
             $cargo = $this->cargoModel->find($data['cargo_id']);
             if (!$cargo) {
-                $errors[] = "Cargo ID '{$data['cargo_id']}' no existe (Columna P) - Ver hoja Referencias";
+                $errors[] = "Cargo ID '{$data['cargo_id']}' no existe (Columna P) - Ver hoja Referencias o deje vacío";
             }
         }
 
         if (!empty($data['funcion_id'])) {
             $funcion = $this->funcionModel->find($data['funcion_id']);
             if (!$funcion) {
-                $errors[] = "Función ID '{$data['funcion_id']}' no existe (Columna Q) - Ver hoja Referencias";
+                $errors[] = "Función ID '{$data['funcion_id']}' no existe (Columna Q) - Ver hoja Referencias o deje vacío";
             }
         }
 
         if (!empty($data['partida_id'])) {
             $partida = $this->partidaModel->find($data['partida_id']);
             if (!$partida) {
-                $errors[] = "Partida ID '{$data['partida_id']}' no existe (Columna R) - Ver hoja Referencias";
+                $errors[] = "Partida ID '{$data['partida_id']}' no existe (Columna R) - Ver hoja Referencias o deje vacío";
             }
         }
 
@@ -717,6 +752,20 @@ class EmployeeImportController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * Verificar si una fila está completamente vacía
+     * Una fila se considera vacía si no tiene código de empleado, nombres ni apellidos
+     */
+    private function isEmptyRow($data)
+    {
+        // Verificar los campos más críticos
+        $isEmpty = empty($data['employee_id']) &&
+                   empty($data['firstname']) &&
+                   empty($data['lastname']);
+
+        return $isEmpty;
     }
 
     /**
