@@ -8,6 +8,39 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.9]** - 2025-11-21 - *Employee Import System Overhaul + Wizard UI Improvements*
+**Tipo**: FEATURE + UI/UX Enhancement
+**Fase**: Employee Import System + Wizard UI/UX
+**Criticidad**: Media
+
+**Componentes Principales**:
+- âœ… **Sistema ImportaciÃ³n Excel Actualizado**:
+  - 3 campos nuevos: `email` (requerido), `marca_asistencia`, `permite_horas_extras`
+  - MÃ©todo `formatBoolean()` flexible (1/0, SI/NO, YES/NO)
+  - Template Excel 30â†'33 columnas + shift completo
+  - Instrucciones mejoradas con 3 secciones nuevas
+- âœ… **IntegraciÃ³n employee_payroll_salaries**:
+  - CreaciÃ³n automÃ¡tica registro salario por tipo de planilla
+  - AuditorÃ­a completa (`notes`, `created_by`)
+  - Empleados listos para procesamiento planillas
+- âœ… **AsignaciÃ³n Foto Default**:
+  - Ruta automÃ¡tica: `images/facebook-profile-image.jpeg`
+  - Consistencia visual en listados
+- âœ… **Wizard Crear Empresa UI**:
+  - MÃ¡rgenes simÃ©tricos perfectos (izquierda/derecha)
+  - Padding uniforme 40px contenido
+  - Responsive optimizado (375px/1024px/1920px)
+  - Botones con padding mejorado + separador visual
+
+**ðŸ"ˆ EstadÃ­sticas**:
+- 2 archivos modificados | +282 lÃ­neas cÃ³digo agregadas | ~85 lÃ­neas modificadas
+- 1 mÃ©todo nuevo (`formatBoolean()`) | 8 validaciones nuevas
+- 0 cambios BD | Deployment: 10-15 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.9.md)**
+
+---
+
 ### **[v3.5.7]** - 2025-11-15 - *MÃ³dulo Vacaciones: CÃ¡lculo 11 Meses + Control Planillas Ãšnicas*
 **Tipo**: Feature - MÃ³dulo Vacaciones PanamÃ¡
 **Fase**: FASE 5 - MÃ³dulo Vacaciones (Subfase 5.1 40%)
@@ -610,7 +643,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 20 de Noviembre, 2025
-Sistema: Planillas MVC v3.5.8
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 30%
+Última Actualización: 21 de Noviembre, 2025
+Sistema: Planillas MVC v3.5.9
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 30% | Employee Import 100%
 

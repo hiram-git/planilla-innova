@@ -1,10 +1,10 @@
-﻿# ðŸ¤– CLAUDE MEMORY - Sistema de Planillas MVC
+# 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📍 **Estado Actual - V3.5.9 Employee Import System Overhaul + Wizard UI Improvements**
-- **Fecha**: 21 de Noviembre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY SCAFFOLDING 30% + EMPLOYEE IMPORT 100%**
-- **Versión**: 3.5.9 - Sistema importación Excel completo + Integración salarios automática + Wizard UI simétrico
-- **Versión Anterior**: 3.5.8 - Multitenancy scaffolding + Filtros vacaciones + Tolerancias asistencias precisas
+## 📍 **Estado Actual - V3.5.8 Multitenancy + Filtros Vacaciones + Tolerancias Asistencias**
+- **Fecha**: 20 de Noviembre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY SCAFFOLDING 30%**
+- **Versión**: 3.5.8 - Multitenancy scaffolding + Filtros vacaciones + Tolerancias asistencias precisas
+- **Versión Anterior**: 3.5.7 - Cálculo salario diario vacaciones con promedio 11 meses + Control planillas únicas
 
 ## ðŸŽ¯ **Sistema**
 Plataforma empresarial de planillas con legislaciÃ³n panameÃ±a, acumulados automÃ¡ticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -425,22 +425,3 @@ Next steps
 - Implement importTenantSchema to run tenant migrations and seed initial data.
 - Enforce CSRF on /panel/attendance/process-day.
 - Preserve 	ipo_planilla_id on internal links within vacations module.
-
-### 🆕 V3.5.9 - Employee Import System Overhaul + Wizard UI Improvements (21-Nov-2025)
-
-**Sistema Importación Excel Completo** (EmployeeImportController.php):
-- **3 Campos Nuevos**: `email` (requerido, validación FILTER_VALIDATE_EMAIL), `marca_asistencia` (opcional, default 1), `permite_horas_extras` (opcional, default 1)
-- **Template Actualizado**: 30→33 columnas (A-AG), shift completo todas las columnas después de EMAIL
-- **Método formatBoolean()** (26 líneas): Conversión flexible 1/0, SI/NO, YES/NO, true/false (case insensitive + defaults inteligentes)
-- **Integración employee_payroll_salaries**: Creación automática registro salario con `tipo_planilla_id`, `sueldo_base`, auditoría (`notes`, `created_by`)
-- **Foto Default**: Asignación automática `images/facebook-profile-image.jpeg` para consistencia visual
-- **Validaciones Mejoradas**: Email obligatorio + formato válido, mensajes error descriptivos con número columna
-- **Instrucciones Template**: 3 secciones nuevas (Obligatorios/Opcionales/Automáticos) con documentación formatos
-
-**Wizard UI Mejorado** (crear_empresa.php - CSS):
-- **Márgenes Simétricos**: Container padding 40px uniforme, reset `.v-row` margins, columnas 12px padding L/R
-- **Responsive Optimizado**: Desktop (40px), Tablet (32px 24px), Mobile (24px 16px)
-- **Botones Mejorados**: Padding 12x32px, min-height 48px, separador visual border-top, class `.button-group`
-- **Resultado**: Simetría perfecta izquierda/derecha + UX profesional multi-dispositivo
-
-**Estadísticas**: 2 archivos | +282 líneas | 1 método nuevo | 8 validaciones | 0 cambios BD | Deployment 10-15 min

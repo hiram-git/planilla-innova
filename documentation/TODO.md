@@ -1,6 +1,22 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-11-20 (v3.5.8)
+Actualizado: 2025-11-21 (v3.5.9)
+
+## ✅ Completado Recientemente (v3.5.9 - 21-Nov-2025)
+
+### Employee Import System + Wizard UI
+- [x] Actualizar template Excel con 3 campos nuevos (email*, marca_asistencia, permite_horas_extras)
+- [x] Implementar validación email requerido con formato FILTER_VALIDATE_EMAIL
+- [x] Crear método `formatBoolean()` para conversión flexible (1/0, SI/NO, YES/NO)
+- [x] Integrar creación automática registros `employee_payroll_salaries` con auditoría
+- [x] Asignar foto por defecto automáticamente (images/facebook-profile-image.jpeg)
+- [x] Actualizar instrucciones Excel con 3 secciones nuevas (obligatorios/opcionales/automáticos)
+- [x] Refactorizar CSS wizard `/crear-empresa` para márgenes simétricos perfectos
+- [x] Implementar padding uniforme 40px + responsive (375px/1024px/1920px)
+- [x] Mejorar botones (padding 12x32, min-height 48px) + separador visual
+- [x] Testing: importación Excel + wizard responsive + integración salarios
+
+---
 
 ## Multitenancy (DB por tenant)
 - [x] Scaffolding: `MasterDatabase`, migración `tenants`, `WizardModel`, rutas wizard.
@@ -51,9 +67,12 @@ Actualizado: 2025-11-20 (v3.5.8)
 - [ ] Validar fallback jQuery en escenarios sin red/CDN.
 
 ## Documentación
-- [x] Agregar nota v3.5.8 (multitenancy, filtros vacaciones, tolerancias asistencia).
-- [x] Changelog detallado v3.5.8.md con ~517 líneas de documentación.
-- [x] Actualizar ROADMAP.md con estado v3.5.8.
-- [ ] Mantener `documentation/changelog/` por versión e indexar en `CHANGELOG.md`.
-- [ ] Revisar ROADMAP metas Q1 2026 para multitenancy completo.
+- [x] Agregar nota v3.5.9 (employee import overhaul + wizard UI improvements)
+- [x] Changelog detallado v3.5.9.md con ~650 líneas de documentación
+- [x] Actualizar CHANGELOG.md con índice v3.5.9
+- [x] Actualizar TODO.md con tareas completadas v3.5.9
+- [x] Actualizar ROADMAP.md con progreso Employee Import 100%
+- [x] Actualizar CLAUDE.md con detalles técnicos v3.5.9
+- [x] Mantener `documentation/changelog/` por versión e indexar en `CHANGELOG.md`
+- [ ] Revisar ROADMAP metas Q1 2026 para multitenancy completo
 

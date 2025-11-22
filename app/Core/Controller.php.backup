@@ -14,10 +14,23 @@ class Controller
 
     private function initDatabase()
     {
-        // Usar Database singleton que resuelve tenant automáticamente
-        // Database::getInstance() ya maneja TenantResolver::resolve()
-        // y conecta a la BD correcta (tenant o planilla_prod)
-        $this->db = Database::getInstance()->getConnection();
+        try {
+            // Cargar configuración de la base de datos
+            Config::load();
+            $dbConfig = Config::get('database.connections.mysql');
+            
+            $host = $dbConfig['host'];
+            $port = $dbConfig['port'];
+            $dbname = $dbConfig['database'];
+            $username = $dbConfig['username'];
+            $password = $dbConfig['password'];
+            $charset = $dbConfig['charset'];
+            
+            $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
+            $this->db = new \PDO($dsn, $username, $password, $dbConfig['options']);
+        } catch (\PDOException $e) {
+            throw new \Exception("Error de conexión a la base de datos: " . $e->getMessage());
+        }
     }
     public function model($model)
     {

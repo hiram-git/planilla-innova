@@ -1,11 +1,18 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 20 de Noviembre, 2025
-**Versión**: 3.5.8 - Multitenancy + Filtros Vacaciones + Tolerancias Asistencias
-**Versión Anterior**: 3.5.7 - Vacaciones: Cálculo 11 meses + Control planillas únicas + PDF mejorado
+**Fecha**: 21 de Noviembre, 2025
+**Versión**: 3.5.9 - Employee Import System Overhaul + Wizard UI Improvements
+**Versión Anterior**: 3.5.8 - Multitenancy + Filtros Vacaciones + Tolerancias Asistencias
 
-### 🆕 Hitos Recientes (v3.5.8 Multitenancy + Mejoras)
+### 🆕 Hitos Recientes (v3.5.9 Employee Import + Wizard UI)
+- **Employee Import Completo**: 3 campos nuevos (email*, marca_asistencia, permite_horas_extras) + validaciones
+- **Integración Salarios**: Creación automática employee_payroll_salaries + auditoría completa
+- **Boolean Flexible**: Método formatBoolean() acepta múltiples formatos (1/0, SI/NO, YES/NO)
+- **Wizard UI Perfecto**: Márgenes simétricos + padding uniforme + responsive optimizado
+- **Foto Default**: Asignación automática imagen perfil por defecto
+
+### 🆕 Hitos Anteriores (v3.5.8 Multitenancy + Mejoras)
 - **Multitenancy Scaffolding**: Infraestructura base para BD por tenant con validación distribuidor
 - **Vacaciones Mejoradas**: Filtros por tipo planilla + descripción MAYÚSCULAS + PDF refinado
 - **Asistencias Precisas**: Tolerancias aplicadas correctamente + clamp horas nocturnas
