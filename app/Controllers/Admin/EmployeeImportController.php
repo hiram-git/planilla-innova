@@ -235,10 +235,45 @@ class EmployeeImportController extends Controller
             }
         }
 
+        // Cargos
+        $cargos = $this->cargoModel->all();
+        if ($cargos) {
+            foreach ($cargos as $cargo) {
+                $refSheet->setCellValue("A{$row}", 'CARGO');
+                $refSheet->setCellValue("B{$row}", $cargo['id']);
+                $refSheet->setCellValue("C{$row}", $cargo['nombre']);
+                $row++;
+            }
+        }
+
+        // Funciones
+        $funciones = $this->funcionModel->all();
+        if ($funciones) {
+            foreach ($funciones as $funcion) {
+                $refSheet->setCellValue("A{$row}", 'FUNCIÓN');
+                $refSheet->setCellValue("B{$row}", $funcion['id']);
+                $refSheet->setCellValue("C{$row}", $funcion['nombre']);
+                $row++;
+            }
+        }
+
+        // Partidas
+        $partidas = $this->partidaModel->all();
+        if ($partidas) {
+            foreach ($partidas as $partida) {
+                $refSheet->setCellValue("A{$row}", 'PARTIDA');
+                $refSheet->setCellValue("B{$row}", $partida['id']);
+                // Mostrar código y nombre concatenados
+                $partidaDesc = trim($partida['codigo'] ?? '') . ' - ' . trim($partida['nombre'] ?? '');
+                $refSheet->setCellValue("C{$row}", $partidaDesc);
+                $row++;
+            }
+        }
+
         // Ajustar ancho de columnas
         $refSheet->getColumnDimension('A')->setWidth(15);
         $refSheet->getColumnDimension('B')->setWidth(10);
-        $refSheet->getColumnDimension('C')->setWidth(40);
+        $refSheet->getColumnDimension('C')->setWidth(50);
     }
 
     /**
@@ -292,14 +327,21 @@ class EmployeeImportController extends Controller
             '   - FECHA INICIO SALARIO: Se usa la Fecha de Ingreso del empleado',
             '   - Puede modificar estos datos posteriormente desde el sistema',
             '',
-            '7. NOTAS IMPORTANTES:',
+            '7. HOJA DE REFERENCIAS:',
+            '   - Consulte la hoja "Referencias" para ver todos los IDs válidos',
+            '   - La hoja contiene 7 tablas: Posiciones, Horarios, Situaciones,',
+            '     Tipos Planilla, Cargos, Funciones y Partidas',
+            '   - Para Partidas se muestra: CÓDIGO - NOMBRE (ej: 6.10.10.001. - Sueldos)',
+            '   - Use los IDs de la columna B para llenar los campos correspondientes',
+            '',
+            '8. NOTAS IMPORTANTES:',
             '   - No modifique los headers (primera fila)',
             '   - Elimine las filas de ejemplo antes de importar',
-            '   - Consulte la hoja "Referencias" para IDs válidos',
             '   - Los campos numéricos deben ser números válidos',
             '   - El sistema validará duplicados de CÓDIGO EMPLEADO',
             '   - El email debe tener formato válido (ejemplo@dominio.com)',
-            '   - Todos los empleados importados recibirán la foto por defecto'
+            '   - Todos los empleados importados recibirán la foto por defecto',
+            '   - Los IDs de referencia deben existir en la base de datos'
         ];
 
         $row = 1;

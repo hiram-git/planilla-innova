@@ -1321,31 +1321,28 @@ CREATE TABLE `partidas`  (
 -- ----------------------------
 -- Records of partidas
 -- ----------------------------
-INSERT INTO `partidas` VALUES (1, '6.10.10.004.', 'Xii mes', 'Xii mes', 1, '2025-09-10 02:17:46', '2025-09-25 22:25:16', NULL);
-INSERT INTO `partidas` VALUES (2, '6.10.10.001.', 'Sueldos', 'Sueldos', 1, '2025-09-11 18:46:20', '2025-09-25 22:29:00', NULL);
-INSERT INTO `partidas` VALUES (3, '6.10.10.002.', 'Horas extras', 'Horas extras', 1, '2025-09-25 22:23:22', '2025-09-25 22:23:22', NULL);
-INSERT INTO `partidas` VALUES (4, '6.10.10.003.', 'Vacaciones', 'Vacaciones', 1, '2025-09-25 22:24:29', '2025-09-25 22:24:29', NULL);
-INSERT INTO `partidas` VALUES (5, '6.10.10.007.', 'Gasto de representacion', 'Gasto de representación', 1, '2025-09-25 22:28:29', '2025-09-25 22:28:29', NULL);
-INSERT INTO `partidas` VALUES (6, '6.10.10.008.', 'Xiii gasto de representacion', 'Xiii gasto de representación', 1, '2025-09-25 22:30:05', '2025-09-25 22:30:05', NULL);
-INSERT INTO `partidas` VALUES (7, '6.10.10.009.', 'Viatico', 'Viatico', 1, '2025-09-25 22:30:48', '2025-09-25 22:30:48', NULL);
-INSERT INTO `partidas` VALUES (8, '6.10.10.010.', 'Bonificacion', 'Bonificación', 1, '2025-09-25 22:32:00', '2025-09-25 22:32:00', NULL);
-INSERT INTO `partidas` VALUES (9, '6.10.10.012.', 'Prima de antiguedad', 'Prima de antigüedad', 1, '2025-09-25 22:32:44', '2025-09-25 22:32:44', NULL);
-INSERT INTO `partidas` VALUES (10, '6.10.10.013.', 'Indemnizacion', 'Indemnización', 1, '2025-09-25 22:33:32', '2025-09-25 22:33:32', NULL);
-INSERT INTO `partidas` VALUES (11, '6.10.10.019.', 'Seguro social patronal', 'Seguro social patronal', 1, '2025-09-25 22:35:15', '2025-09-25 22:35:15', NULL);
-INSERT INTO `partidas` VALUES (12, '6.10.10.020.', 'Seguro educativo patronal', 'Seguro educativo patronal', 1, '2025-09-25 22:36:34', '2025-09-25 22:36:34', NULL);
-INSERT INTO `partidas` VALUES (13, '6.10.10.021.', 'Seguro riesgo profesional', 'Seguro riesgo profesional', 1, '2025-09-25 22:37:19', '2025-09-25 22:37:19', NULL);
-INSERT INTO `partidas` VALUES (14, '6.10.10.024.', 'Recargos seguro social', 'Recargos seguro social', 1, '2025-09-25 22:38:11', '2025-09-25 22:38:11', NULL);
+INSERT INTO `partidas` VALUES (1, '6.10.10.001.', 'Sueldos', 'Sueldos', 1, '2025-09-11 18:46:20', '2025-09-25 22:29:00', NULL);
+INSERT INTO `partidas` VALUES (2, '6.10.10.002.', 'Horas extras', 'Horas extras', 1, '2025-09-25 22:23:22', '2025-09-25 22:23:22', NULL);
+INSERT INTO `partidas` VALUES (3, '6.10.10.003.', 'Vacaciones', 'Vacaciones', 1, '2025-09-25 22:24:29', '2025-09-25 22:24:29', NULL);
+INSERT INTO `partidas` VALUES (4, '6.10.10.004.', 'Xii mes', 'Xii mes', 1, '2025-09-10 02:17:46', '2025-09-25 22:25:16', NULL);
+INSERT INTO `partidas` VALUES (5, '6.10.10.005.', 'Gasto de representacion', 'Gasto de representación', 1, '2025-09-25 22:28:29', '2025-09-25 22:28:29', NULL);
+INSERT INTO `partidas` VALUES (6, '6.10.10.006.', 'Xiii gasto de representacion', 'Xiii gasto de representación', 1, '2025-09-25 22:30:05', '2025-09-25 22:30:05', NULL);
+INSERT INTO `partidas` VALUES (7, '6.10.10.007.', 'Viatico', 'Viatico', 1, '2025-09-25 22:30:48', '2025-09-25 22:30:48', NULL);
+INSERT INTO `partidas` VALUES (8, '6.10.10.008.', 'Bonificacion', 'Bonificación', 1, '2025-09-25 22:32:00', '2025-09-25 22:32:00', NULL);
+INSERT INTO `partidas` VALUES (9, '6.10.10.009.', 'Prima de antiguedad', 'Prima de antigüedad', 1, '2025-09-25 22:32:44', '2025-09-25 22:32:44', NULL);
+INSERT INTO `partidas` VALUES (10, '6.10.10.010.', 'Indemnizacion', 'Indemnización', 1, '2025-09-25 22:33:32', '2025-09-25 22:33:32', NULL);
+INSERT INTO `partidas` VALUES (11, '6.10.10.011.', 'Seguro social patronal', 'Seguro social patronal', 1, '2025-09-25 22:35:15', '2025-09-25 22:35:15', NULL);
+INSERT INTO `partidas` VALUES (12, '6.10.10.012.', 'Seguro educativo patronal', 'Seguro educativo patronal', 1, '2025-09-25 22:36:34', '2025-09-25 22:36:34', NULL);
+INSERT INTO `partidas` VALUES (13, '6.10.10.013.', 'Seguro riesgo profesional', 'Seguro riesgo profesional', 1, '2025-09-25 22:37:19', '2025-09-25 22:37:19', NULL);
+INSERT INTO `partidas` VALUES (14, '6.10.10.014.', 'Recargos seguro social', 'Recargos seguro social', 1, '2025-09-25 22:38:11', '2025-09-25 22:38:11', NULL);
 INSERT INTO `partidas` VALUES (15, '2.10.12.001.', 'Seguro social por pagar', 'Seguro social por pagar', 1, '2025-09-25 22:39:46', '2025-09-25 22:39:46', NULL);
 INSERT INTO `partidas` VALUES (16, '2.10.12.002.', 'Salarios por pagar', 'Salarios por pagar', 1, '2025-09-25 22:40:41', '2025-09-25 22:40:41', NULL);
-INSERT INTO `partidas` VALUES (17, '2.10.12.005.', 'Imp. sobre la renta por pagar', 'Imp. sobre la renta por pagar', 1, '2025-09-25 22:41:28', '2025-09-25 22:41:28', NULL);
-INSERT INTO `partidas` VALUES (18, '2.10.12.010.', 'Seguro educativo por pagar', 'Seguro educativo por pagar', 1, '2025-09-25 22:42:08', '2025-09-25 22:42:08', NULL);
-INSERT INTO `partidas` VALUES (19, '2.10.12.011.', 'Seguro riesgo profesional por pagar', 'Seguro riesgo profesional por pagar', 1, '2025-09-25 22:42:48', '2025-09-25 22:42:48', NULL);
-INSERT INTO `partidas` VALUES (20, '2.10.12.012.', 'Decimo tercer mes por pagar', 'Decimo tercer mes por pagar', 1, '2025-09-25 22:43:55', '2025-09-25 22:43:55', NULL);
+INSERT INTO `partidas` VALUES (17, '2.10.12.003.', 'Imp. sobre la renta por pagar', 'Imp. sobre la renta por pagar', 1, '2025-09-25 22:41:28', '2025-09-25 22:41:28', NULL);
+INSERT INTO `partidas` VALUES (18, '2.10.12.004.', 'Seguro educativo por pagar', 'Seguro educativo por pagar', 1, '2025-09-25 22:42:08', '2025-09-25 22:42:08', NULL);
+INSERT INTO `partidas` VALUES (19, '2.10.12.005.', 'Seguro riesgo profesional por pagar', 'Seguro riesgo profesional por pagar', 1, '2025-09-25 22:42:48', '2025-09-25 22:42:48', NULL);
+INSERT INTO `partidas` VALUES (20, '2.10.12.006.', 'Decimo tercer mes por pagar', 'Decimo tercer mes por pagar', 1, '2025-09-25 22:43:55', '2025-09-25 22:43:55', NULL);
 INSERT INTO `partidas` VALUES (21, '6.10.99.', 'IMPUESTO SOBRE LA RENTA', 'IMPUESTO SOBRE LA RENTA', 1, '2025-09-25 22:46:55', '2025-09-25 22:46:55', NULL);
-INSERT INTO `partidas` VALUES (22, '6.10.15.002.', 'Honorarios de contabilidad', 'Honorarios de contabilidad', 1, '2025-10-02 15:07:40', '2025-10-02 15:07:40', NULL);
-INSERT INTO `partidas` VALUES (23, '6.10.15.004.', 'Honorarios por soporte tecnico', 'Honorarios por soporte tecnico', 1, '2025-10-02 15:11:43', '2025-10-02 15:11:43', NULL);
-INSERT INTO `partidas` VALUES (24, '6.10.15.011.', 'Honorarios por desarrollo', 'Honorarios por desarrollo', 1, '2025-10-02 15:14:43', '2025-10-02 15:14:43', NULL);
-INSERT INTO `partidas` VALUES (25, '6.10.15.012.', 'Honorarios por administracion', 'Honorarios por administracion', 1, '2025-10-02 15:15:02', '2025-10-02 15:15:02', NULL);
+INSERT INTO `partidas` VALUES (22, '6.10.15.001.', 'Honorarios de contabilidad', 'Honorarios de contabilidad', 1, '2025-10-02 15:07:40', '2025-10-02 15:07:40', NULL);
 
 -- ----------------------------
 -- Table structure for payroll_attendance_details
