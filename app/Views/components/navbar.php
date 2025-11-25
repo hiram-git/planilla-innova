@@ -24,9 +24,66 @@ class NavbarComponent
         // Obtener datos del usuario de la sesión
         $this->currentUser = $_SESSION['admin_name'] ?? 'Administrador';
         $this->userRole = $_SESSION['admin_role'] ?? 'Administrador del Sistema';
-        
+
         // Generar URL del avatar usando UrlHelper para consistencia
         $this->avatarUrl = UrlHelper::asset('dist/img/avatar.png');
+    }
+
+    private function getLicenseInfo()
+    {
+
+        // Obtener información del tenant
+        $tenantInfo = [];
+        if (\App\Core\TenantResolver::hasTenant()) {
+            $tenantInfo = \App\Core\TenantResolver::getTenantInfo();
+        }
+        // Obtener información de licencia de la sesión
+        $licenseKey = $_SESSION['tenant_license'] ?? null;
+        $expirationDate = $tenantInfo['license_expires_at'] ?? null;
+
+        // Calcular días restantes basado en la fecha de expiración
+        $daysRemaining = null;
+        if ($expirationDate && $expirationDate !== '-') {
+            try {
+                $datetime1 = new \DateTime($expirationDate);
+                $datetime2 = new \DateTime(date('Y-m-d'));
+                $interval = $datetime1->diff($datetime2);
+
+                // Si invert es 1, la fecha de expiración está en el futuro (días positivos)
+                // Si invert es 0, la fecha ya expiró (días negativos)
+                if ($interval->invert == 1) {
+                    $daysRemaining = $interval->days;
+                } else {
+                    $daysRemaining = -$interval->days;
+                }
+            } catch (\Exception $e) {
+                error_log("Error calculando días restantes de licencia: " . $e->getMessage());
+                $daysRemaining = null;
+            }
+        }
+
+        $companyName = $tenantInfo['company_name'] ?? 'N/A';
+        $ruc = $tenantInfo['ruc'] ?? 'N/A';
+
+        // Determinar color del badge según días restantes
+        $badgeClass = 'badge-success'; // Verde por defecto
+        if ($daysRemaining !== null) {
+            if ($daysRemaining < 3) {
+                $badgeClass = 'badge-danger'; // Rojo - expirado
+            } elseif ($daysRemaining < 7) {
+                $badgeClass = 'badge-warning'; // Rojo < 7 días
+            } 
+        }
+
+        return [
+            'license_key' => $licenseKey !== 'default' ? $licenseKey : 'Sistema Principal',
+            'company_name' => $companyName,
+            'ruc' => $ruc,
+            'days_remaining' => $daysRemaining,
+            'expiration_date' => $expirationDate,
+            'badge_class' => $badgeClass,
+            'is_default' => $licenseKey === 'default'
+        ];
     }
     
     public function getUserInfo()
@@ -76,6 +133,9 @@ class NavbarComponent
 
             <!-- Right navbar links -->
             <ul class="navbar-nav ml-auto">
+                <!-- License Info Dropdown -->
+                ' . $this->renderLicenseDropdown() . '
+
                 <!-- Payroll Type Dropdown -->
                 <li class="nav-item dropdown">
                     <a class="nav-link" data-toggle="dropdown" href="#" title="Tipo de Planilla">
@@ -159,7 +219,108 @@ class NavbarComponent
             </ul>
         </nav>';
     }
-    
+
+    private function renderLicenseDropdown()
+    {
+        $licenseInfo = $this->getLicenseInfo();
+
+        // No mostrar dropdown si es el sistema principal (default)
+        if ($licenseInfo['is_default']) {
+            return '';
+        }
+
+        $icon = '<i class="fas fa-certificate"></i>';
+
+        // Determinar texto de días restantes
+        if ($licenseInfo['days_remaining'] !== null) {
+            if ($licenseInfo['days_remaining'] < 0) {
+                $daysText = 'Expirada';
+            } elseif ($licenseInfo['days_remaining'] === 0) {
+                $daysText = 'Hoy expira';
+            } else {
+                $daysText = $licenseInfo['days_remaining'] . ' días';
+            }
+        } else {
+            $daysText = 'N/A';
+        }
+
+        $badgeClass = $licenseInfo['badge_class'];
+
+        $expirationFormatted = $licenseInfo['expiration_date']
+            ? date('d/m/Y', strtotime($licenseInfo['expiration_date']))
+            : 'N/A';
+
+        return '
+                <li class="nav-item dropdown">
+                    <a class="nav-link" data-toggle="dropdown" href="#" title="Información de Licencia">
+                        ' . $icon . '
+                        <span class="d-none d-lg-inline ml-1">Licencia</span>
+                        <span class="badge ' . $badgeClass . ' ml-1">' . htmlspecialchars($daysText) . '</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="min-width: 320px;">
+                        <span class="dropdown-item-text font-weight-bold">
+                            <i class="fas fa-info-circle text-primary mr-2"></i>Información de Licencia
+                        </span>
+                        <div class="dropdown-divider"></div>
+
+                        <!-- Empresa -->
+                        <div class="dropdown-item-text py-2">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <small class="text-muted d-block mb-1">
+                                        <i class="fas fa-building mr-1"></i>Empresa
+                                    </small>
+                                    <strong class="d-block">' . htmlspecialchars($licenseInfo['company_name']) . '</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RUC -->
+                        <div class="dropdown-item-text py-2">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small class="text-muted d-block mb-1">
+                                        <i class="fas fa-id-card mr-1"></i>RUC
+                                    </small>
+                                    <strong class="d-block">' . htmlspecialchars($licenseInfo['ruc']) . '</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Licencia Key -->
+                        <div class="dropdown-item-text py-2">
+                            <div class="d-flex justify-content-between">
+                                <div style="word-break: break-all;">
+                                    <small class="text-muted d-block mb-1">
+                                        <i class="fas fa-key mr-1"></i>Licencia
+                                    </small>
+                                    <strong class="d-block font-monospace">' . htmlspecialchars($licenseInfo['license_key']) . '</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-divider"></div>
+
+                        <!-- Vencimiento -->
+                        <div class="dropdown-item-text py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted d-block mb-1">
+                                        <i class="fas fa-calendar-times mr-1"></i>Vencimiento
+                                    </small>
+                                    <strong class="d-block">' . htmlspecialchars($expirationFormatted) . '</strong>
+                                </div>
+                                <div>
+                                    <span class="badge ' . $badgeClass . ' badge-pill px-3 py-2" style="font-size: 0.9rem;">
+                                        ' . htmlspecialchars($daysText) . '
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>';
+    }
+
     public function getScripts() 
     {
         return '
@@ -248,7 +409,7 @@ class NavbarComponent
         </script>';
     }
     
-    public function getStyles() 
+    public function getStyles()
     {
         return '
         <style>
@@ -256,26 +417,49 @@ class NavbarComponent
             font-weight: 500;
             color: #495057 !important;
         }
-        
+
         .user-image {
             width: 25px;
             height: 25px;
         }
-        
+
         .navbar-badge {
             font-size: 0.6rem;
             font-weight: bold;
         }
-        
+
         .dropdown-menu {
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        
+
         .user-header {
             background: linear-gradient(135deg, #007bff, #0056b3) !important;
         }
-        
+
+        /* License Dropdown Styles */
+        .font-monospace {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 0.85rem;
+        }
+
+        .dropdown-item-text.py-2 {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item-text.py-2:hover {
+            background-color: #f8f9fa;
+            border-left-color: #007bff;
+        }
+
+        .badge-pill {
+            border-radius: 1rem;
+            font-weight: 600;
+        }
+
         @media (max-width: 576px) {
             .navbar-text span {
                 display: none;

@@ -69,8 +69,7 @@ class TenantResolver
 
             // Buscar tenant PRIORIZANDO license_key
             // ORDER BY: license_key match primero, luego RUC, ID, slug
-            $stmt = $master->prepare("
-                SELECT id, company_name, ruc, license_key, db_name, status,
+            $sql = "SELECT id, company_name, ruc, license_key, db_name, status,license_expires_at,
                        db_host, db_port, db_user, db_pass_enc, db_charset
                 FROM tenants
                 WHERE (license_key = ? OR ruc = ? OR id = ? OR slug = ?)
@@ -83,7 +82,8 @@ class TenantResolver
                         ELSE 4
                     END
                 LIMIT 1
-            ");
+            ";
+            $stmt = $master->prepare($sql);
             $stmt->execute([$code, $code, $code, $code, $code, $code, $code]);
             $tenant = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -121,7 +121,7 @@ class TenantResolver
             $master = MasterDatabase::getInstance()->getConnection();
 
             $stmt = $master->prepare("
-                SELECT id, company_name, ruc, db_name, status,
+                SELECT id, company_name, ruc, db_name, status,license_expires_at,
                        db_host, db_port, db_user, db_pass_enc, db_charset
                 FROM tenants
                 WHERE db_name = ? AND status = 'ACTIVE'
