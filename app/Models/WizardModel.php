@@ -42,7 +42,7 @@ class WizardModel
         }
         $isPhpEndpoint = (bool)preg_match('/\.php(\?|$)/i', $rawUrl);
         $base = rtrim($rawUrl, '/');
-        $endpoint = $isPhpEndpoint ? $base : ($base . '/ajax/user.php');
+        $endpoint = $isPhpEndpoint ? $base : ($base . '/ajax/userPlanilla.php');
         $sslVerify = false; // default secure
         if (isset($_ENV['LICENSING_SSL_VERIFY'])) {
             $sslVerify = (($_ENV['LICENSING_SSL_VERIFY']) === 'true');
@@ -57,6 +57,7 @@ class WizardModel
         if (trim($username) === '' || trim($password) === '') {
             return ['success' => false, 'message' => 'Missing credentials'];
         }
+
 
         $ch = curl_init();
         curl_setopt_array($ch, [

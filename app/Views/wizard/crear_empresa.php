@@ -1086,7 +1086,7 @@
 
                             if (createResponse.data.success) {
                                 this.resultadoCreacion = createResponse.data;
-                                this.loginUrl = createResponse.data.login_url ||  window.BASE_URL +'/panel/login';
+                                this.loginUrl = window.BASE_URL +createResponse.data.login_url ||  window.BASE_URL +'/panel/login';
                                 this.mensajeResultado = `✅ Empresa creada exitosamente
 🔑 Licencia generada y validada: ${createResponse.data.database_name}
 👤 Usuario administrador configurado

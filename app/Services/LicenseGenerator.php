@@ -24,7 +24,7 @@ class LicenseGenerator
     public function __construct()
     {
         $baseUrl = $_ENV['LICENSE_VALIDATION_URL'] ?? 'https://plataforma.innovasoftlatam.com:8080';
-        // Remover '/ajax/license.php' si está presente en la URL base
+        // Remover '/ajax/licensePlanilla.php' si está presente en la URL base
         $baseUrl = rtrim(str_replace('/ajax/license.php', '', $baseUrl), '/');
 
         $this->licenseApiUrl = $baseUrl . '/ajax/license.php';
@@ -160,29 +160,29 @@ class LicenseGenerator
 
         try {
             $curl = curl_init();
-            
-        $data_json = json_encode(array(
-            'License' => $licenseData['license'],
-            'RUC' => $licenseData['ruc'],
-            'Buyer' => $licenseData['buyer_name'],
-            'Company' => $licenseData['company_name'],
-            'Email' => $licenseData['email'],
-            'Phone' => $licenseData['phone'] ?? '+5534991346999',
-            'Expiration' => $licenseData['expiration_date'],
-            'MaxActivations' => "50",
-            'CurActivations' => "1",
-            'SaintLicense' => $licenseData['license'],
-            'State' => "XSU_TRIAL",
-            'CurActCompleted' => "1",
-            'UniqueTable' => "1",
-            'FinalUser' => $licenseData['final_user'],
-            'FirstActivation' => $licenseData['first_activation'],
-            'Country' => "PA",
-            'Product' => "PINN",
-            'HasCoronaTest' => "1"
-        ));
-            curl_setopt($curl, CURLOPT_URL,  $this->licenseApiUrl);
+            $data_json = json_encode(array(
+                'registerLicense' => "yes",
+                'License' => $licenseData['license'],
+                'RUC' => $licenseData['ruc'],
+                'Buyer' => $licenseData['buyer_name'],
+                'Company' => $licenseData['company_name'],
+                'Email' => $licenseData['email'],
+                'Phone' => $licenseData['phone'] ?? '+5534991346999',
+                'Expiration' => $licenseData['expiration_date'],
+                'MaxActivations' => "50",
+                'CurActivations' => "1",
+                'SaintLicense' => $licenseData['license'],
+                'State' => "XSU_TRIAL",
+                'CurActCompleted' => "1",
+                'UniqueTable' => "1",
+                'FinalUser' => $licenseData['final_user'],
+                'FirstActivation' => $licenseData['first_activation'],
+                'Country' => "PA",
+                'Product' => "PINN",
+                'HasCoronaTest' => "1"
+            ));
 
+            curl_setopt($curl, CURLOPT_URL,  $this->licenseApiUrl);
             curl_setopt(
                 $curl, CURLOPT_HTTPHEADER, array(
                     'Accept: application/json',
@@ -192,9 +192,9 @@ class LicenseGenerator
             curl_setopt($curl, CURLOPT_POST, 1);
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($curl, CURLOPT_POSTFIELDS,$data_json);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            $response = curl_exec($curl);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); 
 
+            $response = curl_exec($curl);
             $error = curl_error($curl);
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
@@ -271,8 +271,7 @@ class LicenseGenerator
             $licenseData = array_merge($companyData, [
                 'license' => $license,
                 'first_activation' => $firstActivation,
-                'expiration_date' => $expirationDate,
-                'final_user' => $companyData['company_name']
+                'expiration_date' => $expirationDate
             ]);
 
             // 4. INTENTAR registrar licencia en servidor remoto
@@ -361,7 +360,7 @@ class LicenseGenerator
     {
         // Generar licencia: PREFIX + timestamp + random
         // Formato: PINN + 10 dígitos (timestamp + random para unicidad)
-        $timestamp = substr(time(), -5); // Últimos 5 dígitos del timestamp
+        $timestamp = substr(time(), -3); // Últimos 5 dígitos del timestamp
         $random = rand(10000, 99999);    // 5 dígitos aleatorios
 
         $license = $this->prefix . $timestamp . $random;

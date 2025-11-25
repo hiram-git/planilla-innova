@@ -21,7 +21,7 @@ class LicenseValidator
 
     public function __construct()
     {
-        $this->validationUrl = $_ENV['LICENSE_VALIDATION_URL'] ?? 'https://plataforma.innovasoftlatam.com:8080/ajax/license.php';
+        $this->validationUrl = $_ENV['LICENSE_VALIDATION_URL'] ?? 'https://plataforma.innovasoftlatam.com:8080/ajax/licensePlanilla.php';
         $this->timeout = (int)($_ENV['HTTP_TIMEOUT'] ?? 8);
         $this->sslVerify = (bool)($_ENV['LICENSING_SSL_VERIF'] ?? false);
     }

@@ -191,8 +191,9 @@ class WizardController{
             $licenseGenerator = new LicenseGenerator();
             $allowOffline = filter_var($_ENV['LICENSING_ALLOW_OFFLINE'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
             $licenseResult = $licenseGenerator->generateAndRegister([
-                'ruc' => $companyData['ruc'],
+                'ruc' => $_SESSION['wizard_distributor_empresa_ruc'],
                 'company_name' => $_SESSION['wizard_distributor_empresa_name'],
+                'final_user' => $companyData['company_name'],
                 'buyer_name' => $companyData['distribuitor_name'] ,
                 'email' => $companyData['admin_email'],
                 'phone' => $companyData['distribuitor_phone'] ?? '',
