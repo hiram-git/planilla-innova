@@ -75,6 +75,7 @@ class WizardModel
         ]);
 
         $response = curl_exec($ch);
+
         if ($response === false) {
             $err = curl_error($ch);
             curl_close($ch);
@@ -90,7 +91,7 @@ class WizardModel
 
         if (isset($data['success']) && (string)$data['success'] === '1') {
             $email = $data['user_email'] ?? $data['email'] ?? null;
-            return ['success' => true, 'email' => $email];
+            return ['success' => true, 'email' => $email, 'user_name' => $data['user_name'] ?? null, 'user_contacto' => $data['user_contacto'] ?? null, 'empresa_name' => $data['empresa_name'] ?? null,'empresa_ruc' => $data['empresa_ruc'] ?? null];
         }
 
         $message = $data['message'] ?? 'Authentication failed';

@@ -420,6 +420,16 @@
                                                 <div class="subtitle-2 font-weight-bold">{{ distributorInfo.email || 'N/D' }}</div>
                                             </v-col>
                                         </v-row>
+                                        <v-row>
+                                            <v-col cols="12" md="6">
+                                                <div class="grey--text text--darken-1 text-caption mb-1">Nombre</div>
+                                                <div class="subtitle-2 font-weight-bold">{{ distributorInfo.name || 'N/D' }}</div>
+                                            </v-col>
+                                            <v-col cols="12" md="6">
+                                                <div class="grey--text text--darken-1 text-caption mb-1">Teléfono</div>
+                                                <div class="subtitle-2 font-weight-bold">{{ distributorInfo.phone || 'N/D' }}</div>
+                                            </v-col>
+                                        </v-row>
                                     </v-card-text>
                                 </v-card>
 
@@ -855,7 +865,9 @@
                 resultadoCreacion: {},
                 distributorInfo: {
                     username: '',
-                    email: ''
+                    email: '',
+                    name: '',
+                    phone: ''
                 },
                 
                 empresa: {
@@ -945,6 +957,8 @@
                             if (response.data.success) {
                                 this.distributorInfo.username = response.data.username || this.usuario.user;
                                 this.distributorInfo.email = response.data.email || '';
+                                this.distributorInfo.name = response.data.name || '';
+                                this.distributorInfo.phone = response.data.phone || '';
                                 if (response.data.email) {
                                     this.empresa.email = response.data.email;
                                 }
@@ -1032,6 +1046,7 @@
                     this.loadingMessage = 'Creando empresa y base de datos...<br><small>Este proceso puede tardar varios minutos</small>';
                     
                     try {
+                        console.log('Iniciando creación de empresa...', this.distributorInfo.phone);
                         const formData = new FormData();
                         formData.append('company_name', this.empresa.nombre);
                         formData.append('company_ruc', this.empresa.ruc);
@@ -1040,6 +1055,9 @@
                         formData.append('admin_username', this.adminUser.username);
                         formData.append('admin_email', this.empresa.email);
                         formData.append('admin_password', this.adminUser.password);
+                        formData.append('distribuitor_name', this.distributorInfo.name);
+                        formData.append('distribuitor_email', this.distributorInfo.email);
+                        formData.append('distribuitor_phone', this.distributorInfo.phone);
                         
                         // Step 1: Register company
                         this.loadingMessage = 'Registrando datos de la empresa...<br><small>Validando información</small>';

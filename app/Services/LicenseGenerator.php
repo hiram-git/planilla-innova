@@ -145,6 +145,7 @@ class LicenseGenerator
      */
     public function registerLicense($licenseData)
     {
+
         // Validar datos requeridos
         $required = ['license', 'ruc', 'company_name', 'buyer_name', 'email'];
         foreach ($required as $field) {
@@ -159,50 +160,41 @@ class LicenseGenerator
 
         try {
             $curl = curl_init();
+            
+        $data_json = json_encode(array(
+            'License' => $licenseData['license'],
+            'RUC' => $licenseData['ruc'],
+            'Buyer' => $licenseData['buyer_name'],
+            'Company' => $licenseData['company_name'],
+            'Email' => $licenseData['email'],
+            'Phone' => $licenseData['phone'] ?? '+5534991346999',
+            'Expiration' => $licenseData['expiration_date'],
+            'MaxActivations' => "50",
+            'CurActivations' => "1",
+            'SaintLicense' => $licenseData['license'],
+            'State' => "XSU_TRIAL",
+            'CurActCompleted' => "1",
+            'UniqueTable' => "1",
+            'FinalUser' => $licenseData['final_user'],
+            'FirstActivation' => $licenseData['first_activation'],
+            'Country' => "PA",
+            'Product' => "PINN",
+            'HasCoronaTest' => "1"
+        ));
+            curl_setopt($curl, CURLOPT_URL,  $this->licenseApiUrl);
 
-            // Preparar datos para el registro
-            $postData = [
-                'registerLicense' => 'yes',
-                'License' => $licenseData['license'],
-                'RUC' => $licenseData['ruc'],
-                'Buyer' => $licenseData['buyer_name'],
-                'Company' => $licenseData['company_name'],
-                'Email' => $licenseData['email'],
-                'Phone' => $licenseData['phone'] ?? '',
-                'Expiration' => $licenseData['expiration_date'],
-                'MaxActivations' => '50',
-                'CurActivations' => '1',
-                'SaintLicense' => $licenseData['license'],
-                'State' => 'XSU_TRIAL',
-                'CurActCompleted' => '1',
-                'UniqueTable' => '1',
-                'FinalUser' => $licenseData['final_user'],
-                'FirstActivation' => $licenseData['first_activation'],
-                'Country' => $licenseData['country'] ?? 'Panama',
-                'Product' => 'PLANILLA_INNOVA',
-                'Reactivation' => null,
-                'HasCoronaTest' => '1',
-                'IdAnalitica' => null,
-                'FinalUserRUC' => null
-            ];
-
-            $data_json = json_encode($postData);
-
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $this->licenseApiUrl,
-                CURLOPT_HTTPHEADER => [
+            curl_setopt(
+                $curl, CURLOPT_HTTPHEADER, array(
                     'Accept: application/json',
                     'Content-Type: application/json',
-                ],
-                CURLOPT_POST => 1,
-                CURLOPT_SSL_VERIFYPEER => $this->sslVerify,
-                CURLOPT_POSTFIELDS => $data_json,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => $this->timeout * 2, // Mayor timeout para registro
-                CURLOPT_CONNECTTIMEOUT => $this->timeout
-            ]);
-
+                )
+            );
+            curl_setopt($curl, CURLOPT_POST, 1);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_POSTFIELDS,$data_json);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
             $response = curl_exec($curl);
+
             $error = curl_error($curl);
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 

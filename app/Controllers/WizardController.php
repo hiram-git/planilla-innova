@@ -71,11 +71,14 @@ class WizardController{
         
         // Validar distribuidor con servidor remoto
         $distributorResult = $this->wizardModel->validateRemoteDistributor($username, $password);
-        
         if ($distributorResult['success']) {
             $_SESSION['wizard_distributor_validated'] = true;
             $_SESSION['wizard_distributor_email'] = $distributorResult['email'];
             $_SESSION['wizard_distributor_username'] = $username;
+            $_SESSION['wizard_distributor_phone'] = $distributorResult['user_contacto'];
+            $_SESSION['wizard_distributor_name'] = $distributorResult['user_name'];
+            $_SESSION['wizard_distributor_empresa_name'] = $distributorResult['empresa_name'];
+            $_SESSION['wizard_distributor_empresa_ruc'] = $distributorResult['empresa_ruc'];
             $_SESSION['wizard_step'] = 2;
             
             $this->jsonResponse([
@@ -83,6 +86,8 @@ class WizardController{
                 'message' => 'Distribuidor encontrado',
                 'email' => $distributorResult['email'],
                 'username' => $username,
+                'name' => $distributorResult['user_name'],
+                'phone' => $distributorResult['user_contacto'],
                 'next_step' => 2
             ]);
         } else {
@@ -109,7 +114,7 @@ class WizardController{
     public function registerCompany() {
         $this->validateAjaxRequest();
         $this->validateWizardSession();
-        
+
         $companyData = [
             'company_name' => $this->getPostData('company_name'),
             'ruc' => $this->getPostData('company_ruc'),
@@ -117,7 +122,10 @@ class WizardController{
             'admin_email' => $this->getPostData('admin_email'),
             'admin_password' => $this->getPostData('admin_password'),
             'admin_firstname' => $this->getPostData('admin_firstname'),
-            'admin_lastname' => $this->getPostData('admin_lastname')
+            'admin_lastname' => $this->getPostData('admin_lastname'),
+            'distribuitor_phone' => $this->getPostData('distribuitor_phone'),
+            'distribuitor_name' => $this->getPostData('distribuitor_name'),
+            'distribuitor_name' => $this->getPostData('distribuitor_name'),
         ];
 
         // Validar datos
@@ -182,14 +190,13 @@ class WizardController{
             // 1. GENERAR Y REGISTRAR LICENCIA EN SERVIDOR REMOTO (antes de crear BD)
             $licenseGenerator = new LicenseGenerator();
             $allowOffline = filter_var($_ENV['LICENSING_ALLOW_OFFLINE'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
-
             $licenseResult = $licenseGenerator->generateAndRegister([
                 'ruc' => $companyData['ruc'],
-                'company_name' => $companyData['company_name'],
-                'buyer_name' => $companyData['admin_firstname'] . ' ' . $companyData['admin_lastname'],
+                'company_name' => $_SESSION['wizard_distributor_empresa_name'],
+                'buyer_name' => $companyData['distribuitor_name'] ,
                 'email' => $companyData['admin_email'],
-                'phone' => $companyData['admin_phone'] ?? '',
-                'country' => 'Panama'
+                'phone' => $companyData['distribuitor_phone'] ?? '',
+                'country' => 'PA'
             ], $allowOffline);
 
             if (!$licenseResult['success']) {
