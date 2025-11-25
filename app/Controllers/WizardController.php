@@ -380,13 +380,6 @@ class WizardController{
             error_log("🔍 Stack Trace:");
             error_log($e->getTraceAsString());
 
-            // Log del estado de la BD antes del rollback
-            try {
-                error_log("⚠️ Estado de la transacción antes de rollback: " . ($this->db->inTransaction() ? 'ACTIVE' : 'INACTIVE'));
-            } catch (Exception $dbCheckEx) {
-                error_log("⚠️ No se pudo verificar estado de transacción: " . $dbCheckEx->getMessage());
-            }
-
             // Intentar rollback
             try {
                 $this->db->rollback();
