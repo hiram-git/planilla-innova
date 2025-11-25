@@ -127,20 +127,58 @@ class Admin extends Controller
             $_SESSION['admin_role_description'] = $admin['role_description'] ?? '';
             $_SESSION['is_super_admin'] = $adminModel->isSuperAdmin($admin);
             $_SESSION['admin_login_time'] = date('Y-m-d H:i:s');
-            $_SESSION['success'] = 'Sesión iniciada con éxito';
 
             // Guardar información del tenant para validación de storage
+            $licenseKey = null;
             if (\App\Core\TenantResolver::hasTenant()) {
                 $tenantInfo = \App\Core\TenantResolver::getTenantInfo();
                 $_SESSION['tenant_id'] = $tenantInfo['id'] ?? null;
                 $_SESSION['tenant_license'] = $tenantInfo['license_key'] ?? null;
                 $_SESSION['tenant_db'] = $tenantInfo['db_name'] ?? null;
+                $licenseKey = $tenantInfo['license_key'] ?? null;
             } else {
-                // BD principal (planilla_prod)
+                // BD principal (planilla_prod) - sin validación de licencia
                 $_SESSION['tenant_id'] = 'default';
                 $_SESSION['tenant_license'] = 'default';
                 $_SESSION['tenant_db'] = $_ENV['DB_NAME'] ?? 'planilla_prod';
             }
+
+            // ✅ VALIDAR LICENCIA para tenants (solo si no es la BD principal)
+            if ($licenseKey && $licenseKey !== 'default') {
+                $licenseValidator = new \App\Services\LicenseValidator();
+                $validationResult = $licenseValidator->validateAndStore($licenseKey);
+
+                if (!$validationResult['valid']) {
+                    // Licencia inválida o expirada - destruir sesión
+                    $companyName = $tenantInfo['company_name'] ?? 'Su empresa';
+                    $errorMessage = $validationResult['message'] ?? 'Licencia no válida';
+
+                    // Log del intento de acceso con licencia inválida
+                    error_log("Acceso denegado - Licencia inválida: {$licenseKey} - Usuario: {$username}");
+                    Security::logSecurityEvent('login_license_invalid', [
+                        'admin_id' => $admin['id'],
+                        'license_key' => $licenseKey,
+                        'error' => $errorMessage
+                    ]);
+
+                    // Destruir la sesión
+                    session_unset();
+                    session_destroy();
+                    session_start();
+
+                    // Mostrar mensaje de error
+                    $_SESSION['error'] = $errorMessage;
+                    $this->redirect('/panel');
+                    return;
+                }
+
+                // Licencia válida - mostrar advertencia si está próxima a vencer
+                if (isset($_SESSION['license_warning'])) {
+                    $_SESSION['info'] = $_SESSION['license_warning'];
+                }
+            }
+
+            $_SESSION['success'] = 'Sesión iniciada con éxito';
 
             // Log successful login
             ActivityLogger::logLogin($admin['id'], $username, true);

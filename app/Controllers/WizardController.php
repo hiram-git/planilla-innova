@@ -15,7 +15,10 @@ namespace App\Controllers;
 
 use App\Core\Database;
 use App\Models\WizardModel;
+use App\Services\LicenseGenerator;
 use Exception;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 // Autoloaded via Composer (PSR-4): App\\Models\\WizardModel
 
@@ -176,9 +179,49 @@ class WizardController{
             // Iniciar transacción
             $this->db->beginTransaction();
 
-            // 1. GENERAR LICENCIA PRIMERO (antes de crear BD)
-            $license = $this->wizardModel->generateUniqueLicense();
+            // 1. GENERAR Y REGISTRAR LICENCIA EN SERVIDOR REMOTO (antes de crear BD)
+            $licenseGenerator = new LicenseGenerator();
+            $allowOffline = filter_var($_ENV['LICENSING_ALLOW_OFFLINE'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
+
+            $licenseResult = $licenseGenerator->generateAndRegister([
+                'ruc' => $companyData['ruc'],
+                'company_name' => $companyData['company_name'],
+                'buyer_name' => $companyData['admin_firstname'] . ' ' . $companyData['admin_lastname'],
+                'email' => $companyData['admin_email'],
+                'phone' => $companyData['admin_phone'] ?? '',
+                'country' => 'Panama'
+            ], $allowOffline);
+
+            if (!$licenseResult['success']) {
+                throw new Exception('Error generando licencia: ' . $licenseResult['message']);
+            }
+
+            $license = $licenseResult['license'];
             $companyData['license_key'] = $license;
+            $companyData['license_expiration'] = $licenseResult['expiration_date'];
+            $companyData['license_first_activation'] = $licenseResult['first_activation'];
+            $companyData['license_sync_pending'] = $licenseResult['pending_sync'] ?? false;
+            $companyData['license_offline_mode'] = $licenseResult['offline_mode'] ?? false;
+
+            // Log de licencia generada
+            if ($licenseResult['offline_mode']) {
+                error_log("=== ⚠️ LICENCIA GENERADA EN MODO OFFLINE ===");
+                error_log("Licencia: {$license}");
+                error_log("Empresa: {$companyData['company_name']}");
+                error_log("RUC: {$companyData['ruc']}");
+                error_log("Expiración: {$licenseResult['expiration_date']}");
+                error_log("Estado: PENDIENTE DE REGISTRO EN SERVIDOR REMOTO");
+                error_log("Motivo: {$licenseResult['sync_error']}");
+                error_log("============================================");
+            } else {
+                error_log("=== LICENCIA GENERADA Y REGISTRADA ===");
+                error_log("Licencia: {$license}");
+                error_log("Empresa: {$companyData['company_name']}");
+                error_log("RUC: {$companyData['ruc']}");
+                error_log("Expiración: {$licenseResult['expiration_date']}");
+                error_log("Estado: REGISTRADA EN SERVIDOR REMOTO");
+                error_log("======================================");
+            }
 
             // 2. Crear empresa en BD master CON licencia
             $companyId = $this->wizardModel->createCompanyRecord($companyData);
@@ -210,15 +253,25 @@ class WizardController{
             // Enviar email de bienvenida (opcional)
             $this->sendWelcomeEmail($companyData, $databaseName);
 
+            // Preparar mensaje según modo de licencia
+            $message = 'Empresa creada exitosamente';
+            if ($licenseResult['offline_mode']) {
+                $message .= ' (Licencia pendiente de registro en servidor remoto)';
+            }
+
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Empresa creada exitosamente',
+                'message' => $message,
                 'company_id' => $companyId,
                 'license_key' => $license,
+                'license_expiration' => $licenseResult['expiration_date'],
+                'license_offline_mode' => $licenseResult['offline_mode'],
+                'license_sync_pending' => $licenseResult['pending_sync'] ?? false,
                 'database_name' => $databaseName,
                 'admin_user_id' => $adminUserId,
                 'login_url' => $this->getCompanyLoginUrl($license),
-                'next_action' => 'redirect_to_login'
+                'next_action' => 'redirect_to_login',
+                'warning' => $licenseResult['offline_mode'] ? 'La licencia se registrará en el servidor cuando esté disponible' : null
             ]);
 
         } catch (Exception $e) {
@@ -376,9 +429,139 @@ class WizardController{
     }
 
     private function sendWelcomeEmail($companyData, $databaseName) {
-        // TODO: Implementar envío email bienvenida
-        // Usar PHPMailer o similar
-        error_log("Email bienvenida pendiente para: " . $companyData['admin_email']);
+        try {
+            // Configurar PHPMailer
+            $mail = new PHPMailer(true);
+
+            // Configuración del servidor SMTP
+            $mail->isSMTP();
+            $mail->Host       = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
+
+            // Autenticación solo si hay username configurado (Mailtrap/Gmail requieren auth)
+            $mailUsername = $_ENV['MAIL_USERNAME'] ?? '';
+            if (!empty($mailUsername)) {
+                $mail->SMTPAuth   = true;
+                $mail->Username   = $mailUsername;
+                $mail->Password   = $_ENV['MAIL_PASSWORD'] ?? '';
+            } else {
+                $mail->SMTPAuth   = false;
+            }
+
+            // Encriptación solo si está configurada explícitamente
+            $encryption = $_ENV['MAIL_ENCRYPTION'] ?? '';
+            if (!empty($encryption) && strtolower($encryption) !== 'optional') {
+                $mail->SMTPSecure = $encryption;
+            }
+
+            $mail->Port       = $_ENV['MAIL_PORT'] ?? 587;
+            $mail->CharSet    = 'UTF-8';
+
+            // Debug mode (solo en desarrollo)
+            if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true') {
+                $mail->SMTPDebug = 0; // 0 = sin debug, 2 = debug completo
+            }
+
+            // Remitente
+            $mail->setFrom(
+                $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@planillas.com',
+                $_ENV['MAIL_FROM_NAME'] ?? 'Sistema de Planillas'
+            );
+
+            // Destinatario
+            $mail->addAddress($companyData['admin_email'], $companyData['admin_firstname'] . ' ' . $companyData['admin_lastname']);
+
+            // Contenido
+            $mail->isHTML(true);
+            $mail->Subject = '¡Bienvenido al Sistema de Planillas! - ' . $companyData['company_name'];
+
+            // URL de login
+            $loginUrl = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+            $loginUrl .= "://" . $_SERVER['HTTP_HOST'] . "/panel/login";
+
+            $mail->Body = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff; }
+                        .header { background: linear-gradient(135deg, #FF5722 0%, #FF9800 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                        .content { padding: 30px; }
+                        .info-box { background-color: #f8f9fa; border-left: 4px solid #FF5722; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                        .button { display: inline-block; padding: 12px 24px; background-color: #FF5722; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
+                        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 20px; }
+                        .label { font-weight: bold; color: #555; }
+                        .value { font-family: monospace; color: #d84315; font-size: 1.1em; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h1 style='margin:0;'>¡Bienvenido a Planilla Innova!</h1>
+                            <p style='margin:10px 0 0; opacity:0.9;'>Su empresa ha sido configurada exitosamente</p>
+                        </div>
+                        <div class='content'>
+                            <p>Estimado/a <strong>{$companyData['admin_firstname']} {$companyData['admin_lastname']}</strong>,</p>
+                            
+                            <p>Nos complace informarle que la configuración de <strong>{$companyData['company_name']}</strong> en nuestro Sistema de Planillas se ha completado correctamente.</p>
+                            
+                            <div class='info-box'>
+                                <h3 style='margin-top:0; color:#FF5722;'>Credenciales de Acceso</h3>
+                                <p><span class='label'>Licencia:</span><br><span class='value'>{$companyData['license_key']}</span></p>
+                                <p><span class='label'>Vence:</span><br><span class='value'>" . date('d/m/Y', strtotime($companyData['license_expiration'] ?? '+30 days')) . "</span></p>
+                                <p><span class='label'>Base de Datos:</span><br><span class='value'>{$databaseName}</span></p>
+                                <p><span class='label'>Usuario Administrador:</span><br><span class='value'>{$companyData['admin_username']}</span></p>
+                            </div>
+
+                            <p>Ya puede acceder al sistema y comenzar a gestionar su planilla.</p>
+                            
+                            <div style='text-align: center;'>
+                                <a href='{$loginUrl}' class='button'>Ingresar al Sistema</a>
+                            </div>
+                        </div>
+                        <div class='footer'>
+                            <p>Este es un mensaje automático, por favor no responda a este correo.</p>
+                            <p>&copy; " . date('Y') . " Sistema de Planillas. Todos los derechos reservados.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ";
+
+            $expirationFormatted = date('d/m/Y', strtotime($companyData['license_expiration'] ?? '+30 days'));
+            $mail->AltBody = "¡Bienvenido a Bordo!\n\n"
+                . "Estimado/a {$companyData['admin_firstname']} {$companyData['admin_lastname']},\n\n"
+                . "La configuración de {$companyData['company_name']} se ha completado correctamente.\n\n"
+                . "CREDENCIALES DE ACCESO:\n"
+                . "------------------------\n"
+                . "Licencia: {$companyData['license_key']}\n"
+                . "Vence: {$expirationFormatted}\n"
+                . "Base de Datos: {$databaseName}\n"
+                . "Usuario Administrador: {$companyData['admin_username']}\n\n"
+                . "Ingrese al sistema aquí: {$loginUrl}";
+
+            $mail->send();
+
+            // Log exitoso con detalles
+            error_log("=== EMAIL ENVIADO EXITOSAMENTE ===");
+            error_log("Destinatario: " . $companyData['admin_email']);
+            error_log("Empresa: " . $companyData['company_name']);
+            error_log("Licencia: " . $companyData['license_key']);
+            error_log("Servidor SMTP: " . $mail->Host . ":" . $mail->Port);
+            error_log("==================================");
+
+        } catch (Exception $e) {
+            // Log detallado del error
+            error_log("=== ERROR ENVIANDO EMAIL DE BIENVENIDA ===");
+            error_log("Destinatario: " . ($companyData['admin_email'] ?? 'N/A'));
+            error_log("Empresa: " . ($companyData['company_name'] ?? 'N/A'));
+            error_log("Error PHPMailer: " . $mail->ErrorInfo);
+            error_log("Exception: " . $e->getMessage());
+            error_log("Servidor SMTP: " . ($_ENV['MAIL_HOST'] ?? 'N/A') . ":" . ($_ENV['MAIL_PORT'] ?? 'N/A'));
+            error_log("==========================================");
+
+            // No lanzamos la excepción para no interrumpir el flujo de creación de empresa
+            // El usuario ya vio el mensaje de éxito en pantalla
+        }
     }
 
     private function clearWizardSession() {

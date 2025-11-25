@@ -467,9 +467,19 @@ class App
                                     $this->method = 'exportPDF';
                                     $this->params = [$url[3]];
                                 } elseif ($url[2] === 'reports' && method_exists($this->controller, 'reports')) {
-                                    // GET /panel/vacation/reports (si existe)
-                                    $this->method = 'reports';
-                                    $this->params = [];
+                                    // GET /panel/vacation/reports - Vista principal de reportes
+                                    if (!isset($url[3])) {
+                                        $this->method = 'reports';
+                                        $this->params = [];
+                                    } elseif ($url[3] === 'export-pdf' && method_exists($this->controller, 'exportReportsPDF')) {
+                                        // GET /panel/vacation/reports/export-pdf?filters
+                                        $this->method = 'exportReportsPDF';
+                                        $this->params = [];
+                                    } elseif ($url[3] === 'annual-summary' && method_exists($this->controller, 'annualSummary')) {
+                                        // GET /panel/vacation/reports/annual-summary?year=YYYY
+                                        $this->method = 'annualSummary';
+                                        $this->params = [];
+                                    }
                                 } else {
                                     // Fallback a index
                                     $this->method = 'index';

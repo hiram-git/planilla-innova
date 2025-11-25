@@ -1110,4 +1110,334 @@ class VacationController extends Controller
         }
     }
 
+    /**
+     * Exportar reporte de vacaciones filtrado a PDF
+     * GET /panel/vacation/reports/export-pdf
+     */
+    public function exportReportsPDF()
+    {
+        try {
+            // Capturar filtros (misma lógica que reports())
+            $employeeId   = $_GET['employee_id'] ?? null;
+            $status       = $_GET['status'] ?? null;
+            $type         = $_GET['vacation_type'] ?? null;
+            $startDate    = $_GET['start_date'] ?? null;
+            $endDate      = $_GET['end_date'] ?? null;
+            $year         = $_GET['year'] ?? date('Y');
+
+            // Construir consulta base
+            $sql = "SELECT vr.*, e.firstname, e.lastname, e.employee_id, e.document_id,
+                           COALESCE(cargo_pos.nombre, cargo_emp.nombre) as cargo_nombre
+                    FROM vacation_requests vr
+                    INNER JOIN employees e ON vr.employee_id = e.id
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    LEFT JOIN cargos cargo_pos ON p.id_cargo = cargo_pos.id
+                    LEFT JOIN cargos cargo_emp ON e.cargo_id = cargo_emp.id
+                    WHERE 1=1";
+            $params = [];
+
+            if (!empty($employeeId)) {
+                $sql .= " AND vr.employee_id = ?";
+                $params[] = $employeeId;
+            }
+            if (!empty($status)) {
+                $sql .= " AND vr.status = ?";
+                $params[] = $status;
+            }
+            if (!empty($type)) {
+                $sql .= " AND vr.vacation_type = ?";
+                $params[] = $type;
+            }
+            if (!empty($startDate) && !empty($endDate)) {
+                $sql .= " AND vr.request_date BETWEEN ? AND ?";
+                $params[] = $startDate;
+                $params[] = $endDate;
+            } elseif (!empty($year)) {
+                $sql .= " AND YEAR(vr.request_date) = ?";
+                $params[] = $year;
+            }
+
+            $sql .= " ORDER BY vr.request_date DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Obtener datos de la empresa
+            $companyQuery = "SELECT * FROM companies LIMIT 1";
+            $company = $this->db->query($companyQuery)->fetch(PDO::FETCH_ASSOC);
+
+            // Generar PDF con TCPDF
+            $pdf = new \TCPDF('L', 'mm', 'LETTER', true, 'UTF-8', false);
+
+            // Configuración del documento
+            $pdf->SetCreator('Sistema de Planillas');
+            $pdf->SetAuthor($company['company_name'] ?? 'Sistema de Planillas');
+            $pdf->SetTitle('Reporte de Vacaciones');
+            $pdf->SetSubject('Reporte de Solicitudes de Vacaciones');
+
+            // Desactivar header y footer automáticos
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+
+            // Márgenes
+            $pdf->SetMargins(10, 10, 10);
+            $pdf->SetAutoPageBreak(true, 10);
+
+            // Agregar página
+            $pdf->AddPage();
+
+            // Header personalizado
+            $pdf->SetFont('helvetica', 'B', 16);
+            $pdf->SetTextColor(213, 67, 21); // Naranja Innova
+            $pdf->Cell(0, 8, 'REPORTE DE VACACIONES', 0, 1, 'C');
+
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->Cell(0, 5, ($company['company_name'] ?? 'Sistema de Planillas'), 0, 1, 'C');
+
+            // Filtros aplicados
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->Cell(0, 5, 'Filtros Aplicados:', 0, 1, 'L');
+            $pdf->SetFont('helvetica', '', 8);
+
+            $filtersText = [];
+            if ($employeeId) {
+                $empData = $this->db->query("SELECT CONCAT(firstname, ' ', lastname) as name FROM employees WHERE id = $employeeId")->fetch();
+                $filtersText[] = "Empleado: " . ($empData['name'] ?? 'N/A');
+            }
+            if ($status) $filtersText[] = "Estado: $status";
+            if ($type) $filtersText[] = "Tipo: $type";
+            if ($year) $filtersText[] = "Año: $year";
+            if ($startDate && $endDate) $filtersText[] = "Rango: $startDate a $endDate";
+
+            if (empty($filtersText)) {
+                $pdf->Cell(0, 4, 'Ninguno (Mostrando todos los registros)', 0, 1, 'L');
+            } else {
+                $pdf->Cell(0, 4, implode(' | ', $filtersText), 0, 1, 'L');
+            }
+
+            $pdf->Ln(2);
+
+            // Tabla de resultados
+            $pdf->SetFont('helvetica', 'B', 7);
+            $pdf->SetFillColor(25, 118, 210); // Azul header
+            $pdf->SetTextColor(255, 255, 255);
+
+            // Headers
+            $pdf->Cell(45, 6, 'Empleado', 1, 0, 'C', true);
+            $pdf->Cell(20, 6, 'Solicitud', 1, 0, 'C', true);
+            $pdf->Cell(20, 6, 'Inicio', 1, 0, 'C', true);
+            $pdf->Cell(20, 6, 'Fin', 1, 0, 'C', true);
+            $pdf->Cell(18, 6, 'Días Total', 1, 0, 'C', true);
+            $pdf->Cell(18, 6, 'Días Háb.', 1, 0, 'C', true);
+            $pdf->Cell(18, 6, 'Por Pagar', 1, 0, 'C', true);
+            $pdf->Cell(18, 6, 'Disfrute', 1, 0, 'C', true);
+            $pdf->Cell(20, 6, 'Tipo', 1, 0, 'C', true);
+            $pdf->Cell(20, 6, 'Estado', 1, 0, 'C', true);
+            $pdf->Cell(25, 6, 'Monto', 1, 1, 'C', true);
+
+            // Datos
+            $pdf->SetFont('helvetica', '', 7);
+            $pdf->SetTextColor(0, 0, 0);
+            $totalMonto = 0;
+
+            foreach ($requests as $i => $r) {
+                $fill = ($i % 2 == 0) ? [245, 245, 245] : [255, 255, 255];
+                $pdf->SetFillColor($fill[0], $fill[1], $fill[2]);
+
+                $pdf->Cell(45, 5, substr($r['firstname'] . ' ' . $r['lastname'], 0, 25), 1, 0, 'L', true);
+                $pdf->Cell(20, 5, date('d/m/Y', strtotime($r['request_date'])), 1, 0, 'C', true);
+                $pdf->Cell(20, 5, date('d/m/Y', strtotime($r['start_date'])), 1, 0, 'C', true);
+                $pdf->Cell(20, 5, date('d/m/Y', strtotime($r['end_date'])), 1, 0, 'C', true);
+                $pdf->Cell(18, 5, $r['total_days'], 1, 0, 'C', true);
+                $pdf->Cell(18, 5, $r['business_days'], 1, 0, 'C', true);
+                $pdf->Cell(18, 5, number_format($r['dias_solicitados_pagar'] ?? 0, 1), 1, 0, 'C', true);
+                $pdf->Cell(18, 5, number_format($r['dias_solicitados_disfrute'] ?? 0, 1), 1, 0, 'C', true);
+                $pdf->Cell(20, 5, $r['vacation_type'], 1, 0, 'C', true);
+                $pdf->Cell(20, 5, $r['status'], 1, 0, 'C', true);
+                $pdf->Cell(25, 5, '$' . number_format($r['compensation_amount'] ?? 0, 2), 1, 1, 'R', true);
+
+                $totalMonto += ($r['compensation_amount'] ?? 0);
+            }
+
+            // Total
+            $pdf->SetFont('helvetica', 'B', 7);
+            $pdf->Cell(217, 5, 'TOTAL:', 1, 0, 'R', false);
+            $pdf->Cell(25, 5, '$' . number_format($totalMonto, 2), 1, 1, 'R', false);
+
+            // Footer
+            $pdf->Ln(3);
+            $pdf->SetFont('helvetica', 'I', 7);
+            $pdf->SetTextColor(128, 128, 128);
+            $pdf->Cell(0, 4, 'Generado: ' . date('d/m/Y H:i:s') . ' | Total de registros: ' . count($requests), 0, 1, 'C');
+
+            // Output
+            $filename = 'Reporte_Vacaciones_' . date('Y-m-d_His') . '.pdf';
+            $pdf->Output($filename, 'I');
+            exit;
+
+        } catch (\Exception $e) {
+            error_log('Error generating vacation report PDF: ' . $e->getMessage());
+            $this->redirectWithToastr('/panel/vacation/reports', 'error', 'Error al generar PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generar resumen anual de vacaciones por empleado
+     * GET /panel/vacation/reports/annual-summary
+     */
+    public function annualSummary()
+    {
+        try {
+            $year = $_GET['year'] ?? date('Y');
+            $employeeId = $_GET['employee_id'] ?? null;
+
+            // Query para obtener resumen por empleado
+            $sql = "SELECT
+                        e.id as employee_id,
+                        e.employee_id as employee_code,
+                        e.firstname,
+                        e.lastname,
+                        e.document_id,
+                        e.fecha_ingreso,
+                        COALESCE(cargo_pos.nombre, cargo_emp.nombre) as cargo_nombre,
+
+                        -- Resumen de solicitudes
+                        COUNT(DISTINCT vr.id) as total_solicitudes,
+                        SUM(CASE WHEN vr.status = 'APPROVED' THEN 1 ELSE 0 END) as aprobadas,
+                        SUM(CASE WHEN vr.status = 'PENDING' THEN 1 ELSE 0 END) as pendientes,
+                        SUM(CASE WHEN vr.status = 'REJECTED' THEN 1 ELSE 0 END) as rechazadas,
+
+                        -- Días
+                        SUM(CASE WHEN vr.status = 'APPROVED' THEN vr.dias_solicitados_pagar ELSE 0 END) as dias_pagados,
+                        SUM(CASE WHEN vr.status = 'APPROVED' THEN vr.dias_solicitados_disfrute ELSE 0 END) as dias_disfrutados,
+
+                        -- Monto
+                        SUM(CASE WHEN vr.status = 'APPROVED' THEN vr.compensation_amount ELSE 0 END) as monto_total
+
+                    FROM employees e
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    LEFT JOIN cargos cargo_pos ON p.id_cargo = cargo_pos.id
+                    LEFT JOIN cargos cargo_emp ON e.cargo_id = cargo_emp.id
+                    LEFT JOIN vacation_requests vr ON e.id = vr.employee_id AND YEAR(vr.request_date) = ?
+                    WHERE e.situacion_id = 1";
+
+            $params = [$year];
+
+            if ($employeeId) {
+                $sql .= " AND e.id = ?";
+                $params[] = $employeeId;
+            }
+
+            $sql .= " GROUP BY e.id ORDER BY e.firstname, e.lastname";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $summary = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Obtener datos de la empresa
+            $companyQuery = "SELECT * FROM companies LIMIT 1";
+            $company = $this->db->query($companyQuery)->fetch(PDO::FETCH_ASSOC);
+
+            // Generar PDF
+            $pdf = new \TCPDF('P', 'mm', 'LETTER', true, 'UTF-8', false);
+
+            $pdf->SetCreator('Sistema de Planillas');
+            $pdf->SetAuthor($company['company_name'] ?? 'Sistema de Planillas');
+            $pdf->SetTitle('Resumen Anual de Vacaciones ' . $year);
+            $pdf->SetSubject('Resumen de Vacaciones por Empleado');
+
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+
+            $pdf->SetMargins(15, 15, 15);
+            $pdf->SetAutoPageBreak(true, 15);
+
+            $pdf->AddPage();
+
+            // Header
+            $pdf->SetFont('helvetica', 'B', 18);
+            $pdf->SetTextColor(213, 67, 21);
+            $pdf->Cell(0, 10, 'RESUMEN ANUAL DE VACACIONES', 0, 1, 'C');
+
+            $pdf->SetFont('helvetica', '', 11);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->Cell(0, 6, ($company['company_name'] ?? 'Sistema de Planillas'), 0, 1, 'C');
+
+            $pdf->SetFont('helvetica', 'B', 12);
+            $pdf->Cell(0, 6, 'Año: ' . $year, 0, 1, 'C');
+
+            $pdf->Ln(3);
+
+            // Resumen general
+            $total_solicitudes = array_sum(array_column($summary, 'total_solicitudes'));
+            $total_aprobadas = array_sum(array_column($summary, 'aprobadas'));
+            $total_dias_pagados = array_sum(array_column($summary, 'dias_pagados'));
+            $total_monto = array_sum(array_column($summary, 'monto_total'));
+
+            $pdf->SetFont('helvetica', 'B', 10);
+            $pdf->SetFillColor(230, 230, 230);
+            $pdf->Cell(0, 6, 'ESTADÍSTICAS GENERALES', 1, 1, 'C', true);
+
+            $pdf->SetFont('helvetica', '', 9);
+            $pdf->Cell(47.5, 5, 'Total Solicitudes:', 1, 0, 'L');
+            $pdf->Cell(47.5, 5, $total_solicitudes, 1, 0, 'C');
+            $pdf->Cell(47.5, 5, 'Solicitudes Aprobadas:', 1, 0, 'L');
+            $pdf->Cell(47.5, 5, $total_aprobadas, 1, 1, 'C');
+
+            $pdf->Cell(47.5, 5, 'Total Días Pagados:', 1, 0, 'L');
+            $pdf->Cell(47.5, 5, number_format($total_dias_pagados, 1), 1, 0, 'C');
+            $pdf->Cell(47.5, 5, 'Monto Total:', 1, 0, 'L');
+            $pdf->Cell(47.5, 5, '$' . number_format($total_monto, 2), 1, 1, 'C');
+
+            $pdf->Ln(4);
+
+            // Tabla por empleado
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->SetFillColor(25, 118, 210);
+            $pdf->SetTextColor(255, 255, 255);
+
+            $pdf->Cell(60, 6, 'Empleado', 1, 0, 'C', true);
+            $pdf->Cell(20, 6, 'Solicitudes', 1, 0, 'C', true);
+            $pdf->Cell(20, 6, 'Aprobadas', 1, 0, 'C', true);
+            $pdf->Cell(22, 6, 'Días Pagados', 1, 0, 'C', true);
+            $pdf->Cell(22, 6, 'Días Disfrute', 1, 0, 'C', true);
+            $pdf->Cell(46, 6, 'Monto Total', 1, 1, 'C', true);
+
+            $pdf->SetFont('helvetica', '', 8);
+            $pdf->SetTextColor(0, 0, 0);
+
+            foreach ($summary as $i => $emp) {
+                // Solo mostrar empleados con solicitudes
+                if ($emp['total_solicitudes'] == 0) continue;
+
+                $fill = ($i % 2 == 0) ? [245, 245, 245] : [255, 255, 255];
+                $pdf->SetFillColor($fill[0], $fill[1], $fill[2]);
+
+                $pdf->Cell(60, 5, substr($emp['firstname'] . ' ' . $emp['lastname'], 0, 35), 1, 0, 'L', true);
+                $pdf->Cell(20, 5, $emp['total_solicitudes'], 1, 0, 'C', true);
+                $pdf->Cell(20, 5, $emp['aprobadas'], 1, 0, 'C', true);
+                $pdf->Cell(22, 5, number_format($emp['dias_pagados'], 1), 1, 0, 'C', true);
+                $pdf->Cell(22, 5, number_format($emp['dias_disfrutados'], 1), 1, 0, 'C', true);
+                $pdf->Cell(46, 5, '$' . number_format($emp['monto_total'], 2), 1, 1, 'R', true);
+            }
+
+            // Footer
+            $pdf->Ln(3);
+            $pdf->SetFont('helvetica', 'I', 8);
+            $pdf->SetTextColor(128, 128, 128);
+            $pdf->Cell(0, 4, 'Generado: ' . date('d/m/Y H:i:s'), 0, 1, 'C');
+
+            // Output
+            $filename = 'Resumen_Anual_Vacaciones_' . $year . '.pdf';
+            $pdf->Output($filename, 'I');
+            exit;
+
+        } catch (\Exception $e) {
+            error_log('Error generating annual summary PDF: ' . $e->getMessage());
+            $this->redirectWithToastr('/panel/vacation/reports', 'error', 'Error al generar resumen anual: ' . $e->getMessage());
+        }
+    }
+
 }

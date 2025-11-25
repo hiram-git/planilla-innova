@@ -622,9 +622,6 @@ $content .= '
                                             <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byEmployee') . '" class="btn btn-info btn-sm mb-2">
                                                 <i class="fas fa-user"></i> Acumulados por Empleado
                                             </a>
-                                            <a href="' . \App\Core\UrlHelper::route('panel/reports/acumulados-general-pdf') . '" class="btn btn-danger btn-sm mb-2">
-                                                <i class="fas fa-file-pdf"></i> Reporte General PDF
-                                            </a>
                                         </div>
                                     </div>
                                 </div>

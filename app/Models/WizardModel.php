@@ -118,18 +118,48 @@ class WizardModel
     public function createCompanyRecord(array $companyData): int
     {
         $this->assertMasterConnection();
+
+        // Determinar estado de licencia basado en modo offline
+        $licenseStatus = 'ACTIVE';
+        if (!empty($companyData['license_sync_pending'])) {
+            $licenseStatus = 'PENDING_SYNC';
+        }
+
         // Insert basic record into tenants with company information
-        $sql = "INSERT INTO tenants (slug, company_name, ruc, admin_email, status, license_key, license_status)
-                VALUES (?, ?, ?, ?, 'ACTIVE', ?, 'PENDING')";
+        $sql = "INSERT INTO tenants (
+                    slug, company_name, ruc, admin_email, status,
+                    license_key, license_status, license_expires_at,
+                    license_sync_pending, license_sync_error
+                )
+                VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?)";
+
         $slug = $this->slugify($companyData['company_name'] ?? ('tenant_' . substr(md5(uniqid()), 0, 6)));
+
+        // Calcular fecha de expiración de licencia
+        $licenseExpiresAt = null;
+        if (!empty($companyData['license_expiration'])) {
+            $licenseExpiresAt = date('Y-m-d H:i:s', strtotime($companyData['license_expiration']));
+        }
+
+        // Preparar mensaje de error de sincronización si existe
+        $syncError = null;
+        if (!empty($companyData['license_offline_mode'])) {
+            $syncError = 'Licencia generada en modo offline - pendiente de registro en servidor remoto';
+        }
+
         $stmt = $this->master->prepare($sql);
         $stmt->execute([
             $slug,
             $companyData['company_name'] ?? null,
             $companyData['ruc'] ?? null,
             $companyData['admin_email'] ?? null,
-            $companyData['license_key'] ?? null
+            $companyData['license_key'] ?? null,
+            $licenseStatus,
+            $licenseExpiresAt,
+            !empty($companyData['license_sync_pending']) ? 1 : 0,
+            $syncError
         ]);
+
         return (int)$this->master->lastInsertId();
     }
 

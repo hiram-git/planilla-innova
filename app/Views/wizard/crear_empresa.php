@@ -655,12 +655,6 @@
                                                         <div class="subtitle-1 font-weight-bold">{{ empresa.email || 'N/D' }}</div>
                                                     </v-col>
                                                     <v-col cols="12" sm="6" class="mb-2">
-                                                        <div class="grey--text text--darken-1 text-caption">Base de Datos</div>
-                                                        <div class="subtitle-1 font-weight-bold">
-                                                            <code class="grey--text text--darken-2">planilla_empresa_{{ empresa.ruc }}</code>
-                                                        </div>
-                                                    </v-col>
-                                                    <v-col cols="12" sm="6" class="mb-2">
                                                         <div class="grey--text text--darken-1 text-caption">Distribuidor</div>
                                                         <div class="subtitle-1 font-weight-bold">
                                                             {{ distributorInfo.username || 'N/D' }}
@@ -746,8 +740,8 @@
                                             </div>
                                             <v-row>
                                                 <v-col cols="12" md="6">
-                                                    <div class="font-weight-bold">Base de Datos:</div>
-                                                    <code class="success--text">{{ resultadoCreacion.database_name || 'planilla_empresa_' + empresa.ruc }}</code>
+                                                    <div class="font-weight-bold">Licencia:</div>
+                                                    <code class="success--text">{{ resultadoCreacion.database_name }}</code>
                                                 </v-col>
                                                 <v-col cols="12" md="6">
                                                     <div class="font-weight-bold">ID Empresa:</div>
@@ -1076,8 +1070,7 @@
                                 this.resultadoCreacion = createResponse.data;
                                 this.loginUrl = createResponse.data.login_url ||  window.BASE_URL +'/panel/login';
                                 this.mensajeResultado = `✅ Empresa creada exitosamente
-📊 Base de datos: ${createResponse.data.database_name}
-🔑 Licencia generada y validada
+🔑 Licencia generada y validada: ${createResponse.data.database_name}
 👤 Usuario administrador configurado
 🚀 Sistema listo para usar`;
 

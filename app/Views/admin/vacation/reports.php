@@ -92,12 +92,9 @@ $f_year  = $filters['year'] ?? date('Y');
                                 <a href="<?= UrlHelper::route('panel/vacation/reports') ?>" class="btn btn-secondary mr-2">
                                     <i class="fas fa-eraser"></i> Limpiar
                                 </a>
-                                <a href="<?= UrlHelper::route('panel/vacation/reports') . '?format=excel' ?>" class="btn btn-success mr-2">
-                                    <i class="fas fa-file-excel"></i> Exportar Excel
-                                </a>
-                                <a href="<?= UrlHelper::route('panel/vacation/reports') . '?format=pdf' ?>" class="btn btn-danger mr-2">
+                                <button type="button" id="btnExportPDF" class="btn btn-danger mr-2">
                                     <i class="fas fa-file-pdf"></i> Exportar PDF
-                                </a>
+                                </button>
                                 <button type="button" id="btnSummary" class="btn btn-info">
                                     <i class="fas fa-chart-pie"></i> Resumen Anual
                                 </button>
@@ -193,14 +190,51 @@ document.addEventListener('DOMContentLoaded', function() {
         responsive: true
     });
 
-    // Botón de resumen anual (placeholder)
+    // Función para obtener parámetros del formulario
+    function getFormParams() {
+        const form = document.getElementById('reportFilters');
+        const params = new URLSearchParams();
+
+        const employeeId = form.querySelector('[name="employee_id"]').value;
+        const status = form.querySelector('[name="status"]').value;
+        const vacationType = form.querySelector('[name="vacation_type"]').value;
+        const year = form.querySelector('[name="year"]').value;
+        const startDate = form.querySelector('[name="start_date"]').value;
+        const endDate = form.querySelector('[name="end_date"]').value;
+
+        if (employeeId) params.append('employee_id', employeeId);
+        if (status) params.append('status', status);
+        if (vacationType) params.append('vacation_type', vacationType);
+        if (year) params.append('year', year);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+
+        return params.toString();
+    }
+
+    // Botón Exportar PDF
+    document.getElementById('btnExportPDF').addEventListener('click', function() {
+        const params = getFormParams();
+        const url = '<?= UrlHelper::route('panel/vacation/reports/export-pdf') ?>' + (params ? '?' + params : '');
+        window.open(url, '_blank');
+    });
+
+    // Botón Resumen Anual
     document.getElementById('btnSummary').addEventListener('click', function() {
-        Swal.fire({
-            icon: 'info',
-            title: 'Resumen Anual',
-            text: 'Funcionalidad en preparación. Seleccione un año y genere el reporte.',
-            confirmButtonText: 'Entendido'
-        });
+        const year = document.querySelector('[name="year"]').value;
+        if (!year) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Año Requerido',
+                text: 'Por favor seleccione un año para generar el resumen anual.',
+                confirmButtonText: 'Entendido'
+            });
+            return;
+        }
+
+        const params = getFormParams();
+        const url = '<?= UrlHelper::route('panel/vacation/reports/annual-summary') ?>' + (params ? '?' + params : '');
+        window.open(url, '_blank');
     });
 });
 </script>
