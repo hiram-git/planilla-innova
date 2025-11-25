@@ -42,7 +42,7 @@ class WizardModel
         }
         $isPhpEndpoint = (bool)preg_match('/\.php(\?|$)/i', $rawUrl);
         $base = rtrim($rawUrl, '/');
-        $endpoint = $isPhpEndpoint ? $base : ($base . '/ajax/userPlanilla.php');
+        $endpoint = $isPhpEndpoint ? $base : ($base . '/ajax/user.php');
         $sslVerify = false; // default secure
         if (isset($_ENV['LICENSING_SSL_VERIFY'])) {
             $sslVerify = (($_ENV['LICENSING_SSL_VERIFY']) === 'true');
