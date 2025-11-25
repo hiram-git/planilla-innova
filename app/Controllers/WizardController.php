@@ -183,13 +183,34 @@ class WizardController{
 
         $companyData = $_SESSION['wizard_company_data'];
 
+        // ===== DEBUG: Variables de entorno críticas =====
+        error_log("========== INICIO DEBUG CREATECOMPANY ==========");
+        error_log("🔧 TENANT_DB_HOST: " . ($_ENV['TENANT_DB_HOST'] ?? 'NOT_SET'));
+        error_log("🔧 TENANT_DB_PORT: " . ($_ENV['TENANT_DB_PORT'] ?? 'NOT_SET'));
+        error_log("🔧 TENANT_DB_USER: " . ($_ENV['TENANT_DB_USER'] ?? 'NOT_SET'));
+        error_log("🔧 TENANT_DB_PASS: " . (empty($_ENV['TENANT_DB_PASS']) ? 'EMPTY/NOT_SET' : '[SET - Length: ' . strlen($_ENV['TENANT_DB_PASS']) . ']'));
+        error_log("🔧 TENANT_DB_CHARSET: " . ($_ENV['TENANT_DB_CHARSET'] ?? 'NOT_SET'));
+        error_log("🔧 DB_HOST (master): " . ($_ENV['DB_HOST'] ?? 'NOT_SET'));
+        error_log("🔧 DB_USER (master): " . ($_ENV['DB_USER'] ?? 'NOT_SET'));
+        error_log("🔧 DB_PASS (master): " . (empty($_ENV['DB_PASS']) ? 'EMPTY/NOT_SET' : '[SET - Length: ' . strlen($_ENV['DB_PASS']) . ']'));
+        error_log("🔧 DB_NAME (master): " . ($_ENV['DB_NAME'] ?? 'NOT_SET'));
+        error_log("📋 Company Name: " . $companyData['company_name']);
+        error_log("📋 RUC: " . $companyData['ruc']);
+        error_log("================================================");
+
         try {
             // Iniciar transacción
+            error_log("▶️ PASO 0: Iniciando transacción en BD master");
             $this->db->beginTransaction();
+            error_log("✅ Transacción iniciada correctamente");
 
             // 1. GENERAR Y REGISTRAR LICENCIA EN SERVIDOR REMOTO (antes de crear BD)
+            error_log("▶️ PASO 1: Generando licencia");
+            error_log("📝 Datos licencia: RUC={$_SESSION['wizard_distributor_empresa_ruc']}, Company={$_SESSION['wizard_distributor_empresa_name']}");
             $licenseGenerator = new LicenseGenerator();
             $allowOffline = filter_var($_ENV['LICENSING_ALLOW_OFFLINE'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
+            error_log("🔧 LICENSING_ALLOW_OFFLINE: " . ($allowOffline ? 'true' : 'false'));
+
             $licenseResult = $licenseGenerator->generateAndRegister([
                 'ruc' => $_SESSION['wizard_distributor_empresa_ruc'],
                 'company_name' => $_SESSION['wizard_distributor_empresa_name'],
@@ -201,10 +222,12 @@ class WizardController{
             ], $allowOffline);
 
             if (!$licenseResult['success']) {
+                error_log("❌ ERROR generando licencia: " . $licenseResult['message']);
                 throw new Exception('Error generando licencia: ' . $licenseResult['message']);
             }
 
             $license = $licenseResult['license'];
+            error_log("✅ Licencia generada: {$license}");
             $companyData['license_key'] = $license;
             $companyData['license_expiration'] = $licenseResult['expiration_date'];
             $companyData['license_first_activation'] = $licenseResult['first_activation'];
@@ -232,40 +255,106 @@ class WizardController{
             }
 
             // 2. Crear empresa en BD master CON licencia
-            $companyId = $this->wizardModel->createCompanyRecord($companyData);
+            error_log("▶️ PASO 2: Creando registro empresa en BD master");
+            error_log("📝 Company: {$companyData['company_name']}, License: {$license}");
+            try {
+                $companyId = $this->wizardModel->createCompanyRecord($companyData);
+                error_log("✅ Registro empresa creado - ID: {$companyId}");
+            } catch (Exception $e) {
+                error_log("❌ ERROR creando registro empresa en master: " . $e->getMessage());
+                error_log("🔍 Stack trace: " . $e->getTraceAsString());
+                throw $e;
+            }
 
             // 3. Generar nombre de BD basado en LICENCIA
+            error_log("▶️ PASO 3: Generando nombre BD tenant basado en licencia");
             $databaseName = $this->wizardModel->generateTenantDatabaseName($license);
+            error_log("✅ Nombre BD generado: {$databaseName}");
 
             // 4. Crear base de datos específica para la empresa
-            $this->wizardModel->createTenantDatabase($databaseName);
+            error_log("▶️ PASO 4: Creando base de datos tenant");
+            error_log("📝 DB Name: {$databaseName}");
+            error_log("🔧 Connection params: host={$_ENV['TENANT_DB_HOST']}, user={$_ENV['TENANT_DB_USER']}, port={$_ENV['TENANT_DB_PORT']}");
+            try {
+                $this->wizardModel->createTenantDatabase($databaseName);
+                error_log("✅ Base de datos tenant creada: {$databaseName}");
+            } catch (Exception $e) {
+                error_log("❌ ERROR creando BD tenant: " . $e->getMessage());
+                error_log("🔍 Stack trace: " . $e->getTraceAsString());
+                throw $e;
+            }
 
             // 5. Importar estructura completa en BD tenant
-            $this->wizardModel->importTenantSchema($databaseName);
+            error_log("▶️ PASO 5: Importando schema en BD tenant");
+            try {
+                $this->wizardModel->importTenantSchema($databaseName);
+                error_log("✅ Schema importado exitosamente");
+            } catch (Exception $e) {
+                error_log("❌ ERROR importando schema: " . $e->getMessage());
+                error_log("🔍 Stack trace: " . $e->getTraceAsString());
+                throw $e;
+            }
 
             // 6. Configurar datos iniciales empresa en BD tenant
-            $this->wizardModel->setupTenantCompanyData($databaseName, $companyData, $companyId);
+            error_log("▶️ PASO 6: Configurando datos iniciales empresa en tenant");
+            try {
+                $this->wizardModel->setupTenantCompanyData($databaseName, $companyData, $companyId);
+                error_log("✅ Datos empresa configurados");
+            } catch (Exception $e) {
+                error_log("⚠️ WARNING configurando datos empresa: " . $e->getMessage());
+                // No lanzar excepción - este paso es opcional
+            }
 
             // 7. Crear usuario administrador en BD tenant
-            $adminUserId = $this->wizardModel->createTenantAdminUser($databaseName, $companyData);
+            error_log("▶️ PASO 7: Creando usuario admin en BD tenant");
+            error_log("📝 Username: {$companyData['admin_username']}, Email: {$companyData['admin_email']}");
+            try {
+                $adminUserId = $this->wizardModel->createTenantAdminUser($databaseName, $companyData);
+                error_log("✅ Usuario admin creado - ID: {$adminUserId}");
+            } catch (Exception $e) {
+                error_log("❌ ERROR creando usuario admin: " . $e->getMessage());
+                error_log("🔍 Stack trace: " . $e->getTraceAsString());
+                throw $e;
+            }
 
             // 8. Actualizar registro empresa con BD asignada
-            $this->wizardModel->updateCompanyDatabase($companyId, $databaseName);
+            error_log("▶️ PASO 8: Actualizando registro empresa con BD asignada");
+            try {
+                $this->wizardModel->updateCompanyDatabase($companyId, $databaseName);
+                error_log("✅ Registro empresa actualizado con BD: {$databaseName}");
+            } catch (Exception $e) {
+                error_log("❌ ERROR actualizando registro empresa: " . $e->getMessage());
+                error_log("🔍 Stack trace: " . $e->getTraceAsString());
+                throw $e;
+            }
 
             // Confirmar transacción
+            error_log("▶️ PASO 9: Confirmando transacción");
             $this->db->commit();
+            error_log("✅ Transacción confirmada exitosamente");
 
             // Limpiar datos de sesión
+            error_log("▶️ PASO 10: Limpiando sesión wizard");
             $this->clearWizardSession();
+            error_log("✅ Sesión limpiada");
 
             // Enviar email de bienvenida (opcional)
+            error_log("▶️ PASO 11: Enviando email de bienvenida");
             $this->sendWelcomeEmail($companyData, $databaseName);
+            error_log("✅ Email enviado (o error no crítico capturado)");
 
             // Preparar mensaje según modo de licencia
             $message = 'Empresa creada exitosamente';
             if ($licenseResult['offline_mode']) {
                 $message .= ' (Licencia pendiente de registro en servidor remoto)';
             }
+
+            error_log("========== ✅ CREATECOMPANY COMPLETADO EXITOSAMENTE ==========");
+            error_log("🏢 Empresa: {$companyData['company_name']} (ID: {$companyId})");
+            error_log("🔑 Licencia: {$license}");
+            error_log("💾 Base de datos: {$databaseName}");
+            error_log("👤 Admin ID: {$adminUserId}");
+            error_log("==============================================================");
 
             $this->jsonResponse([
                 'success' => true,
@@ -284,13 +373,41 @@ class WizardController{
 
         } catch (Exception $e) {
             // Rollback en caso de error
-            $this->db->rollback();
-            
-            error_log("Error creando empresa multitenancy: " . $e->getMessage());
-            
+            error_log("========== ❌ ERROR CRÍTICO EN CREATECOMPANY ==========");
+            error_log("💥 Exception Type: " . get_class($e));
+            error_log("📝 Error Message: " . $e->getMessage());
+            error_log("📄 File: " . $e->getFile() . " (Line: " . $e->getLine() . ")");
+            error_log("🔍 Stack Trace:");
+            error_log($e->getTraceAsString());
+
+            // Log del estado de la BD antes del rollback
+            try {
+                error_log("⚠️ Estado de la transacción antes de rollback: " . ($this->db->inTransaction() ? 'ACTIVE' : 'INACTIVE'));
+            } catch (Exception $dbCheckEx) {
+                error_log("⚠️ No se pudo verificar estado de transacción: " . $dbCheckEx->getMessage());
+            }
+
+            // Intentar rollback
+            try {
+                $this->db->rollback();
+                error_log("↩️ Rollback ejecutado correctamente");
+            } catch (Exception $rollbackEx) {
+                error_log("❌ ERROR en rollback: " . $rollbackEx->getMessage());
+            }
+
+            error_log("======================================================");
+
+            // Respuesta al cliente con información detallada (solo en desarrollo)
+            $errorMessage = 'Error creando la empresa: ' . $e->getMessage();
+            if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true') {
+                $errorMessage .= ' | Archivo: ' . basename($e->getFile()) . ':' . $e->getLine();
+            }
+
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Error creando la empresa: ' . $e->getMessage()
+                'message' => $errorMessage,
+                'error_type' => get_class($e),
+                'debug' => isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true'
             ]);
         }
     }
