@@ -49,6 +49,7 @@ class App
                 // Mapeo de rutas plurales a controladores singulares
                 $routeMapping = [
                     'dashboard' => ['controller' => 'Admin', 'method' => 'dashboard'],
+                    'access' => ['controller' => 'Admin', 'method' => 'access'],
                     'login' => ['controller' => 'Admin', 'method' => 'login'],
                     'logout' => ['controller' => 'Admin', 'method' => 'logout'],
                     'employees' => ['controller' => 'Employee', 'method' => null],
@@ -581,8 +582,8 @@ class App
                         // ✅ MIDDLEWARE DE PERMISOS - Verificar acceso antes de instanciar controlador
                         $currentRoute = implode('/', array_slice($url, 0, 3)); // panel/module/action
                         
-                        // ✅ EXCEPCIÓN: No verificar permisos en rutas de autenticación y dashboard
-                        $publicRoutes = ['panel/login', 'panel/logout', 'admin/login', 'admin/index', 'panel/dashboard'];
+                        // ✅ EXCEPCIÓN: No verificar permisos en rutas de autenticación, dashboard y access
+                        $publicRoutes = ['panel/login', 'panel/logout', 'admin/login', 'admin/index', 'panel/dashboard', 'panel/access'];
                         $simpleRoute = implode('/', array_slice($url, 0, 2)); // panel/dashboard
                         
                         if (!in_array($currentRoute, $publicRoutes) && !in_array($simpleRoute, $publicRoutes)) {

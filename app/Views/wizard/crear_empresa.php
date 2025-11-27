@@ -21,9 +21,44 @@
         }
         
         .empresa-container {
+            position: relative;
             min-height: 100vh;
-            background: linear-gradient(135deg, #FF5722 0%, #FF9800 100%);
             padding: 32px 20px;
+            overflow: hidden;
+        }
+
+        /* Imagen de fondo con opacidad */
+        .empresa-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('<?= getBaseUrl() ?>/public/assets/images/fondo_principal.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.9;
+            z-index: 0;
+        }
+
+        /* Capa blanca sobre la imagen */
+        .empresa-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1;
+        }
+
+        /* Asegurar que el contenido esté por encima del fondo */
+        .empresa-container > * {
+            position: relative;
+            z-index: 2;
         }
 
         .empresa-card {
@@ -683,7 +718,7 @@
                                         >
                                             <v-row align="center">
                                                 <v-col class="grow">
-                                                    <div class="subtitle-1 font-weight-bold">
+                                                    <div class="subtitle-1 font-weight-bold orange-accent-4--text">
                                                         ¿Qué sucederá al confirmar?
                                                     </div>
                                                     <ul class="mt-2 mb-0">

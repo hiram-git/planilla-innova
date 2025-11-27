@@ -892,4 +892,57 @@ class Admin extends Controller
             return [];
         }
     }
+
+    /**
+     * Página de acceso denegado con módulos permitidos
+     */
+    public function access()
+    {
+        $this->requireAuth();
+
+        // Obtener permisos del usuario actual
+        $permissions = \App\Middleware\PermissionMiddleware::getUserPermissions();
+
+        // Obtener información completa de menús desde BD
+        $menu_items = $this->getMenuItems();
+
+        $data = [
+            'title' => 'Acceso Denegado',
+            'page_title' => 'Acceso Denegado',
+            'permissions' => $permissions,
+            'menu_items' => $menu_items
+        ];
+
+        $this->view('admin/access', $data);
+    }
+
+    /**
+     * Obtener información completa de los items del menú
+     */
+    private function getMenuItems()
+    {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+
+            $sql = "SELECT id, name, url, icon, description, display_order, status
+                    FROM menu_items
+                    WHERE status = 1
+                    ORDER BY display_order ASC";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute();
+            $menuItems = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Indexar por URL para fácil acceso
+            $indexedMenu = [];
+            foreach ($menuItems as $item) {
+                $indexedMenu[$item['url']] = $item;
+            }
+
+            return $indexedMenu;
+        } catch (\Exception $e) {
+            error_log("Error obteniendo menu items: " . $e->getMessage());
+            return [];
+        }
+    }
 }

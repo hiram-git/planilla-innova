@@ -81,10 +81,10 @@ UPDATE menu_items SET
 WHERE id = 2;
 
 UPDATE menu_items SET
-    name = 'Plazas',
+    name = 'Posiciones',
     url = 'positions',
     icon = 'fas fa-chair',
-    description = 'Gestión de plazas',
+    description = 'Gestión de posiciones',
     display_order = 3
 WHERE id = 3;
 

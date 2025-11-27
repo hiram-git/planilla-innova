@@ -36,54 +36,76 @@ class PermissionMiddleware
         if ($route === 'panel/logout') {
             return;
         }
-        
+
         if (!self::checkRoutePermission($route, $permissionType)) {
-            // ✅ CORREGIDO: Cerrar sesión y redirigir a login para evitar bucles
-            self::logoutAndRedirect();
+            // Redirigir a página de acceso con información del módulo
+            self::logoutAndRedirect(null, $route);
         }
     }
 
     /**
-     * Cerrar sesión y redirigir a login
+     * Manejar acceso denegado - redirigir a página de acceso o login
      */
-    private static function logoutAndRedirect($message = null)
+    private static function logoutAndRedirect($message = null, $route = null)
     {
+        // Verificar si es problema de sesión expirada
+        $isSessionExpired = isset($_SESSION['auth_error_type']) && $_SESSION['auth_error_type'] === 'session_expired';
+
         // Determinar mensaje apropiado según el tipo de error
         if ($message === null) {
-            if (isset($_SESSION['auth_error_type']) && $_SESSION['auth_error_type'] === 'session_expired') {
+            if ($isSessionExpired) {
                 $message = 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.';
             } else {
                 $message = 'No tienes permisos para acceder a esta sección';
             }
         }
+
         // Si es una petición AJAX, devolver JSON en lugar de redirect
-        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
             strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-            
+
             http_response_code(401);
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => false,
                 'message' => $message,
-                'redirect' => url('panel/login')
+                'redirect' => $isSessionExpired ? url('panel/login') : url('panel/access')
             ]);
             exit();
         }
-        
-        // Limpiar variables de error antes de destruir sesión
-        unset($_SESSION['auth_error_type']);
 
-        // Limpiar sesión
-        session_unset();
-        session_destroy();
+        // Si la sesión expiró, cerrar sesión y redirigir a login
+        if ($isSessionExpired) {
+            // Limpiar variables de error antes de destruir sesión
+            unset($_SESSION['auth_error_type']);
 
-        // Iniciar nueva sesión para el mensaje de error
-        session_start();
-        $_SESSION['error'] = $message;
-        
-        // Redirigir a login
+            // Limpiar sesión
+            session_unset();
+            session_destroy();
+
+            // Iniciar nueva sesión para el mensaje de error
+            session_start();
+            $_SESSION['error'] = $message;
+
+            // Redirigir a login
+            http_response_code(403);
+            header('Location: ' . url('admin'));
+            exit();
+        }
+
+        // Si es problema de permisos (no sesión), mantener sesión y redirigir a página de acceso
+        // Guardar información del módulo solicitado
+        if ($route) {
+            $_SESSION['access_denied_module'] = $route;
+            // Intentar obtener nombre legible del módulo
+            $_SESSION['access_denied_module_name'] = ucfirst(str_replace('-', ' ', $route));
+        }
+
+        $_SESSION['warning'] = $message;
+
+        // Redirigir a página de acceso
         http_response_code(403);
-        header('Location: ' . url('admin'));
+        header('Location: ' . url('panel/access'));
         exit();
     }
 
@@ -105,10 +127,10 @@ class PermissionMiddleware
         }
 
         // ✅ EXCEPCIÓN: Rutas siempre accesibles si está logueado
-        if ($route === 'panel/dashboard') {
+        if ($route === 'panel/dashboard' || $route === 'panel/access') {
             return true;
         }
-        
+
         // ✅ EXCEPCIÓN ESPECIAL: logout - permitir pero con mensaje correcto
         if ($route === 'panel/logout') {
             return true;
@@ -131,29 +153,45 @@ class PermissionMiddleware
     private function getMenuIdForRoute($route)
     {
         try {
-            // Normalizar ruta
+            // Normalizar ruta: remover 'panel/' al inicio si existe
             $route = trim($route, '/');
-            
-            // Buscar ruta exacta primero
-            $sql = "SELECT menu_id FROM route_permissions WHERE route = ? AND permission_type = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$route, 'read']); // Usar 'read' como base
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $route = str_replace('panel/', '', $route);
 
-            if ($result) {
-                return $result['menu_id'];
-            }
-
-            // Buscar ruta con wildcard (e.g., panel/users/*/edit)
-            $sql = "SELECT menu_id FROM route_permissions WHERE ? REGEXP REPLACE(REPLACE(route, '*', '[0-9]+'), '/', '\\\\/')";
+            // Buscar directamente en menu_items por URL
+            $sql = "SELECT id FROM menu_items WHERE url = ? AND status = 1";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$route]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                return $result['id'];
+            }
+
+            // Si no se encuentra, retornar null
+            return null;
+        } catch (\Exception $e) {
+            error_log("Error getting menu ID for route: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Verificar permiso de rol para un menú
+     */
+    private function checkRolePermission($roleId, $menuId, $permissionType = 'read')
+    {
+        try {
+            // Mapear tipo de permiso a columna
+            $column = $permissionType . '_perm';
+
+            $sql = "SELECT $column FROM role_permissions WHERE role_id = ? AND menu_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$roleId, $menuId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             return $result ? (bool)$result[$column] : false;
         } catch (\Exception $e) {
-            error_log("Error checking permission: " . $e->getMessage());
+            error_log("Error checking role permission: " . $e->getMessage());
             return false;
         }
     }
@@ -257,7 +295,7 @@ class PermissionMiddleware
         if ($route === 'panel/logout') {
             return true;
         }
-        
+
         // Super admin bypass
         if (self::isSuperAdmin()) {
             return true;
@@ -265,9 +303,9 @@ class PermissionMiddleware
 
         // Verificar permiso normal
         if (!self::checkRoutePermission($route, $permissionType)) {
-            self::logoutAndRedirect();
+            self::logoutAndRedirect(null, $route);
         }
-        
+
         return true;
     }
 
@@ -365,7 +403,7 @@ class PermissionMiddleware
     {
         if (!self::canDoAction($actionCode)) {
             $message = $customMessage ?? "No tienes permiso para ejecutar esta acción: {$actionCode}";
-            self::logoutAndRedirect($message);
+            self::logoutAndRedirect($message, $actionCode);
         }
     }
 
