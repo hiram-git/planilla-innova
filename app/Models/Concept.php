@@ -533,8 +533,8 @@ class Concept extends Model
      */
     private function validateFormulaSyntax($formula)
     {
-        // Verificar caracteres permitidos - agregadas comillas simples y dobles para las nuevas funciones y punto y coma para separar instrucciones
-        if (!preg_match('/^[A-Z0-9_.(),\s\+\-\*\/\>\<\=\!\'\";]+$/i', $formula)) {
+        // Verificar caracteres permitidos - agregadas comillas simples y dobles para las nuevas funciones, punto y coma para separar instrucciones, # para comentarios, | para operador OR, \r\n para saltos de línea, y caracteres acentuados en español (á, é, í, ó, ú, ñ, ü)
+        if (!preg_match('/^[A-Z0-9_.(),\s\+\-\*\/\>\<\=\!\'\";#|\r\náéíóúñü]+$/iu', $formula)) {
             return [
                 'valid' => false,
                 'message' => 'La fórmula contiene caracteres no permitidos'
