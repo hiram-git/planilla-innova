@@ -118,6 +118,13 @@ class TenantResolver
     private static function loadTenant(string $dbName): bool
     {
         try {
+            // ✅ FIX: Si el dbName es la base de datos por defecto, no validar como tenant
+            $defaultDb = $_ENV['DB_NAME'] ?? 'planilla_prod';
+            if ($dbName === $defaultDb) {
+                error_log("Skipping tenant validation for default database: {$dbName}");
+                return false; // No es un tenant, es la BD por defecto
+            }
+
             $master = MasterDatabase::getInstance()->getConnection();
 
             $stmt = $master->prepare("

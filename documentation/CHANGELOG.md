@@ -8,6 +8,35 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.10]** - 2025-11-25 - *License Info UI + Wizard Debugging*
+**Tipo**: FEATURE + DEBUGGING
+**Fase**: Multitenancy UX + Production Troubleshooting
+**Criticidad**: Alta
+
+**Componentes Principales**:
+- âœ… **Dropdown InformaciÃ³n de Licencia** (navbar.php):
+  - InformaciÃ³n visible: Empresa, RUC, Licencia, DÃ­as restantes
+  - Badges de color: Verde (â‰¥30 dÃ­as), Amarillo (7-29 dÃ­as), Rojo (<7 dÃ­as)
+  - CÃ¡lculo automÃ¡tico desde `$_SESSION['license_expiration']`
+  - Oculto para sistema principal (license='default')
+  - DiseÃ±o responsivo con iconos FontAwesome
+- âœ… **Sistema Debugging WizardController**:
+  - 11 pasos con logs detallados (emojis identificadores)
+  - Debug variables de entorno (TENANT_DB_*, DB_*)
+  - Try-catch por paso crÃ­tico con stack trace completo
+  - Manejo robusto de rollback en caso de error
+- âœ… **Fix Error ProducciÃ³n**:
+  - Eliminado llamada `inTransaction()` inexistente
+  - Logs estructurados para diagnÃ³stico rÃ¡pido
+
+**ðŸ"ˆ EstadÃ­sticas**:
+- 2 archivos modificados | +332 lÃ­neas cÃ³digo | 2 mÃ©todos nuevos
+- 1 error crÃ­tico corregido | 0 cambios BD | Deployment: 5-10 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.10.md)**
+
+---
+
 ### **[v3.5.9]** - 2025-11-21 - *Employee Import System Overhaul + Wizard UI Improvements*
 **Tipo**: FEATURE + UI/UX Enhancement
 **Fase**: Employee Import System + Wizard UI/UX
@@ -643,7 +672,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 21 de Noviembre, 2025
-Sistema: Planillas MVC v3.5.9
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 30% | Employee Import 100%
+Última Actualización: 25 de Noviembre, 2025
+Sistema: Planillas MVC v3.5.10
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 35% | Employee Import 100% | License UI 100%
 

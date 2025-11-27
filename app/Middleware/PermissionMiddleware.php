@@ -149,67 +149,6 @@ class PermissionMiddleware
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$route]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($result) {
-                return $result['menu_id'];
-            }
-
-            // Fallback: extraer módulo base de la ruta
-            return $this->getMenuIdByRoutePattern($route);
-
-        } catch (\Exception $e) {
-            error_log("Error getting menu_id for route $route: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Obtener menu_id por patrón de ruta
-     */
-    private function getMenuIdByRoutePattern($route)
-    {
-        $routeMapping = [
-            'dashboard' => 1,
-            'company' => 2, 
-            'positions' => 3,
-            'partidas' => 4,
-            'organigrama' => 5,
-            'cargos' => 6,
-            'funciones' => 7,
-            'employees' => 8,
-            'overtime' => 9,
-            'schedules' => 10,
-            'attendance' => 11,
-            'creditors' => 12,
-            'deductions' => 12,
-            'payrolls' => 13,
-            'concepts' => 14,
-            'tipos-planilla' => 15,
-            'users' => 16,
-            'roles' => 17,
-            'acumulados' => 18,      // Módulo de acumulados
-            'tipos-acumulados' => 19  // Administración de tipos de acumulados
-        ];
-
-        // Extraer el módulo base de la ruta (panel/employees/123/edit -> employees)
-        if (preg_match('/^panel\/([^\/]+)/', $route, $matches)) {
-            $module = $matches[1];
-            return $routeMapping[$module] ?? null;
-        }
-
-        return null;
-    }
-
-    /**
-     * Verificar permiso de rol en BD
-     */
-    private function checkRolePermission($roleId, $menuId, $permissionType)
-    {
-        try {
-            $column = $permissionType . '_perm';
-            $sql = "SELECT {$column} FROM role_permissions WHERE role_id = ? AND menu_id = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$roleId, $menuId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             return $result ? (bool)$result[$column] : false;
@@ -367,15 +306,373 @@ class PermissionMiddleware
         if (!is_array($roles)) {
             $roles = [$roles];
         }
-        
+
         $userRole = strtolower($_SESSION['admin_role'] ?? '');
-        
+
         foreach ($roles as $role) {
             if ($userRole === strtolower($role)) {
                 return true;
             }
         }
-        
+
         return false;
+    }
+
+    // ============================================================================
+    // ACTION-LEVEL PERMISSIONS (Granular Permissions System)
+    // ============================================================================
+
+    /**
+     * ✅ NUEVO: Verificar si usuario puede ejecutar una acción específica
+     *
+     * @param string $actionCode Código de acción (ej: 'payroll.generate', 'payroll.vacation.approve')
+     * @return bool true si tiene permiso, false si no
+     *
+     * Ejemplos de uso:
+     * - PermissionMiddleware::canDoAction('payroll.generate')
+     * - PermissionMiddleware::canDoAction('payroll.vacation.approve')
+     * - PermissionMiddleware::canDoAction('employee.edit_salary')
+     */
+    public static function canDoAction($actionCode)
+    {
+        // Super admin bypass
+        if (self::isSuperAdmin()) {
+            return true;
+        }
+
+        // Si no hay sesión, denegar
+        if (!isset($_SESSION['admin_role_id'])) {
+            return false;
+        }
+
+        $middleware = new self();
+        return $middleware->checkActionPermission($_SESSION['admin_role_id'], $actionCode);
+    }
+
+    /**
+     * ✅ NUEVO: Requerir permiso de acción (bloquea si no tiene permiso)
+     *
+     * @param string $actionCode Código de acción requerida
+     * @param string $customMessage Mensaje personalizado de error (opcional)
+     * @throws void Redirige a login si no tiene permiso
+     *
+     * Ejemplo de uso en controlador:
+     * ```php
+     * PermissionMiddleware::requireAction('payroll.generate', 'No tienes permiso para generar planillas');
+     * ```
+     */
+    public static function requireAction($actionCode, $customMessage = null)
+    {
+        if (!self::canDoAction($actionCode)) {
+            $message = $customMessage ?? "No tienes permiso para ejecutar esta acción: {$actionCode}";
+            self::logoutAndRedirect($message);
+        }
+    }
+
+    /**
+     * ✅ NUEVO: Verificar si usuario puede ejecutar alguna de varias acciones
+     *
+     * @param array $actionCodes Array de códigos de acción
+     * @return bool true si tiene permiso para AL MENOS UNA acción
+     *
+     * Ejemplo de uso:
+     * ```php
+     * if (PermissionMiddleware::canDoAnyAction(['payroll.generate', 'payroll.regenerate'])) {
+     *     // Mostrar botón de generar planilla
+     * }
+     * ```
+     */
+    public static function canDoAnyAction($actionCodes)
+    {
+        if (!is_array($actionCodes)) {
+            $actionCodes = [$actionCodes];
+        }
+
+        foreach ($actionCodes as $action) {
+            if (self::canDoAction($action)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * ✅ NUEVO: Verificar si usuario puede ejecutar TODAS las acciones especificadas
+     *
+     * @param array $actionCodes Array de códigos de acción
+     * @return bool true si tiene permiso para TODAS las acciones
+     *
+     * Ejemplo de uso:
+     * ```php
+     * if (PermissionMiddleware::canDoAllActions(['payroll.generate', 'payroll.approve'])) {
+     *     // Permitir flujo completo
+     * }
+     * ```
+     */
+    public static function canDoAllActions($actionCodes)
+    {
+        if (!is_array($actionCodes)) {
+            $actionCodes = [$actionCodes];
+        }
+
+        foreach ($actionCodes as $action) {
+            if (!self::canDoAction($action)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Verificar permiso de acción en BD
+     *
+     * @param int $roleId ID del rol
+     * @param string $actionCode Código de la acción
+     * @return bool
+     */
+    private function checkActionPermission($roleId, $actionCode)
+    {
+        try {
+            // Verificar en tabla role_actions
+            $sql = "SELECT allowed
+                    FROM role_actions
+                    WHERE role_id = ? AND action_code = ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$roleId, $actionCode]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                return (bool)$result['allowed'];
+            }
+
+            // Si no existe registro explícito, denegar por defecto
+            // (Seguridad: whitelist approach)
+            return false;
+
+        } catch (\Exception $e) {
+            error_log("Error checking action permission: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * ✅ NUEVO: Obtener todas las acciones permitidas para el usuario actual
+     *
+     * @param string|null $module Filtrar por módulo específico (opcional)
+     * @return array Array de códigos de acción permitidos
+     *
+     * Ejemplo de uso:
+     * ```php
+     * $actions = PermissionMiddleware::getAllowedActions();
+     * $payrollActions = PermissionMiddleware::getAllowedActions('payrolls');
+     * ```
+     */
+    public static function getAllowedActions($module = null)
+    {
+        if (!isset($_SESSION['admin_role_id'])) {
+            return [];
+        }
+
+        // Super admin tiene todas las acciones
+        if (self::isSuperAdmin()) {
+            $middleware = new self();
+            return $middleware->getAllSystemActions($module);
+        }
+
+        $middleware = new self();
+        return $middleware->loadAllowedActions($_SESSION['admin_role_id'], $module);
+    }
+
+    /**
+     * Cargar acciones permitidas desde BD
+     *
+     * @param int $roleId
+     * @param string|null $module
+     * @return array
+     */
+    private function loadAllowedActions($roleId, $module = null)
+    {
+        try {
+            $sql = "SELECT ra.action_code, ad.name, ad.module, ad.category
+                    FROM role_actions ra
+                    JOIN action_definitions ad ON ra.action_code = ad.action_code
+                    WHERE ra.role_id = ? AND ra.allowed = 1 AND ad.status = 1";
+
+            $params = [$roleId];
+
+            if ($module) {
+                $sql .= " AND ad.module = ?";
+                $params[] = $module;
+            }
+
+            $sql .= " ORDER BY ad.module, ad.category, ad.name";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (\Exception $e) {
+            error_log("Error loading allowed actions: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener todas las acciones del sistema (para super admin)
+     *
+     * @param string|null $module
+     * @return array
+     */
+    private function getAllSystemActions($module = null)
+    {
+        try {
+            $sql = "SELECT action_code, name, module, category
+                    FROM action_definitions
+                    WHERE status = 1";
+
+            $params = [];
+
+            if ($module) {
+                $sql .= " AND module = ?";
+                $params[] = $module;
+            }
+
+            $sql .= " ORDER BY module, category, name";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (\Exception $e) {
+            error_log("Error loading system actions: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * ✅ NUEVO: Obtener acciones agrupadas por módulo
+     *
+     * @return array Array asociativo [module => [actions]]
+     *
+     * Ejemplo de uso:
+     * ```php
+     * $groupedActions = PermissionMiddleware::getActionsByModule();
+     * foreach ($groupedActions as $module => $actions) {
+     *     echo "$module: " . count($actions) . " acciones\n";
+     * }
+     * ```
+     */
+    public static function getActionsByModule()
+    {
+        $actions = self::getAllowedActions();
+        $grouped = [];
+
+        foreach ($actions as $action) {
+            $module = $action['module'];
+            if (!isset($grouped[$module])) {
+                $grouped[$module] = [];
+            }
+            $grouped[$module][] = $action;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * ✅ NUEVO: Verificar permisos múltiples de manera eficiente
+     *
+     * @param array $actionCodes Array de códigos de acción a verificar
+     * @return array Array asociativo [action_code => bool]
+     *
+     * Útil para verificar múltiples permisos de una sola vez (1 query)
+     *
+     * Ejemplo de uso:
+     * ```php
+     * $permissions = PermissionMiddleware::checkMultipleActions([
+     *     'payroll.generate',
+     *     'payroll.approve',
+     *     'payroll.export_pdf'
+     * ]);
+     *
+     * if ($permissions['payroll.generate']) {
+     *     // Mostrar botón generar
+     * }
+     * ```
+     */
+    public static function checkMultipleActions($actionCodes)
+    {
+        // Super admin tiene todas
+        if (self::isSuperAdmin()) {
+            $result = [];
+            foreach ($actionCodes as $code) {
+                $result[$code] = true;
+            }
+            return $result;
+        }
+
+        if (!isset($_SESSION['admin_role_id'])) {
+            $result = [];
+            foreach ($actionCodes as $code) {
+                $result[$code] = false;
+            }
+            return $result;
+        }
+
+        $middleware = new self();
+        return $middleware->batchCheckActions($_SESSION['admin_role_id'], $actionCodes);
+    }
+
+    /**
+     * Verificar múltiples acciones en una sola query
+     *
+     * @param int $roleId
+     * @param array $actionCodes
+     * @return array
+     */
+    private function batchCheckActions($roleId, $actionCodes)
+    {
+        try {
+            // Inicializar resultado (por defecto todo false)
+            $result = [];
+            foreach ($actionCodes as $code) {
+                $result[$code] = false;
+            }
+
+            if (empty($actionCodes)) {
+                return $result;
+            }
+
+            // Preparar placeholders para IN clause
+            $placeholders = str_repeat('?,', count($actionCodes) - 1) . '?';
+
+            $sql = "SELECT action_code, allowed
+                    FROM role_actions
+                    WHERE role_id = ? AND action_code IN ($placeholders)";
+
+            $params = array_merge([$roleId], $actionCodes);
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $result[$row['action_code']] = (bool)$row['allowed'];
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            error_log("Error batch checking actions: " . $e->getMessage());
+            // En caso de error, devolver todo false (seguro)
+            $result = [];
+            foreach ($actionCodes as $code) {
+                $result[$code] = false;
+            }
+            return $result;
+        }
     }
 }

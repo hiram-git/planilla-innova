@@ -1,11 +1,19 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 21 de Noviembre, 2025
-**Versión**: 3.5.9 - Employee Import System Overhaul + Wizard UI Improvements
-**Versión Anterior**: 3.5.8 - Multitenancy + Filtros Vacaciones + Tolerancias Asistencias
+**Fecha**: 25 de Noviembre, 2025
+**Versión**: 3.5.10 - License Info UI + Wizard Debugging + Production Fixes
+**Versión Anterior**: 3.5.9 - Employee Import System Overhaul + Wizard UI Improvements
 
-### 🆕 Hitos Recientes (v3.5.9 Employee Import + Wizard UI)
+### 🆕 Hitos Recientes (v3.5.10 License Info + Debugging)
+- **License Info Dropdown**: Dropdown navbar con información completa licencia (RUC, empresa, licencia, días restantes)
+- **Cálculo Días Restantes**: Cálculo automático desde $_SESSION['license_expiration'] usando DateTime::diff()
+- **Badges Color Sistema**: Verde (≥30 días), amarillo (7-29 días), rojo (<7 días), expirada
+- **Ocultar Default License**: Dropdown solo visible para tenants, oculto para sistema principal (license='default')
+- **Wizard Debugging Completo**: 11 pasos debugging WizardController::createCompany() con emojis identificadores
+- **Production Fixes**: Fix error inTransaction() en Database + stack trace completo en catch blocks
+
+### 🆕 Hitos Anteriores (v3.5.9 Employee Import + Wizard UI)
 - **Employee Import Completo**: 3 campos nuevos (email*, marca_asistencia, permite_horas_extras) + validaciones
 - **Integración Salarios**: Creación automática employee_payroll_salaries + auditoría completa
 - **Boolean Flexible**: Método formatBoolean() acepta múltiples formatos (1/0, SI/NO, YES/NO)
@@ -262,7 +270,7 @@
 ### 🏢 **FASE 6: MULTITENANCY EMPRESARIAL** *(Q1 2026 - Mediana Prioridad)*
 **Objetivo**: Sistema multi-empresa con base de datos central y base de datos separada por tenant
 **Tiempo Estimado**: 4-5 semanas (160-200 horas)
-**Estado**: 0% Completado
+**Estado**: 🟡 30% Completado (Scaffolding + Validación Distribuidor + Wizard UI + Debugging)
 
 **Arquitectura**: Híbrida (Central DB + Tenant DB)
 ```
@@ -303,17 +311,23 @@
 5. **Todas las consultas subsecuentes usan la conexión BD del tenant**
 6. Datos 100% aislados entre tenants
 
-- [ ] **Subfase 6.1: Base de Datos Central** *(1 semana / 40 horas)*
-  - [ ] Migración `2025_11_create_central_database.sql`: crear BD central
-  - [ ] Tabla `companies`: id, uuid, nombre, ruc, logo, activo, created_at
-  - [ ] Tabla `tenant_connections`: company_id, db_host, db_name, db_user, db_password, db_port
-  - [ ] Tabla `usuarios_central`: company_id, username, password, email, role (superadmin/admin/user)
-  - [ ] Foreign keys + índices optimizados
+- [x] **Subfase 6.1: Base de Datos Central** *(1 semana / 40 horas)* ✅ **70% COMPLETADA**
+  - [x] Migración `2025_11_18_create_tenants.sql`: tabla tenants en BD master (planilla_master)
+  - [x] Tabla `tenants`: id, slug, company_name, ruc, admin_email, license_key, db_host, db_name, status
+  - [x] MasterDatabase class: singleton para conexión BD master independiente
+  - [x] WizardModel class: CRUD tenants + validación distribuidor remoto
+  - [x] WizardController: createCompany() con debugging completo 11 pasos
+  - [x] Validación distribuidor: cURL configurable vía .env (DISTRIBUTOR_VALIDATION_URL)
+  - [x] License dropdown navbar: información licencia tiempo real
+  - [ ] Tabla `tenant_connections`: mejorada estructura (pendiente)
   - [ ] Seeders: empresa demo + usuario superadmin
-  - **Archivos a crear**:
-    - `database/migrations/2025_11_create_central_database.sql`
-    - `database/migrations/2025_11_create_tenants_table.sql`
-    - `database/migrations/2025_11_create_tenant_connections_table.sql`
+  - **Archivos creados**:
+    - `config/master_database.php` ✅
+    - `app/Core/MasterDatabase.php` ✅
+    - `database/migrations/master/2025_11_18_create_tenants.sql` ✅
+    - `app/Models/WizardModel.php` ✅
+    - `app/Controllers/WizardController.php` ✅ (con debugging v3.5.10)
+    - `app/Views/components/navbar.php` ✅ (license dropdown v3.5.10)
 
 - [ ] **Subfase 6.2: Conexión Dinámica a BD Tenant** *(1-1.5 semanas / 40-60 horas)*
   - [ ] `TenantConnectionManager.php`: gestión 2 conexiones simultáneas (central + tenant)

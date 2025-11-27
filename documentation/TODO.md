@@ -1,20 +1,26 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-11-21 (v3.5.9)
+Actualizado: 2025-11-25 (v3.5.10)
 
-## ✅ Completado Recientemente (v3.5.9 - 21-Nov-2025)
+## ✅ Completado Recientemente (v3.5.10 - 25-Nov-2025)
 
-### Employee Import System + Wizard UI
+### License Info UI + Wizard Debugging
+- [x] Implementar dropdown información de licencia en navbar (RUC, empresa, licencia, días restantes)
+- [x] Calcular días restantes automáticamente desde `$_SESSION['license_expiration']`
+- [x] Badges de color según días restantes (verde ≥30, amarillo 7-29, rojo <7)
+- [x] Ocultar dropdown para sistema principal (license='default')
+- [x] Agregar mensajes de depuración detallados en `WizardController::createCompany()`
+- [x] Debug de variables de entorno (TENANT_DB_*, DB_*)
+- [x] Logging por pasos (11 pasos con emojis identificadores)
+- [x] Fix error `inTransaction()` inexistente en clase Database
+- [x] Stack trace completo en catch blocks con manejo robusto de rollback
+
+### Previous (v3.5.9 - 21-Nov-2025) - Employee Import + Wizard UI
 - [x] Actualizar template Excel con 3 campos nuevos (email*, marca_asistencia, permite_horas_extras)
 - [x] Implementar validación email requerido con formato FILTER_VALIDATE_EMAIL
 - [x] Crear método `formatBoolean()` para conversión flexible (1/0, SI/NO, YES/NO)
 - [x] Integrar creación automática registros `employee_payroll_salaries` con auditoría
-- [x] Asignar foto por defecto automáticamente (images/facebook-profile-image.jpeg)
-- [x] Actualizar instrucciones Excel con 3 secciones nuevas (obligatorios/opcionales/automáticos)
 - [x] Refactorizar CSS wizard `/crear-empresa` para márgenes simétricos perfectos
-- [x] Implementar padding uniforme 40px + responsive (375px/1024px/1920px)
-- [x] Mejorar botones (padding 12x32, min-height 48px) + separador visual
-- [x] Testing: importación Excel + wizard responsive + integración salarios
 
 ---
 

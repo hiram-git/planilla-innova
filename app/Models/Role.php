@@ -14,34 +14,35 @@ use Exception;
 class Role extends Model
 {
     public $table = 'roles';
-    protected $fillable = ['name', 'description', 'status'];
 
-    /**
-     * Módulos del sistema con sus IDs de menú
-     */
     private $systemModules = [
-        1 => ['name' => 'Dashboard', 'url' => 'home.php', 'icon' => 'fas fa-tachometer-alt'],
-        2 => ['name' => 'Datos de empresa', 'url' => 'datos_empresa.php', 'icon' => 'fas fa-building'],
-        3 => ['name' => 'Posiciones', 'url' => 'positions', 'icon' => 'fas fa-sitemap'],
-        4 => ['name' => 'Partidas', 'url' => 'partidas', 'icon' => 'fas fa-list-alt'],
-        5 => ['name' => 'Organigrama', 'url' => 'organigrama.php', 'icon' => 'fas fa-project-diagram'],
-        6 => ['name' => 'Cargos', 'url' => 'cargos', 'icon' => 'fas fa-user-tie'],
-        7 => ['name' => 'Funciones', 'url' => 'funciones', 'icon' => 'fas fa-tasks'],
-        8 => ['name' => 'Colaboradores', 'url' => 'employees', 'icon' => 'fas fa-users'],
-        9 => ['name' => 'Horas Extras', 'url' => 'overtime.php', 'icon' => 'fas fa-clock'],
-        10 => ['name' => 'Horarios', 'url' => 'schedules', 'icon' => 'fas fa-calendar-alt'],
-        11 => ['name' => 'Asistencia', 'url' => 'attendance.php', 'icon' => 'fas fa-calendar-check'],
-        12 => ['name' => 'Acreedores', 'url' => 'deduction.php', 'icon' => 'fas fa-hand-holding-usd'],
-        13 => ['name' => 'Planillas', 'url' => 'payrolls', 'icon' => 'fas fa-file-invoice-dollar'],
-        14 => ['name' => 'Conceptos', 'url' => 'concepts', 'icon' => 'fas fa-calculator'],
-        15 => ['name' => 'Tipos de Planilla', 'url' => 'tipos-planilla', 'icon' => 'fas fa-tags'],
-        16 => ['name' => 'Usuarios', 'url' => 'users', 'icon' => 'fas fa-user-cog'],
-        17 => ['name' => 'Roles', 'url' => 'roles', 'icon' => 'fas fa-user-shield']
+        1 => ['name' => 'Dashboard', 'url' => 'dashboard', 'icon' => 'fas fa-tachometer-alt', 'description' => 'Vista general del sistema'],
+        2 => ['name' => 'Empresa', 'url' => 'company', 'icon' => 'fas fa-building', 'description' => 'Configuración de la empresa'],
+        3 => ['name' => 'Plazas', 'url' => 'positions', 'icon' => 'fas fa-chair', 'description' => 'Gestión de plazas'],
+        4 => ['name' => 'Partidas', 'url' => 'partidas', 'icon' => 'fas fa-money-check-alt', 'description' => 'Gestión de partidas presupuestarias'],
+        5 => ['name' => 'Organigrama', 'url' => 'organigrama', 'icon' => 'fas fa-sitemap', 'description' => 'Visualización de estructura organizacional'],
+        6 => ['name' => 'Cargos', 'url' => 'cargos', 'icon' => 'fas fa-briefcase', 'description' => 'Catálogo de cargos'],
+        7 => ['name' => 'Funciones', 'url' => 'funciones', 'icon' => 'fas fa-tasks', 'description' => 'Catálogo de funciones'],
+        8 => ['name' => 'Empleados', 'url' => 'employees', 'icon' => 'fas fa-users', 'description' => 'Gestión de expedientes de empleados'],
+        9 => ['name' => 'Horas Extras', 'url' => 'overtime', 'icon' => 'fas fa-clock', 'description' => 'Registro y aprobación de horas extras'],
+        10 => ['name' => 'Horarios', 'url' => 'schedules', 'icon' => 'fas fa-calendar-alt', 'description' => 'Gestión de turnos y horarios'],
+        11 => ['name' => 'Asistencia', 'url' => 'attendance', 'icon' => 'fas fa-user-clock', 'description' => 'Control de marcaciones y asistencia'],
+        12 => ['name' => 'Acreedores', 'url' => 'creditors', 'icon' => 'fas fa-hand-holding-usd', 'description' => 'Gestión de descuentos y acreedores'],
+        13 => ['name' => 'Planillas', 'url' => 'payrolls', 'icon' => 'fas fa-file-invoice-dollar', 'description' => 'Procesamiento de pagos'],
+        14 => ['name' => 'Conceptos', 'url' => 'concepts', 'icon' => 'fas fa-calculator', 'description' => 'Configuración de ingresos y deducciones'],
+        15 => ['name' => 'Tipos de Planilla', 'url' => 'tipos-planilla', 'icon' => 'fas fa-list-alt', 'description' => 'Configuración de tipos de nómina'],
+        16 => ['name' => 'Usuarios', 'url' => 'users', 'icon' => 'fas fa-user-cog', 'description' => 'Administración de usuarios del sistema'],
+        17 => ['name' => 'Roles y Permisos', 'url' => 'roles', 'icon' => 'fas fa-user-shield', 'description' => 'Gestión de acceso y seguridad'],
+        18 => ['name' => 'Acumulados', 'url' => 'acumulados', 'icon' => 'fas fa-piggy-bank', 'description' => 'Control de pasivos laborales'],
+        19 => ['name' => 'Tipos de Acumulados', 'url' => 'tipos-acumulados', 'icon' => 'fas fa-coins', 'description' => 'Configuración de tipos de acumulados'],
+        20 => ['name' => 'Frecuencias', 'url' => 'frecuencias', 'icon' => 'fas fa-history', 'description' => 'Configuración de periodicidad de pagos'],
+        21 => ['name' => 'Situaciones', 'url' => 'situaciones', 'icon' => 'fas fa-info-circle', 'description' => 'Estados y situaciones de empleados'],
+        22 => ['name' => 'Liquidaciones', 'url' => 'liquidation', 'icon' => 'fas fa-door-open', 'description' => 'Cálculo de prestaciones por retiro'],
+        23 => ['name' => 'Vacaciones', 'url' => 'vacation', 'icon' => 'fas fa-umbrella-beach', 'description' => 'Control y saldo de vacaciones'],
+        24 => ['name' => 'Calendario', 'url' => 'business-calendar', 'icon' => 'fas fa-calendar-day', 'description' => 'Días hábiles y feriados'],
+        25 => ['name' => 'Reportes', 'url' => 'reports', 'icon' => 'fas fa-chart-bar', 'description' => 'Informes y estadísticas']
     ];
 
-    /**
-     * Obtener todos los roles activos
-     */
     public function getAllActive()
     {
         try {
