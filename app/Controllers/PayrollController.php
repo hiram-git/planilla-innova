@@ -628,6 +628,7 @@ class PayrollController extends Controller
             $patronales = [];
             $totalIncomes = 0;
             $totalDeductions = 0;
+            $totalPatronales = 0;
             
             foreach ($concepts as $concept) {
                 // Mapear los tipos de concepto - parece que 'A' significa algo diferente
@@ -659,6 +660,7 @@ class PayrollController extends Controller
                 'patronales' => $patronales,
                 'totalIncomes' => $totalIncomes,
                 'totalDeductions' => $totalDeductions,
+                'totalPatronales' => $totalPatronales,
                 'netSalary' => $totalIncomes - $totalDeductions,
                 'page_title' => 'Detalle de Empleado - ' . ($detail['employee_name'] ?? 'N/A'),
                 'csrf_token' => Security::generateToken()

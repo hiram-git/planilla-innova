@@ -1,10 +1,21 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-11-25 (v3.5.10)
+Actualizado: 2025-11-27 (v3.5.11)
 
-## ✅ Completado Recientemente (v3.5.10 - 25-Nov-2025)
+## ✅ Completado Recientemente (v3.5.11 - 27-Nov-2025)
 
-### License Info UI + Wizard Debugging
+### Permission System Restructuring + Wizard UI + Formula Validation
+- [x] Implementar página acceso dedicada para permisos denegados
+- [x] Diferenciar entre expiración sesión y fallo autorización
+- [x] Mantener sesión activa cuando se deniega acceso
+- [x] Mostrar grid módulos permitidos con acceso rápido
+- [x] Agregar imagen fondo wizard con opacidad configurable
+- [x] Cambiar color subtítulo confirmación a orange-accent-4
+- [x] Fix validación fórmulas: soporte caracteres acentuados español
+- [x] Fix validación fórmulas: soporte comentarios (#) y operador OR (||)
+- [x] Fix validación fórmulas: soporte saltos de línea multiline
+
+### Previous (v3.5.10 - 25-Nov-2025) - License Info UI + Wizard Debugging
 - [x] Implementar dropdown información de licencia en navbar (RUC, empresa, licencia, días restantes)
 - [x] Calcular días restantes automáticamente desde `$_SESSION['license_expiration']`
 - [x] Badges de color según días restantes (verde ≥30, amarillo 7-29, rojo <7)

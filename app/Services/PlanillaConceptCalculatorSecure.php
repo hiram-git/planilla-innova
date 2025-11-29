@@ -348,11 +348,15 @@ class PlanillaConceptCalculatorSecure
 
             $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.created_on,
                            p.sueldo,
-                           s.time_in, s.time_out
+                           s.time_in, s.time_out,
+                           eps.gastos_representacion
                     FROM employees e
                     LEFT JOIN posiciones p ON p.id = e.position_id
                     LEFT JOIN schedules s ON s.id = e.schedule_id
-                    WHERE e.id = ?";
+                    LEFT JOIN employee_payroll_salaries eps ON eps.employee_id = e.id
+                        AND eps.is_active = 1
+                    WHERE e.id = ?
+                    LIMIT 1";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId]);
@@ -364,7 +368,7 @@ class PlanillaConceptCalculatorSecure
 
             // Calcular variables del empleado de forma segura
             $sueldo = (float)($employee['sueldo'] ?? 0);
-            $gastosRep = 0; // No existe gastos_representacion en la tabla actual
+            $gastosRep = (float)($employee['gastos_representacion'] ?? 0);
             $ficha = $employee['employee_id'] ?? '';
 
             // Calcular horas de trabajo
@@ -377,6 +381,7 @@ class PlanillaConceptCalculatorSecure
             $this->executor->setVar('SUELDO', $sueldo);
             $this->executor->setVar('SALARIO', $sueldo); // Alias
             $this->executor->setVar('GASTOS_REP', $gastosRep);
+            $this->executor->setVar('GASTOS_REPRESENTACION', $gastosRep); // Alias completo
             $this->executor->setVar('FICHA', $ficha);
             $this->executor->setVar('EMPLOYEE_ID', $employeeId);
             $this->executor->setVar('HORAS', $horas);
@@ -388,6 +393,7 @@ class PlanillaConceptCalculatorSecure
                 'SUELDO' => $sueldo,
                 'SALARIO' => $sueldo,
                 'GASTOS_REP' => $gastosRep,
+                'GASTOS_REPRESENTACION' => $gastosRep,
                 'FICHA' => $ficha,
                 'EMPLOYEE_ID' => $employeeId,
                 'HORAS' => $horas,

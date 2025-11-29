@@ -1,11 +1,22 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 25 de Noviembre, 2025
-**Versión**: 3.5.10 - License Info UI + Wizard Debugging + Production Fixes
-**Versión Anterior**: 3.5.9 - Employee Import System Overhaul + Wizard UI Improvements
+**Fecha**: 27 de Noviembre, 2025
+**Versión**: 3.5.11 - Permission System Restructuring + Wizard UI + Formula Validation
+**Versión Anterior**: 3.5.10 - License Info UI + Wizard Debugging + Production Fixes
 
-### 🆕 Hitos Recientes (v3.5.10 License Info + Debugging)
+### 🆕 Hitos Recientes (v3.5.11 Permission System + UI Enhancements)
+- **Permission System Restructuring**: Separación clara entre expiración de sesión y denegación de permisos
+- **Access Denied Page**: Página dedicada mostrando módulos permitidos con tarjetas de acceso rápido
+- **Session Preservation**: Sesión se mantiene activa cuando se deniega acceso (no requiere re-login)
+- **AJAX Permission Handling**: Respuestas JSON para requests AJAX con redirecciones apropiadas
+- **Wizard Background Image**: Imagen de fondo con opacidad configurable + overlay negro en /crear-empresa
+- **Wizard Subtitle Color**: Cambio a orange-accent-4 (#FF6D00) para mejor contraste visual
+- **Formula Validation Enhanced**: Soporte completo caracteres acentuados español, comentarios (#), operador OR (||)
+- **Multiline Formula Support**: Validación correcta de fórmulas multilínea con \r\n
+- **Fixed Missing Methods**: checkRolePermission() y getMenuIdForRoute() corregidos en PermissionMiddleware
+
+### 🆕 Hitos Anteriores (v3.5.10 License Info + Debugging)
 - **License Info Dropdown**: Dropdown navbar con información completa licencia (RUC, empresa, licencia, días restantes)
 - **Cálculo Días Restantes**: Cálculo automático desde $_SESSION['license_expiration'] usando DateTime::diff()
 - **Badges Color Sistema**: Verde (≥30 días), amarillo (7-29 días), rojo (<7 días), expirada
