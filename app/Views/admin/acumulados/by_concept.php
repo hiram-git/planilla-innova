@@ -271,7 +271,10 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-success btn-sm mr-2" onclick="exportToCSV()">
-                                <i class="fas fa-download mr-1"></i> Exportar CSV
+                                <i class="fas fa-file-csv mr-1"></i> Exportar CSV
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm mr-2" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel mr-1"></i> Exportar Excel
                             </button>
                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                                 <i class="fas fa-plus"></i>
@@ -285,11 +288,11 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                     <tr>
                                         <th>Empleado</th>
                                         <th>Cédula</th>
-                                        <th>Concepto</th>
+                                        <th style="width: 35%">Concepto</th>
                                         <th>Planilla</th>
                                         <th>Mes</th>
                                         <th>Año</th>
-                                        <th>Monto</th>
+                                        <th style="width: 15%">Monto</th>
                                         <th>Período</th>
                                     </tr>
                                 </thead>
@@ -302,7 +305,7 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                             <td><?= htmlspecialchars($acumulado['document_id']) ?></td>
                                             <td>
                                                 <i class="fas fa-calculator mr-1"></i>
-                                                <small><?= htmlspecialchars($acumulado['concepto_descripcion'] ?? 'N/A') ?></small>
+                                                <small><?= htmlspecialchars($acumulado['concepto_descripcion'] ?? 'N/A') ?> | <?= htmlspecialchars($acumulado['tipo_acumulado_descripcion'] ?? 'N/A') ?></small>
                                             </td>
                                             <td>
                                                 <small><?= htmlspecialchars($acumulado['planilla_descripcion'] ?? 'N/A') ?></small>
@@ -406,6 +409,12 @@ function exportToCSV() {
     const params = new URLSearchParams(window.location.search);
     params.set('export', 'csv');
     const exportUrl = '<?= \App\Core\UrlHelper::route('panel/acumulados/export') ?>?' + params.toString();
+    window.open(exportUrl, '_blank');
+}
+
+function exportToExcel() {
+    const params = new URLSearchParams(window.location.search);
+    const exportUrl = '<?= \App\Core\UrlHelper::route('panel/acumulados/exportExcel') ?>?' + params.toString();
     window.open(exportUrl, '_blank');
 }
 </script>

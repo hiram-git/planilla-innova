@@ -6,6 +6,12 @@ use App\Core\Controller;
 use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\TipoAcumulado;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Font;
 
 /**
  * AcumuladoController
@@ -141,68 +147,381 @@ class AcumuladoController extends Controller
         $year = $_GET['year'] ?? date('Y');
         $conceptoId = $_GET['concepto_id'] ?? null;
         $empleadoId = $_GET['empleado_id'] ?? null;
-        
-        // Construir consulta base usando la nueva estructura
-        $sql = "SELECT 
+        $month = $_GET['month'] ?? null;
+        $tipoPlanillaId = $_GET['tipo_planilla'] ?? null;
+        $groupBy = $_GET['group_by'] ?? null;
+
+        // LOG DEBUG
+        error_log("AcumuladoController@export - Parámetros: year=$year, conceptoId=$conceptoId, month=$month, tipoPlanillaId=$tipoPlanillaId, groupBy=$groupBy");
+
+        // Construir consulta base
+        $whereConditions = ["ape.ano = ?"];
+        $params = [$year];
+
+        // Manejo de concepto_id (puede ser 'all' o un ID específico)
+        if ($conceptoId && $conceptoId !== 'all') {
+            $whereConditions[] = "ape.concepto_id = ?";
+            $params[] = $conceptoId;
+        }
+
+        // Filtro por empleado
+        if ($empleadoId) {
+            $whereConditions[] = "ape.employee_id = ?";
+            $params[] = $empleadoId;
+        }
+
+        // Filtro por mes
+        if ($month) {
+            $whereConditions[] = "ape.mes = ?";
+            $params[] = $month;
+        }
+
+        // Filtro por tipo de planilla del empleado
+        if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+            $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
+            $params[] = (int)$tipoPlanillaId;
+        }
+
+        $whereClause = implode(" AND ", $whereConditions);
+
+        // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+        $conceptoJoin = "";
+        $conceptoFilter = "";
+        if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+            $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+            $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+            $params[] = (int)$tipoPlanillaId;
+        }
+
+        $sql = "SELECT
                     e.document_id,
                     CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
                     c.descripcion as concepto_descripcion,
-                    ape.monto as total_acumulado,
+                    ape.monto,
                     ape.mes,
                     ape.ano,
                     ape.frecuencia,
-                    ape.tipo_concepto,
-                    ape.created_at as fecha_calculo
+                    CASE
+                        WHEN ape.tipo_concepto = 'A' THEN 'ASIGNACION'
+                        WHEN ape.tipo_concepto = 'D' THEN 'DEDUCCION'
+                        WHEN ape.tipo_concepto = 'P' THEN 'PATRONAL'
+                        ELSE ape.tipo_concepto
+                    END as tipo_concepto,
+                    ape.tipo_acumulado,
+                    COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado_descripcion,
+                    pc.descripcion as planilla_descripcion,
+                    DATE_FORMAT(ape.created_at, '%Y-%m-%d %H:%i:%s') as fecha_calculo
                 FROM acumulados_por_empleado ape
                 INNER JOIN employees e ON ape.employee_id = e.id
                 INNER JOIN concepto c ON ape.concepto_id = c.id
-                WHERE ape.ano = ?";
-        
-        $params = [$year];
-        
-        if ($conceptoId) {
-            $sql .= " AND c.id = ?";
-            $params[] = $conceptoId;
-        }
-        
-        if ($empleadoId) {
-            $sql .= " AND e.id = ?";
-            $params[] = $empleadoId;
-        }
-        
-        $sql .= " ORDER BY e.lastname, e.firstname, c.descripcion, ape.mes";
-        
+                {$conceptoJoin}
+                LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
+                WHERE {$whereClause}
+                {$conceptoFilter}
+                ORDER BY e.lastname, e.firstname, c.descripcion, ape.ano DESC, ape.mes DESC";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        
-        // Generar CSV
-        $filename = "acumulados_{$year}_" . date('Y-m-d') . ".csv";
-        
+
+        // LOG DEBUG
+        error_log("AcumuladoController@export - Registros encontrados: " . count($results));
+
+        // Generar nombre de archivo descriptivo
+        $filename = "acumulados_{$year}";
+        if ($conceptoId && $conceptoId !== 'all') {
+            $filename .= "_concepto{$conceptoId}";
+        } elseif ($conceptoId === 'all') {
+            $filename .= "_todos_conceptos";
+        }
+        if ($month) {
+            $filename .= "_mes{$month}";
+        }
+        if ($tipoPlanillaId) {
+            $filename .= "_tipo{$tipoPlanillaId}";
+        }
+        $filename .= "_" . date('Y-m-d') . ".csv";
+
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
-        
+
         $output = fopen('php://output', 'w');
-        
+
+        // BOM para Excel UTF-8
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
         // Encabezados
         fputcsv($output, [
             'Cédula',
-            'Nombre Empleado', 
+            'Nombre Empleado',
             'Concepto',
             'Monto',
             'Mes',
             'Año',
             'Frecuencia',
             'Tipo Concepto',
+            'Tipo Acumulado',
+            'Descripción Tipo Acumulado',
+            'Planilla',
             'Fecha Cálculo'
         ]);
-        
+
         // Datos
         foreach ($results as $row) {
-            fputcsv($output, $row);
+            fputcsv($output, [
+                $row['document_id'],
+                $row['nombre_empleado'],
+                $row['concepto_descripcion'],
+                $row['monto'],
+                $row['mes'],
+                $row['ano'],
+                $row['frecuencia'],
+                $row['tipo_concepto'],
+                $row['tipo_acumulado'],
+                $row['tipo_acumulado_descripcion'],
+                $row['planilla_descripcion'],
+                $row['fecha_calculo']
+            ]);
         }
-        
+
         fclose($output);
+        exit;
+    }
+
+    /**
+     * Exportar acumulados a Excel
+     */
+    public function exportExcel()
+    {
+        $year = $_GET['year'] ?? date('Y');
+        $conceptoId = $_GET['concepto_id'] ?? null;
+        $empleadoId = $_GET['empleado_id'] ?? null;
+        $month = $_GET['month'] ?? null;
+        $tipoPlanillaId = $_GET['tipo_planilla'] ?? null;
+        $groupBy = $_GET['group_by'] ?? null;
+
+        // LOG DEBUG
+        error_log("AcumuladoController@exportExcel - Parámetros: year=$year, conceptoId=$conceptoId, month=$month, tipoPlanillaId=$tipoPlanillaId, groupBy=$groupBy");
+
+        // Construir consulta base (igual que CSV)
+        $whereConditions = ["ape.ano = ?"];
+        $params = [$year];
+
+        // Manejo de concepto_id (puede ser 'all' o un ID específico)
+        if ($conceptoId && $conceptoId !== 'all') {
+            $whereConditions[] = "ape.concepto_id = ?";
+            $params[] = $conceptoId;
+        }
+
+        // Filtro por empleado
+        if ($empleadoId) {
+            $whereConditions[] = "ape.employee_id = ?";
+            $params[] = $empleadoId;
+        }
+
+        // Filtro por mes
+        if ($month) {
+            $whereConditions[] = "ape.mes = ?";
+            $params[] = $month;
+        }
+
+        // Filtro por tipo de planilla del empleado
+        if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+            $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
+            $params[] = (int)$tipoPlanillaId;
+        }
+
+        $whereClause = implode(" AND ", $whereConditions);
+
+        // Si hay filtro por tipo de planilla, agregar LEFT JOIN con concepto_tipos_planilla
+        $conceptoJoin = "";
+        $conceptoFilter = "";
+        if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
+            $conceptoJoin = "LEFT JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id";
+            $conceptoFilter = " AND (ctp.tipo_planilla_id = ? OR ctp.tipo_planilla_id IS NULL)";
+            $params[] = (int)$tipoPlanillaId;
+        }
+
+        $sql = "SELECT
+                    e.document_id,
+                    CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
+                    c.descripcion as concepto_descripcion,
+                    ape.monto,
+                    ape.mes,
+                    ape.ano,
+                    ape.frecuencia,
+                    CASE
+                        WHEN ape.tipo_concepto = 'A' THEN 'ASIGNACION'
+                        WHEN ape.tipo_concepto = 'D' THEN 'DEDUCCION'
+                        WHEN ape.tipo_concepto = 'P' THEN 'PATRONAL'
+                        ELSE ape.tipo_concepto
+                    END as tipo_concepto,
+                    ape.tipo_acumulado,
+                    COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado_descripcion,
+                    pc.descripcion as planilla_descripcion,
+                    DATE_FORMAT(ape.created_at, '%Y-%m-%d %H:%i:%s') as fecha_calculo
+                FROM acumulados_por_empleado ape
+                INNER JOIN employees e ON ape.employee_id = e.id
+                INNER JOIN concepto c ON ape.concepto_id = c.id
+                {$conceptoJoin}
+                LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
+                WHERE {$whereClause}
+                {$conceptoFilter}
+                ORDER BY e.lastname, e.firstname, c.descripcion, ape.ano DESC, ape.mes DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // LOG DEBUG
+        error_log("AcumuladoController@exportExcel - Registros encontrados: " . count($results));
+
+        // Crear Excel
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Título del reporte
+        $sheet->setCellValue('A1', 'REPORTE DE ACUMULADOS');
+        $sheet->mergeCells('A1:L1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Información de filtros
+        $filterRow = 2;
+        $filterInfo = "Año: $year";
+        if ($conceptoId === 'all') {
+            $filterInfo .= " | Concepto: TODOS";
+        } elseif ($conceptoId) {
+            $filterInfo .= " | Concepto ID: $conceptoId";
+        }
+        if ($month) {
+            $filterInfo .= " | Mes: $month";
+        }
+        if ($tipoPlanillaId) {
+            $filterInfo .= " | Tipo Planilla: $tipoPlanillaId";
+        }
+        $sheet->setCellValue('A2', $filterInfo);
+        $sheet->mergeCells('A2:L2');
+        $sheet->getStyle('A2')->getFont()->setItalic(true);
+
+        // Encabezados de columnas (fila 4)
+        $headerRow = 4;
+        $headers = [
+            'A' => 'Cédula',
+            'B' => 'Nombre Empleado',
+            'C' => 'Concepto',
+            'D' => 'Monto',
+            'E' => 'Mes',
+            'F' => 'Año',
+            'G' => 'Frecuencia',
+            'H' => 'Tipo Concepto',
+            'I' => 'Tipo Acumulado',
+            'J' => 'Descripción Tipo Acumulado',
+            'K' => 'Planilla',
+            'L' => 'Fecha Cálculo'
+        ];
+
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col . $headerRow, $header);
+        }
+
+        // Estilo de encabezados
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '4472C4']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]
+        ];
+        $sheet->getStyle('A4:L4')->applyFromArray($headerStyle);
+
+        // Datos
+        $row = 5;
+        foreach ($results as $data) {
+            $sheet->setCellValue('A' . $row, $data['document_id']);
+            $sheet->setCellValue('B' . $row, $data['nombre_empleado']);
+            $sheet->setCellValue('C' . $row, $data['concepto_descripcion']);
+            $sheet->setCellValue('D' . $row, number_format($data['monto'], 2));
+            $sheet->setCellValue('E' . $row, $data['mes']);
+            $sheet->setCellValue('F' . $row, $data['ano']);
+            $sheet->setCellValue('G' . $row, $data['frecuencia']);
+            $sheet->setCellValue('H' . $row, $data['tipo_concepto']);
+            $sheet->setCellValue('I' . $row, $data['tipo_acumulado']);
+            $sheet->setCellValue('J' . $row, $data['tipo_acumulado_descripcion']);
+            $sheet->setCellValue('K' . $row, $data['planilla_descripcion']);
+            $sheet->setCellValue('L' . $row, $data['fecha_calculo']);
+
+            // Estilo de filas de datos
+            $rowStyle = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => 'CCCCCC']
+                    ]
+                ]
+            ];
+            $sheet->getStyle('A' . $row . ':L' . $row)->applyFromArray($rowStyle);
+
+            // Alineación
+            $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('E' . $row . ':G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $row++;
+        }
+
+        // Auto-ajustar columnas
+        foreach (range('A', 'L') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Generar nombre de archivo descriptivo
+        $filename = "acumulados_{$year}";
+        if ($conceptoId && $conceptoId !== 'all') {
+            $filename .= "_concepto{$conceptoId}";
+        } elseif ($conceptoId === 'all') {
+            $filename .= "_todos_conceptos";
+        }
+        if ($month) {
+            $filename .= "_mes{$month}";
+        }
+        if ($tipoPlanillaId) {
+            $filename .= "_tipo{$tipoPlanillaId}";
+        }
+        $filename .= "_" . date('Y-m-d') . ".xlsx";
+
+        // Descargar archivo
+        $this->downloadExcel($spreadsheet, $filename);
+    }
+
+    /**
+     * Descargar archivo Excel
+     */
+    private function downloadExcel($spreadsheet, $filename)
+    {
+        // Limpiar cualquier salida previa
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        // Headers para descarga
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
         exit;
     }
 

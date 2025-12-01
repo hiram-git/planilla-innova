@@ -464,6 +464,7 @@ class RouteHelper
             'panel/acumulados/byType' => ['admin', 'manager', 'operator'],
             'panel/acumulados/allEmployees' => ['admin', 'manager', 'operator'],
             'panel/acumulados/export' => ['admin', 'manager'],
+            'panel/acumulados/exportExcel' => ['admin', 'manager'],
             // Administración de Tipos de Acumulados (solo admin)
             'panel/tipos-acumulados' => ['admin'],
             'panel/tipos-acumulados/create' => ['admin'],
