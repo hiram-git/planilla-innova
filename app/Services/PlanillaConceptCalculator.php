@@ -159,6 +159,17 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
                 'TARIFA_HORA' => $tarifa_hora,
             ];
 
+            // 🎄 Agregar variables XIII mes trimestral (disponibles siempre, no solo en liquidaciones)
+            try {
+                $variablesXIII = $this->obtenerVariablesFechaXIIIMes($employee_id);
+                foreach ($variablesXIII as $nombre => $valor) {
+                    $this->executor->setVar($nombre, $valor);
+                    $this->variablesColaborador[$nombre] = $valor;
+                }
+            } catch (\Exception $e) {
+                error_log("ERROR setVariablesColaborador - Excepción en obtenerVariablesFechaXIIIMes: " . $e->getMessage());
+            }
+
         } catch (PDOException $e) {
             error_log("Error estableciendo variables colaborador: " . $e->getMessage());
         }
@@ -557,6 +568,9 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
         $this->variablesColaborador['SUELDO_SEMANAL'] = $this->calcularSalarioSemanal($employeeId);
         $this->variablesColaborador['SUELDO_MENSUAL'] = $this->calcularSalarioMensual($employeeId);
         $this->variablesColaborador['SUELDO_DIARIO'] = $this->calcularSalarioDiario($employeeId);
+
+        // 🎄 Las variables XIII mes ya se agregaron en setVariablesColaborador()
+        // No es necesario duplicar el código aquí
     }
 
     /**

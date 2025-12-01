@@ -62,7 +62,9 @@ class PlanillaConceptCalculatorSecure
                 'CLAVE_SEGURO_SOCIAL',  // Cédula o número de seguro social
                 'INIPERIODO',
                 'FINPERIODO',
-                'FECHA'
+                'FECHA',
+                'INICIO_PERIODO_XIII',  // Fechas períodos XIII mes trimestral
+                'FIN_PERIODO_XIII'
             ];
 
             if (!in_array($nombre, $variablesEspecialesString) && !is_numeric($valor)) {
@@ -118,9 +120,12 @@ class PlanillaConceptCalculatorSecure
         }, 2);
 
         // Función ACUMULADOS avanzada y segura
-        $this->executor->addFunction('ACUMULADOS', function ($conceptos, $fechaDesde, $fechaHasta) {
+        // Acepta 4 parámetros: conceptos, ficha (ignorado), fechaDesde, fechaHasta
+        // El parámetro ficha se ignora porque se usa EMPLOYEE_ID de variablesColaborador
+        $this->executor->addFunction('ACUMULADOS', function ($conceptos, $ficha, $fechaDesde, $fechaHasta) {
+            // Ignorar $ficha - se usa EMPLOYEE_ID de $this->variablesColaborador
             return $this->calcularAcumuladosSeguro($conceptos, $fechaDesde, $fechaHasta);
-        }, 3);
+        }, 4);
 
         // Función CONCEPTO para referenciar y evaluar otros conceptos
         $this->executor->addFunction('CONCEPTO', function ($nombreConcepto) {
@@ -665,6 +670,9 @@ class PlanillaConceptCalculatorSecure
                 $monto = $deduction ? (float)$deduction['amount'] : 0;
                 $this->cacheAcreedores[$cacheKey] = $monto;
                 $this->montoAcreedor = $monto;
+
+                // Log del resultado de la transacción
+                error_log("ACREEDOR - Employee: $empleado | Creditor: $idDeduction | Monto: $monto");
             }
 
             return $this->cacheAcreedores[$cacheKey];
@@ -703,13 +711,15 @@ class PlanillaConceptCalculatorSecure
             // Construir consulta segura con placeholders
             $placeholders = str_repeat('?,', count($conceptosArray) - 1) . '?';
 
+            // JOIN con planilla_cabecera para obtener fechas (acumulados_por_empleado no tiene campo fecha)
             $sql = "SELECT SUM(ape.monto) as total
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE ape.employee_id = ?
-                    AND c.concepto IN ($placeholders)
-                    AND ape.fecha >= ?
-                    AND ape.fecha <= ?";
+                    AND ape.tipo_acumulado IN ($placeholders)
+                    AND pc.fecha_desde >= ?
+                    AND pc.fecha_hasta <= ?";
 
             $params = array_merge([$employeeId], $conceptosArray, [$fechaDesde, $fechaHasta]);
 
@@ -717,7 +727,13 @@ class PlanillaConceptCalculatorSecure
             $stmt->execute($params);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            return (float)($result['total'] ?? 0);
+            $total = (float)($result['total'] ?? 0);
+
+            // Log detallado del resultado de la transacción
+            error_log("ACUMULADOS - Employee: $employeeId | Conceptos: " . implode(',', $conceptosArray) .
+                      " | Período: $fechaDesde a $fechaHasta | Total: $total");
+
+            return $total;
 
         } catch (PDOException $e) {
             error_log("Error calculando acumulados: " . $e->getMessage());
@@ -768,22 +784,28 @@ class PlanillaConceptCalculatorSecure
             $fechaHasta = $this->fechasActuales['fecha_hasta'] ?? "$añoActual-12-31";
 
             // Calcular total de ingresos del período
+            // JOIN con planilla_cabecera para obtener fechas (acumulados_por_empleado no tiene campo fecha)
             $sql = "SELECT SUM(ape.monto) as total_ingresos
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE ape.employee_id = ?
                     AND c.tipo_concepto = 'A'
-                    AND ape.fecha >= ?
-                    AND ape.fecha <= ?";
+                    AND pc.fecha_desde >= ?
+                    AND pc.fecha_hasta <= ?";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $totalIngresos = (float)($result['total_ingresos'] ?? 0);
+            $xiiiMes = $totalIngresos / 3;
 
-            // XIII mes = ingresos anuales / 3 (según legislación panameña)
-            return $totalIngresos / 3;
+            // Log detallado del resultado del cálculo
+            error_log("XIII MES - Employee: $employeeId | Período: $fechaDesde a $fechaHasta | " .
+                      "Ingresos: $totalIngresos | XIII Mes (÷3): $xiiiMes");
+
+            return $xiiiMes;
 
         } catch (\Exception $e) {
             error_log("Error calculando XIII mes: " . $e->getMessage());
@@ -922,13 +944,18 @@ class PlanillaConceptCalculatorSecure
             if (!empty($whereExtra)) {
                 $sql .= " AND " . $whereExtra;
             }
-            error_log("SQL de agregación: $sql");
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            return (float)($result['result'] ?? 0);
+            $valor = (float)($result['result'] ?? 0);
+
+            // Log del resultado de la transacción
+            error_log("ASISTENCIA (Agregación) - Employee: $employeeId | Campo: $campo | " .
+                      "Período: $fechaDesde a $fechaHasta | Valor: $valor");
+
+            return $valor;
 
         } catch (PDOException $e) {
             error_log("Error en queryAggregation: " . $e->getMessage());
@@ -963,7 +990,13 @@ class PlanillaConceptCalculatorSecure
             $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            return (float)($result['result'] ?? 0);
+            $valor = (float)($result['result'] ?? 0);
+
+            // Log del resultado de la transacción
+            error_log("ASISTENCIA (Conteo) - Employee: $employeeId | Condición: $condicion | " .
+                      "Período: $fechaDesde a $fechaHasta | Count: $valor");
+
+            return $valor;
 
         } catch (PDOException $e) {
             error_log("Error en queryCount: " . $e->getMessage());
@@ -994,7 +1027,13 @@ class PlanillaConceptCalculatorSecure
             $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            return (float)($result['result'] ?? 0);
+            $valor = (float)($result['result'] ?? 0);
+
+            // Log del resultado de la transacción
+            error_log("AUSENCIAS - Employee: $employeeId | Tipo: $tipo | " .
+                      "Período: $fechaDesde a $fechaHasta | Count: $valor");
+
+            return $valor;
 
         } catch (PDOException $e) {
             error_log("Error en queryAbsences: " . $e->getMessage());
