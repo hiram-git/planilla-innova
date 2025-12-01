@@ -951,8 +951,17 @@ class VacationController extends Controller
                 exit;
             }
 
-            // Frecuencia de Vacaciones (ID 11)
-            $frecuencia_id = 11;
+            // Buscar dinámicamente la frecuencia de Vacaciones por código (case-insensitive)
+            $sql_frecuencia = "SELECT id FROM frecuencias WHERE UPPER(codigo) = 'VACACIONES' OR UPPER(nombre) = 'VACACIONES' LIMIT 1";
+            $stmt_frecuencia = $this->db->prepare($sql_frecuencia);
+            $stmt_frecuencia->execute();
+            $frecuencia = $stmt_frecuencia->fetch(PDO::FETCH_ASSOC);
+
+            if (!$frecuencia) {
+                throw new \Exception('Frecuencia de Vacaciones no encontrada en la base de datos');
+            }
+
+            $frecuencia_id = $frecuencia['id'];
 
             // Crear cabecera de planilla (en mayúsculas)
             $descripcion = strtoupper("Planilla de Vacaciones - Solicitud #{$request_id}");
