@@ -1,14 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\":*)",
-      "Bash(findstr:*)",
-      "Bash(php:*)",
-      "Bash(mkdir:*)",
-      "Bash(cd:*)",
-      "Bash(ls:*)",
-      "Bash(dir:*)",
-      "Bash(composer show:*)"
+      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root planilla_prod -e \"SELECT id, descripcion, tipo_planilla_id, frecuencia_id, estado, fecha FROM planilla_cabecera WHERE descripcion LIKE ''%VACACION%'' ORDER BY id DESC LIMIT 5\")",
+      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root PINN49411848 -e \"SELECT id, codigo, nombre FROM frecuencias ORDER BY id\")",
+      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root pinn49411848 -e \"SELECT id, codigo, nombre FROM frecuencias ORDER BY id\")",
+      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root PINN49411848 -e \"SELECT id, descripcion, tipo_planilla_id, frecuencia_id, estado FROM planilla_cabecera WHERE descripcion LIKE ''%Vacacion%'' OR descripcion LIKE ''%VACACION%'' ORDER BY id DESC LIMIT 5\")",
+      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root PINN49411848 -e \"SELECT id, descripcion, frecuencia_id, estado FROM planilla_cabecera WHERE id = 109\")"
     ],
     "deny": [],
     "ask": [],

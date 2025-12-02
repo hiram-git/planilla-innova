@@ -8,6 +8,35 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.12]** - 2025-12-01 - *Acumulados Excel Export + Bug Fixes*
+**Tipo**: MEJORA + BUGFIX
+**Fase**: Módulo Acumulados - Export + Motor Fórmulas Fixes
+**Criticidad**: Media
+
+**Componentes Principales**:
+- âœ… **Exportación Excel Acumulados** (AcumuladoController.php):
+  - Método `exportExcel()` con lógica SQL idéntica a CSV
+  - 12 columnas de datos con styling profesional PhpSpreadsheet
+  - Soporte completo filtros: concepto_id='all', tipo_planilla, month, group_by
+  - Botón UI + función JavaScript `exportToExcel()`
+- âœ… **Mejora Formato Columna DataTable**:
+  - Columna "Concepto" ahora muestra: `descripcion concepto | tipo acumulado`
+  - Ejemplo: "Salario Base | SALARIO_BASE"
+- âœ… **Fix Variable Indefinida** (PlanillaConceptCalculatorSecure.php):
+  - Línea 957: `$campo` → `$agregacion` en queryAggregation()
+  - Elimina warning "Undefined variable $campo"
+- âœ… **Fix Validación Variables XIII Mes**:
+  - Agregadas variables string: PERIODO_XIII_ESTADO, FECHA_LIQUIDACION
+  - Permite estados: 'SIN_LIQUIDACION', 'ERROR', 'PENDIENTE', 'LIQUIDADO'
+
+**ðŸ"ˆ Estadísticas**:
+- 4 archivos modificados | +248 líneas código | 2 métodos nuevos | 2 bugs corregidos
+- 1 función JavaScript | 1 ruta nueva | 0 cambios BD | Deployment: 5-10 min
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.12.md)**
+
+---
+
 ### **[v3.5.10]** - 2025-11-25 - *License Info UI + Wizard Debugging*
 **Tipo**: FEATURE + DEBUGGING
 **Fase**: Multitenancy UX + Production Troubleshooting
@@ -672,7 +701,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 25 de Noviembre, 2025
-Sistema: Planillas MVC v3.5.10
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 35% | Employee Import 100% | License UI 100%
+Última Actualización: 01 de Diciembre, 2025
+Sistema: Planillas MVC v3.5.12
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 35% | Employee Import 100% | Acumulados Export 100%
 

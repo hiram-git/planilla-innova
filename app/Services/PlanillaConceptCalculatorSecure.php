@@ -64,7 +64,9 @@ class PlanillaConceptCalculatorSecure
                 'FINPERIODO',
                 'FECHA',
                 'INICIO_PERIODO_XIII',  // Fechas períodos XIII mes trimestral
-                'FIN_PERIODO_XIII'
+                'FIN_PERIODO_XIII',
+                'PERIODO_XIII_ESTADO',  // Estado del período XIII: 'SIN_LIQUIDACION', 'ERROR', 'PENDIENTE', 'LIQUIDADO'
+                'FECHA_LIQUIDACION'  // Fecha de liquidación en formato string
             ];
 
             if (!in_array($nombre, $variablesEspecialesString) && !is_numeric($valor)) {
@@ -952,7 +954,7 @@ class PlanillaConceptCalculatorSecure
             $valor = (float)($result['result'] ?? 0);
 
             // Log del resultado de la transacción
-            error_log("ASISTENCIA (Agregación) - Employee: $employeeId | Campo: $campo | " .
+            error_log("ASISTENCIA (Agregación) - Employee: $employeeId | Agregación: $agregacion | " .
                       "Período: $fechaDesde a $fechaHasta | Valor: $valor");
 
             return $valor;

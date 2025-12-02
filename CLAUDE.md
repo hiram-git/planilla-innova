@@ -1,10 +1,10 @@
 ﻿# ðŸ¤– CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📍 **Estado Actual - V3.5.10 License Info UI + Wizard Debugging**
-- **Fecha**: 25 de Noviembre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY 35% + EMPLOYEE IMPORT 100% + LICENSE UI 100%**
-- **Versión**: 3.5.10 - Dropdown información licencia en navbar + Sistema debugging completo WizardController
-- **Versión Anterior**: 3.5.9 - Sistema importación Excel completo + Wizard UI simétrico
+## 📍 **Estado Actual - V3.5.12 Acumulados Excel Export + Bug Fixes**
+- **Fecha**: 01 de Diciembre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY 35% + EMPLOYEE IMPORT 100% + ACUMULADOS EXPORT 100%**
+- **Versión**: 3.5.12 - Exportación Excel acumulados + Fixes motor fórmulas (variables XIII mes)
+- **Versión Anterior**: 3.5.10 - Dropdown información licencia + Wizard debugging
 
 ## ðŸŽ¯ **Sistema**
 Plataforma empresarial de planillas con legislaciÃ³n panameÃ±a, acumulados automÃ¡ticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -37,7 +37,18 @@ Plataforma empresarial de planillas con legislaciÃ³n panameÃ±a, acumulados a
 - Fix infra: `AttendanceHeader::getById()` para soporte en reconstrucciÃ³n de DATETIME (almuerzos) durante actualizaciÃ³n
 - âœ… **Hotfix V3.5.1**: Fix crÃ­tico synced_from ENUM + data cleanup + normalizaciÃ³n timestamp API Base44 + CSRF dispositivos + deployment scripts
 
-## ðŸ“„ **Sistemas Auxiliares Implementados**
+### ðŸ†• V3.5.12 - Acumulados Excel Export + Bug Fixes Motor Fórmulas
+**Exportación Excel** (01-Dic-2025): AcumuladoController->exportExcel() (215 líneas) + downloadExcel() helper. Lógica SQL idéntica a CSV export. 12 columnas con PhpSpreadsheet styling profesional (headers azules, borders, auto-width). Soporte filtros completos: concepto_id='all', tipo_planilla, month, group_by. Botón UI + función JS exportToExcel(). Ruta nueva 'panel/acumulados/exportExcel' con permisos admin/manager.
+
+**Mejora DataTable** (by_concept.php:308): Columna "Concepto" ahora muestra: `descripcion concepto | tipo acumulado`. Ejemplo: "Salario Base | SALARIO_BASE". Mejor contexto y legibilidad.
+
+**Fix Variable Indefinida** (PlanillaConceptCalculatorSecure.php:957): Corregido undefined variable `$campo` → `$agregacion` en queryAggregation(). Elimina PHP warning en logs de asistencias.
+
+**Fix Validación Variables XIII Mes** (PlanillaConceptCalculatorSecure.php:68-69): Agregadas variables string a excepción validación: PERIODO_XIII_ESTADO ('SIN_LIQUIDACION', 'ERROR', 'PENDIENTE', 'LIQUIDADO') + FECHA_LIQUIDACION. Permite uso correcto en fórmulas XIII mes trimestral.
+
+**EstadÃ­sticas**: 4 archivos | +248 líneas | 2 métodos nuevos | 2 bugs corregidos | 0 cambios BD | Deployment: 5-10 min
+
+## ðŸ"„ **Sistemas Auxiliares Implementados**
 
 ### **XIII Mes Trimestral** (V3.3.9)
 XIIIMesPeriodoTrimestralCalculator con 3 perÃ­odos automÃ¡ticos (P1-P3), variables dinÃ¡micas (INICIO/FIN_PERIODO_XIII), fÃ³rmula legislaciÃ³n panameÃ±a.

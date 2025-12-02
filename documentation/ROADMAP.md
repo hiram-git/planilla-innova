@@ -1,11 +1,19 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 27 de Noviembre, 2025
-**Versión**: 3.5.11 - Permission System Restructuring + Wizard UI + Formula Validation
-**Versión Anterior**: 3.5.10 - License Info UI + Wizard Debugging + Production Fixes
+**Fecha**: 01 de Diciembre, 2025
+**Versión**: 3.5.12 - Acumulados Excel Export + Bug Fixes Motor Fórmulas
+**Versión Anterior**: 3.5.11 - Permission System Restructuring + Wizard UI + Formula Validation
 
-### 🆕 Hitos Recientes (v3.5.11 Permission System + UI Enhancements)
+### 🆕 Hitos Recientes (v3.5.12 Acumulados Excel Export + Bug Fixes)
+- **Exportación Excel Acumulados**: Método exportExcel() con PhpSpreadsheet + 12 columnas profesionales
+- **Soporte Filtros Completos**: concepto_id='all', tipo_planilla, month, group_by (idéntico a CSV)
+- **Mejora UI DataTable**: Columna "Concepto" muestra descripción + tipo acumulado separado por |
+- **Fix Variable Indefinida**: $campo → $agregacion en queryAggregation() (PlanillaConceptCalculatorSecure.php:957)
+- **Fix Validación XIII Mes**: Variables string PERIODO_XIII_ESTADO y FECHA_LIQUIDACION agregadas a excepciones
+- **Ruta Nueva**: 'panel/acumulados/exportExcel' con permisos admin/manager
+
+### 🆕 Hitos Anteriores (v3.5.11 Permission System + UI Enhancements)
 - **Permission System Restructuring**: Separación clara entre expiración de sesión y denegación de permisos
 - **Access Denied Page**: Página dedicada mostrando módulos permitidos con tarjetas de acceso rápido
 - **Session Preservation**: Sesión se mantiene activa cuando se deniega acceso (no requiere re-login)

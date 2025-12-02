@@ -1,8 +1,22 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-11-27 (v3.5.11)
+Actualizado: 2025-12-01 (v3.5.12)
 
-## ✅ Completado Recientemente (v3.5.11 - 27-Nov-2025)
+## ✅ Completado Recientemente (v3.5.12 - 01-Dic-2025)
+
+### Acumulados Excel Export + Bug Fixes Motor Fórmulas
+- [x] Implementar exportación Excel para módulo acumulados con filtros completos
+- [x] Método exportExcel() con lógica SQL idéntica a CSV export
+- [x] Styling profesional PhpSpreadsheet (12 columnas, headers, borders, colors)
+- [x] Botón UI "Exportar Excel" + función JavaScript exportToExcel()
+- [x] Agregar ruta 'panel/acumulados/exportExcel' con permisos admin/manager
+- [x] Mejorar formato columna "Concepto" en DataTable (descripcion | tipo_acumulado)
+- [x] Fix variable indefinida $campo → $agregacion en queryAggregation()
+- [x] Fix validación variables XIII mes (PERIODO_XIII_ESTADO, FECHA_LIQUIDACION)
+- [x] Actualizar CHANGELOG.md con índice v3.5.12
+- [x] Crear documentation/changelog/v3.5.12.md con detalles completos
+
+### Previous (v3.5.11 - 27-Nov-2025)
 
 ### Permission System Restructuring + Wizard UI + Formula Validation
 - [x] Implementar página acceso dedicada para permisos denegados
