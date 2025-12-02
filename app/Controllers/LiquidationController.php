@@ -13,11 +13,61 @@ use PDOException;
 class LiquidationController extends Controller
 {
     protected $calculator;
+    private $liquidationFrequencyId = null; // Caché para frecuencia de liquidación
 
     public function __construct()
     {
         parent::__construct();
         $this->calculator = new PlanillaConceptCalculator();
+    }
+
+    /**
+     * Obtener ID de frecuencia de liquidación dinámicamente por código
+     * Usa caché para evitar consultas repetidas en la misma petición
+     *
+     * @return int|null ID de la frecuencia de liquidación, o null si no existe
+     */
+    private function getLiquidationFrequencyId()
+    {
+        // Retornar desde caché si ya se consultó
+        if ($this->liquidationFrequencyId !== null) {
+            return $this->liquidationFrequencyId;
+        }
+
+        try {
+            // Buscar frecuencia por código 'LIQUIDACION' (más portable que ID hardcoded)
+            $sql = "SELECT id FROM frecuencias
+                    WHERE UPPER(codigo) = 'LIQUIDACION' AND activo = 1
+                    LIMIT 1";
+            $stmt = $this->db->query($sql);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                $this->liquidationFrequencyId = (int)$result['id'];
+                return $this->liquidationFrequencyId;
+            }
+
+            // Fallback: buscar por nombre si código no existe (case-insensitive)
+            $sql = "SELECT id FROM frecuencias
+                    WHERE UPPER(nombre) LIKE '%LIQUIDACI%' AND activo = 1
+                    LIMIT 1";
+            $stmt = $this->db->query($sql);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                $this->liquidationFrequencyId = (int)$result['id'];
+                error_log("Warning: Frecuencia de liquidación encontrada por nombre, considere actualizar campo 'codigo' a 'LIQUIDACION'");
+                return $this->liquidationFrequencyId;
+            }
+
+            // Si no se encuentra, loggear error
+            error_log("Error crítico: No se encontró frecuencia de liquidación en tabla 'frecuencias'. Debe existir registro con codigo='LIQUIDACION'");
+            return null;
+
+        } catch (PDOException $e) {
+            error_log("Error al obtener frecuencia de liquidación: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -254,6 +304,15 @@ class LiquidationController extends Controller
             // Configurar calculadora con variables del empleado
             $this->calculator->setVariablesLiquidacion($termination['employee_table_id'], $termination_id);
 
+            // Obtener ID de frecuencia de liquidación dinámicamente
+            $liquidation_frequency_id = $this->getLiquidationFrequencyId();
+
+            if (!$liquidation_frequency_id) {
+                $this->setToastrMessage('error', 'No se pudo obtener la frecuencia de liquidación. Contacte al administrador.', 'Error de Configuración');
+                $this->redirect('/panel/liquidation');
+                return;
+            }
+
             // Obtener tipos de planilla del empleado (puede tener múltiples)
             $employee_tipo_planilla_ids = !empty($termination['tipo_planilla_id'])
                 ? explode(',', $termination['tipo_planilla_id'])
@@ -266,21 +325,22 @@ class LiquidationController extends Controller
                         FROM concepto c
                         INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
                         INNER JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id
-                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        WHERE cf.frecuencia_id = ?  -- Frecuencia de liquidación (dinámico por código 'LIQUIDACION')
                         AND ctp.tipo_planilla_id IN ($placeholders)
                         ORDER BY c.tipo_concepto, c.concepto";
 
                 $stmt = $this->db->prepare($sql);
-                $stmt->execute($employee_tipo_planilla_ids);
+                $stmt->execute(array_merge([$liquidation_frequency_id], $employee_tipo_planilla_ids));
             } else {
                 // Si el empleado no tiene tipo de planilla, obtener todos los conceptos de liquidación
                 $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
                         FROM concepto c
                         INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        WHERE cf.frecuencia_id = ?  -- Frecuencia de liquidación (dinámico por código 'LIQUIDACION')
                         ORDER BY c.tipo_concepto, c.concepto";
 
-                $stmt = $this->db->query($sql);
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$liquidation_frequency_id]);
             }
 
             $concepts = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -440,6 +500,15 @@ class LiquidationController extends Controller
             // Configurar calculadora con variables del empleado
             $this->calculator->setVariablesLiquidacion($termination['employee_table_id'], $termination_id);
 
+            // Obtener ID de frecuencia de liquidación dinámicamente
+            $liquidation_frequency_id = $this->getLiquidationFrequencyId();
+
+            if (!$liquidation_frequency_id) {
+                $this->setToastrMessage('error', 'No se pudo obtener la frecuencia de liquidación. Contacte al administrador.', 'Error de Configuración');
+                $this->redirect('/panel/liquidation');
+                return;
+            }
+
             // Obtener tipos de planilla del empleado (puede tener múltiples)
             $employee_tipo_planilla_ids = !empty($termination['tipo_planilla_id'])
                 ? explode(',', $termination['tipo_planilla_id'])
@@ -452,21 +521,22 @@ class LiquidationController extends Controller
                         FROM concepto c
                         INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
                         INNER JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id
-                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        WHERE cf.frecuencia_id = ?  -- Frecuencia de liquidación (dinámico por código 'LIQUIDACION')
                         AND ctp.tipo_planilla_id IN ($placeholders)
                         ORDER BY c.tipo_concepto, c.concepto";
 
                 $stmt = $this->db->prepare($sql);
-                $stmt->execute($employee_tipo_planilla_ids);
+                $stmt->execute(array_merge([$liquidation_frequency_id], $employee_tipo_planilla_ids));
             } else {
                 // Si el empleado no tiene tipo de planilla, obtener todos los conceptos de liquidación
                 $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
                         FROM concepto c
                         INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                        WHERE cf.frecuencia_id = 9  -- Frecuencia de liquidación
+                        WHERE cf.frecuencia_id = ?  -- Frecuencia de liquidación (dinámico por código 'LIQUIDACION')
                         ORDER BY c.tipo_concepto, c.concepto";
 
-                $stmt = $this->db->query($sql);
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$liquidation_frequency_id]);
             }
 
             $concepts = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -638,13 +708,15 @@ class LiquidationController extends Controller
             $this->db->beginTransaction();
 
             // 1. Buscar la planilla generada para esta liquidación
+            $liquidation_frequency_id = $this->getLiquidationFrequencyId();
+
             $sql = "SELECT id FROM planilla_cabecera
                     WHERE descripcion LIKE ?
-                    AND frecuencia_id = 9
+                    AND frecuencia_id = ?
                     ORDER BY created_at DESC
                     LIMIT 1";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute(['%Liquidación - ' . $termination['firstname'] . ' ' . $termination['lastname'] . '%']);
+            $stmt->execute(['%Liquidación - ' . $termination['firstname'] . ' ' . $termination['lastname'] . '%', $liquidation_frequency_id]);
             $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($payroll) {
@@ -911,7 +983,10 @@ class LiquidationController extends Controller
     public function payrolls()
     {
         try {
-            // Obtener planillas de liquidación (frecuencia_id = 9) con información de la liquidación
+            // Obtener ID de frecuencia de liquidación dinámicamente
+            $liquidation_frequency_id = $this->getLiquidationFrequencyId();
+
+            // Obtener planillas de liquidación con información de la liquidación
             $sql = "SELECT pc.*, tp.descripcion as tipo_planilla_nombre,
                            f.nombre as frecuencia_nombre,
                            COUNT(DISTINCT pd.id) as total_empleados,
@@ -927,11 +1002,12 @@ class LiquidationController extends Controller
                     LEFT JOIN planilla_detalle pd ON pc.id = pd.planilla_cabecera_id
                     LEFT JOIN employee_terminations et ON pd.employee_id = et.employee_id
                         AND pc.fecha_hasta = et.termination_date
-                    WHERE pc.frecuencia_id = 9
+                    WHERE pc.frecuencia_id = ?
                     GROUP BY pc.id, et.id, et.status
                     ORDER BY pc.created_at DESC";
 
-            $stmt = $this->db->query($sql);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$liquidation_frequency_id]);
             $payrolls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $this->render('admin/liquidation/payrolls', [
@@ -957,10 +1033,11 @@ class LiquidationController extends Controller
                     FROM planilla_cabecera pc
                     LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
-                    WHERE pc.id = ? AND pc.frecuencia_id = 9";
+                    WHERE pc.id = ? AND pc.frecuencia_id = ?";
 
+            $liquidation_frequency_id = $this->getLiquidationFrequencyId();
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$payroll_id]);
+            $stmt->execute([$payroll_id, $liquidation_frequency_id]);
             $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$payroll) {
@@ -1368,10 +1445,11 @@ class LiquidationController extends Controller
                     FROM planilla_cabecera pc
                     LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
-                    WHERE pc.id = ? AND pc.frecuencia_id = 9";
+                    WHERE pc.id = ? AND pc.frecuencia_id = ?";
 
+            $liquidation_frequency_id = $this->getLiquidationFrequencyId();
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$payroll_id]);
+            $stmt->execute([$payroll_id, $liquidation_frequency_id]);
             $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$payroll) {
@@ -1726,10 +1804,11 @@ class LiquidationController extends Controller
                     FROM planilla_cabecera pc
                     LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
-                    WHERE pc.id = ? AND pc.frecuencia_id = 9";
+                    WHERE pc.id = ? AND pc.frecuencia_id = ?";
 
+            $liquidation_frequency_id = $this->getLiquidationFrequencyId();
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$payroll_id]);
+            $stmt->execute([$payroll_id, $liquidation_frequency_id]);
             $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$payroll) {
