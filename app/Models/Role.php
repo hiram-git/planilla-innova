@@ -260,11 +260,20 @@ class Role extends Model
 
             // Insertar nuevos permisos
             if (!empty($permissions)) {
+                // Obtener IDs válidos de menu_items para validación
+                $validMenuIds = $this->getValidMenuIds();
+
                 $sql = "INSERT INTO role_permissions (role_id, menu_id, read_perm, write_perm, delete_perm)
                         VALUES (?, ?, ?, ?, ?)";
                 $stmt = $this->db->prepare($sql);
 
                 foreach ($permissions as $menuId => $perms) {
+                    // Filtrar: solo insertar si el menu_id existe en menu_items
+                    if (!in_array($menuId, $validMenuIds)) {
+                        error_log("Warning: Skipping permission for non-existent menu_id: {$menuId}");
+                        continue;
+                    }
+
                     $stmt->execute([
                         $roleId,
                         $menuId,
@@ -277,6 +286,28 @@ class Role extends Model
         } catch (Exception $e) {
             error_log("Error saving role permissions: " . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Obtener IDs válidos de menu_items
+     */
+    private function getValidMenuIds()
+    {
+        try {
+            $sql = "SELECT id FROM menu_items WHERE status = 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+
+            $ids = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $ids[] = (int)$row['id'];
+            }
+
+            return $ids;
+        } catch (Exception $e) {
+            error_log("Error getting valid menu IDs: " . $e->getMessage());
+            return [];
         }
     }
 

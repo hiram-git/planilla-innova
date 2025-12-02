@@ -3,6 +3,10 @@
  * Sidebar Component - AdminLTE Multilevel Style
  * ✅ REFACTORIZADO CON ESTRUCTURA MULTILEVEL NATIVA ADMINLTE
  * ✅ PERSISTENCIA AUTOMÁTICA DE ESTADO CON data-widget="treeview"
+ * ✅ FILTRADO DE PERMISOS: Solo muestra módulos con permiso read
+ * ✅ HEADERS CONDICIONALES: Oculta secciones sin módulos accesibles
+ *
+ * @version v3.5.13 - 02-Dic-2025 - Sistema de permisos granular sidebar
  */
 
 use App\Helpers\PermissionHelper;
@@ -96,9 +100,64 @@ class SidebarComponent
         return false;
     }
 
+    /**
+     * Verificar si tiene permiso para una ruta específica (solo lectura)
+     */
+    private function canAccessRoute($route)
+    {
+        // Super admin tiene acceso a todo
+        if (PermissionHelper::isSuperAdmin()) {
+            return true;
+        }
+
+        // Dashboard siempre accesible si está autenticado
+        if ($route === 'dashboard') {
+            return true;
+        }
+
+        // Verificar permiso de lectura para la ruta
+        return PermissionHelper::canAccess($route, 'read');
+    }
+
     public function render()
     {
         $isPublic = $this->isPublicInstitution();
+
+        // Obtener permisos del usuario actual
+        $isSuperAdmin = PermissionHelper::isSuperAdmin();
+
+        // Pre-verificar acceso a secciones completas para determinar si mostrar headers
+        $hasPersonalSection = $isSuperAdmin ||
+            $this->canAccessRoute('employees') ||
+            $this->canAccessRoute('positions') ||
+            $this->canAccessRoute('cargos') ||
+            $this->canAccessRoute('partidas') ||
+            $this->canAccessRoute('funciones') ||
+            $this->canAccessRoute('schedules');
+
+        $hasAttendanceSection = $isSuperAdmin ||
+            $this->canAccessRoute('attendance');
+
+        $hasReportsSection = $isSuperAdmin ||
+            $this->canAccessRoute('reports');
+
+        $hasPayrollSection = $isSuperAdmin ||
+            $this->canAccessRoute('payrolls') ||
+            $this->canAccessRoute('concepts') ||
+            $this->canAccessRoute('tipos-planilla') ||
+            $this->canAccessRoute('frecuencias') ||
+            $this->canAccessRoute('situaciones') ||
+            $this->canAccessRoute('tipos-acumulados') ||
+            $this->canAccessRoute('acumulados') ||
+            $this->canAccessRoute('liquidation') ||
+            $this->canAccessRoute('vacation') ||
+            $this->canAccessRoute('creditors');
+
+        $hasConfigSection = $isSuperAdmin ||
+            $this->canAccessRoute('company') ||
+            $this->canAccessRoute('users') ||
+            $this->canAccessRoute('roles') ||
+            $this->canAccessRoute('business-calendar');
 
         return '
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -120,11 +179,17 @@ class SidebarComponent
                                 <i class="nav-icon fas fa-tachometer-alt"></i>
                                 <p>Dashboard</p>
                             </a>
-                        </li>
+                        </li>' .
 
+                        // ============================================================================
+                        // GESTIÓN DE PERSONAL
+                        // ============================================================================
+                        ($hasPersonalSection ? '
                         <!-- GESTIÓN DE PERSONAL -->
-                        <li class="nav-header">GESTIÓN DE PERSONAL</li>
+                        <li class="nav-header">GESTIÓN DE PERSONAL</li>' : '') .
 
+                        // Empleados
+                        ($this->canAccessRoute('employees') ? '
                         <!-- Empleados -->
                         <li class="nav-item ' . ($this->isActive('panel/employees') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/employees') ? 'active' : '') . '">
@@ -160,8 +225,10 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') . '
 
+                        ' . // Estructura Organizacional - mostrar si tiene acceso a algún submódulo
+                        (($this->canAccessRoute('positions') || $this->canAccessRoute('cargos') || $this->canAccessRoute('partidas') || $this->canAccessRoute('funciones')) ? '
                         <!-- Estructura Organizacional -->
                         <li class="nav-item ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'active' : '') . '">
@@ -172,31 +239,34 @@ class SidebarComponent
                                 </p>
                             </a>
                             <ul class="nav nav-treeview">' .
-                            ($isPublic ? '
+                            (($isPublic && $this->canAccessRoute('positions')) ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::position() . '" class="nav-link ' . ($this->isActive('panel/positions') ? 'active' : '') . '">
                                         <i class="fas fa-briefcase nav-icon"></i>
                                         <p>Posiciones</p>
                                     </a>
-                                </li>' : '') . '
+                                </li>' : '') .
+                            ($this->canAccessRoute('cargos') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::cargo() . '" class="nav-link ' . ($this->isActive('panel/cargos') ? 'active' : '') . '">
                                         <i class="fas fa-user-tie nav-icon"></i>
                                         <p>Cargos</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                            ($this->canAccessRoute('partidas') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::partida() . '" class="nav-link ' . ($this->isActive('panel/partidas') ? 'active' : '') . '">
                                         <i class="fas fa-coins nav-icon"></i>
                                         <p>Partidas</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                            ($this->canAccessRoute('funciones') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::funcion() . '" class="nav-link ' . ($this->isActive('panel/funciones') ? 'active' : '') . '">
                                         <i class="fas fa-tasks nav-icon"></i>
                                         <p>Funciones</p>
                                     </a>
-                                </li>
+                                </li>' : '') . '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::url('panel/organizational') . '" class="nav-link ' . ($this->isActive('panel/organizational') ? 'active' : '') . '">
                                         <i class="fas fa-project-diagram nav-icon"></i>
@@ -204,19 +274,27 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') .
 
+                        // Horarios
+                        ($this->canAccessRoute('schedules') ? '
                         <!-- Horarios -->
                         <li class="nav-item">
                             <a href="' . \App\Core\UrlHelper::schedule() . '" class="nav-link ' . ($this->isActive('panel/schedules') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-calendar-alt"></i>
                                 <p>Horarios</p>
                             </a>
-                        </li>
+                        </li>' : '') . '
 
+                        ' . // ============================================================================
+                        // CONTROL DE ASISTENCIA
+                        // ============================================================================
+                        ($hasAttendanceSection ? '
                         <!-- CONTROL DE ASISTENCIA -->
-                        <li class="nav-header">CONTROL DE ASISTENCIA</li>
+                        <li class="nav-header">CONTROL DE ASISTENCIA</li>' : '') .
 
+                        // Asistencia
+                        ($this->canAccessRoute('attendance') ? '
                         <!-- Asistencia -->
                         <li class="nav-item ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') || $this->isActive('panel/attendance-api-config') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/attendance') || $this->isActive('timeclock') || $this->isActive('panel/attendance-api-config') ? 'active' : '') . '">
@@ -270,12 +348,18 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
-                        
+                        </li>' : '') . '
 
+
+                        ' . // ============================================================================
+                        // REPORTES
+                        // ============================================================================
+                        ($hasReportsSection ? '
                         <!-- REPORTES -->
-                        <li class="nav-header">REPORTES</li>
+                        <li class="nav-header">REPORTES</li>' : '') .
 
+                        // Reportes
+                        ($this->canAccessRoute('reports') ? '
                         <!-- Reportes -->
                         <li class="nav-item ' . ($this->isActive('panel/reports') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/reports') ? 'active' : '') . '">
@@ -299,11 +383,17 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') . '
 
+                        ' . // ============================================================================
+                        // NÓMINA Y PLANILLAS
+                        // ============================================================================
+                        ($hasPayrollSection ? '
                         <!-- NÓMINA Y PLANILLAS -->
-                        <li class="nav-header">NÓMINA Y PLANILLAS</li>
+                        <li class="nav-header">NÓMINA Y PLANILLAS</li>' : '') .
 
+                        // Gestión de Planillas
+                        ($this->canAccessRoute('payrolls') ? '
                         <!-- Gestión de Planillas -->
                         <li class="nav-item ' . ($this->isActive('panel/payrolls') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/payrolls') ? 'active' : '') . '">
@@ -327,8 +417,10 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') .
 
+                        // Conceptos y Fórmulas
+                        ($this->canAccessRoute('concepts') ? '
                         <!-- Conceptos y Fórmulas -->
                         <li class="nav-item ' . ($this->isActive('panel/concepts') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/concepts') ? 'active' : '') . '">
@@ -352,8 +444,10 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') .
 
+                        // Configuración de Conceptos - mostrar si tiene acceso a algún submódulo
+                        (($this->canAccessRoute('tipos-planilla') || $this->canAccessRoute('frecuencias') || $this->canAccessRoute('situaciones') || $this->canAccessRoute('tipos-acumulados')) ? '
                         <!-- Configuración de Conceptos -->
                         <li class="nav-item ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') || $this->isActive('panel/tipos-acumulados') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/tipos-planilla') || $this->isActive('panel/frecuencias') || $this->isActive('panel/situaciones') || $this->isActive('panel/tipos-acumulados') ? 'active' : '') . '">
@@ -363,34 +457,40 @@ class SidebarComponent
                                     <i class="fas fa-angle-left right"></i>
                                 </p>
                             </a>
-                            <ul class="nav nav-treeview">
+                            <ul class="nav nav-treeview">' .
+                                ($this->canAccessRoute('tipos-planilla') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/tipos-planilla') . '" class="nav-link ' . ($this->isActive('panel/tipos-planilla') ? 'active' : '') . '">
                                         <i class="fas fa-clipboard-list nav-icon"></i>
                                         <p>Tipos de Planilla</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                                ($this->canAccessRoute('frecuencias') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/frecuencias') . '" class="nav-link ' . ($this->isActive('panel/frecuencias') ? 'active' : '') . '">
                                         <i class="fas fa-calendar-check nav-icon"></i>
                                         <p>Frecuencias</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                                ($this->canAccessRoute('situaciones') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/situaciones') . '" class="nav-link ' . ($this->isActive('panel/situaciones') ? 'active' : '') . '">
                                         <i class="fas fa-user-tag nav-icon"></i>
                                         <p>Situaciones</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                                ($this->canAccessRoute('tipos-acumulados') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/tipos-acumulados') . '" class="nav-link ' . ($this->isActive('panel/tipos-acumulados') ? 'active' : '') . '">
                                         <i class="fas fa-coins nav-icon"></i>
                                         <p>Tipos de Acumulados</p>
                                     </a>
-                                </li>
+                                </li>' : '') . '
                             </ul>
-                        </li>
+                        </li>' : '') . '
 
+                        ' . // Acumulados
+                        ($this->canAccessRoute('acumulados') ? '
                         <!-- Acumulados -->
                         <li class="nav-item ' . ($this->isActive('panel/acumulados') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/acumulados') ? 'active' : '') . '">
@@ -401,12 +501,6 @@ class SidebarComponent
                                 </p>
                             </a>
                             <ul class="nav nav-treeview">
-                                <!--<li class="nav-item">
-                                    <a href="' . \App\Core\UrlHelper::route('panel/acumulados') . '" class="nav-link ' . ($this->isActive('panel/acumulados') && !$this->isActive('panel/acumulados/byType') && !$this->isActive('panel/acumulados/byEmployee') && !$this->isActive('panel/acumulados/byConcepto') ? 'active' : '') . '">
-                                        <i class="fas fa-tachometer-alt nav-icon"></i>
-                                        <p>Dashboard Acumulados</p>
-                                    </a>
-                                </li>-->
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byEmployee') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byEmployee') ? 'active' : '') . '">
                                         <i class="fas fa-user nav-icon"></i>
@@ -420,8 +514,10 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') .
 
+                        // Liquidaciones
+                        ($this->canAccessRoute('liquidation') ? '
                         <!-- Liquidaciones -->
                         <li class="nav-item ' . ($this->isActive('panel/liquidation') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/liquidation') ? 'active' : '') . '">
@@ -445,8 +541,10 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') .
 
+                        // Vacaciones
+                        ($this->canAccessRoute('vacation') ? '
                         <!-- Vacaciones -->
                         <li class="nav-item ' . ($this->isActive('panel/vacation') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/vacation') ? 'active' : '') . '">
@@ -476,8 +574,10 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') .
 
+                        // Acreedores y Deducciones
+                        ($this->canAccessRoute('creditors') ? '
                         <!-- Acreedores y Deducciones -->
                         <li class="nav-item ' . ($this->isActive('panel/creditors') || $this->isActive('panel/deductions') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/creditors') || $this->isActive('panel/deductions') ? 'active' : '') . '">
@@ -519,11 +619,17 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
-                        </li>
+                        </li>' : '') . '
 
+                        ' . // ============================================================================
+                        // CONFIGURACIÓN
+                        // ============================================================================
+                        ($hasConfigSection ? '
                         <!-- CONFIGURACIÓN -->
-                        <li class="nav-header">CONFIGURACIÓN</li>
+                        <li class="nav-header">CONFIGURACIÓN</li>' : '') .
 
+                        // Administración - mostrar si tiene acceso a algún submódulo
+                        (($this->canAccessRoute('company') || $this->canAccessRoute('users') || $this->canAccessRoute('roles') || $this->canAccessRoute('business-calendar')) ? '
                         <!-- Administración -->
                         <li class="nav-item ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') || $this->isActive('panel/business-calendar') ? 'menu-open' : '') . '">
                             <a href="#" class="nav-link ' . ($this->isActive('panel/users') || $this->isActive('panel/roles') || $this->isActive('panel/business-calendar') ? 'active' : '') . '">
@@ -533,33 +639,37 @@ class SidebarComponent
                                     <i class="fas fa-angle-left right"></i>
                                 </p>
                             </a>
-                            <ul class="nav nav-treeview">
+                            <ul class="nav nav-treeview">' .
+                                ($this->canAccessRoute('company') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::url('panel/company') . '" class="nav-link ' . ($this->isActive('panel/company') ? 'active' : '') . '">
                                         <i class="fas fa-building nav-icon"></i>
                                         <p>Configuración de Empresa</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                                ($this->canAccessRoute('users') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/users') . '" class="nav-link ' . ($this->isActive('panel/users') ? 'active' : '') . '">
                                         <i class="fas fa-users-cog nav-icon"></i>
                                         <p>Usuarios</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                                ($this->canAccessRoute('roles') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/roles') . '" class="nav-link ' . ($this->isActive('panel/roles') ? 'active' : '') . '">
                                         <i class="fas fa-key nav-icon"></i>
                                         <p>Roles y Permisos</p>
                                     </a>
-                                </li>
+                                </li>' : '') .
+                                ($this->canAccessRoute('business-calendar') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/business-calendar') . '" class="nav-link ' . ($this->isActive('panel/business-calendar') ? 'active' : '') . '">
                                         <i class="fas fa-calendar-check nav-icon"></i>
                                         <p>Calendario Empresarial</p>
                                     </a>
-                                </li>
+                                </li>' : '') . '
                             </ul>
-                        </li>
+                        </li>' : '') . '
                     </ul>
                 </nav>
             </div>
