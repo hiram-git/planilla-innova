@@ -156,7 +156,15 @@ $pageTitle = $selectedEmployee ? "Acumulados - " . htmlspecialchars(($selectedEm
                             <div class="small-box bg-<?= $colorClass ?>">
                                 <div class="inner">
                                     <h3><?= currency_symbol() ?><?= number_format($agrupado['total_monto'], 2) ?></h3>
-                                    <p><?= htmlspecialchars($agrupado['grupo_descripcion'] ?? 'N/A') ?></p>
+                                    <p>
+                                        <?= htmlspecialchars($agrupado['grupo_descripcion'] ?? 'N/A') ?>
+                                        <?php if (isset($agrupado['tipo_acumulado_descripcion'])): ?>
+                                            <br>
+                                            <span class="badge badge-warning mt-1">
+                                                <i class="fas fa-tag"></i> <?= htmlspecialchars($agrupado['tipo_acumulado_descripcion']) ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </p>
                                     <div class="small mt-2">
                                         <?php if ($groupBy === 'planilla' && isset($agrupado['fecha_inicio'])): ?>
                                             <i class="fas fa-calendar"></i>

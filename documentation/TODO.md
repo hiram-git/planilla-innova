@@ -1,8 +1,27 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-12-01 (v3.5.12)
+Actualizado: 2025-12-02 (v3.5.13)
 
-## ✅ Completado Recientemente (v3.5.12 - 01-Dic-2025)
+## ✅ Completado Recientemente (v3.5.13 - 02-Dic-2025)
+
+### Sistema Permisos Granular + Liquidaciones Dinámicas
+- [x] Fix error FK role_permissions al actualizar roles
+- [x] Insertar 8 módulos faltantes en menu_items (IDs 18-25)
+- [x] Agregar método getValidMenuIds() en Role.php para validación FK
+- [x] Sistema permisos granular en sidebar.php con filtrado dinámico
+- [x] Método canAccessRoute() para verificación permisos lectura
+- [x] Pre-verificación de secciones con variables $hasXxxSection
+- [x] Headers condicionales (oculta secciones sin módulos accesibles)
+- [x] Fix conceptos LIQ no aparecían (frecuencia_id hardcoded incorrecta)
+- [x] Corregir asignación frecuencia_id=5 a todos conceptos LIQ
+- [x] Asignar tipo_planilla_id=1 a conceptos LIQ sin asignación
+- [x] Implementar método getLiquidationFrequencyId() dinámico con caché
+- [x] Usar UPPER() en búsquedas para case-insensitive (código y nombre)
+- [x] Reemplazar 8 hardcodes frecuencia_id por búsqueda dinámica
+- [x] Actualizar CHANGELOG.md con índice v3.5.13
+- [x] Crear documentation/changelog/v3.5.13.md con detalles completos
+
+### Previous (v3.5.12 - 01-Dic-2025)
 
 ### Acumulados Excel Export + Bug Fixes Motor Fórmulas
 - [x] Implementar exportación Excel para módulo acumulados con filtros completos

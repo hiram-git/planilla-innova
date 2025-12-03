@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root {
+            --primary: #0f4c5c;
+            --accent: #3fb8af;
+            --bg: #f5f7fb;
+            --text: #1f2933;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .hero {
+            background: linear-gradient(135deg, var(--primary), #14526a);
+            color: #fff;
+            padding: 32px 28px;
+            border-radius: 10px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        }
+        .hero h1 { margin: 0 0 6px 0; font-size: 30px; letter-spacing: -0.3px; }
+        .hero p { margin: 4px 0; opacity: 0.9; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 20px 0 10px 0;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+        }
+        .card h3 { margin: 0 0 8px 0; color: var(--primary); font-size: 17px; }
+        .card p { margin: 0 0 10px 0; color: #425466; }
+        .card a {
+            display: inline-block;
+            margin-top: 6px;
+            color: #0b7285;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .card a:hover { text-decoration: underline; }
+        ul { padding-left: 18px; margin: 8px 0; }
+        .list-plain { list-style: none; padding-left: 0; margin: 0; }
+        .list-plain li { margin: 6px 0; }
+        .footer {
+            text-align: center;
+            color: #6b7280;
+            padding: 24px 8px;
+            font-size: 14px;
+        }
+        @media (max-width: 700px) {
+            .hero { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>Manual de Usuario</h1>
+            <p>Sistema de Planillas INNOVA · Versión 3.5.6</p>
+            <p>Actualizado: Diciembre 2025</p>
+            <p>Cómo operar cada módulo: pasos, campos, validaciones y mejores prácticas.</p>
+        </section>
+
+        <div class="card">
+            <h3>Cómo usar este manual</h3>
+            <ul>
+                <li>Revisa primero <strong>Acceso y navegación</strong> para entender roles y menús.</li>
+                <li>Luego entra a cada módulo según tu rol: Empleados → Estructura → Horarios → Asistencias → Planillas → Conceptos → Acumulados → Vacaciones → Liquidaciones → Acreedores → Reportes → Configuración.</li>
+                <li>Cada página incluye flujos paso a paso, campos obligatorios, validaciones y checklist de cierre.</li>
+            </ul>
+        </div>
+
+        <h2 style="color: var(--primary); margin-top: 22px;">Módulos detallados</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Acceso y Dashboard</h3>
+                <p>Inicio de sesión, roles/permisos y navegación general.</p>
+                <a href="modulo_acceso_dashboard.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Empleados</h3>
+                <p>Altas, edición, bajas, importación y campos clave.</p>
+                <a href="modulo_empleados.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Estructura y Horarios</h3>
+                <p>Posiciones/cargos/partidas/funciones, organigrama y horarios.</p>
+                <a href="modulo_estructura_horarios.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Asistencias</h3>
+                <p>Dispositivos/API, sincronización, cálculo y reportes.</p>
+                <a href="modulo_asistencias.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Planillas</h3>
+                <p>Creación, cálculo, proceso/cierre y reproceso.</p>
+                <a href="modulo_planillas.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Conceptos y Fórmulas</h3>
+                <p>Catálogo, condiciones, pruebas y funciones disponibles.</p>
+                <a href="modulo_conceptos.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Acumulados</h3>
+                <p>XIII mes, vacaciones, prima de antigüedad y consultas.</p>
+                <a href="modulo_acumulados.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Vacaciones</h3>
+                <p>Solicitudes, balances, calendario y reportes.</p>
+                <a href="modulo_vacaciones.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Liquidaciones</h3>
+                <p>Cálculo por motivo, aprobación y planilla de liquidación.</p>
+                <a href="modulo_liquidaciones.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Acreedores y Deducciones</h3>
+                <p>Instituciones, deducciones por empleado y asignación masiva.</p>
+                <a href="modulo_acreedores.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Reportes y Exportaciones</h3>
+                <p>PDF/Excel de planillas, acreedores, asistencias y CSV.</p>
+                <a href="modulo_reportes.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Configuración</h3>
+                <p>Empresa, usuarios/roles, calendario empresarial y parámetros.</p>
+                <a href="modulo_configuracion.html">Abrir sección</a>
+            </div>
+            <div class="card">
+                <h3>Buenas prácticas</h3>
+                <p>Checklists previos y resolución básica de problemas.</p>
+                <a href="modulo_buenas_practicas.html">Abrir sección</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Estructura de archivos</h3>
+            <ul class="list-plain">
+                <li><code>manual_usuario.html</code>: índice principal y guía rápida.</li>
+                <li><code>modulo_*.html</code>: detalle de cada módulo (pasos, campos, validaciones, ejemplos).</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            INNOVA Planillas · Manual v3.5.6 · &copy; 2025
+        </div>
+    </div>
+</body>
+</html>

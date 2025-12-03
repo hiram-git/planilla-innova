@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso y Dashboard - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --accent:#3fb8af; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px 20px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:24px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;} th{background:#eef2f6;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Acceso y Dashboard</h1>
+            <p>Roles, permisos, navegación y métricas iniciales.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Inicio de sesión</h2>
+            <ol>
+                <li>Ingrese usuario y contraseña en la pantalla de login del panel.</li>
+                <li>El sistema valida CSRF y credenciales; al aprobar, redirige a <strong>Dashboard</strong>.</li>
+                <li>Para cerrar sesión, use el menú de usuario (esquina superior derecha).</li>
+            </ol>
+            <p><strong>Licencia:</strong> si el tenant no es “default”, el dropdown de licencia muestra empresa, RUC, clave y días restantes.</p>
+        </div>
+
+        <div class="card">
+            <h2>2. Roles y permisos (referencia rápida)</h2>
+            <table>
+                <thead><tr><th>Rol</th><th>Permisos típicos</th><th>Uso sugerido</th></tr></thead>
+                <tbody>
+                    <tr><td>Super Admin</td><td>Todo el sistema, configuración y seguridad.</td><td>Soporte/Liderazgo TI.</td></tr>
+                    <tr><td>Administrador</td><td>Planillas, empleados, asistencias, conceptos, reportes.</td><td>RRHH/Payroll Manager.</td></tr>
+                    <tr><td>Operador</td><td>Consulta y operaciones acotadas (empleados, asistencias, reportes).</td><td>Analistas/Operación.</td></tr>
+                    <tr><td>Solo lectura</td><td>Consulta de reportes y listados.</td><td>Auditoría/Visores.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>3. Navegación</h2>
+            <ul>
+                <li><strong>Barra superior:</strong> selector de tipo de planilla (persistente en sessionStorage), reloj en vivo, acciones rápidas (nuevo empleado/horario/posición), acceso a Marcaciones y dropdown de licencia.</li>
+                <li><strong>Sidebar:</strong> módulos agrupados: Dashboard, Gestión de personal, Control de asistencia, Reportes, Nómina/Planillas, Acumulados, Liquidaciones, Vacaciones, Acreedores/Deducciones, Configuración.</li>
+                <li><strong>Migas de pan y avisos:</strong> cada vista incluye breadcrumbs y notificaciones Toastr para éxitos/errores.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>4. Dashboard</h2>
+            <ul>
+                <li>Métricas clave: empleados activos, planillas procesadas, monto total, conceptos activos (filtrables por tipo de planilla).</li>
+                <li>Accesos rápidos: nueva planilla, buscar empleado, procesar nómina, generar reportes.</li>
+                <li>Alertas: mensajes de permiso, estado de sesión y avisos de licencia.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

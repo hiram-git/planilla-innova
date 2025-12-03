@@ -701,7 +701,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 01 de Diciembre, 2025
-Sistema: Planillas MVC v3.5.12
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 35% | Employee Import 100% | Acumulados Export 100%
+Última Actualización: 02 de Diciembre, 2025
+Sistema: Planillas MVC v3.5.13
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 35% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100%
 

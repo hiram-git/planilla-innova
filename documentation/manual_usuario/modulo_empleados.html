@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Empleados - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;} th{background:#eef2f6;}
+        .badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:12px;color:#fff;background:#0f4c5c;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Módulo de Empleados</h1>
+            <p>Altas, edición, bajas, importación y validaciones.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Requisitos previos</h2>
+            <ul>
+                <li>Catálogos listos: posición o cargo/partida/función, horario, situación laboral, tipo de planilla.</li>
+                <li>Roles/permisos: acceso a <em>employees</em> con crear/editar/eliminar según el rol.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Crear empleado</h2>
+            <ol>
+                <li>Ir a <strong>Empleados → Nuevo Empleado</strong>.</li>
+                <li>Complete <strong>datos básicos</strong>: código único, nombres, apellidos, documento, fecha nacimiento e ingreso.</li>
+                <li>Asigne <strong>información organizacional</strong> según empresa:
+                    <ul>
+                        <li>Pública: posición (con organigrama si aplica).</li>
+                        <li>Privada: cargo, partida, función.</li>
+                    </ul>
+                </li>
+                <li>Seleccione <strong>horario</strong> y <strong>situación</strong> (activo/inactivo/suspendido).</li>
+                <li>Defina <strong>contrato</strong>: tipo (indefinido/definido/proyecto/temporal), número, fecha inicio/fin.</li>
+                <li>Configure <strong>forma de pago</strong>: efectivo, cheque o ACH; si cheque/ACH, capture banco, cuenta, tipo de cuenta.</li>
+                <li>Ingrese salario individual y gastos de representación si corresponde.</li>
+                <li>Adjunte foto y relaciónelo al organigrama (opcional).</li>
+                <li>Guarde. El sistema valida campos obligatorios y unicidad del código.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>3. Edición y bajas</h2>
+            <ul>
+                <li>Listado principal: búsqueda por nombre, código, documento, cargo/posición; acciones de ver, editar, desactivar.</li>
+                <li>Vista <strong>Empleados dados de baja</strong>: consulta y reactivación si corresponde.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>4. Importar desde Excel</h2>
+            <ol>
+                <li>Descargue la plantilla desde <strong>Importar desde Excel</strong>.</li>
+                <li>Complete columnas obligatorias: código, nombres, apellidos, documento, fecha de ingreso, salario, horario, situación, tipo de planilla.</li>
+                <li>Opcionales: correo, marca_asistencia, permite_horas_extras, datos bancarios.</li>
+                <li>Cargue el archivo; el sistema valida duplicados y formatos antes de insertar.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>5. Campos principales y reglas</h2>
+            <table>
+                <thead><tr><th>Campo</th><th>Obligatorio</th><th>Notas</th></tr></thead>
+                <tbody>
+                    <tr><td>Código empleado</td><td>Sí</td><td>Único; se usa en deducciones y asistencia.</td></tr>
+                    <tr><td>Nombres/Apellidos</td><td>Sí</td><td>Texto.</td></tr>
+                    <tr><td>Documento</td><td>Sí</td><td>Validar formato local.</td></tr>
+                    <tr><td>Fecha ingreso</td><td>Sí</td><td>Base de antigüedad y acumulados.</td></tr>
+                    <tr><td>Posición o Cargo/Partida/Función</td><td>Recomendado</td><td>Visible según tipo de empresa.</td></tr>
+                    <tr><td>Horario</td><td>Sí para asistencias</td><td>Usado para cálculo de tardanzas/horas extras.</td></tr>
+                    <tr><td>Situación</td><td>Sí</td><td>Activo/Inactivo/Suspendido (afecta planillas y filtros).</td></tr>
+                    <tr><td>Tipo de planilla</td><td>Sí</td><td>Se usa para filtros y cálculos.</td></tr>
+                    <tr><td>Contrato (tipo/fechas)</td><td>Condicional</td><td>Obligatorio fecha fin si no es indefinido.</td></tr>
+                    <tr><td>Forma de pago</td><td>Sí</td><td>Muestra campos bancarios según selección.</td></tr>
+                    <tr><td>Salario individual</td><td>Sí</td><td>Base de conceptos y acumulados.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>6. Checklist rápido</h2>
+            <ul>
+                <li>Código único y situación = Activo.</li>
+                <li>Horario asignado si usa asistencias.</li>
+                <li>Contrato completo (fecha fin si aplica) y forma de pago coherente con datos bancarios.</li>
+                <li>Tipo de planilla correcto para filtros y cálculo.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

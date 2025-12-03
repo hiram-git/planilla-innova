@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planillas - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1050px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;} th{background:#eef2f6;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Planillas</h1>
+            <p>Creación, cálculo, procesamiento, cierre y reproceso.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Requisitos previos</h2>
+            <ul>
+                <li>Empleados activos con horario y salario asignado.</li>
+                <li>Conceptos configurados y fórmulas probadas.</li>
+                <li>Tipos de planilla y frecuencias activas.</li>
+                <li>Asistencias sincronizadas si se usarán en la nómina.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Crear planilla</h2>
+            <ol>
+                <li>Ir a <strong>Planillas → Nueva Planilla</strong>.</li>
+                <li>Complete: descripción, tipo de planilla, frecuencia, fecha de pago, periodo inicio/fin.</li>
+                <li>Guarde para generar el encabezado.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>3. Calcular</h2>
+            <ul>
+                <li>Seleccione la planilla y haga clic en <strong>Calcular</strong>.</li>
+                <li>El sistema aplica conceptos según condiciones (tipo de planilla, situación, fechas, acumulables).</li>
+                <li>Si la integración de asistencias está activa, se precargan conceptos de horas trabajadas, extras (+25%/+50%), nocturnas y descuentos de tardanza/ausencia.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>4. Revisar</h2>
+            <ul>
+                <li>En el detalle por empleado verás asignaciones, deducciones y neto.</li>
+                <li>Valida totales y observa mensajes/alertas de reglas de conceptos.</li>
+                <li>Corrige datos de empleado o conceptos si es necesario y recalcula.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>5. Procesar y cerrar</h2>
+            <ul>
+                <li><strong>Procesar:</strong> fija los cálculos y marca la planilla como PROCESADA.</li>
+                <li><strong>Cerrar:</strong> bloquea ediciones y genera acumulados (XIII mes, vacaciones, prima de antigüedad según corresponda).</li>
+                <li>Después de cerrar, genera los reportes (PDF/Excel/Comprobantes).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>6. Reprocesar</h2>
+            <ul>
+                <li>Opción <strong>Reprocesar</strong> devuelve la planilla a PENDIENTE, limpia los registros y permite recalcular.</li>
+                <li>Parámetros clave: validar situación del empleado y usar salario histórico por tipo de planilla.</li>
+                <li>Úselo si se actualizaron empleados, conceptos o asistencias y requiere recalcular.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>7. Planillas de liquidación</h2>
+            <ul>
+                <li>Liquidaciones aprobadas pueden generar una planilla específica de liquidación (frecuencia dedicada).</li>
+                <li>Se procesan igual que las regulares y cuentan con sus reportes.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>8. Checklist previo al cierre</h2>
+            <ul>
+                <li>Conceptos sin errores y fórmulas probadas.</li>
+                <li>Asistencias sincronizadas y procesadas para el periodo.</li>
+                <li>Empleados activos en la fecha de la planilla con salario y horario.</li>
+                <li>Reportes previos revisados (previews) antes de cerrar.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

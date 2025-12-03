@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Configuración</h1>
+            <p>Empresa, usuarios/roles, calendario empresarial y parámetros base.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Empresa</h2>
+            <ul>
+                <li>Datos generales: nombre, RUC, moneda y logos empresariales (usados en reportes).</li>
+                <li>Verifique símbolo de moneda para evitar inconsistencias en vistas.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Usuarios y roles</h2>
+            <ul>
+                <li>Crear/editar usuarios: nombre, correo, usuario, rol y estado.</li>
+                <li>Roles con permisos granulares (lectura, creación, actualización, eliminación, procesar).</li>
+                <li>Para restricciones estrictas, use <em>Solo lectura</em> en consultas/reportes.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>3. Calendario empresarial</h2>
+            <ul>
+                <li>Feriados, duelo nacional y días especiales por año (cargados 2024-2025 con 13 feriados panameños).</li>
+                <li>Vista calendario y listado; se usa en asistencias, vacaciones y cálculos legales.</li>
+                <li>Agregar días especiales con tipo y estado (NORMAL, RECUPERABLE, MEDIO_DIA, HORARIO_ESPECIAL).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>4. Parámetros de conceptos</h2>
+            <ul>
+                <li><strong>Tipos de planilla</strong> y <strong>frecuencias</strong>.</li>
+                <li><strong>Situaciones</strong> laborales.</li>
+                <li><strong>Tipos de acumulados</strong> (XIII, vacaciones, prima de antigüedad, etc.).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>5. Licencia (tenant)</h2>
+            <ul>
+                <li>Dropdown en la barra superior muestra: empresa, RUC, clave de licencia, fecha de expiración y días restantes.</li>
+                <li>Colores: verde ≥30 días, amarillo 7–29, rojo &lt;7, “Expirada” si está vencida.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>6. Checklist</h2>
+            <ul>
+                <li>Configurar moneda y logos antes de generar reportes.</li>
+                <li>Roles revisados: validar que cada usuario tenga solo los permisos requeridos.</li>
+                <li>Calendario empresarial actualizado cada año.</li>
+                <li>Tipos de planilla/frecuencias activos y usados en conceptos y planillas.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

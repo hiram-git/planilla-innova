@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conceptos y Formulas - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1050px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        code{background:#eef2f6;padding:2px 6px;border-radius:4px;font-size:90%;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Conceptos y Formulas</h1>
+            <p>Catalogo, tipos, unidades, formula, configuraciones avanzadas y reportes PDF.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Catalogo de conceptos</h2>
+            <ul>
+                <li>Tipo: Asignacion o Deduccion.</li>
+                <li>Parametros base: prioridad, categoria, si es acumulable, si requiere <em>monto calculo</em>.</li>
+                <li>Condiciones: tipo de planilla, situacion laboral, fechas de vigencia, frecuencia, grupo.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Tipo de concepto y Unidad</h2>
+            <ul>
+                <li><strong>Tipo:</strong> 
+                    <ul>
+                        <li><em>Asignacion</em>: suma al sueldo.</li>
+                        <li><em>Deduccion</em>: descuenta del sueldo.</li>
+                    </ul>
+                </li>
+                <li><strong>Unidad:</strong> define como interpretar el valor:
+                    <ul>
+                        <li><em>Monetario</em>: monto directo en la moneda configurada.</li>
+                        <li><em>Porcentaje</em>: aplica % sobre base (ej. salario base, otro concepto).</li>
+                        <li><em>Horas</em>: usa horas calculadas (ej. horas extras, nocturnas) multiplicando por tarifa.</li>
+                        <li><em>Unidades</em>: conteo de unidades con valor unitario (caso de incentivos o descuentos por unidad).</li>
+                    </ul>
+                </li>
+                <li><strong>Monto calculo:</strong> marca que el monto se obtiene por formula; si no, se usa el valor fijo ingresado.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>3. Formula de calculo</h2>
+            <ol>
+                <li>Active <em>monto calculo</em> si el valor depende de formula.</li>
+                <li>Use variables de periodo: <code>INIPERIODO</code>, <code>FINPERIODO</code>.</li>
+                <li>Use variables XIII: <code>INICIO_PERIODO_XIII</code>, <code>FIN_PERIODO_XIII</code>, <code>PERIODO_XIII_NUMERO</code>, <code>PERIODO_XIII_ESTADO</code>.</li>
+                <li>Liquidaciones: <code>FECHA_LIQUIDACION</code> y dias de preaviso editable.</li>
+                <li>Funciones principales:
+                    <ul>
+                        <li><code>ACUMULADOS("CODIGO", inicio, fin)</code></li>
+                        <li><code>CONCEPTO("CODIGO")</code> (trae resultado de otro concepto).</li>
+                        <li><code>ACREEDOR(EMPLEADO, id)</code> (monto de deduccion asignada a ese acreedor).</li>
+                        <li>Operaciones matematicas y condicionales del evaluador seguro.</li>
+                    </ul>
+                </li>
+                <li>Evaluacion segura: sin <em>eval()</em>, usa nxp/math-executor.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>4. Configuraciones avanzadas</h2>
+            <ul>
+                <li><strong>Prioridad:</strong> orden de calculo; primero bases, luego asignaciones, despues deducciones.</li>
+                <li><strong>Acumulable:</strong> indica si impacta acumulados (XIII, vacaciones, prima antiguedad u otros tipos definidos).</li>
+                <li><strong>Condiciones de aplicacion:</strong> tipo de planilla, situacion, fechas de vigencia, frecuencia, grupo/etiqueta.</li>
+                <li><strong>Redondeo/precision:</strong> ajustar decimales segun politica (si el formulario lo permite).</li>
+                <li><strong>Integracion con asistencias:</strong> crear conceptos especificos para horas trabajadas/extras/nocturnas/tardanzas/ausencias y mapearlos en la integracion de asistencias.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>5. Configuracion de reportes PDF</h2>
+            <ul>
+                <li>Incluir o no el concepto en comprobantes/planilla PDF.</li>
+                <li>Orden de impresion y agrupacion (asignaciones vs deducciones).</li>
+                <li>Etiquetas descriptivas: usa nombres claros y cortos para que aparezcan bien en el layout.</li>
+                <li>Logos y moneda: toman la configuracion de Empresa y se aplican a todos los reportes.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>6. Probar formulas</h2>
+            <ul>
+                <li>En crear/editar use <strong>Probar formula</strong> para validar sintaxis y resultado antes de guardar.</li>
+                <li>Verifique variables dinamicas de periodo y XIII y que el concepto tenga <em>monto calculo</em> cuando corresponda.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>7. Buenas practicas</h2>
+            <ul>
+                <li>Codigos cortos y consistentes (ej. SALARIO_BASE, DED_AFP).</li>
+                <li>Separar conceptos de asistencias: HORAS_TRABAJADAS, HORAS_EXTRAS_25, HORAS_EXTRAS_50, HORAS_NOCTURNAS, DESCUENTO_TARDANZA, DESCUENTO_AUSENCIA.</li>
+                <li>Prioridades coherentes: base → asignaciones → deducciones.</li>
+                <li>Documentar en la descripcion cuando aplica y que variables usa.</li>
+                <li>Al usar <code>ACUMULADOS</code>, enviar rango explicito para evitar duplicidades.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>8. Ejemplos rapidos</h2>
+            <ul>
+                <li><strong>XIII proporcional:</strong> <code>ACUMULADOS("SALARIO_BASE", INICIO_PERIODO_XIII, FIN_PERIODO_XIII) / 11</code></li>
+                <li><strong>Horas extras 25%:</strong> <code>HORAS_EXTRAS_25 * (SALARIO_BASE/240) * 1.25</code></li>
+                <li><strong>Deduccion acreedor:</strong> <code>ACREEDOR(EMPLEADO, 5)</code> (usa deduccion asignada al empleado con creditor_id=5).</li>
+                <li><strong>Prima antiguedad mensual:</strong> <code>(SALARIO_BASE / 4.33) * 0.0192</code> (ejemplo, ajustar a politica).</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

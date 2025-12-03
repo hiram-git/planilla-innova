@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estructura Organizacional y Horarios - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;} th{background:#eef2f6;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Estructura Organizacional y Horarios</h1>
+            <p>Posiciones/cargos/partidas/funciones, organigrama y horarios.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Catálogos organizativos</h2>
+            <ul>
+                <li><strong>Posiciones</strong> (empresas públicas): jerarquía por puesto; usado en empleados y organigrama.</li>
+                <li><strong>Cargos, Partidas, Funciones</strong> (empresas privadas): catálogos económicos/funcionales asociados al empleado.</li>
+                <li><strong>Organigrama:</strong> estructura visual; se enlaza en la ficha de empleado (opcional).</li>
+            </ul>
+            <p><strong>Flujo recomendado:</strong> crear primero cargos/posiciones → partidas/funciones → organigrama → asignar en empleado.</p>
+        </div>
+
+        <div class="card">
+            <h2>2. Horarios</h2>
+            <ol>
+                <li>Ir a <strong>Horarios → Nuevo</strong>.</li>
+                <li>Complete: código, nombre, descripción (opcional), hora de entrada y salida.</li>
+                <li>Configure almuerzo: salida y entrada (opcional) y tolerancias.</li>
+                <li>Defina tolerancias por evento (antes/después) para entrada, salida, almuerzo.</li>
+                <li>Guarde. El horario queda disponible para asignarlo a empleados.</li>
+            </ol>
+            <table>
+                <thead><tr><th>Campo</th><th>Obligatorio</th><th>Uso</th></tr></thead>
+                <tbody>
+                    <tr><td>Código</td><td>Sí</td><td>Debe ser único.</td></tr>
+                    <tr><td>Hora entrada / salida</td><td>Sí</td><td>Base para tardanza y cálculo de horas.</td></tr>
+                    <tr><td>Almuerzo (salida/entrada)</td><td>No</td><td>Si se usa, impacta cálculo de omisiones/horas.</td></tr>
+                    <tr><td>Tolerancias</td><td>Recomendado</td><td>Ajustan rangos aceptables de marcación.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>3. Buenas prácticas</h2>
+            <ul>
+                <li>Definir códigos consistentes y cortos (ej. H08-17, ADM-DIURNO).</li>
+                <li>Usar tolerancias realistas según política interna; si se omiten, cada variación se marca como tardanza/omisión.</li>
+                <li>Verificar que cada empleado activo tenga horario asignado antes de procesar asistencias.</li>
+                <li>En empresas públicas, preferir <em>posiciones</em>; en privadas, <em>cargo/partida/función</em> según el modelo de datos.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

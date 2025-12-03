@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acreedores y Deducciones - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Acreedores y Deducciones</h1>
+            <p>Instituciones externas, deducciones por empleado y asignación masiva.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Acreedores</h2>
+            <ol>
+                <li>Ir a <strong>Acreedores → Nuevo</strong>.</li>
+                <li>Complete datos de la institución (nombre, contacto, estado).</li>
+                <li>Guarde para habilitar deducciones vinculadas.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>2. Deducciones por empleado</h2>
+            <ol>
+                <li>Ir a <strong>Deducciones</strong> y seleccione empleado.</li>
+                <li>Defina acreedor, monto (fijo o porcentaje), fechas de vigencia y referencia.</li>
+                <li>Guarde. La deducción estará disponible en planillas mediante el concepto asociado.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>3. Asignación masiva</h2>
+            <ul>
+                <li>Use <strong>Asignación masiva</strong> para aplicar una deducción a varios empleados a la vez.</li>
+                <li>Seleccione el acreedor, configure monto/porcentaje y rango de fechas, luego elija empleados y confirme.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>4. Uso en fórmulas</h2>
+            <ul>
+                <li>Para conceptos que dependen de acreedores, use <code>ACREEDOR(EMPLEADO, id)</code> dentro de la fórmula.</li>
+                <li>Requiere que el concepto tenga “monto cálculo” cuando corresponde.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>5. Checklist</h2>
+            <ul>
+                <li>Acreedor activo y con datos completos.</li>
+                <li>Deducción asociada al empleado con fechas vigentes.</li>
+                <li>Concepto configurado y probado usando <code>ACREEDOR</code> si aplica.</li>
+                <li>Para asignaciones masivas, revise la lista final antes de confirmar.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

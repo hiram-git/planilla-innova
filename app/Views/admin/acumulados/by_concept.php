@@ -196,6 +196,12 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                                 <?= $agrupado['tipo_concepto'] ?>
                                             </span>
                                         <?php endif; ?>
+                                        <?php if (isset($agrupado['tipo_acumulado_descripcion'])): ?>
+                                            <br>
+                                            <span class="badge badge-warning mt-1">
+                                                <i class="fas fa-tag"></i> <?= htmlspecialchars($agrupado['tipo_acumulado_descripcion']) ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </p>
                                     <div class="small mt-2">
                                         <?php if ($groupBy === 'empleado'): ?>

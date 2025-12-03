@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario - Sistema de Planillas INNOVA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            margin: -20px -20px 40px -20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+        }
+
+        .toc h2 {
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc ul li {
+            padding: 5px 0;
+        }
+
+        .toc ul li a {
+            color: #495057;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .toc ul li a:hover {
+            color: #007bff;
+        }
+
+        .section {
+            margin: 40px 0;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .section h2 {
+            color: #343a40;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+
+        .section h3 {
+            color: #495057;
+            margin: 25px 0 15px 0;
+            font-size: 1.4em;
+            border-left: 4px solid #6c757d;
+            padding-left: 10px;
+        }
+
+        .section h4 {
+            color: #6c757d;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .feature-card h4 {
+            color: #28a745;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .step-list {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .step-list ol {
+            padding-left: 20px;
+        }
+
+        .step-list li {
+            margin: 10px 0;
+            padding: 5px 0;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .code-block {
+            background: #2d3436;
+            color: #dfe6e9;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .screenshot-placeholder {
+            background: #e9ecef;
+            border: 2px dashed #adb5bd;
+            border-radius: 5px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 20px 0;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+
+        table th {
+            background: #e9ecef;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 0.85em;
+            font-weight: 600;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .badge-success {
+            background: #28a745;
+        }
+
+        .badge-info {
+            background: #17a2b8;
+        }
+
+        .badge-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .badge-danger {
+            background: #dc3545;
+        }
+
+        .badge-primary {
+            background: #007bff;
+        }
+
+        .badge-secondary {
+            background: #6c757d;
+        }
+
+        .button-desc {
+            display: inline-block;
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #f0f0f0;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Manual de Usuario Completo</h1>
+            <p>Sistema de Planillas INNOVA - Guía Detallada de Funcionalidades</p>
+            <p><small>Versión 3.3.0 - Actualizado Diciembre 2025</small></p>
+        </div>
+
+        <div class="toc">
+            <h2>📑 Índice de Contenidos</h2>
+            <ul>
+                <li><a href="#introduccion">1. Introducción al Sistema</a></li>
+                <li><a href="#acceso">2. Acceso y Autenticación</a></li>
+                <li><a href="#dashboard">3. Dashboard Principal</a></li>
+                <li><a href="#gestion-personal">4. Gestión de Personal</a>
+                    <ul>
+                        <li><a href="#empleados">4.1 Empleados</a></li>
+                        <li><a href="#horarios">4.2 Horarios y Turnos</a></li>
+                        <li><a href="#estructura-org">4.3 Estructura Organizacional</a></li>
+                    </ul>
+                </li>
+                <li><a href="#asistencia">5. Control de Asistencia</a>
+                    <ul>
+                        <li><a href="#dispositivos">5.1 Gestión de Dispositivos</a></li>
+                        <li><a href="#sincronizacion">5.2 Sincronización de Datos</a></li>
+                        <li><a href="#marcaciones">5.3 Gestión de Marcaciones</a></li>
+                    </ul>
+                </li>
+                <li><a href="#vacaciones">6. Gestión de Vacaciones</a>
+                    <ul>
+                        <li><a href="#vacaciones-panel">6.1 Panel de Control</a></li>
+                        <li><a href="#vacaciones-solicitud">6.2 Solicitudes y Aprobaciones</a></li>
+                        <li><a href="#vacaciones-calendario">6.3 Calendario de Vacaciones</a></li>
+                    </ul>
+                </li>
+                <li><a href="#conceptos">7. Gestión de Conceptos</a></li>
+                <li><a href="#acreedores">8. Gestión de Acreedores</a></li>
+                <li><a href="#planillas">9. Gestión de Planillas</a></li>
+                <li><a href="#liquidaciones">10. Sistema de Liquidaciones</a></li>
+                <li><a href="#reportes">11. Reportes y Consultas</a></li>
+                <li><a href="#configuracion">12. Configuración del Sistema</a></li>
+            </ul>
+        </div>
+
+        <!-- 1. INTRODUCCIÓN -->
+        <div class="section" id="introduccion">
+            <h2>1. 🎯 Introducción al Sistema</h2>
+            <p>El Sistema de Planillas INNOVA es una solución integral para la gestión de recursos humanos, nómina y
+                asistencia. Esta versión 3.3.0 incorpora módulos avanzados para el control de vacaciones, integración
+                con dispositivos biométricos y un motor de fórmulas optimizado.</p>
+        </div>
+
+        <!-- 2. ACCESO -->
+        <div class="section" id="acceso">
+            <h2>2. 🔐 Acceso y Autenticación</h2>
+            <p>El acceso al sistema está restringido a usuarios autorizados. Cada usuario tiene un rol que define sus
+                permisos.</p>
+
+            <h3>2.1 Pantalla de Login</h3>
+            <p><strong>Campos:</strong></p>
+            <ul>
+                <li><strong>Usuario/Email:</strong> Correo electrónico o nombre de usuario registrado.</li>
+                <li><strong>Contraseña:</strong> Clave de acceso personal.</li>
+            </ul>
+            <p><strong>Botones:</strong></p>
+            <ul>
+                <li><span class="button-desc">Iniciar Sesión</span>: Valida las credenciales y redirige al Dashboard.
+                </li>
+                <li><span class="button-desc">¿Olvidó su contraseña?</span>: Inicia el proceso de recuperación de
+                    cuenta.</li>
+            </ul>
+        </div>
+
+        <!-- 3. DASHBOARD -->
+        <div class="section" id="dashboard">
+            <h2>3. 📊 Dashboard Principal</h2>
+            <p>Centro de control que ofrece una vista panorámica del estado de la empresa.</p>
+
+            <h3>3.1 Tarjetas Informativas</h3>
+            <ul>
+                <li><strong>Total Empleados:</strong> Conteo de empleados activos.</li>
+                <li><strong>Planillas del Mes:</strong> Cantidad de procesos de nómina ejecutados en el mes actual.</li>
+                <li><strong>Solicitudes Pendientes:</strong> Número de solicitudes de vacaciones que requieren
+                    aprobación.</li>
+            </ul>
+        </div>
+
+        <!-- 4. GESTIÓN DE PERSONAL -->
+        <div class="section" id="gestion-personal">
+            <h2>4. 👥 Gestión de Personal</h2>
+
+            <h3 id="empleados">4.1 Empleados</h3>
+            <p>Módulo central para la administración de la información de los colaboradores.</p>
+
+            <h4>Formulario de Nuevo Empleado</h4>
+            <p>El formulario se divide en secciones lógicas:</p>
+
+            <h5>A. Información Personal</h5>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descripción</th>
+                    <th>Obligatorio</th>
+                </tr>
+                <tr>
+                    <td>Código</td>
+                    <td>Identificador único (ej. EMP-001). Autogenerado o manual.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Nombres/Apellidos</td>
+                    <td>Datos legales del empleado.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Cédula/DNI</td>
+                    <td>Documento de identidad nacional.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Fecha Nacimiento</td>
+                    <td>Para cálculos de edad.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Género</td>
+                    <td>Masculino/Femenino.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Estado Civil</td>
+                    <td>Soltero, Casado, etc.</td>
+                    <td>No</td>
+                </tr>
+            </table>
+
+            <h5>B. Información Laboral</h5>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descripción</th>
+                    <th>Obligatorio</th>
+                </tr>
+                <tr>
+                    <td>Fecha Ingreso</td>
+                    <td>Fecha de inicio de labores. Base para antigüedad.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Posición/Cargo</td>
+                    <td>Puesto que ocupa en la empresa.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Departamento</td>
+                    <td>Área a la que pertenece.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Horario</td>
+                    <td>Horario asignado para control de asistencia.</td>
+                    <td>Sí</td>
+                </tr>
+                <tr>
+                    <td>Tipo Planilla</td>
+                    <td>Semanal, Quincenal, Mensual.</td>
+                    <td>Sí</td>
+                </tr>
+            </table>
+
+            <h5>C. Contrato y Pagos (Nuevas Funcionalidades)</h5>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descripción</th>
+                    <th>Validación</th>
+                </tr>
+                <tr>
+                    <td>Tipo Contrato</td>
+                    <td>Indefinido, Definido, Servicios Prof.</td>
+                    <td>Determina si requiere fecha fin.</td>
+                </tr>
+                <tr>
+                    <td>Fecha Vencimiento</td>
+                    <td>Fin del contrato.</td>
+                    <td>Obligatorio si es Contrato Definido.</td>
+                </tr>
+                <tr>
+                    <td>Forma de Pago</td>
+                    <td>Efectivo, Cheque, ACH.</td>
+                    <td>Habilita campos bancarios.</td>
+                </tr>
+                <tr>
+                    <td>Banco</td>
+                    <td>Entidad bancaria.</td>
+                    <td>Requerido para ACH.</td>
+                </tr>
+                <tr>
+                    <td>No. Cuenta</td>
+                    <td>Número de cuenta del empleado.</td>
+                    <td>Requerido para ACH.</td>
+                </tr>
+            </table>
+
+            <h3 id="horarios">4.2 Horarios y Turnos</h3>
+            <p>Define las reglas de tiempo para el control de asistencia.</p>
+
+            <h4>Campos del Horario</h4>
+            <ul>
+                <li><strong>Código:</strong> Identificador del horario (ej. SCH-001).</li>
+                <li><strong>Nombre:</strong> Descripción corta (ej. "Administrativo 8-5").</li>
+                <li><strong>Hora Entrada (Time In):</strong> Hora oficial de inicio de jornada.</li>
+                <li><strong>Hora Salida (Time Out):</strong> Hora oficial de fin de jornada.</li>
+                <li><strong>Salida/Entrada Almuerzo:</strong> Rango de tiempo para descanso.</li>
+            </ul>
+
+            <h4>Configuración de Tolerancias</h4>
+            <p>Permite definir márgenes de tiempo aceptables para las marcaciones:</p>
+            <ul>
+                <li><strong>Tolerancia Entrada (Antes/Después):</strong> Minutos permitidos antes o después de la hora
+                    de entrada sin considerar llegada tardía o tiempo extra.</li>
+                <li><strong>Tolerancia Salida (Antes/Después):</strong> Minutos permitidos para la salida.</li>
+            </ul>
+
+            <h3 id="estructura-org">4.3 Estructura Organizacional</h3>
+            <p>Define la jerarquía y clasificación de puestos en la empresa.</p>
+            <ul>
+                <li><strong>Cargos:</strong> Títulos de trabajo (ej. "Contador", "Gerente").</li>
+                <li><strong>Posiciones:</strong> Plazas específicas dentro de la estructura (Sector Público).</li>
+                <li><strong>Partidas:</strong> Asignaciones presupuestarias.</li>
+                <li><strong>Funciones:</strong> Roles específicos o tareas asignadas.</li>
+            </ul>
+        </div>
+
+        <!-- 5. CONTROL DE ASISTENCIA -->
+        <div class="section" id="asistencia">
+            <h2>5. 🕒 Control de Asistencia</h2>
+            <p>Nuevo módulo para la gestión integral de marcas, dispositivos biométricos y reportes de tiempo.</p>
+
+            <h3 id="dispositivos">5.1 Gestión de Dispositivos</h3>
+            <p>Permite configurar las fuentes de datos para la asistencia.</p>
+
+            <h4>Tipos de Dispositivos Soportados</h4>
+            <ol>
+                <li><strong>Biométricos (ZKTeco/Hikvision):</strong> Conexión directa por IP.</li>
+                <li><strong>API:</strong> Recepción de marcas vía web service.</li>
+                <li><strong>Archivos de Texto:</strong> Importación de logs (.txt, .csv).</li>
+                <li><strong>Manual:</strong> Ingreso directo en sistema.</li>
+            </ol>
+
+            <h4>Formulario de Dispositivo</h4>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descripción</th>
+                </tr>
+                <tr>
+                    <td>Nombre</td>
+                    <td>Identificador amigable (ej. "Reloj Entrada Principal").</td>
+                </tr>
+                <tr>
+                    <td>Tipo</td>
+                    <td>Selección del protocolo de comunicación.</td>
+                </tr>
+                <tr>
+                    <td>IP / Puerto</td>
+                    <td>Dirección de red del dispositivo (para biométricos).</td>
+                </tr>
+                <tr>
+                    <td>Formato Archivo</td>
+                    <td>Configuración de columnas para importación de texto.</td>
+                </tr>
+            </table>
+
+            <h3 id="sincronizacion">5.2 Sincronización de Datos</h3>
+            <p>Proceso para descargar marcas desde los dispositivos al sistema.</p>
+            <ul>
+                <li><span class="button-desc">Sincronizar Todo</span>: Conecta con todos los dispositivos activos y
+                    descarga nuevas marcas.</li>
+                <li><span class="button-desc">Ver Historial</span>: Muestra logs de sincronizaciones pasadas (éxitos y
+                    errores).</li>
+            </ul>
+
+            <h3 id="marcaciones">5.3 Gestión de Marcaciones</h3>
+            <p>Vista detallada de las entradas y salidas de los empleados.</p>
+            <ul>
+                <li><strong>Vista Diario:</strong> Muestra marcas de un día específico.</li>
+                <li><strong>Edición Manual:</strong> Los administradores pueden corregir o agregar marcas olvidadas
+                    (requiere justificación).</li>
+                <li><strong>Estado:</strong> El sistema califica automáticamente:
+                    <span class="badge badge-success">A Tiempo</span>,
+                    <span class="badge badge-warning">Tardanza</span>,
+                    <span class="badge badge-danger">Ausencia</span>.
+                </li>
+            </ul>
+        </div>
+
+        <!-- 6. GESTIÓN DE VACACIONES -->
+        <div class="section" id="vacaciones">
+            <h2>6. 🏖️ Gestión de Vacaciones</h2>
+            <p>Sistema completo para el control de descansos anuales, compensaciones y balances.</p>
+
+            <h3 id="vacaciones-panel">6.1 Panel de Control</h3>
+            <p>Muestra el listado de empleados con sus saldos actualizados.</p>
+            <ul>
+                <li><strong>Días Ganados:</strong> Total acumulado según antigüedad (30 días/año norma estándar).</li>
+                <li><strong>Días Tomados:</strong> Total de días ya disfrutados o pagados.</li>
+                <li><strong>Saldo Disponible:</strong> Días listos para solicitar.</li>
+            </ul>
+
+            <h3 id="vacaciones-solicitud">6.2 Solicitudes y Aprobaciones</h3>
+
+            <h4>Crear Solicitud</h4>
+            <p>Formulario para registrar nuevas vacaciones.</p>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descripción</th>
+                </tr>
+                <tr>
+                    <td>Empleado</td>
+                    <td>Colaborador que solicita.</td>
+                </tr>
+                <tr>
+                    <td>Fechas (Inicio/Fin)</td>
+                    <td>Rango del descanso.</td>
+                </tr>
+                <tr>
+                    <td>Tipo</td>
+                    <td><strong>Anuales</strong> (descanso físico) o <strong>Compensadas</strong> (pago en efectivo sin
+                        descanso).</td>
+                </tr>
+                <tr>
+                    <td>Días a Pagar</td>
+                    <td>Cantidad de días que se reflejarán en nómina.</td>
+                </tr>
+                <tr>
+                    <td>Días a Disfrutar</td>
+                    <td>Cantidad de días de ausencia física.</td>
+                </tr>
+            </table>
+
+            <h4>Flujo de Aprobación</h4>
+            <ol>
+                <li><strong>Pendiente:</strong> Estado inicial. Afecta el saldo "proyectado" pero no el real.</li>
+                <li><strong>Aprobada:</strong> <span class="button-desc">Aprobar</span>. Descuenta los días del balance
+                    oficial y genera el registro para pago.</li>
+                <li><strong>Rechazada:</strong> <span class="button-desc">Rechazar</span>. Libera los días solicitados
+                    de vuelta al balance. Requiere motivo.</li>
+            </ol>
+
+            <h3 id="vacaciones-calendario">6.3 Calendario de Vacaciones</h3>
+            <p>Vista visual de ausencias programadas. Se integra con el <strong>Calendario Empresarial</strong> para
+                mostrar días feriados y no laborables que no cuentan como días de vacaciones.</p>
+        </div>
+
+        <!-- 7. GESTIÓN DE CONCEPTOS -->
+        <div class="section" id="conceptos">
+            <h2>7. 💰 Gestión de Conceptos</h2>
+            <p>El módulo de conceptos es el corazón del sistema de nómina. Aquí se definen todas las reglas de ingresos
+                (asignaciones) y egresos (deducciones) que se aplicarán a los empleados.</p>
+
+            <h3>7.1 Detalles del Formulario de Concepto</h3>
+
+            <h4>A. Información Básica y Tipo</h4>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Descripción</th>
+                    <th>Opciones</th>
+                </tr>
+                <tr>
+                    <td><strong>Concepto</strong></td>
+                    <td>Código único identificador (ej. SALARIO, CSS).</td>
+                    <td>Texto alfanumérico</td>
+                </tr>
+                <tr>
+                    <td><strong>Descripción</strong></td>
+                    <td>Nombre visible en reportes y colillas.</td>
+                    <td>Texto libre</td>
+                </tr>
+                <tr>
+                    <td><strong>Tipo de Concepto</strong></td>
+                    <td>Define el comportamiento contable.</td>
+                    <td>
+                        <ul>
+                            <li><strong>Asignación (A):</strong> Ingresos que SUMAN al neto a pagar (Salarios, Bonos).
+                            </li>
+                            <li><strong>Deducción (D):</strong> Descuentos que RESTAN al neto (Seguro Social,
+                                Préstamos).</li>
+                            <li><strong>Patronal (P):</strong> Costos cubiertos por la empresa, no afectan el neto del
+                                empleado pero sí el costo de planilla.</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Unidad</strong></td>
+                    <td>Define la naturaleza del valor calculado.</td>
+                    <td>
+                        <ul>
+                            <li><strong>Monto:</strong> Valor monetario directo.</li>
+                            <li><strong>Horas:</strong> Cantidad de tiempo (se multiplica internamente por tarifa
+                                horaria).</li>
+                            <li><strong>Porcentaje (%):</strong> Valor porcentual (útil para cálculos sobre salario
+                                base).</li>
+                            <li><strong>Días:</strong> Cantidad de días.</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+
+            <h4>B. Fórmula del Cálculo (Motor V2)</h4>
+            <p>El sistema utiliza un motor de fórmulas avanzado que permite cálculos dinámicos. Puede escribir fórmulas
+                matemáticas estándar utilizando las siguientes variables y funciones:</p>
+
+            <div class="feature-card">
+                <h4>🧮 Variables Disponibles</h4>
+                <ul>
+                    <li><code>SALARIO</code> / <code>SUELDO</code>: Salario base mensual del empleado.</li>
+                    <li><code>HORAS</code>: Horas trabajadas en el período.</li>
+                    <li><code>ANTIGUEDAD</code>: Años de servicio en la empresa (con decimales).</li>
+                    <li><code>FICHA</code> / <code>EMPLEADO</code>: Código o número de ficha del empleado.</li>
+                    <li><code>INIPERIODO</code>: Fecha de inicio del período de planilla actual (YYYY-MM-DD).</li>
+                    <li><code>FINPERIODO</code>: Fecha de fin del período de planilla actual (YYYY-MM-DD).</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>🔧 Funciones Especiales</h4>
+                <ul>
+                    <li><code>SI(condición, valor_si_verdadero, valor_si_falso)</code>: Lógica condicional. <br><em>Ej:
+                            SI(ANTIGUEDAD > 2, 100, 0)</em></li>
+                    <li><code>ACREEDOR(EMPLEADO, ID_ACREEDOR)</code>: Obtiene la cuota a descontar para un acreedor
+                        específico.</li>
+                    <li><code>ACUMULADOS(['CODIGO1', 'CODIGO2'], FECHA_INI, FECHA_FIN)</code>: Suma los montos
+                        históricos de los conceptos especificados en el rango de fechas. Vital para cálculos de
+                        promedios.</li>
+                </ul>
+            </div>
+
+            <h4>C. Opciones de Configuración (Checkboxes)</h4>
+            <p>Estas opciones definen el comportamiento operativo del concepto:</p>
+            <ul>
+                <li><strong>¿Se imprimen detalles?</strong>: Si se marca, el concepto aparecerá desglosado en la colilla
+                    de pago del empleado. Si no, es un cálculo interno invisible.</li>
+                <li><strong>¿Se prorratea?</strong>: Indica si el cálculo debe ajustarse proporcionalmente a los días
+                    trabajados (útil para ingresos tardíos o salidas anticipadas).</li>
+                <li><strong>¿Permite modificar el valor?</strong>: Habilita la edición manual del monto calculado
+                    durante la revisión de la planilla. Útil para bonos variables.</li>
+                <li><strong>¿Valor de referencia?</strong>: Marca el concepto como informativo, no afecta el total a
+                    pagar pero sirve de base para otros cálculos.</li>
+                <li><strong>¿Usar cálculo de monto?</strong>: <span class="badge badge-danger">CRÍTICO</span>. Debe
+                    estar marcado para que el sistema evalúe la fórmula. Si se desmarca, el sistema esperará un valor
+                    fijo manual.</li>
+                <li><strong>¿Permitir monto cero?</strong>: Permite que el concepto se guarde en la planilla aunque el
+                    resultado sea 0.00.</li>
+            </ul>
+
+            <h4>D. Configuraciones Avanzadas</h4>
+            <div class="alert alert-info">
+                Estas configuraciones determinan <strong>CUÁNDO</strong> y <strong>A QUIÉN</strong> se aplica el
+                concepto automáticamente.
+            </div>
+            <ul>
+                <li><strong>Tipos de Planilla:</strong> Seleccione en qué procesos corre este concepto (ej. Solo en
+                    Planilla Quincenal, o también en Décimo Tercer Mes).</li>
+                <li><strong>Frecuencias:</strong> Controla la periodicidad.
+                    <ul>
+                        <li><em>Siempre:</em> Todas las planillas.</li>
+                        <li><em>Primera Quincena:</em> Solo en la primera mitad del mes.</li>
+                        <li><em>Segunda Quincena:</em> Solo en el cierre de mes.</li>
+                    </ul>
+                </li>
+                <li><strong>Situaciones:</strong> Filtra por estado del empleado (ej. Solo empleados "Activos", o
+                    incluir "Vacaciones").</li>
+                <li><strong>Acumulado:</strong> <span class="badge badge-warning">IMPORTANTE</span>. Aquí se vincula el
+                    concepto a bolsas de acumulados (ej. XIII Mes, Vacaciones, Prima Antigüedad).
+                    <br><em>Ejemplo: Si marca "XIII Mes" en el concepto "Salario Base", cada pago de salario sumará al
+                        acumulado para el cálculo del bono navideño.</em>
+                </li>
+            </ul>
+
+            <h4>E. Configuración de Reportes PDF</h4>
+            <p>Controla cómo se agrupa y visualiza este concepto en los reportes legales y contables.</p>
+            <ul>
+                <li><strong>Incluir en Reportes PDF:</strong> Interruptor general de visibilidad.</li>
+                <li><strong>Categoría:</strong> Agrupación semántica para totales.
+                    <ul>
+                        <li><em>Seguro Social / Educativo / Renta:</em> Columnas específicas de ley.</li>
+                        <li><em>Otras Deducciones:</em> Agrupación genérica de descuentos.</li>
+                        <li><em>Otro:</em> Conceptos generales.</li>
+                    </ul>
+                </li>
+                <li><strong>Orden:</strong> Número para forzar la posición en la lista (menor número sale primero).</li>
+            </ul>
+        </div>
+
+        <!-- 8. GESTIÓN DE ACREEDORES -->
+        <div class="section" id="acreedores">
+            <h2>8. 🏦 Gestión de Acreedores</h2>
+            <p>Control de descuentos por préstamos externos (Bancos, Financieras, Comerciales).</p>
+            <ul>
+                <li><strong>Acreedores:</strong> Entidades a las que se debe pagar (ej. Banco General).</li>
+                <li><strong>Deducciones:</strong> Préstamos específicos de empleados. Permite definir monto total, cuota
+                    mensual y control de saldo.</li>
+            </ul>
+        </div>
+
+        <!-- 9. GESTIÓN DE PLANILLAS -->
+        <div class="section" id="planillas">
+            <h2>9. 📝 Gestión de Planillas</h2>
+            <p>Proceso central de cálculo de nómina.</p>
+
+            <h3>Pasos para Generar Planilla</h3>
+            <ol>
+                <li><span class="button-desc">Nueva Planilla</span>: Seleccionar tipo (Quincenal/Mensual) y fechas.</li>
+                <li><strong>Pre-cálculo:</strong> El sistema procesa automáticamente conceptos fijos y fórmulas.</li>
+                <li><strong>Revisión:</strong> Verificación de montos por empleado. Se pueden agregar novedades
+                    manuales.</li>
+                <li><strong>Cierre:</strong> <span class="button-desc">Cerrar Planilla</span>. Finaliza el proceso,
+                    genera asientos y actualiza acumulados. <strong>Irreversible.</strong></li>
+            </ol>
+        </div>
+
+        <!-- 10. LIQUIDACIONES -->
+        <div class="section" id="liquidaciones">
+            <h2>10. 🏁 Sistema de Liquidaciones</h2>
+            <p>Cálculo de prestaciones laborales por terminación de contrato (Panamá).</p>
+            <ul>
+                <li><strong>Cálculos Automáticos:</strong> Vacaciones proporcionales, Décimo Tercer Mes proporcional,
+                    Prima de Antigüedad, Indemnización.</li>
+                <li><strong>Motivos:</strong> Renuncia, Despido Justificado, Despido Injustificado, Mutuo Acuerdo.</li>
+            </ul>
+        </div>
+
+        <!-- 11. REPORTES -->
+        <div class="section" id="reportes">
+            <h2>11. 📈 Reportes y Consultas</h2>
+            <p>Generación de documentos y archivos de exportación.</p>
+            <ul>
+                <li><strong>Comprobantes de Pago:</strong> Recibos individuales por empleado.</li>
+                <li><strong>Planilla General:</strong> Resumen de todos los pagos y deducciones.</li>
+                <li><strong>Archivo SIPE:</strong> Exportación para la Caja de Seguro Social.</li>
+                <li><strong>Reporte de Vacaciones:</strong> Saldos y gozes históricos.</li>
+                <li><strong>Asistencia:</strong> Resumen de tardanzas y ausencias.</li>
+            </ul>
+        </div>
+
+        <!-- 12. CONFIGURACIÓN -->
+        <div class="section" id="configuracion">
+            <h2>12. ⚙️ Configuración del Sistema</h2>
+
+            <h3>Empresa</h3>
+            <p>Datos generales, logo y representantes legales.</p>
+
+            <h3>Calendario Empresarial</h3>
+            <p>Definición de días no laborables, feriados nacionales y días de duelo. Afecta directamente el cálculo de
+                vacaciones y asistencia.</p>
+
+            <h3>Usuarios y Roles</h3>
+            <p>Gestión de acceso al sistema. Permite crear roles personalizados con permisos granulares por módulo.</p>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 Innova Planilla. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</body>
+
+</html>

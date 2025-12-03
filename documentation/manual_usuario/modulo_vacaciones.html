@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vacaciones - INNOVA Planillas 3.5.6</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Vacaciones</h1>
+            <p>Balances, solicitudes, calendario y reportes.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Requisitos previos</h2>
+            <ul>
+                <li>Empleados activos con fecha de ingreso registrada.</li>
+                <li>Calendario empresarial cargado (feriados/días especiales) para validaciones futuras.</li>
+                <li>Opcional: tipo de planilla para filtrar balances.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Consultar balances</h2>
+            <ul>
+                <li>Vista principal muestra saldo de días, días trabajados y situación laboral.</li>
+                <li>Incluye cargo/posición y meses trabajados para referencia.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>3. Solicitudes</h2>
+            <ol>
+                <li>Seleccione empleado y defina fechas de inicio/fin.</li>
+                <li>Indique tipo de vacaciones (ANNUAL o COMPENSATION) y días solicitados.</li>
+                <li>Estado del flujo: PENDIENTE → APPROVED o REJECTED.</li>
+                <li>Se registra request_date para filtros y reportes.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>4. Calendario y reportes</h2>
+            <ul>
+                <li><strong>Calendario:</strong> vista de vacaciones aprobadas; filtrable por año.</li>
+                <li><strong>Reportes:</strong> filtros por empleado, estado, tipo y fecha/rango de solicitud; límite de registros para rendimiento.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>5. Buenas prácticas</h2>
+            <ul>
+                <li>Validar saldo antes de aprobar; documentar comentarios si se rechaza.</li>
+                <li>Usar el calendario empresarial para evitar solapes en feriados y fines de semana si aplica.</li>
+                <li>Exportar reportes periódicamente para control de ausentismo.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

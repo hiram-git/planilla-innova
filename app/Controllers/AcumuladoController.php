@@ -1345,8 +1345,8 @@ class AcumuladoController extends Controller
                     $selectFields = "ape.ano as grupo_clave,
                                     CAST(ape.ano AS CHAR) as grupo_descripcion,
                                     'Año' as grupo_tipo";
-                    $groupByClause = "ape.ano";
-                    $orderByClause = "ape.ano DESC";
+                    $groupByClause = "ape.ano, ape.tipo_acumulado";
+                    $orderByClause = "ape.ano DESC, ape.tipo_acumulado";
                     break;
 
                 case 'planilla':
@@ -1356,8 +1356,8 @@ class AcumuladoController extends Controller
                                     pc.fecha_desde as fecha_inicio,
                                     pc.fecha_hasta as fecha_fin,
                                     f.nombre as frecuencia_nombre";
-                    $groupByClause = "ape.planilla_id";
-                    $orderByClause = "pc.fecha_desde DESC";
+                    $groupByClause = "ape.planilla_id, ape.tipo_acumulado";
+                    $orderByClause = "pc.fecha_desde DESC, ape.tipo_acumulado";
                     break;
 
                 case 'empleado':
@@ -1366,13 +1366,15 @@ class AcumuladoController extends Controller
                                     CONCAT(e.firstname, ' ', e.lastname) as grupo_descripcion,
                                     e.document_id,
                                     'Empleado' as grupo_tipo";
-                    $groupByClause = "e.id, e.firstname, e.lastname, e.document_id";
-                    $orderByClause = "e.lastname, e.firstname";
+                    $groupByClause = "e.id, e.firstname, e.lastname, e.document_id, ape.tipo_acumulado";
+                    $orderByClause = "e.lastname, e.firstname, ape.tipo_acumulado";
                     break;
             }
 
             $sql = "SELECT
                         {$selectFields},
+                        ape.tipo_acumulado as tipo_acumulado_codigo,
+                        COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado_descripcion,
                         SUM(ape.monto) as total_monto,
                         COUNT(DISTINCT ape.planilla_id) as total_planillas,
                         COUNT(DISTINCT ape.employee_id) as total_empleados,
@@ -1385,6 +1387,7 @@ class AcumuladoController extends Controller
                     {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
+                    LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
                     {$conceptoFilter}
                     GROUP BY {$groupByClause}
@@ -1434,8 +1437,8 @@ class AcumuladoController extends Controller
                                     c.descripcion as grupo_descripcion,
                                     'Concepto' as grupo_tipo,
                                     ape.tipo_concepto";
-                    $groupByClause = "c.id, c.descripcion, ape.tipo_concepto";
-                    $orderByClause = "ape.tipo_concepto, c.descripcion";
+                    $groupByClause = "c.id, c.descripcion, ape.tipo_concepto, ape.tipo_acumulado";
+                    $orderByClause = "ape.tipo_concepto, c.descripcion, ape.tipo_acumulado";
                     break;
 
                 case 'mes':
@@ -1455,8 +1458,8 @@ class AcumuladoController extends Controller
                                         WHEN 12 THEN 'Diciembre'
                                     END as grupo_descripcion,
                                     'Mes' as grupo_tipo";
-                    $groupByClause = "ape.mes";
-                    $orderByClause = "ape.mes";
+                    $groupByClause = "ape.mes, ape.tipo_acumulado";
+                    $orderByClause = "ape.mes, ape.tipo_acumulado";
                     break;
 
                 case 'planilla':
@@ -1465,8 +1468,8 @@ class AcumuladoController extends Controller
                                     'Planilla' as grupo_tipo,
                                     pc.fecha_inicio,
                                     pc.fecha_fin";
-                    $groupByClause = "pc.id, pc.descripcion, pc.fecha_inicio, pc.fecha_fin";
-                    $orderByClause = "pc.fecha_inicio DESC";
+                    $groupByClause = "pc.id, pc.descripcion, pc.fecha_inicio, pc.fecha_fin, ape.tipo_acumulado";
+                    $orderByClause = "pc.fecha_inicio DESC, ape.tipo_acumulado";
                     break;
 
                 case 'tipo_acumulado':
@@ -1482,6 +1485,8 @@ class AcumuladoController extends Controller
 
             $sql = "SELECT
                         {$selectFields},
+                        ape.tipo_acumulado as tipo_acumulado_codigo,
+                        COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado_descripcion,
                         SUM(ape.monto) as total_monto,
                         COUNT(DISTINCT ape.planilla_id) as total_planillas,
                         COUNT(DISTINCT ape.concepto_id) as total_conceptos,
@@ -2011,6 +2016,8 @@ class AcumuladoController extends Controller
                             WHEN c.tipo_concepto = 'P' THEN 'PATRONAL'
                             ELSE c.tipo_concepto
                         END as tipo_concepto,
+                        ape.tipo_acumulado as tipo_acumulado_codigo,
+                        COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado_descripcion,
                         SUM(ape.monto) as total_monto,
                         COUNT(DISTINCT ape.planilla_id) as total_planillas,
                         COUNT(DISTINCT ape.employee_id) as total_empleados,
@@ -2021,9 +2028,10 @@ class AcumuladoController extends Controller
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     {$conceptoJoin}
+                    LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
                     {$conceptoFilter}
-                    GROUP BY c.id, c.descripcion, c.tipo_concepto
+                    GROUP BY c.id, c.descripcion, c.tipo_concepto, ape.tipo_acumulado
                     ORDER BY
                         CASE c.tipo_concepto
                             WHEN 'A' THEN 1
