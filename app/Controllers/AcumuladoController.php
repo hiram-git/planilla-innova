@@ -807,6 +807,7 @@ class AcumuladoController extends Controller
         $month = $_GET['month'] ?? null;
         $groupBy = $_GET['group_by'] ?? 'empleado'; // año, planilla, empleado
         $tipoPlanillaId = $_GET['tipo_planilla'] ?? null; // Filtro de tipo de planilla desde navbar
+        $tipoAcumulado = $_GET['tipo_acumulado'] ?? null; // Filtro de tipo de acumulado
 
         // LOG DEBUG: Tipo planilla recibido
         error_log("AcumuladoController@byConcepto - Filtro tipo_planilla recibido: " . ($tipoPlanillaId ?? 'NULL'));
@@ -815,6 +816,9 @@ class AcumuladoController extends Controller
         try {
             // Obtener conceptos disponibles (filtrados por tipo de planilla si aplica)
             $conceptos = $this->getConceptosForFilter($tipoPlanillaId);
+
+            // Obtener tipos de acumulados disponibles
+            $tiposAcumulados = $this->getTiposAcumulados();
 
             // Si se especifica un concepto, filtrar por concepto_id
             $acumulados = [];
@@ -831,14 +835,15 @@ class AcumuladoController extends Controller
                     ];
 
                     // Obtener acumulados de todos los conceptos
-                    $acumulados = $this->getAllConceptosAcumulados($year, $month, $tipoPlanillaId);
+                    $acumulados = $this->getAllConceptosAcumulados($year, $month, $tipoPlanillaId, $tipoAcumulado);
 
                     // Obtener datos agrupados por concepto
                     $acumuladosAgrupados = $this->getAllConceptosAgrupados(
                         $year,
                         $month,
                         $groupBy,
-                        $tipoPlanillaId
+                        $tipoPlanillaId,
+                        $tipoAcumulado
                     );
                 } else {
                     // Buscar el concepto seleccionado específico
@@ -851,7 +856,7 @@ class AcumuladoController extends Controller
 
                     if ($selectedConcepto) {
                         // Obtener registros detallados
-                        $acumulados = $this->getAcumuladosByConcepto($conceptoId, $year, $month, $tipoPlanillaId, $groupBy);
+                        $acumulados = $this->getAcumuladosByConcepto($conceptoId, $year, $month, $tipoPlanillaId, $groupBy, $tipoAcumulado);
 
                         // Obtener datos agrupados según el filtro
                         $acumuladosAgrupados = $this->getAcumuladosAgrupadosByConcepto(
@@ -859,7 +864,8 @@ class AcumuladoController extends Controller
                             $year,
                             $month,
                             $groupBy,
-                            $tipoPlanillaId
+                            $tipoPlanillaId,
+                            $tipoAcumulado
                         );
                     }
                 }
@@ -874,6 +880,9 @@ class AcumuladoController extends Controller
                 'selectedConcepto' => $selectedConcepto,
                 'acumulados' => $acumulados,
                 'acumuladosAgrupados' => $acumuladosAgrupados,
+                'tiposAcumulados' => $tiposAcumulados,
+                'tipoAcumulado' => $tipoAcumulado,
+                'tipoPlanillaId' => $tipoPlanillaId,
                 'availableYears' => $this->getAvailableYears(),
                 'availableMonths' => $this->getAvailableMonths(),
                 'scriptFiles' => [
@@ -939,6 +948,7 @@ class AcumuladoController extends Controller
                 'year' => $year,
                 'month' => $month,
                 'tipoAcumulado' => $tipoAcumulado,
+                'tipoPlanillaId' => $tipoPlanillaId,
                 'groupBy' => $groupBy,
                 'employees' => $employees,
                 'tiposAcumulados' => $tiposAcumulados,
@@ -1233,7 +1243,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener acumulados por concepto específico desde acumulados_por_empleado
      */
-    private function getAcumuladosByConcepto($conceptoId, $year, $month = null, $tipoPlanillaId = null, $groupBy = null)
+    private function getAcumuladosByConcepto($conceptoId, $year, $month = null, $tipoPlanillaId = null, $groupBy = null, $tipoAcumulado = null)
     {
         try {
             // LOG DEBUG: Verificar parámetros recibidos
@@ -1255,6 +1265,25 @@ class AcumuladoController extends Controller
                 error_log("getAcumuladosByConcepto - Aplicando filtro FIND_IN_SET con tipo_planilla_id: " . (int)$tipoPlanillaId);
             } else {
                 error_log("getAcumuladosByConcepto - NO se aplica filtro tipo_planilla (valor: " . ($tipoPlanillaId ?? 'NULL') . ", is_numeric: " . (is_numeric($tipoPlanillaId) ? 'true' : 'false') . ")");
+            }
+
+            // Filtro por tipo de acumulado
+            $acumuladoJoin = "";
+            if ($tipoAcumulado) {
+                // Si es tipo CONCEPTO, filtrar por registros donde tipo_acumulado es código de concepto con esa relación
+                if ($tipoAcumulado === 'CONCEPTO') {
+                    $tipoAcumuladoId = $this->getTipoAcumuladoId($tipoAcumulado);
+                    if ($tipoAcumuladoId) {
+                        // JOIN con concepto usando ape.tipo_acumulado y luego con conceptos_acumulados
+                        $acumuladoJoin = "INNER JOIN concepto c_tipo ON ape.tipo_acumulado = c_tipo.concepto
+                                         INNER JOIN conceptos_acumulados ca ON c_tipo.id = ca.concepto_id AND ca.tipo_acumulado_id = ?";
+                        $params[] = $tipoAcumuladoId;
+                    }
+                } else {
+                    // Para otros tipos, filtrar normalmente
+                    $whereConditions[] = "ape.tipo_acumulado = ?";
+                    $params[] = $tipoAcumulado;
+                }
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -1291,6 +1320,7 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$acumuladoJoin}
                     {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
@@ -1310,7 +1340,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener acumulados agrupados por año, planilla o empleado
      */
-    private function getAcumuladosAgrupadosByConcepto($conceptoId, $year, $month = null, $groupBy = 'empleado', $tipoPlanillaId = null)
+    private function getAcumuladosAgrupadosByConcepto($conceptoId, $year, $month = null, $groupBy = 'empleado', $tipoPlanillaId = null, $tipoAcumulado = null)
     {
         try {
             $whereConditions = ["ape.concepto_id = ?", "ape.ano = ?"];
@@ -1326,6 +1356,25 @@ class AcumuladoController extends Controller
             if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
                 $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
                 $params[] = (int)$tipoPlanillaId;
+            }
+
+            // Filtro por tipo de acumulado
+            $acumuladoJoin = "";
+            if ($tipoAcumulado) {
+                // Si es tipo CONCEPTO, filtrar por registros donde tipo_acumulado es código de concepto con esa relación
+                if ($tipoAcumulado === 'CONCEPTO') {
+                    $tipoAcumuladoId = $this->getTipoAcumuladoId($tipoAcumulado);
+                    if ($tipoAcumuladoId) {
+                        // JOIN con concepto usando ape.tipo_acumulado y luego con conceptos_acumulados
+                        $acumuladoJoin = "INNER JOIN concepto c_tipo ON ape.tipo_acumulado = c_tipo.concepto
+                                         INNER JOIN conceptos_acumulados ca ON c_tipo.id = ca.concepto_id AND ca.tipo_acumulado_id = ?";
+                        $params[] = $tipoAcumuladoId;
+                    }
+                } else {
+                    // Para otros tipos, filtrar normalmente
+                    $whereConditions[] = "ape.tipo_acumulado = ?";
+                    $params[] = $tipoAcumulado;
+                }
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -1384,6 +1433,7 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$acumuladoJoin}
                     {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
@@ -1423,9 +1473,23 @@ class AcumuladoController extends Controller
                 $params[] = $month;
             }
 
+            // Filtro por tipo de acumulado
+            $acumuladoJoin = "";
             if ($tipoAcumulado) {
-                $whereConditions[] = "ape.tipo_acumulado = ?";
-                $params[] = $tipoAcumulado;
+                // Si es tipo CONCEPTO, filtrar por registros donde tipo_acumulado es código de concepto con esa relación
+                if ($tipoAcumulado === 'CONCEPTO') {
+                    $tipoAcumuladoId = $this->getTipoAcumuladoId($tipoAcumulado);
+                    if ($tipoAcumuladoId) {
+                        // JOIN con concepto usando ape.tipo_acumulado y luego con conceptos_acumulados
+                        $acumuladoJoin = "INNER JOIN concepto c_tipo ON ape.tipo_acumulado = c_tipo.concepto
+                                         INNER JOIN conceptos_acumulados ca ON c_tipo.id = ca.concepto_id AND ca.tipo_acumulado_id = ?";
+                        $params[] = $tipoAcumuladoId;
+                    }
+                } else {
+                    // Para otros tipos, filtrar normalmente
+                    $whereConditions[] = "ape.tipo_acumulado = ?";
+                    $params[] = $tipoAcumulado;
+                }
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -1497,6 +1561,7 @@ class AcumuladoController extends Controller
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN concepto c ON ape.concepto_id = c.id
+                    {$acumuladoJoin}
                     WHERE {$whereClause}
                     GROUP BY {$groupByClause}
                     ORDER BY {$orderByClause}";
@@ -1543,9 +1608,23 @@ class AcumuladoController extends Controller
                 $params[] = $month;
             }
 
+            // Filtro por tipo de acumulado
+            $acumuladoJoin = "";
             if ($tipoAcumulado) {
-                $whereConditions[] = "ape.tipo_acumulado = ?";
-                $params[] = $tipoAcumulado;
+                // Si es tipo CONCEPTO, filtrar por registros donde tipo_acumulado es código de concepto con esa relación
+                if ($tipoAcumulado === 'CONCEPTO') {
+                    $tipoAcumuladoId = $this->getTipoAcumuladoId($tipoAcumulado);
+                    if ($tipoAcumuladoId) {
+                        // JOIN con concepto usando ape.tipo_acumulado y luego con conceptos_acumulados
+                        $acumuladoJoin = "INNER JOIN concepto c_tipo ON ape.tipo_acumulado = c_tipo.concepto
+                                         INNER JOIN conceptos_acumulados ca ON c_tipo.id = ca.concepto_id AND ca.tipo_acumulado_id = ?";
+                        $params[] = $tipoAcumuladoId;
+                    }
+                } else {
+                    // Para otros tipos, filtrar normalmente
+                    $whereConditions[] = "ape.tipo_acumulado = ?";
+                    $params[] = $tipoAcumulado;
+                }
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -1569,6 +1648,7 @@ class AcumuladoController extends Controller
                         COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$acumuladoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
@@ -1604,9 +1684,23 @@ class AcumuladoController extends Controller
                 $params[] = $month;
             }
 
+            // Filtro por tipo de acumulado
+            $acumuladoJoin = "";
             if ($tipoAcumulado) {
-                $whereConditions[] = "ape.tipo_acumulado = ?";
-                $params[] = $tipoAcumulado;
+                // Si es tipo CONCEPTO, filtrar por registros donde tipo_acumulado es código de concepto con esa relación
+                if ($tipoAcumulado === 'CONCEPTO') {
+                    $tipoAcumuladoId = $this->getTipoAcumuladoId($tipoAcumulado);
+                    if ($tipoAcumuladoId) {
+                        // JOIN con concepto usando ape.tipo_acumulado y luego con conceptos_acumulados
+                        $acumuladoJoin = "INNER JOIN concepto c_tipo ON ape.tipo_acumulado = c_tipo.concepto
+                                         INNER JOIN conceptos_acumulados ca ON c_tipo.id = ca.concepto_id AND ca.tipo_acumulado_id = ?";
+                        $params[] = $tipoAcumuladoId;
+                    }
+                } else {
+                    // Para otros tipos, filtrar normalmente
+                    $whereConditions[] = "ape.tipo_acumulado = ?";
+                    $params[] = $tipoAcumulado;
+                }
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -1617,6 +1711,7 @@ class AcumuladoController extends Controller
                         COUNT(*) as total_registros,
                         COUNT(DISTINCT ape.concepto_id) as total_conceptos
                     FROM acumulados_por_empleado ape
+                    {$acumuladoJoin}
                     WHERE {$whereClause}
                     GROUP BY ape.tipo_concepto
                     ORDER BY ape.tipo_concepto";
@@ -1698,13 +1793,15 @@ class AcumuladoController extends Controller
     private function getTiposAcumulados()
     {
         try {
-            $sql = "SELECT DISTINCT
-                        ape.tipo_acumulado as codigo,
-                        COALESCE(ta.descripcion, ape.tipo_acumulado) as descripcion
+            $sql = "SELECT DISTINCT 
+                        ape.tipo_acumulado AS codigo,
+                        COALESCE(ta.descripcion, ape.tipo_acumulado) AS descripcion,
+                        ta.descripcion AS descripcion_para_ordenar 
                     FROM acumulados_por_empleado ape
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
-                    WHERE ape.tipo_acumulado IS NOT NULL AND ape.tipo_acumulado != ''
-                    ORDER BY ta.descripcion, ape.tipo_acumulado";
+                    WHERE ape.tipo_acumulado IS NOT NULL 
+                    AND ape.tipo_acumulado != ''
+                    ORDER BY descripcion_para_ordenar, ape.tipo_acumulado;";
 
             $stmt = $this->db->query($sql);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -1712,6 +1809,23 @@ class AcumuladoController extends Controller
         } catch (\PDOException $e) {
             error_log("Error obteniendo tipos de acumulados: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Obtener el ID de un tipo de acumulado por su código
+     */
+    private function getTipoAcumuladoId($codigo)
+    {
+        try {
+            $sql = "SELECT id FROM tipos_acumulados WHERE codigo = ? AND activo = 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$codigo]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $result ? $result['id'] : null;
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo ID de tipo acumulado: " . $e->getMessage());
+            return null;
         }
     }
 
@@ -1906,7 +2020,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener acumulados de todos los conceptos
      */
-    private function getAllConceptosAcumulados($year, $month = null, $tipoPlanillaId = null)
+    private function getAllConceptosAcumulados($year, $month = null, $tipoPlanillaId = null, $tipoAcumulado = null)
     {
         try {
             $whereConditions = ["ape.ano = ?"];
@@ -1921,6 +2035,25 @@ class AcumuladoController extends Controller
             if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
                 $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
                 $params[] = (int)$tipoPlanillaId;
+            }
+
+            // Filtro por tipo de acumulado
+            $acumuladoJoin = "";
+            if ($tipoAcumulado) {
+                // Si es tipo CONCEPTO, filtrar por registros donde tipo_acumulado es código de concepto con esa relación
+                if ($tipoAcumulado === 'CONCEPTO') {
+                    $tipoAcumuladoId = $this->getTipoAcumuladoId($tipoAcumulado);
+                    if ($tipoAcumuladoId) {
+                        // JOIN con concepto usando ape.tipo_acumulado y luego con conceptos_acumulados
+                        $acumuladoJoin = "INNER JOIN concepto c_tipo ON ape.tipo_acumulado = c_tipo.concepto
+                                         INNER JOIN conceptos_acumulados ca ON c_tipo.id = ca.concepto_id AND ca.tipo_acumulado_id = ?";
+                        $params[] = $tipoAcumuladoId;
+                    }
+                } else {
+                    // Para otros tipos, filtrar normalmente
+                    $whereConditions[] = "ape.tipo_acumulado = ?";
+                    $params[] = $tipoAcumulado;
+                }
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -1957,6 +2090,7 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$acumuladoJoin}
                     {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
@@ -1977,7 +2111,7 @@ class AcumuladoController extends Controller
     /**
      * Obtener todos los conceptos agrupados
      */
-    private function getAllConceptosAgrupados($year, $month = null, $groupBy = 'empleado', $tipoPlanillaId = null)
+    private function getAllConceptosAgrupados($year, $month = null, $groupBy = 'empleado', $tipoPlanillaId = null, $tipoAcumulado = null)
     {
         try {
             $whereConditions = ["ape.ano = ?"];
@@ -1992,6 +2126,25 @@ class AcumuladoController extends Controller
             if ($tipoPlanillaId && is_numeric($tipoPlanillaId)) {
                 $whereConditions[] = "FIND_IN_SET(?, e.tipo_planilla_id)";
                 $params[] = (int)$tipoPlanillaId;
+            }
+
+            // Filtro por tipo de acumulado
+            $acumuladoJoin = "";
+            if ($tipoAcumulado) {
+                // Si es tipo CONCEPTO, filtrar por registros donde tipo_acumulado es código de concepto con esa relación
+                if ($tipoAcumulado === 'CONCEPTO') {
+                    $tipoAcumuladoId = $this->getTipoAcumuladoId($tipoAcumulado);
+                    if ($tipoAcumuladoId) {
+                        // JOIN con concepto usando ape.tipo_acumulado y luego con conceptos_acumulados
+                        $acumuladoJoin = "INNER JOIN concepto c_tipo ON ape.tipo_acumulado = c_tipo.concepto
+                                         INNER JOIN conceptos_acumulados ca ON c_tipo.id = ca.concepto_id AND ca.tipo_acumulado_id = ?";
+                        $params[] = $tipoAcumuladoId;
+                    }
+                } else {
+                    // Para otros tipos, filtrar normalmente
+                    $whereConditions[] = "ape.tipo_acumulado = ?";
+                    $params[] = $tipoAcumulado;
+                }
             }
 
             $whereClause = implode(" AND ", $whereConditions);
@@ -2027,6 +2180,7 @@ class AcumuladoController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
+                    {$acumuladoJoin}
                     {$conceptoJoin}
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}

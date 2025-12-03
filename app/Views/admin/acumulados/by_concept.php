@@ -40,8 +40,11 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
             </div>
             <div class="card-body">
                 <form method="GET" id="filtroConceptoForm">
+                    <?php if (isset($tipoPlanillaId) && $tipoPlanillaId): ?>
+                        <input type="hidden" name="tipo_planilla" value="<?= htmlspecialchars($tipoPlanillaId) ?>">
+                    <?php endif; ?>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label for="concepto_id">
                                     <i class="fas fa-calculator"></i> Concepto
@@ -92,6 +95,19 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                                     <?php foreach ($availableMonths as $monthNum => $monthName): ?>
                                         <option value="<?= $monthNum ?>" <?= $monthNum == $month ? 'selected' : '' ?>>
                                             <?= $monthName ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="tipo_acumulado"><i class="fas fa-tag"></i> Tipo Acumulado</label>
+                                <select class="form-control" id="tipo_acumulado" name="tipo_acumulado">
+                                    <option value="">Todos</option>
+                                    <?php foreach ($tiposAcumulados as $tipo): ?>
+                                        <option value="<?= htmlspecialchars($tipo['codigo']) ?>" <?= ($tipoAcumulado ?? '') === $tipo['codigo'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($tipo['descripcion']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -156,6 +172,22 @@ $pageTitle = $selectedConcepto ? "Acumulados - " . htmlspecialchars($selectedCon
                             $groupLabels = ['empleado' => 'Empleado', 'planilla' => 'Planilla', 'ano' => 'Año'];
                             echo $groupLabels[$groupBy] ?? 'Empleado';
                             ?>
+                        <?php endif; ?>
+                        <?php if ($tipoAcumulado): ?>
+                            <br>
+                            <strong>Tipo Acumulado:</strong>
+                            <span class="badge badge-warning">
+                                <?php
+                                $tipoDesc = 'N/A';
+                                foreach ($tiposAcumulados as $tipo) {
+                                    if ($tipo['codigo'] === $tipoAcumulado) {
+                                        $tipoDesc = $tipo['descripcion'];
+                                        break;
+                                    }
+                                }
+                                echo htmlspecialchars($tipoDesc);
+                                ?>
+                            </span>
                         <?php endif; ?>
                     </p>
                 </div>

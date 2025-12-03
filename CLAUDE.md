@@ -1,10 +1,10 @@
 ﻿# ðŸ¤– CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📍 **Estado Actual - V3.5.12 Acumulados Excel Export + Bug Fixes**
-- **Fecha**: 01 de Diciembre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY 35% + EMPLOYEE IMPORT 100% + ACUMULADOS EXPORT 100%**
-- **Versión**: 3.5.12 - Exportación Excel acumulados + Fixes motor fórmulas (variables XIII mes)
-- **Versión Anterior**: 3.5.10 - Dropdown información licencia + Wizard debugging
+## 📍 **Estado Actual - V3.5.13 Permisos Granulares + Liquidaciones Dinámicas**
+- **Fecha**: 02 de Diciembre, 2025
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY 35% + EMPLOYEE IMPORT 100% + PERMISOS GRANULARES 100%**
+- **Versión**: 3.5.13 - Sistema permisos granulares sidebar + Liquidaciones dinámicas portables
+- **Versión Anterior**: 3.5.12 - Exportación Excel acumulados + Fixes motor fórmulas
 
 ## ðŸŽ¯ **Sistema**
 Plataforma empresarial de planillas con legislaciÃ³n panameÃ±a, acumulados automÃ¡ticos XIII Mes, reportes PDF profesionales con firmas, y estructura organizacional completa.
@@ -47,6 +47,36 @@ Plataforma empresarial de planillas con legislaciÃ³n panameÃ±a, acumulados a
 **Fix Validación Variables XIII Mes** (PlanillaConceptCalculatorSecure.php:68-69): Agregadas variables string a excepción validación: PERIODO_XIII_ESTADO ('SIN_LIQUIDACION', 'ERROR', 'PENDIENTE', 'LIQUIDADO') + FECHA_LIQUIDACION. Permite uso correcto en fórmulas XIII mes trimestral.
 
 **EstadÃ­sticas**: 4 archivos | +248 líneas | 2 métodos nuevos | 2 bugs corregidos | 0 cambios BD | Deployment: 5-10 min
+
+### ðŸ†• V3.5.13 - Sistema Permisos Granulares + Liquidaciones Dinámicas (02-Dic-2025)
+
+**Sistema Permisos Granular en Sidebar** (sidebar.php +95 líneas):
+- **Método canAccessRoute()**: Verificación permisos lectura por ruta. Super admin bypass + dashboard siempre accesible + integración PermissionHelper::canAccess()
+- **Pre-verificación Secciones** (7 variables): $hasPersonalSection, $hasAttendanceSection, $hasPayrollSection, $hasReportsSection, $hasOrgSection, $hasConfigSection, $hasAuditSection. Evalúan acceso antes de renderizar headers
+- **Headers Condicionales**: 5 secciones ocultan header si usuario no tiene acceso a ningún módulo de la sección
+- **23 Módulos Filtrados**: Todos los enlaces envueltos en condicionales canAccessRoute(). Solo muestra módulos con read_perm = 1
+- **Fix Sintaxis**: 4 concatenadores (.) faltantes corregidos en líneas 294, 359, 393, 629
+
+**Fix FK Constraint role_permissions** (Role.php +55 líneas):
+- **Problema**: Error FK al actualizar roles. menu_items tenía 17 registros pero Role.php definía 25 módulos
+- **8 Módulos Insertados**: IDs 18-25 (Acumulados, Tipos Acumulados, Frecuencias, Situaciones, Liquidaciones, Vacaciones, Calendario, Reportes)
+- **Método getValidMenuIds()**: Consulta IDs válidos de menu_items con status=1 antes de insertar permisos
+- **Validación en saveRolePermissions()**: Filtrado automático menu_ids inválidos con logging para debugging
+
+**Liquidaciones Dinámicas y Portables** (LiquidationController.php +95 líneas):
+- **Problema**: Hardcoded frecuencia_id (5 o 9) en 8 ubicaciones. 10 conceptos LIQ con frecuencias NULL/incorrectas
+- **Método getLiquidationFrequencyId()**: Lookup dinámico por código 'LIQUIDACION' + caché instancia + fallback búsqueda por nombre
+- **UPPER() Case-Insensitive**: WHERE UPPER(codigo) = 'LIQUIDACION' y WHERE UPPER(nombre) LIKE '%LIQUIDACI%'
+- **8 Queries Refactorizadas**: Reemplazo completo hardcodes por prepared statements con parámetro dinámico (?)
+- **BD Corrections**: DELETE + INSERT frecuencia_id=5 para conceptos 25,26,28,42,43,45,46,47,48,49. INSERT tipo_planilla_id=1 para 7 conceptos
+
+**EstadÃ­sticas**: 3 archivos | +245 líneas cÃ³digo | 2 mÃ©todos nuevos | 8 hardcodes eliminados | 8 registros BD insertados | 0 eval() | Deployment: 10-15 min
+
+**Mejoras**:
+- âœ… Sidebar dinÃ¡mico por permisos usuario (oculta mÃ³dulos no autorizados)
+- âœ… Sistema roles robusto contra configuraciones inconsistentes
+- âœ… Liquidaciones 100% portables entre ambientes (0 hardcoded IDs)
+- âœ… Mejor debugging con logging automÃ¡tico de errores FK
 
 ## ðŸ"„ **Sistemas Auxiliares Implementados**
 
@@ -410,7 +440,7 @@ A partir de la versiÃ³n 3.4.1, cada versiÃ³n tiene su propio archivo en `doc
 - **Ãndice**: `CHANGELOG.md` sirve como Ã­ndice con enlaces a archivos individuales
 - **Template**: Copiar estructura de versiones existentes para nuevas versiones
 - **Convenciones**: Incluir fecha, tipo, componentes, estadÃ­sticas y referencias cruzadas
-- **Ãšltima VersiÃ³n**: v3.5.6 (13-Nov-2025) - SincronizaciÃ³n Calendario API + Feriados Pagados + UnificaciÃ³n
+- **Ãšltima VersiÃ³n**: v3.5.13 (02-Dic-2025) - Sistema Permisos Granulares + Liquidaciones Dinámicas
 
       
       IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.
