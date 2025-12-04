@@ -714,14 +714,19 @@ class PlanillaConceptCalculatorSecure
             $placeholders = str_repeat('?,', count($conceptosArray) - 1) . '?';
 
             // JOIN con planilla_cabecera para obtener fechas (acumulados_por_empleado no tiene campo fecha)
+            // Lógica de solapamiento: incluir planillas que se solapen con el período
+            // - La planilla termina EN o DESPUÉS del inicio del período (fecha_hasta >= fechaDesde)
+            // - Y la planilla inicia EN o ANTES del fin del período (fecha_desde <= fechaHasta)
             $sql = "SELECT SUM(ape.monto) as total
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE ape.employee_id = ?
                     AND ape.tipo_acumulado IN ($placeholders)
-                    AND pc.fecha_desde >= ?
-                    AND pc.fecha_hasta <= ?";
+                    AND pc.fecha_hasta >= ?
+                    AND pc.fecha_desde <= ?";
+            error_log("SQL ACUMULADOS: $sql");
+            error_log("Parametros ACUMULADOS: " . implode(',', array_merge([$employeeId], $conceptosArray, [$fechaDesde, $fechaHasta])));
 
             $params = array_merge([$employeeId], $conceptosArray, [$fechaDesde, $fechaHasta]);
 

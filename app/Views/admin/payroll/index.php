@@ -475,7 +475,8 @@ $timestamp = date('siH'); // SS II HH format for cache busting
 $scriptFiles = [
     '/plugins/datatables/jquery.dataTables.min.js',
     '/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js',
-    '/assets/javascript/modules/payroll/index.js?' . $timestamp
+    '/assets/javascript/modules/payroll/index.js?' . $timestamp,
+    '/assets/javascript/modules/payroll/index-mass-email.js?' . $timestamp
 ];
 
 use App\Helpers\JavaScriptHelper;
@@ -648,6 +649,9 @@ $scripts = $jsConfig . "\n" . $payrollConfigScript . "\n" . JavaScriptHelper::re
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">
                     <i class="fas fa-times"></i> Cerrar
+                </button>
+                <button type="button" class="btn btn-success" id="sendAllPayslips" style="display: none;">
+                    <i class="fas fa-paper-plane"></i> Enviar a Todos
                 </button>
             </div>
         </div>

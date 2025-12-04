@@ -311,6 +311,7 @@ $styles = '<link rel="stylesheet" href="' . url('plugins/datatables-bs4/css/data
 $scripts = '
 <script src="' . url('plugins/datatables/jquery.dataTables.min.js', false) . '"></script>
 <script src="' . url('plugins/datatables-bs4/js/dataTables.bootstrap4.min.js', false) . '"></script>
+<script src="' . url('assets/javascript/modules/payroll/index.js?v=' . time(), false) . '"></script>
 <script>
 $(document).ready(function() {
     // Configuración de la vista

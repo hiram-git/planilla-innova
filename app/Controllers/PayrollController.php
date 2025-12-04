@@ -1772,6 +1772,7 @@ class PayrollController extends Controller
                     e.id as employee_id,
                     CONCAT(e.firstname, ' ', e.lastname) as employee_name,
                     e.employee_id as employee_code,
+                    e.email as employee_email,
                     {$cargoField} as position_name,
                     SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) as total_ingresos,
                     SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END) as total_deducciones,
@@ -1782,7 +1783,7 @@ class PayrollController extends Controller
                 LEFT JOIN posiciones pos ON e.position_id = pos.id
                 LEFT JOIN cargos c ON e.cargo_id = c.id
                 WHERE pd.planilla_cabecera_id = ?
-                GROUP BY e.id, e.firstname, e.lastname, e.employee_id, pos.codigo, c.nombre
+                GROUP BY e.id, e.firstname, e.lastname, e.employee_id, e.email, pos.codigo, c.nombre
             ) t";
 
             $params = [$id];
@@ -1829,10 +1830,11 @@ class PayrollController extends Controller
             }
 
             // Query final con paginación
-            $dataQuery = "SELECT 
+            $dataQuery = "SELECT
                 t.employee_id,
                 t.employee_name,
                 t.employee_code,
+                t.employee_email,
                 t.position_name,
                 t.total_ingresos,
                 t.total_deducciones,
@@ -1855,7 +1857,7 @@ class PayrollController extends Controller
                     2 => currency_symbol() . number_format($employee['total_ingresos'], 2),
                     3 => currency_symbol() . number_format($employee['total_deducciones'], 2),
                     4 => currency_symbol() . number_format($employee['salario_neto'], 2),
-                    5 => $this->generateEmployeeActions($id, $employee['employee_id'])
+                    5 => $this->generateEmployeeActions($id, $employee['employee_id'], $employee['employee_email'])
                 ];
             }
 
@@ -1950,26 +1952,44 @@ class PayrollController extends Controller
     /**
      * Generar botones de acciones para cada empleado
      */
-    private function generateEmployeeActions($payrollId, $employeeId)
+    private function generateEmployeeActions($payrollId, $employeeId, $employeeEmail = null)
     {
         $actions = '<div class="btn-group" role="group">';
-        
+
         // Ver detalle
-        $actions .= '<a href="' . \App\Core\Config::get('app.url') . '/panel/payrolls/' . $payrollId . '/employee/' . $employeeId . '" 
+        $actions .= '<a href="' . \App\Core\Config::get('app.url') . '/panel/payrolls/' . $payrollId . '/employee/' . $employeeId . '"
                        class="btn btn-info btn-sm" title="Ver detalle">
                        <i class="fas fa-eye"></i>
                     </a>';
-        
+
+        // Enviar comprobante por email
+        if (!empty($employeeEmail) && $employeeEmail !== 'null') {
+            $actions .= '<button type="button"
+                                class="btn btn-success btn-sm"
+                                onclick="sendEmployeePayslip(' . $payrollId . ', ' . $employeeId . ', \'' . htmlspecialchars($employeeEmail, ENT_QUOTES) . '\')"
+                                title="Enviar comprobante por email">
+                            <i class="fas fa-envelope"></i>
+                        </button>';
+        } else {
+            // Botón deshabilitado si no hay email
+            $actions .= '<button type="button"
+                                class="btn btn-secondary btn-sm"
+                                disabled
+                                title="No tiene email registrado">
+                            <i class="fas fa-envelope"></i>
+                        </button>';
+        }
+
         // Regenerar empleado
-        $actions .= '<button type="button" 
-                            class="btn btn-warning btn-sm" 
+        $actions .= '<button type="button"
+                            class="btn btn-warning btn-sm"
                             onclick="regenerateEmployee(' . $employeeId . ')"
                             title="Regenerar empleado">
                         <i class="fas fa-sync-alt"></i>
                     </button>';
-        
+
         $actions .= '</div>';
-        
+
         return $actions;
     }
 
@@ -2717,13 +2737,13 @@ class PayrollController extends Controller
                                 <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/comprobantes-planilla/' . $payroll['id']) . '" target="_blank">
                                     <i class="fas fa-file-alt text-secondary"></i> Comprobantes Verticales
                                 </a>
-                                <!--<div class="dropdown-divider"></div>
+                                <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" onclick="showEmployeeSelector(' . $payroll['id'] . ', \'view\'); return false;">
                                     <i class="fas fa-file-pdf text-primary"></i> Comprobante Individual
                                 </a>
                                 <a class="dropdown-item" href="#" onclick="showEmployeeSelector(' . $payroll['id'] . ', \'email\'); return false;">
                                     <i class="fas fa-envelope text-success"></i> Enviar por Email
-                                </a>-->
+                                </a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="' . \App\Core\UrlHelper::url('/panel/reports/reporte-acreedores/' . $payroll['id']) . '" target="_blank">
                                     <i class="fas fa-building text-warning"></i> Reporte Acreedores
