@@ -773,6 +773,10 @@ class App
                                     } elseif ($url[2] === 'delete-logo' && method_exists($this->controller, 'deleteLogo')) {
                                         $this->method = 'deleteLogo';
                                         $this->params = array_slice($url, 3);
+                                    } elseif ($url[2] === 'enviar-comprobante-email' && method_exists($this->controller, 'enviarComprobanteEmailAjax')) {
+                                        // Ruta: /panel/reports/enviar-comprobante-email (POST AJAX)
+                                        $this->method = 'enviarComprobanteEmailAjax';
+                                        $this->params = [];
                                     } elseif ($url[2] === 'update' && isset($url[3]) && method_exists($this->controller, 'update')) {
                                         $this->method = 'update';
                                         $this->params = [$url[3]];
@@ -875,10 +879,6 @@ class App
                                         // Ruta: /panel/reports/comprobante-individual/{payrollId}/{employeeId}
                                         $this->method = 'comprobanteIndividual';
                                         $this->params = [$url[3], $url[4]]; // payrollId, employeeId
-                                    } elseif ($url[2] === 'enviar-comprobante-email' && method_exists($this->controller, 'enviarComprobanteEmailAjax')) {
-                                        // Ruta: /panel/reports/enviar-comprobante-email (POST AJAX)
-                                        $this->method = 'enviarComprobanteEmailAjax';
-                                        $this->params = [];
                                     } elseif ($url[2] === 'cancel-form' && isset($url[3]) && method_exists($this->controller, 'cancelForm')) {
                                         // Ruta: /panel/liquidation/cancel-form/{id}
                                         $this->method = 'cancelForm';

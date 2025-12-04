@@ -1,8 +1,22 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-12-02 (v3.5.13)
+Actualizado: 2025-12-04 (v3.5.14)
 
-## ✅ Completado Recientemente (v3.5.13 - 02-Dic-2025)
+## ✅ Completado Recientemente (v3.5.14 - 04-Dic-2025)
+
+### Fix JavaScript Module Loading (Critical)
+- [x] Refactorizar PayrollModule para lazy initialization de URLs
+- [x] Mover acceso APP_CONFIG desde definición objeto a método init()
+- [x] Agregar verificaciones typeof !== 'undefined' para APP_CONFIG
+- [x] Implementar fallback dinámico si APP_CONFIG no disponible
+- [x] Corregir orden de carga scripts en index.php (usar $scripts único)
+- [x] Copiar tenant-storage-manager.js a ubicación correcta (/js/)
+- [x] Testing completo en navegador (consola limpia, funcionalidad operativa)
+- [x] Actualizar CHANGELOG.md con índice v3.5.14
+- [x] Crear documentation/changelog/v3.5.14.md con análisis completo
+- [x] Actualizar CLAUDE.md con resumen compacto del fix
+
+### Previous (v3.5.13 - 02-Dic-2025)
 
 ### Sistema Permisos Granular + Liquidaciones Dinámicas
 - [x] Fix error FK role_permissions al actualizar roles

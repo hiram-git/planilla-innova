@@ -8,6 +8,38 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.14]** - 2025-12-04 - *Fix JavaScript Module Loading*
+**Tipo**: BUGFIX - Critical
+**Fase**: Frontend JavaScript Architecture
+**Criticidad**: Alta
+
+**Componentes Principales**:
+- âœ… **RefactorizaciÃ³n PayrollModule** (index.js):
+  - Lazy initialization pattern: mover acceso APP_CONFIG a mÃ©todo init()
+  - URLs inicializadas como strings vacÃ­os en objeto, pobladas en init()
+  - VerificaciÃ³n `typeof APP_CONFIG !== 'undefined'` antes de cada acceso
+  - Fallback dinÃ¡mico si APP_CONFIG no disponible
+  - Logging para debugging
+- âœ… **CorrecciÃ³n Orden Scripts** (index.php):
+  - Eliminado uso de `$scriptFiles` array
+  - Scripts construidos manualmente en orden correcto con `$scripts`
+  - Orden: DataTables â†' APP_CONFIG base â†' config payroll â†' mÃ³dulos
+  - Merge configuraciÃ³n con Object.assign()
+- âœ… **Fix TenantStorageManager**:
+  - Archivo copiado de `/public/js/` a `/js/` (ubicaciÃ³n correcta)
+- âœ… **Errores Resueltos**:
+  - `APP_CONFIG is not defined` (causa: acceso en definiciÃ³n objeto)
+  - `TenantStorageManager is not defined` (causa: ruta incorrecta)
+
+**ðŸ"ˆ EstadÃ­sticas**:
+- 2 archivos modificados | 1 archivo copiado | ~95 lÃ­neas modificadas
+- 2 errores crÃ­ticos corregidos | 1 mÃ©todo refactorizado | 0 cambios BD
+- Deployment: 5 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.14.md)**
+
+---
+
 ### **[v3.5.12]** - 2025-12-01 - *Acumulados Excel Export + Bug Fixes*
 **Tipo**: MEJORA + BUGFIX
 **Fase**: Módulo Acumulados - Export + Motor Fórmulas Fixes
@@ -701,7 +733,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 02 de Diciembre, 2025
-Sistema: Planillas MVC v3.5.13
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 35% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100%
+Última Actualización: 04 de Diciembre, 2025
+Sistema: Planillas MVC v3.5.14
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 35% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | JavaScript Arch 100%
 

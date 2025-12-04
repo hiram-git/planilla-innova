@@ -1,11 +1,19 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 01 de Diciembre, 2025
-**Versión**: 3.5.12 - Acumulados Excel Export + Bug Fixes Motor Fórmulas
-**Versión Anterior**: 3.5.11 - Permission System Restructuring + Wizard UI + Formula Validation
+**Fecha**: 04 de Diciembre, 2025
+**Versión**: 3.5.14 - Fix JavaScript Module Loading (Critical Bugfix)
+**Versión Anterior**: 3.5.13 - Sistema Permisos Granulares + Liquidaciones Dinámicas
 
-### 🆕 Hitos Recientes (v3.5.12 Acumulados Excel Export + Bug Fixes)
+### 🆕 Hitos Recientes (v3.5.14 Fix JavaScript Module Loading)
+- **Lazy Initialization Pattern**: Refactorización PayrollModule para acceder APP_CONFIG en init() en lugar de definición objeto
+- **Fix Script Loading Order**: Eliminado $scriptFiles, construcción manual $scripts con orden correcto (DataTables → APP_CONFIG → payroll config → módulos)
+- **Fix TenantStorageManager**: Archivo copiado a ubicación correcta servida por el proyecto (/js/)
+- **Errores Críticos Resueltos**: APP_CONFIG is not defined + TenantStorageManager is not defined
+- **Causa Raíz Identificada**: Acceso a variables globales en definición de objeto JavaScript (ejecución inmediata durante parsing)
+- **Best Practice Aplicada**: typeof checks + fallbacks dinámicos + logging para debugging
+
+### 🆕 Hitos Anteriores (v3.5.12 Acumulados Excel Export + Bug Fixes)
 - **Exportación Excel Acumulados**: Método exportExcel() con PhpSpreadsheet + 12 columnas profesionales
 - **Soporte Filtros Completos**: concepto_id='all', tipo_planilla, month, group_by (idéntico a CSV)
 - **Mejora UI DataTable**: Columna "Concepto" muestra descripción + tipo acumulado separado por |

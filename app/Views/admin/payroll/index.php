@@ -467,40 +467,47 @@ $csrf_token = $data['csrf_token'] ?? '';
     </div>
 </div>
 
-<?php 
+<?php
 $styles = '<link rel="stylesheet" href="' . url('plugins/datatables-bs4/css/dataTables.bootstrap4.min.css', false) . '">';
 
-// Scripts para el módulo usando sistema modular
+// Cache busting timestamp
 $timestamp = date('siH'); // SS II HH format for cache busting
-$scriptFiles = [
-    '/plugins/datatables/jquery.dataTables.min.js',
-    '/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js',
-    '/assets/javascript/modules/payroll/index.js?' . $timestamp,
-    '/assets/javascript/modules/payroll/index-mass-email.js?' . $timestamp
-];
 
 use App\Helpers\JavaScriptHelper;
-$jsConfig = JavaScriptHelper::renderConfigScript();
 
 // Configuración específica para el módulo de planillas
 $payrollConfig = [
     'csrfToken' => $csrf_token, // Usar camelCase para que coincida con JS
     'csrf_token' => $csrf_token, // También mantener snake_case por compatibilidad
-    'tiposPlanilla' => $tipos_planilla ?? [], 
+    'tiposPlanilla' => $tipos_planilla ?? [],
     'urls' => [
         'payrolls' => \App\Core\UrlHelper::route('panel/payrolls')
     ]
 ];
 
-$payrollConfigScript = '<script>
-if (typeof window.APP_CONFIG === "undefined") {
-    window.APP_CONFIG = {};
-}
-// Merge the payroll config with existing APP_CONFIG
-Object.assign(window.APP_CONFIG, ' . json_encode($payrollConfig, JSON_UNESCAPED_SLASHES) . ');
-</script>';
+// Construir scripts en el orden correcto
+$scripts = '';
 
-$scripts = $jsConfig . "\n" . $payrollConfigScript . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
+// 1. Scripts comunes (DataTables)
+$scripts .= '<script src="' . url('plugins/datatables/jquery.dataTables.min.js') . '"></script>' . "\n";
+$scripts .= '<script src="' . url('plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') . '"></script>' . "\n";
+
+// 2. Configuración base APP_CONFIG
+$scripts .= JavaScriptHelper::renderConfigScript() . "\n";
+
+// 3. Configuración específica del módulo (se hace merge con APP_CONFIG existente)
+$scripts .= '<script type="text/javascript">' . "\n";
+$scripts .= 'if (typeof window.APP_CONFIG === "undefined") {' . "\n";
+$scripts .= '    window.APP_CONFIG = {};' . "\n";
+$scripts .= '}' . "\n";
+$scripts .= '// Merge payroll config with existing APP_CONFIG' . "\n";
+$scripts .= 'Object.assign(window.APP_CONFIG, ' . json_encode($payrollConfig, JSON_UNESCAPED_SLASHES) . ');' . "\n";
+$scripts .= 'console.log("APP_CONFIG initialized:", window.APP_CONFIG);' . "\n";
+$scripts .= '</script>' . "\n";
+
+// 4. Scripts del módulo que dependen de APP_CONFIG
+$scripts .= '<script src="' . url('/assets/javascript/modules/payroll/index.js?' . $timestamp) . '"></script>' . "\n";
+$scripts .= '<script src="' . url('/assets/javascript/modules/payroll/index-mass-email.js?' . $timestamp) . '"></script>' . "\n";
 ?>
 
 <style>

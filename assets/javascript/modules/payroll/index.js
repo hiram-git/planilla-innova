@@ -9,13 +9,8 @@
         // Configuration
         config: {
             urls: {
-                base: APP_CONFIG?.urls?.base || '',
-                payrolls: APP_CONFIG?.urls?.payrolls || (function() {
-                    // Dynamic fallback based on current location
-                    const path = window.location.pathname;
-                    const basePath = path.substring(0, path.indexOf('/panel'));
-                    return basePath + '/panel/payrolls';
-                })(),
+                base: '',
+                payrolls: ''
             },
             csrfToken: null,
             tiposPlanilla: []
@@ -48,15 +43,26 @@
          * Initialize the module
          */
         init: function(options = {}) {
-            
+            // Initialize URLs from APP_CONFIG if available
+            if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.urls) {
+                this.config.urls.base = APP_CONFIG.urls.base || '';
+                this.config.urls.payrolls = APP_CONFIG.urls.payrolls || '';
+            }
+
+            // Fallback: Calculate payrolls URL dynamically
+            if (!this.config.urls.payrolls) {
+                const path = window.location.pathname;
+                const basePath = path.substring(0, path.indexOf('/panel'));
+                this.config.urls.payrolls = basePath + '/panel/payrolls';
+            }
+
             // Try multiple sources for CSRF token
-            let csrfToken = options.csrfToken || 
-                           options.csrf_token || 
-                           APP_CONFIG?.csrfToken || 
-                           APP_CONFIG?.csrf_token || 
-                           APP_CONFIG?.config?.csrf_token || 
+            let csrfToken = options.csrfToken ||
+                           options.csrf_token ||
+                           (typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.csrfToken : null) ||
+                           (typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.csrf_token : null) ||
                            '';
-            
+
             // Fallback: try to get from meta tag if available
             if (!csrfToken) {
                 const metaTag = document.querySelector('meta[name="csrf-token"]');
@@ -64,15 +70,16 @@
                     csrfToken = metaTag.getAttribute('content');
                 }
             }
-            
+
             this.config.csrfToken = csrfToken;
             this.config.tiposPlanilla = options.tiposPlanilla || [];
-            
-            
+
+            console.log('PayrollModule initialized with config:', this.config);
+
             this.initializeDataTable();
             this.initializePayrollFilter();
             this.bindEvents();
-            
+
         },
 
         /**
@@ -1657,43 +1664,61 @@ function renderEmployeesList(employees) {
  */
 function sendEmployeePayslip(payrollId, employeeId, employeeEmail) {
     if (!employeeEmail || employeeEmail === 'null') {
-        toastr.error('El empleado no tiene email registrado');
+        Swal.fire({
+            icon: 'error',
+            title: 'Email no disponible',
+            text: 'El empleado no tiene email registrado',
+            confirmButtonColor: '#d33'
+        });
         return;
     }
 
-    // Confirmar envío
-    if (!confirm('¿Enviar comprobante al email: ' + employeeEmail + '?')) {
-        return;
-    }
+    // Confirmar envío con SweetAlert2
+    Swal.fire({
+        title: 'Confirmar Envío',
+        html: `¿Desea enviar el comprobante al siguiente email?<br><strong>${employeeEmail}</strong>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-paper-plane"></i> Enviar',
+        cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        preConfirm: () => {
+            const basePath = getBasePath();
+            const ajaxUrl = basePath + '/panel/reports/enviar-comprobante-email';
 
-    const basePath = getBasePath();
-    const ajaxUrl = basePath + '/panel/reports/enviar-comprobante-email';
-
-    // Mostrar loader
-    toastr.info('Enviando comprobante...', '', {timeOut: 0, extendedTimeOut: 0});
-
-    $.ajax({
-        url: ajaxUrl,
-        type: 'POST',
-        dataType: 'json',
-        data: {
-            payroll_id: payrollId,
-            employee_id: employeeId,
-            email_to: employeeEmail
-        },
-        success: function(response) {
-            toastr.clear();
-
-            if (response.success) {
-                toastr.success(response.message || 'Comprobante enviado exitosamente');
-            } else {
-                toastr.error(response.message || 'Error al enviar comprobante');
-            }
-        },
-        error: function(xhr, status, error) {
-            toastr.clear();
-            console.error('Error al enviar comprobante:', error);
-            toastr.error('Error de conexión al enviar comprobante');
+            return $.ajax({
+                url: ajaxUrl,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    payroll_id: payrollId,
+                    employee_id: employeeId,
+                    email_to: employeeEmail
+                }
+            }).then(response => {
+                if (!response.success) {
+                    throw new Error(response.message || 'Error al enviar comprobante');
+                }
+                return response;
+            }).catch(error => {
+                Swal.showValidationMessage(
+                    `Error: ${error.message || 'Error de conexión'}`
+                );
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Enviado',
+                text: result.value.message || 'Comprobante enviado exitosamente',
+                confirmButtonColor: '#28a745',
+                timer: 3000,
+                timerProgressBar: true
+            });
         }
     });
 }
