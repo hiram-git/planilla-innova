@@ -486,6 +486,7 @@ class ReportController extends Controller
 
         // Insertar logos en la cabecera
         $this->insertLogosInPDF($pdf, $companyInfo);
+        $pdf->Ln(); // Salto de línea después de logos para evitar superposición
 
         // Header del comprobante
         $pdf->SetFont('helvetica', 'B', 16);
