@@ -15,7 +15,7 @@ $(document).ready(function() {
             "order": [[0, "desc"]], // Ordenar por ID descendente (más recientes primero)
             "language": DATATABLES_SPANISH,
             "columnDefs": [
-                { "orderable": false, "targets": 10 } // Columna acciones no ordenable
+                { "orderable": false, "targets": 7 } // Columna acciones no ordenable
             ]
         });
     }

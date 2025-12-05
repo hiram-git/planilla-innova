@@ -671,10 +671,10 @@ class LiquidationController extends Controller
             // Crear detalles de planilla
             $this->createLiquidationPayrollDetails($payroll_id, $termination, $calculations);
 
-            // Actualizar estado de la liquidación
-            $sql = "UPDATE employee_terminations SET status = 'PROCESADA' WHERE id = ?";
+            // Actualizar estado de la liquidación y guardar referencia a la planilla
+            $sql = "UPDATE employee_terminations SET status = 'PROCESADA', liquidation_payroll_id = ? WHERE id = ?";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$termination_id]);
+            $stmt->execute([$payroll_id, $termination_id]);
 
             // Registrar en historial
             $this->logLiquidationAction($termination_id, 'PLANILLA_GENERADA', 'Planilla de liquidación generada');
@@ -738,8 +738,8 @@ class LiquidationController extends Controller
                 error_log("No se encontró planilla para revertir (liquidación {$termination_id})");
             }
 
-            // 4. Cambiar estado de la liquidación a CALCULADA
-            $sql = "UPDATE employee_terminations SET status = 'CALCULADA' WHERE id = ?";
+            // 4. Cambiar estado de la liquidación a CALCULADA y limpiar referencia a planilla
+            $sql = "UPDATE employee_terminations SET status = 'CALCULADA', liquidation_payroll_id = NULL WHERE id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$termination_id]);
 
@@ -887,6 +887,9 @@ class LiquidationController extends Controller
         // Obtener tipo de planilla de liquidación (crear si no existe)
         $tipo_planilla_id = $this->getOrCreateLiquidationPayrollType();
 
+        // Obtener ID de frecuencia de liquidación dinámicamente
+        $liquidation_frequency_id = $this->getLiquidationFrequencyId();
+
         $sql = "INSERT INTO planilla_cabecera
                 (descripcion, tipo_planilla_id, frecuencia_id, fecha, fecha_desde, fecha_hasta, estado)
                 VALUES (?, ?, ?, ?, ?, ?, 'PROCESADA')";
@@ -895,7 +898,7 @@ class LiquidationController extends Controller
         $stmt->execute([
             'Liquidación - ' . $termination['firstname'] . ' ' . $termination['lastname'] . ' (' . date('d/m/Y', strtotime($termination['termination_date'])) . ')',
             $tipo_planilla_id,
-            9, // Frecuencia de liquidación
+            $liquidation_frequency_id, // Frecuencia de liquidación (dinámico por código 'LIQUIDACION')
             $fecha_hasta,
             $fecha_desde,
             $fecha_hasta
@@ -987,23 +990,30 @@ class LiquidationController extends Controller
             $liquidation_frequency_id = $this->getLiquidationFrequencyId();
 
             // Obtener planillas de liquidación con información de la liquidación
-            $sql = "SELECT pc.*, tp.descripcion as tipo_planilla_nombre,
+            $sql = "SELECT pc.*,
+                           tp.descripcion as tipo_planilla_nombre,
                            f.nombre as frecuencia_nombre,
-                           COUNT(DISTINCT pd.id) as total_empleados,
+                           COUNT(DISTINCT pd.employee_id) as total_empleados,
                            SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) as total_asignaciones,
                            SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END) as total_deducciones,
                            (SUM(CASE WHEN pd.tipo = 'A' THEN pd.monto ELSE 0 END) -
                             SUM(CASE WHEN pd.tipo = 'D' THEN pd.monto ELSE 0 END)) as total_neto,
-                           et.id as termination_id,
-                           et.status as liquidation_status
+                           (SELECT et.id FROM employee_terminations et
+                            INNER JOIN planilla_detalle pd2 ON et.employee_id = pd2.employee_id
+                            WHERE pd2.planilla_cabecera_id = pc.id
+                            AND et.liquidation_payroll_id = pc.id
+                            LIMIT 1) as termination_id,
+                           (SELECT et.status FROM employee_terminations et
+                            INNER JOIN planilla_detalle pd2 ON et.employee_id = pd2.employee_id
+                            WHERE pd2.planilla_cabecera_id = pc.id
+                            AND et.liquidation_payroll_id = pc.id
+                            LIMIT 1) as liquidation_status
                     FROM planilla_cabecera pc
                     LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
                     LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
                     LEFT JOIN planilla_detalle pd ON pc.id = pd.planilla_cabecera_id
-                    LEFT JOIN employee_terminations et ON pd.employee_id = et.employee_id
-                        AND pc.fecha_hasta = et.termination_date
                     WHERE pc.frecuencia_id = ?
-                    GROUP BY pc.id, et.id, et.status
+                    GROUP BY pc.id
                     ORDER BY pc.created_at DESC";
 
             $stmt = $this->db->prepare($sql);
