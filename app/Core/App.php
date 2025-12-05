@@ -871,6 +871,16 @@ class App
                                         // Ruta: /panel/reports/acumulados-general-pdf
                                         $this->method = 'acumuladosGeneralPdf';
                                         $this->params = [];
+                                    } elseif ($url[2] === 'estimado-anual-liquidaciones') {
+                                        // Ruta: /panel/reports/estimado-anual-liquidaciones - usa EstimateReportController
+                                        $estimateController = new \App\Controllers\EstimateReportController();
+                                        $estimateController->estimadoAnualLiquidaciones();
+                                        return;
+                                    } elseif ($url[2] === 'estimado-anual-planillas') {
+                                        // Ruta: /panel/reports/estimado-anual-planillas - usa EstimateReportController
+                                        $estimateController = new \App\Controllers\EstimateReportController();
+                                        $estimateController->estimadoAnualPlanillas();
+                                        return;
                                     } elseif ($url[2] === 'comprobantes-planilla-horizontal' && isset($url[3]) && method_exists($this->controller, 'comprobantesPlanillaHorizontal')) {
                                         // Ruta: /panel/reports/comprobantes-planilla-horizontal/{payrollId}
                                         $this->method = 'comprobantesPlanillaHorizontal';

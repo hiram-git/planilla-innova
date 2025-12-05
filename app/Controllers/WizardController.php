@@ -548,30 +548,32 @@ class WizardController{
 
     private function sendWelcomeEmail($companyData, $databaseName) {
         try {
+            // Obtener configuración de correo desde BD (con fallback a .env)
+            $companyModel = new \App\Models\Company();
+            $mailConfig = $companyModel->getMailConfig();
+
             // Configurar PHPMailer
             $mail = new PHPMailer(true);
 
             // Configuración del servidor SMTP
             $mail->isSMTP();
-            $mail->Host       = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
+            $mail->Host       = $mailConfig['host'];
 
-            // Autenticación solo si hay username configurado (Mailtrap/Gmail requieren auth)
-            $mailUsername = $_ENV['MAIL_USERNAME'] ?? '';
-            if (!empty($mailUsername)) {
+            // Autenticación solo si hay username configurado
+            if (!empty($mailConfig['username'])) {
                 $mail->SMTPAuth   = true;
-                $mail->Username   = $mailUsername;
-                $mail->Password   = $_ENV['MAIL_PASSWORD'] ?? '';
+                $mail->Username   = $mailConfig['username'];
+                $mail->Password   = $mailConfig['password'];
             } else {
                 $mail->SMTPAuth   = false;
             }
 
             // Encriptación solo si está configurada explícitamente
-            $encryption = $_ENV['MAIL_ENCRYPTION'] ?? '';
-            if (!empty($encryption) && strtolower($encryption) !== 'optional') {
-                $mail->SMTPSecure = $encryption;
+            if (!empty($mailConfig['encryption']) && strtolower($mailConfig['encryption']) !== 'optional') {
+                $mail->SMTPSecure = $mailConfig['encryption'];
             }
 
-            $mail->Port       = $_ENV['MAIL_PORT'] ?? 587;
+            $mail->Port       = $mailConfig['port'];
             $mail->CharSet    = 'UTF-8';
 
             // Debug mode (solo en desarrollo)
@@ -581,8 +583,8 @@ class WizardController{
 
             // Remitente
             $mail->setFrom(
-                $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@planillas.com',
-                $_ENV['MAIL_FROM_NAME'] ?? 'Sistema de Planillas'
+                $mailConfig['from_address'],
+                $mailConfig['from_name']
             );
 
             // Destinatario
@@ -674,7 +676,8 @@ class WizardController{
             error_log("Empresa: " . ($companyData['company_name'] ?? 'N/A'));
             error_log("Error PHPMailer: " . $mail->ErrorInfo);
             error_log("Exception: " . $e->getMessage());
-            error_log("Servidor SMTP: " . ($_ENV['MAIL_HOST'] ?? 'N/A') . ":" . ($_ENV['MAIL_PORT'] ?? 'N/A'));
+            error_log("Servidor SMTP: " . ($mailConfig['host'] ?? 'N/A') . ":" . ($mailConfig['port'] ?? 'N/A'));
+            error_log("Config Source: " . (!empty($mailConfig) ? 'BD Company' : '.env fallback'));
             error_log("==========================================");
 
             // No lanzamos la excepción para no interrumpir el flujo de creación de empresa

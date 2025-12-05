@@ -382,6 +382,18 @@ class SidebarComponent
                                         <p>Exportar Datos</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::url('panel/reports/estimado-anual-liquidaciones') . '" class="nav-link ' . ($this->isActive('panel/reports/estimado-anual-liquidaciones') ? 'active' : '') . '">
+                                        <i class="fas fa-hand-holding-usd nav-icon"></i>
+                                        <p>Estimado Anual Liquidaciones</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::url('panel/reports/estimado-anual-planillas') . '" class="nav-link ' . ($this->isActive('panel/reports/estimado-anual-planillas') ? 'active' : '') . '">
+                                        <i class="fas fa-calendar-alt nav-icon"></i>
+                                        <p>Estimado Anual Planillas</p>
+                                    </a>
+                                </li>
                             </ul>
                         </li>' : '') . '
 

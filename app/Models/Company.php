@@ -18,7 +18,9 @@ class Company extends Model
         'currency_code', 'logo_empresa', 'logo_izquierdo_reportes',
         'logo_derecho_reportes', 'tipo_institucion',
         'jefe_recursos_humanos', 'cargo_jefe_rrhh',
-        'elaborado_por', 'cargo_elaborador'
+        'elaborado_por', 'cargo_elaborador',
+        'mail_host', 'mail_port', 'mail_username', 'mail_password',
+        'mail_encryption', 'mail_from_address', 'mail_from_name'
     ];
 
     private $pdo;
@@ -63,17 +65,18 @@ class Company extends Model
             
             if ($existing) {
                 // Actualizar empresa existente
-                $sql = "UPDATE {$this->table}
-                       SET company_name = ?, ruc = ?, legal_representative = ?,
-                           address = ?, phone = ?, email = ?, currency_symbol = ?,
-                           currency_code = ?, logo_empresa = ?, logo_izquierdo_reportes = ?,
-                           logo_derecho_reportes = ?, tipo_institucion = ?,
-                           jefe_recursos_humanos = ?, cargo_jefe_rrhh = ?,
-                           elaborado_por = ?, cargo_elaborador = ?
-                       WHERE id = 1";
+                $updateFields = [
+                    'company_name = ?', 'ruc = ?', 'legal_representative = ?',
+                    'address = ?', 'phone = ?', 'email = ?', 'currency_symbol = ?',
+                    'currency_code = ?', 'logo_empresa = ?', 'logo_izquierdo_reportes = ?',
+                    'logo_derecho_reportes = ?', 'tipo_institucion = ?',
+                    'jefe_recursos_humanos = ?', 'cargo_jefe_rrhh = ?',
+                    'elaborado_por = ?', 'cargo_elaborador = ?',
+                    'mail_host = ?', 'mail_port = ?', 'mail_username = ?',
+                    'mail_encryption = ?', 'mail_from_address = ?', 'mail_from_name = ?'
+                ];
 
-                $stmt = $this->pdo->prepare($sql);
-                $result = $stmt->execute([
+                $params = [
                     $data['company_name'],
                     $data['ruc'],
                     $data['legal_representative'],
@@ -89,9 +92,25 @@ class Company extends Model
                     $data['jefe_recursos_humanos'] ?? '',
                     $data['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
                     $data['elaborado_por'] ?? '',
-                    $data['cargo_elaborador'] ?? 'Especialista en Nóminas'
-                ]);
-                
+                    $data['cargo_elaborador'] ?? 'Especialista en Nóminas',
+                    $data['mail_host'] ?? null,
+                    $data['mail_port'] ?? 587,
+                    $data['mail_username'] ?? null,
+                    $data['mail_encryption'] ?? 'tls',
+                    $data['mail_from_address'] ?? null,
+                    $data['mail_from_name'] ?? null
+                ];
+
+                // Solo actualizar contraseña si se proporciona una nueva
+                if (isset($data['mail_password'])) {
+                    $updateFields[] = 'mail_password = ?';
+                    $params[] = $data['mail_password']; // Se almacena en texto plano para uso en PHPMailer
+                }
+
+                $sql = "UPDATE {$this->table} SET " . implode(', ', $updateFields) . " WHERE id = 1";
+                $stmt = $this->pdo->prepare($sql);
+                $result = $stmt->execute($params);
+
                 $message = 'Configuración de empresa actualizada exitosamente';
             } else {
                 // Crear nueva empresa
@@ -99,8 +118,10 @@ class Company extends Model
                        (id, company_name, ruc, legal_representative, address, phone, email,
                         currency_symbol, currency_code, logo_empresa, logo_izquierdo_reportes,
                         logo_derecho_reportes, tipo_institucion,
-                        jefe_recursos_humanos, cargo_jefe_rrhh, elaborado_por, cargo_elaborador)
-                       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        jefe_recursos_humanos, cargo_jefe_rrhh, elaborado_por, cargo_elaborador,
+                        mail_host, mail_port, mail_username, mail_password,
+                        mail_encryption, mail_from_address, mail_from_name)
+                       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 $stmt = $this->pdo->prepare($sql);
                 $result = $stmt->execute([
@@ -119,9 +140,16 @@ class Company extends Model
                     $data['jefe_recursos_humanos'] ?? '',
                     $data['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
                     $data['elaborado_por'] ?? '',
-                    $data['cargo_elaborador'] ?? 'Especialista en Nóminas'
+                    $data['cargo_elaborador'] ?? 'Especialista en Nóminas',
+                    $data['mail_host'] ?? null,
+                    $data['mail_port'] ?? 587,
+                    $data['mail_username'] ?? null,
+                    $data['mail_password'] ?? null,
+                    $data['mail_encryption'] ?? 'tls',
+                    $data['mail_from_address'] ?? null,
+                    $data['mail_from_name'] ?? null
                 ]);
-                
+
                 $message = 'Configuración de empresa creada exitosamente';
             }
 
@@ -329,7 +357,7 @@ class Company extends Model
     public function getSignaturesForReports()
     {
         $company = $this->getCompanyConfig();
-        
+
         if (!$company) {
             return [
                 'elaborado_por' => 'Por definir',
@@ -342,19 +370,56 @@ class Company extends Model
                 'cargo_contador_planilla' => 'Contador General'
             ];
         }
-        
+
         return [
             // Campos legacy para compatibilidad con reportes existentes
             'elaborado_por' => $company['elaborado_por'] ?? 'Por definir',
             'cargo_elaborador' => $company['cargo_elaborador'] ?? 'Especialista en Nóminas',
             'jefe_recursos_humanos' => $company['jefe_recursos_humanos'] ?? 'Por definir',
             'cargo_jefe_rrhh' => $company['cargo_jefe_rrhh'] ?? 'Jefe de Recursos Humanos',
-            
+
             // Campos nuevos para reportes de planilla
             'firma_director_planilla' => $company['firma_director_planilla'] ?? 'Director General',
             'cargo_director_planilla' => $company['cargo_director_planilla'] ?? 'Director General',
             'firma_contador_planilla' => $company['firma_contador_planilla'] ?? 'Contador General',
             'cargo_contador_planilla' => $company['cargo_contador_planilla'] ?? 'Contador General'
         ];
+    }
+
+    /**
+     * Obtener configuración de correo SMTP
+     * Prioriza configuración de BD, fallback a variables de entorno
+     * @return array Configuración de correo lista para usar con PHPMailer
+     */
+    public function getMailConfig()
+    {
+        $company = $this->getCompanyConfig();
+
+        // Valores por defecto desde .env con fallbacks seguros
+        $defaults = [
+            'host' => $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com',
+            'port' => $_ENV['MAIL_PORT'] ?? 587,
+            'username' => $_ENV['MAIL_USERNAME'] ?? '',
+            'password' => $_ENV['MAIL_PASSWORD'] ?? '',
+            'encryption' => $_ENV['MAIL_ENCRYPTION'] ?? 'tls',
+            'from_address' => $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@planillas.com',
+            'from_name' => $_ENV['MAIL_FROM_NAME'] ?? 'Sistema de Planillas'
+        ];
+
+        // Si hay configuración en BD, usarla (con fallback a .env)
+        if ($company) {
+            return [
+                'host' => !empty($company['mail_host']) ? $company['mail_host'] : $defaults['host'],
+                'port' => !empty($company['mail_port']) ? (int)$company['mail_port'] : $defaults['port'],
+                'username' => !empty($company['mail_username']) ? $company['mail_username'] : $defaults['username'],
+                'password' => !empty($company['mail_password']) ? $company['mail_password'] : $defaults['password'],
+                'encryption' => !empty($company['mail_encryption']) ? $company['mail_encryption'] : $defaults['encryption'],
+                'from_address' => !empty($company['mail_from_address']) ? $company['mail_from_address'] : $defaults['from_address'],
+                'from_name' => !empty($company['mail_from_name']) ? $company['mail_from_name'] : $defaults['from_name']
+            ];
+        }
+
+        // Si no hay empresa configurada, usar solo .env
+        return $defaults;
     }
 }

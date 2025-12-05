@@ -80,8 +80,20 @@ class CompanyController extends Controller
                 'cargo_elaborador' => $_POST['cargo_elaborador'] ?? 'Especialista en Nóminas',
                 'logo_empresa' => $_POST['logo_empresa'] ?? '',
                 'logo_izquierdo_reportes' => $_POST['logo_izquierdo_reportes'] ?? '',
-                'logo_derecho_reportes' => $_POST['logo_derecho_reportes'] ?? ''
+                'logo_derecho_reportes' => $_POST['logo_derecho_reportes'] ?? '',
+                // Configuración de correo SMTP
+                'mail_host' => !empty($_POST['mail_host']) ? $_POST['mail_host'] : null,
+                'mail_port' => $_POST['mail_port'] ?? 587,
+                'mail_username' => !empty($_POST['mail_username']) ? $_POST['mail_username'] : null,
+                'mail_encryption' => $_POST['mail_encryption'] ?? 'tls',
+                'mail_from_address' => !empty($_POST['mail_from_address']) ? $_POST['mail_from_address'] : null,
+                'mail_from_name' => !empty($_POST['mail_from_name']) ? $_POST['mail_from_name'] : null
             ];
+
+            // Solo actualizar contraseña si se proporciona una nueva
+            if (!empty($_POST['mail_password'])) {
+                $companyData['mail_password'] = $_POST['mail_password'];
+            }
 
             $result = $this->companyModel->saveCompanyConfig($companyData);
 

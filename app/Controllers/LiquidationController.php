@@ -27,7 +27,7 @@ class LiquidationController extends Controller
      *
      * @return int|null ID de la frecuencia de liquidación, o null si no existe
      */
-    private function getLiquidationFrequencyId()
+    public function getLiquidationFrequencyId()
     {
         // Retornar desde caché si ya se consultó
         if ($this->liquidationFrequencyId !== null) {

@@ -234,6 +234,116 @@ $styles = '
 
                     <hr>
 
+                    <!-- Configuración de Correo Electrónico -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="text-primary">
+                                <i class="fas fa-envelope"></i> Configuración de Correo Electrónico (SMTP)
+                            </h5>
+                            <p class="text-muted">Configura el servidor SMTP para enviar correos electrónicos desde el sistema (comprobantes de pago, notificaciones, etc.).</p>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="mail_host">Servidor SMTP (Host)</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="mail_host"
+                                       name="mail_host"
+                                       placeholder="smtp.zeptomail.com"
+                                       value="<?= htmlspecialchars($company['mail_host'] ?? '') ?>"
+                                       maxlength="255">
+                                <small class="form-text text-muted">Ejemplo: smtp.gmail.com, smtp.zeptomail.com</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mail_port">Puerto SMTP</label>
+                                <select class="form-control" id="mail_port" name="mail_port">
+                                    <option value="587" <?= ($company['mail_port'] ?? 587) == 587 ? 'selected' : '' ?>>587 (TLS - Recomendado)</option>
+                                    <option value="465" <?= ($company['mail_port'] ?? 587) == 465 ? 'selected' : '' ?>>465 (SSL)</option>
+                                    <option value="25" <?= ($company['mail_port'] ?? 587) == 25 ? 'selected' : '' ?>>25 (Sin cifrado)</option>
+                                    <option value="2525" <?= ($company['mail_port'] ?? 587) == 2525 ? 'selected' : '' ?>>2525 (Alternativo)</option>
+                                </select>
+                                <small class="form-text text-muted">Puerto estándar: 587 (TLS) o 465 (SSL)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mail_encryption">Tipo de Cifrado</label>
+                                <select class="form-control" id="mail_encryption" name="mail_encryption">
+                                    <option value="tls" <?= ($company['mail_encryption'] ?? 'tls') == 'tls' ? 'selected' : '' ?>>TLS (Recomendado)</option>
+                                    <option value="ssl" <?= ($company['mail_encryption'] ?? 'tls') == 'ssl' ? 'selected' : '' ?>>SSL</option>
+                                    <option value="" <?= empty($company['mail_encryption']) ? 'selected' : '' ?>>Sin cifrado</option>
+                                </select>
+                                <small class="form-text text-muted">Usa TLS para puerto 587 y SSL para puerto 465</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="mail_username">Usuario SMTP</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="mail_username"
+                                       name="mail_username"
+                                       placeholder="usuario@ejemplo.com"
+                                       value="<?= htmlspecialchars($company['mail_username'] ?? '') ?>"
+                                       maxlength="255"
+                                       autocomplete="off">
+                                <small class="form-text text-muted">Usuario para autenticación SMTP</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mail_password">Contraseña SMTP</label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="mail_password"
+                                       name="mail_password"
+                                       placeholder="<?= !empty($company['mail_password']) ? '••••••••' : 'Contraseña SMTP' ?>"
+                                       value=""
+                                       maxlength="255"
+                                       autocomplete="new-password">
+                                <small class="form-text text-muted">
+                                    <?= !empty($company['mail_password']) ? '<i class="fas fa-check-circle text-success"></i> Contraseña configurada. Dejar en blanco para mantener la actual.' : 'Contraseña de autenticación SMTP' ?>
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mail_from_address">Correo Remitente</label>
+                                <input type="email"
+                                       class="form-control"
+                                       id="mail_from_address"
+                                       name="mail_from_address"
+                                       placeholder="noreply@empresa.com"
+                                       value="<?= htmlspecialchars($company['mail_from_address'] ?? '') ?>"
+                                       maxlength="255">
+                                <small class="form-text text-muted">Dirección que aparecerá como remitente</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mail_from_name">Nombre del Remitente</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="mail_from_name"
+                                       name="mail_from_name"
+                                       placeholder="Sistema de Planillas"
+                                       value="<?= htmlspecialchars($company['mail_from_name'] ?? '') ?>"
+                                       maxlength="255">
+                                <small class="form-text text-muted">Nombre que aparecerá como remitente</small>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="callout callout-warning">
+                                <h5><i class="fas fa-exclamation-triangle"></i> Importante - Seguridad</h5>
+                                <p class="mb-1">• Las contraseñas se almacenan de forma segura en la base de datos</p>
+                                <p class="mb-1">• Verifica que el puerto corresponda con el tipo de cifrado (587→TLS, 465→SSL)</p>
+                                <p class="mb-0">• Puedes probar el envío de correos desde el módulo de planillas (botón "Enviar por Correo")</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
                     <!-- Configuración de Firmas para Reportes -->
                     <div class="row">
                         <div class="col-12">

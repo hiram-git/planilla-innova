@@ -7,7 +7,7 @@ use TCPDF;
 
 class ReportController extends Controller
 {
-    private $companyModel;
+    public $companyModel;
     
     public function __construct()
     {
@@ -19,7 +19,7 @@ class ReportController extends Controller
     /**
      * Obtener símbolo de moneda configurado
      */
-    private function getCurrencySymbol()
+    public function getCurrencySymbol()
     {
         return $this->companyModel->getCurrencySymbol();
     }
@@ -27,7 +27,7 @@ class ReportController extends Controller
     /**
      * Formatear monto con símbolo de moneda
      */
-    private function formatCurrency($amount, $decimals = 2)
+    public function formatCurrency($amount, $decimals = 2)
     {
         return $this->getCurrencySymbol() . ' ' . number_format($amount, $decimals);
     }
@@ -229,7 +229,7 @@ class ReportController extends Controller
      *
      * @param array $allEmployeesData Datos de todos los empleados
      */
-    private function generateAllPayslipsHorizontalPDF($allEmployeesData)
+    public function generateAllPayslipsHorizontalPDF($allEmployeesData)
     {
         $payroll = $allEmployeesData['payroll'];
         $employees = $allEmployeesData['employees'];
@@ -459,7 +459,7 @@ class ReportController extends Controller
      * @param string $dest Ruta destino para output='F'
      * @return mixed PDF según parámetro output
      */
-    private function generateIndividualPaySlipPDF($data, $output = 'I', $dest = '')
+    public function generateIndividualPaySlipPDF($data, $output = 'I', $dest = '')
     {
         $employee = $data['employee'];
         $payroll = $data['payroll'];
@@ -693,23 +693,27 @@ class ReportController extends Controller
             // Generar PDF como string para adjuntar
             $pdfContent = $this->generateIndividualPaySlipPDF($employeeData, 'S');
 
+            // Obtener configuración de correo desde BD (con fallback a .env)
+            $companyModel = $this->model('Company');
+            $mailConfig = $companyModel->getMailConfig();
+
             // Configurar PHPMailer
             $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
 
             // Configuración del servidor SMTP
             $mail->isSMTP();
-            $mail->Host       = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $_ENV['MAIL_USERNAME'] ?? '';
-            $mail->Password   = $_ENV['MAIL_PASSWORD'] ?? '';
-            $mail->SMTPSecure = $_ENV['MAIL_ENCRYPTION'] ?? 'tls';
-            $mail->Port       = $_ENV['MAIL_PORT'] ?? 587;
+            $mail->Host       = $mailConfig['host'];
+            $mail->SMTPAuth   = !empty($mailConfig['username']); // Solo autenticar si hay username
+            $mail->Username   = $mailConfig['username'];
+            $mail->Password   = $mailConfig['password'];
+            $mail->SMTPSecure = $mailConfig['encryption'];
+            $mail->Port       = $mailConfig['port'];
             $mail->CharSet    = 'UTF-8';
 
             // Remitente
             $mail->setFrom(
-                $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@planillas.com',
-                $_ENV['MAIL_FROM_NAME'] ?? 'Sistema de Planillas'
+                $mailConfig['from_address'],
+                $mailConfig['from_name']
             );
 
             // Destinatario
@@ -861,7 +865,7 @@ class ReportController extends Controller
     /**
      * Obtener datos completos de la planilla para el reporte
      */
-    private function getPayrollReportData($payrollId)
+    public function getPayrollReportData($payrollId)
     {
         try {
             $reportModel = $this->model('Report');
@@ -1009,7 +1013,7 @@ class ReportController extends Controller
     /**
      * Obtener datos específicos de un empleado para comprobante
      */
-    private function getEmployeePayrollData($payrollId, $employeeId)
+    public function getEmployeePayrollData($payrollId, $employeeId)
     {
         try {
             $reportModel = $this->model('Report');
@@ -1126,7 +1130,7 @@ class ReportController extends Controller
     /**
      * Obtener datos de todos los empleados de una planilla para comprobantes
      */
-    private function getAllEmployeesPayrollData($payrollId)
+    public function getAllEmployeesPayrollData($payrollId)
     {
         try {
             error_log("=== getAllEmployeesPayrollData para planilla $payrollId ===");
@@ -1206,7 +1210,7 @@ class ReportController extends Controller
     /**
      * Obtener datos de acreedores para reporte
      */
-    private function getAcreedoresReportData($payrollId = null)
+    public function getAcreedoresReportData($payrollId = null)
     {
         try {
             $reportModel = $this->model('Report');
@@ -1319,7 +1323,7 @@ class ReportController extends Controller
     /**
      * Generar PDF del reporte de planilla
      */
-    private function generatePayrollPDF($data)
+    public function generatePayrollPDF($data)
     {
 
         // Crear una clase personalizada para manejar header/footer
@@ -1421,7 +1425,7 @@ class ReportController extends Controller
     /**
      * Agregar tabla de empleados
      */
-    private function addEmployeeTable($pdf, $employees)
+    public function addEmployeeTable($pdf, $employees)
     {
         // Anchos de columna para orienación horizontal
         $colWidths = [ 50, 20, 20, 20, 30, 20, 20, 20, 20, 20];
@@ -1490,7 +1494,7 @@ class ReportController extends Controller
     /**
      * Agregar resumen de totales generales
      */
-    private function addGeneralTotals($pdf, $employees)
+    public function addGeneralTotals($pdf, $employees)
     {
         $pdf->Ln(10);
         
@@ -1516,7 +1520,7 @@ class ReportController extends Controller
     /**
      * Generar PDF del comprobante de pago individual
      */
-    private function generatePaySlipPDF($data)
+    public function generatePaySlipPDF($data)
     {
         $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         
@@ -1652,7 +1656,7 @@ class ReportController extends Controller
      * Generar PDF con todos los comprobantes de pago de una planilla
      * Ahora genera 2 comprobantes por página: empleado y empleador
      */
-    private function generateAllPaySlipsPDF($data)
+    public function generateAllPaySlipsPDF($data)
     {
         $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         
@@ -1709,7 +1713,7 @@ class ReportController extends Controller
      * @param int $startY - Posición Y donde empezar el comprobante
      * @param array $signatures - Firmas de la empresa
      */
-    private function generateSingleVoucher($pdf, $payroll, $employee, $employeeData, $type, $startY, $signatures)
+    public function generateSingleVoucher($pdf, $payroll, $employee, $employeeData, $type, $startY, $signatures)
     {
         // Establecer posición inicial
         $pdf->SetY($startY);
@@ -1846,7 +1850,7 @@ class ReportController extends Controller
     /**
      * Generar PDF del reporte de acreedores
      */
-    private function generateAcreedoresPDF($data)
+    public function generateAcreedoresPDF($data)
     {
         $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         
@@ -2200,7 +2204,7 @@ class ReportController extends Controller
     /**
      * Generar Excel profesional para Panamá con múltiples hojas
      */
-    private function generateExcelPanama($planillaData, $companyInfo, $signatures)
+    public function generateExcelPanama($planillaData, $companyInfo, $signatures)
     {
         $payroll = $planillaData['payroll'];
         $employees = $planillaData['employees'];
@@ -2244,7 +2248,7 @@ class ReportController extends Controller
     /**
      * Generar contenido XML/HTML para Excel según plantilla específica
      */
-    private function generateExcelXMLContent($payroll, $employees, $companyInfo, $signatures)
+    public function generateExcelXMLContent($payroll, $employees, $companyInfo, $signatures)
     {
         $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_inicio']));
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
@@ -2469,7 +2473,7 @@ class ReportController extends Controller
     /**
      * Generar Excel personalizado según plantilla específica (HTML format)
      */
-    private function generateCustomExcelContent($payroll, $employees, $companyInfo, $signatures)
+    public function generateCustomExcelContent($payroll, $employees, $companyInfo, $signatures)
     {
         $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_inicio']));
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
@@ -2636,7 +2640,7 @@ class ReportController extends Controller
     /**
      * Obtener estilos CSS para Excel HTML
      */
-    private function getCustomExcelHTMLStyles()
+    public function getCustomExcelHTMLStyles()
     {
         return '
         <style>
@@ -2716,7 +2720,7 @@ class ReportController extends Controller
     /**
      * Obtener estilos específicos para la plantilla Excel personalizada (XML)
      */
-    private function getCustomExcelStyles()
+    public function getCustomExcelStyles()
     {
         return '
         <Styles>
@@ -2844,7 +2848,7 @@ class ReportController extends Controller
     /**
      * Agrupar empleados por nivel organizativo
      */
-    private function groupEmployeesByLevel($employees)
+    public function groupEmployeesByLevel($employees)
     {
         $grouped = [];
         
@@ -2876,7 +2880,7 @@ class ReportController extends Controller
     /**
      * Inicializar array de totales
      */
-    private function initializeTotals()
+    public function initializeTotals()
     {
         return [
             'salario_mensual' => 0,
@@ -2903,7 +2907,7 @@ class ReportController extends Controller
     /**
      * Generar fila de empleado en formato HTML
      */
-    private function generateEmployeeRowHTML($emp, $numeroEmpleado, &$totalesNivel, &$totalesGenerales)
+    public function generateEmployeeRowHTML($emp, $numeroEmpleado, &$totalesNivel, &$totalesGenerales)
     {
         // Calcular valores específicos para la plantilla
         $salarioMensual = $emp['salary'] ?? 0;
@@ -3002,7 +3006,7 @@ class ReportController extends Controller
     /**
      * Generar fila de empleado personalizada (XML)
      */
-    private function generateEmployeeRowCustom($emp, $numeroEmpleado, &$totalesNivel, &$totalesGenerales)
+    public function generateEmployeeRowCustom($emp, $numeroEmpleado, &$totalesNivel, &$totalesGenerales)
     {
         // Calcular valores específicos para la plantilla
         $salarioMensual = $emp['salary'] ?? 0;
@@ -3101,7 +3105,7 @@ class ReportController extends Controller
     /**
      * Obtener monto de un concepto específico
      */
-    private function getConceptAmount($employee, $conceptCode, $type = 'ingreso')
+    public function getConceptAmount($employee, $conceptCode, $type = 'ingreso')
     {
         if (!isset($employee['concepts']) || !is_array($employee['concepts'])) {
             return 0;
@@ -3121,7 +3125,7 @@ class ReportController extends Controller
     /**
      * Agregar valores a los totales
      */
-    private function addToTotals(&$totales, $values)
+    public function addToTotals(&$totales, $values)
     {
         foreach ($values as $key => $value) {
             if (isset($totales[$key])) {
@@ -3133,7 +3137,7 @@ class ReportController extends Controller
     /**
      * Calcular totales específicos para Panamá
      */
-    private function calculatePanamaPayrollTotals($employees)
+    public function calculatePanamaPayrollTotals($employees)
     {
         $totales = [
             'total_empleados' => count($employees),
@@ -3190,7 +3194,7 @@ class ReportController extends Controller
     /**
      * Escapar datos para XML de Excel
      */
-    private function escapeXmlData($data)
+    public function escapeXmlData($data)
     {
         if (is_null($data)) {
             return '';
@@ -3211,7 +3215,7 @@ class ReportController extends Controller
     /**
      * Validar XML para Excel
      */
-    private function validateExcelXML($xml)
+    public function validateExcelXML($xml)
     {
         // Verificar que el XML básico esté bien formado
         $doc = new \DOMDocument();
@@ -3240,7 +3244,7 @@ class ReportController extends Controller
     /**
      * Generar estilos CSS para Excel
      */
-    private function getExcelStyles()
+    public function getExcelStyles()
     {
         return '<Styles>
             <Style ss:ID="HeaderCompany">
@@ -3405,7 +3409,7 @@ class ReportController extends Controller
     /**
      * Obtener datos de acumulados para reporte de empleado
      */
-    private function getAcumuladosForEmployeeReport($empleadoId, $year)
+    public function getAcumuladosForEmployeeReport($empleadoId, $year)
     {
         try {
             $sql = "SELECT 
@@ -3447,7 +3451,7 @@ class ReportController extends Controller
     /**
      * Obtener datos de acumulados para reporte por tipo
      */
-    private function getAcumuladosForTipoReport($tipoId, $year)
+    public function getAcumuladosForTipoReport($tipoId, $year)
     {
         try {
             // Primero obtener los conceptos asociados a este tipo
@@ -3496,7 +3500,7 @@ class ReportController extends Controller
     /**
      * Obtener datos de acumulados para reporte general
      */
-    private function getAcumuladosForGeneralReport($year, $tipoConcepto = '')
+    public function getAcumuladosForGeneralReport($year, $tipoConcepto = '')
     {
         try {
             $whereConditions = ["ape.ano = ?"];
@@ -3542,7 +3546,7 @@ class ReportController extends Controller
     /**
      * Generar PDF de acumulados por empleado
      */
-    private function generateAcumuladosEmpleadoPDF($employee, $acumulados, $year, $companyInfo, $signatures)
+    public function generateAcumuladosEmpleadoPDF($employee, $acumulados, $year, $companyInfo, $signatures)
     {
         $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         
@@ -3666,7 +3670,7 @@ class ReportController extends Controller
     /**
      * Generar PDF de acumulados por tipo
      */
-    private function generateAcumuladosTipoPDF($tipoAcumulado, $acumulados, $year, $companyInfo, $signatures)
+    public function generateAcumuladosTipoPDF($tipoAcumulado, $acumulados, $year, $companyInfo, $signatures)
     {
         $pdf = new TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false); // Landscape
         
@@ -3742,7 +3746,7 @@ class ReportController extends Controller
     /**
      * Generar PDF general de acumulados
      */
-    private function generateAcumuladosGeneralPDF($acumulados, $year, $tipoConcepto, $companyInfo, $signatures)
+    public function generateAcumuladosGeneralPDF($acumulados, $year, $tipoConcepto, $companyInfo, $signatures)
     {
         $pdf = new TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false); // Landscape
         
@@ -3856,7 +3860,7 @@ class ReportController extends Controller
     /**
      * Agregar header de empresa al PDF
      */
-    private function addCompanyHeaderToPDF($pdf, $companyInfo)
+    public function addCompanyHeaderToPDF($pdf, $companyInfo)
     {
         $pdf->SetFont('helvetica', 'B', 14);
         $pdf->Cell(0, 8, strtoupper($companyInfo['company_name']), 0, 1, 'C');
@@ -3875,7 +3879,7 @@ class ReportController extends Controller
     /**
      * Agregar firmas al PDF
      */
-    private function addSignaturesToPDF($pdf, $signatures)
+    public function addSignaturesToPDF($pdf, $signatures)
     {
         $pdf->Ln(15);
         
@@ -3916,7 +3920,7 @@ class ReportController extends Controller
     /**
      * Obtener información de la empresa desde la BD
      */
-    private function getCompanyInfo()
+    public function getCompanyInfo()
     {
         try {
             $reportModel = $this->model('Report');
@@ -3977,7 +3981,7 @@ class ReportController extends Controller
     /**
      * Insertar logos en el PDF alineados con el título
      */
-    private function insertLogosInPDF($pdf, $companyInfo)
+    public function insertLogosInPDF($pdf, $companyInfo)
     {
         $logoPath = __DIR__ . '/../../images/logos/';
         $logoHeight = 10;
