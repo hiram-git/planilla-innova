@@ -92,13 +92,16 @@ class EstimateReportController extends ReportController
                 // Calcular total de días trabajados
                 $dias_trabajados = $fecha_ingreso->diff($fecha_simulada_terminacion)->days;
 
-                // Establecer variables adicionales necesarias para liquidación
-                $calculatorModel->setVariable('FECHA_INGRESO', $fecha_ingreso->format('Y-m-d'));
-                $calculatorModel->setVariable('FECHA_TERMINACION', $today);
-                $calculatorModel->setVariable('ANOS_TRABAJADOS', $total_years);
-                $calculatorModel->setVariable('MESES_TRABAJADOS', $total_months);
-                $calculatorModel->setVariable('DIAS_TRABAJADOS', $dias_trabajados);
+                // Establecer solo variables numéricas necesarias para liquidación
+                $calculatorModel->setVariable('ANOS_TRABAJADOS', (float)$total_years);
+                $calculatorModel->setVariable('MESES_TRABAJADOS', (float)$total_months);
+                $calculatorModel->setVariable('DIAS_TRABAJADOS', (float)$dias_trabajados);
                 $calculatorModel->setVariable('DIAS_PREAVISO', 0); // Estimado sin preaviso
+
+                // Establecer salarios calculados para liquidaciones
+                $calculatorModel->setVariable('SUELDO_SEMANAL', (float)($employee['sueldo_individual'] / 4.33));
+                $calculatorModel->setVariable('SUELDO_MENSUAL', (float)$employee['sueldo_individual']);
+                $calculatorModel->setVariable('SUELDO_DIARIO', (float)($employee['sueldo_individual'] / 30));
 
                 // Obtener conceptos de liquidación
                 $employee_tipo_planilla_ids = !empty($employee['tipo_planilla_id'])

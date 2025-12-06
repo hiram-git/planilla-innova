@@ -9,22 +9,18 @@ $content = '
 
 if (isset($_SESSION['success'])) {
     $content .= '
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            ' . $_SESSION['success'] . '
-            <button type="button" class="close" data-dismiss="alert">
-                <span>&times;</span>
-            </button>
+        <div class="callout callout-success">
+            <h5><i class="fas fa-check"></i> Éxito</h5>
+            <p>' . $_SESSION['success'] . '</p>
         </div>';
     unset($_SESSION['success']);
 }
 
 if (isset($_SESSION['error'])) {
     $content .= '
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            ' . $_SESSION['error'] . '
-            <button type="button" class="close" data-dismiss="alert">
-                <span>&times;</span>
-            </button>
+        <div class="callout callout-danger">
+            <h5><i class="fas fa-exclamation-triangle"></i> Error</h5>
+            <p>' . $_SESSION['error'] . '</p>
         </div>';
     unset($_SESSION['error']);
 }
@@ -71,7 +67,7 @@ $content .= '
                 <!-- Información General -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <div class="alert alert-info">
+                        <div class="callout callout-info">
                             <h5><i class="fas fa-info-circle"></i> Información del Estimado</h5>
                             <p class="mb-0">
                                 Este reporte proyecta el costo anual de planillas basándose en la última planilla procesada.
