@@ -8,14 +8,14 @@ use App\Services\Attendance\AttendanceSyncService;
 use Exception;
 
 /**
- * Controlador para recibir webhooks de Base44
+ * Controlador para recibir webhooks de API
  * Endpoint público para notificaciones en tiempo real
  */
-class Base44WebhookController extends Controller
+class ApiWebhookController extends Controller
 {
     /**
      * Recibir notificación de webhook
-     * POST /webhooks/base44/attendance
+     * POST /webhooks/api/attendance
      */
     public function receive()
     {
@@ -44,7 +44,7 @@ class Base44WebhookController extends Controller
 
             // Obtener configuración
             $configModel = new AttendanceApiConfig();
-            $config = $configModel->getByProvider('base44');
+            $config = $configModel->getByProvider('api');
 
             if (!$config) {
                 $this->logWebhook('ERROR', 'Configuración no encontrada');
@@ -144,7 +144,7 @@ class Base44WebhookController extends Controller
         try {
             // Obtener configuración
             $configModel = new AttendanceApiConfig();
-            $config = $configModel->getByProvider('base44');
+            $config = $configModel->getByProvider('api');
 
             if (!$config) {
                 throw new Exception('Configuración no encontrada');
@@ -153,7 +153,7 @@ class Base44WebhookController extends Controller
             // Guardar datos crudos en attendance_raw_data
             $sql = "INSERT INTO attendance_raw_data
                     (external_id, api_provider, entity_type, raw_json, received_at, processed)
-                    VALUES (?, 'base44', 'Attendance', ?, NOW(), 0)";
+                    VALUES (?, 'api', 'Attendance', ?, NOW(), 0)";
 
             $externalId = $data['data']['id'] ?? null;
             $rawJson = json_encode($data['data'] ?? $data);
@@ -192,7 +192,7 @@ class Base44WebhookController extends Controller
             // Guardar datos crudos
             $sql = "INSERT INTO attendance_raw_data
                     (external_id, api_provider, entity_type, raw_json, received_at, processed)
-                    VALUES (?, 'base44', 'Employee', ?, NOW(), 0)";
+                    VALUES (?, 'api', 'Employee', ?, NOW(), 0)";
 
             $externalId = $data['data']['id'] ?? null;
             $rawJson = json_encode($data['data'] ?? $data);

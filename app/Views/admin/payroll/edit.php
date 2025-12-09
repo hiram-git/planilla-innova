@@ -20,7 +20,7 @@ $title = 'Editar Planilla';
                     
                     <div class="form-group">
                         <label for="descripcion">Descripción de la Planilla *</label>
-                        <input type="text" class="form-control" id="descripcion" name="descripcion" required 
+                        <input type="text" class="form-control" id="descripcion" name="descripcion" required readonly
                                value="<?= htmlspecialchars($payroll['descripcion'] ?? '') ?>"
                                placeholder="Ej: Planilla Quincena 1 - Enero 2024">
                         <small class="form-text text-muted">Descripción clara e identificable para la planilla</small>

@@ -1,5 +1,5 @@
 -- =====================================================
--- MIGRACIÓN: Integración API Base44 - Subfase 7.1
+-- MIGRACIÓN: Integración API - Subfase 7.1
 -- Fecha: 9 de Octubre, 2025
 -- Descripción: Tablas para integración con API externa de asistencias
 -- =====================================================
@@ -10,10 +10,10 @@
 -- =====================================================
 CREATE TABLE IF NOT EXISTS attendance_api_config (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    api_provider VARCHAR(50) NOT NULL DEFAULT 'base44' COMMENT 'Proveedor de API (base44, clockify, etc.)',
+    api_provider VARCHAR(50) NOT NULL DEFAULT 'api' COMMENT 'Proveedor de API (api, clockify, etc.)',
     api_key VARCHAR(255) NOT NULL COMMENT 'API Key para autenticación',
     app_id VARCHAR(255) NOT NULL COMMENT 'Application ID',
-    api_url VARCHAR(500) NOT NULL DEFAULT 'https://app.base44.com/api' COMMENT 'URL base de la API',
+    api_url VARCHAR(500) NOT NULL DEFAULT 'https://app.api.com/api' COMMENT 'URL base de la API',
 
     -- Configuración de sincronización
     sync_enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Sincronización automática habilitada',
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS attendance_raw_data (
 
     -- Identificación
     external_id VARCHAR(100) COMMENT 'ID de la entidad desde API externa',
-    api_provider VARCHAR(50) NOT NULL DEFAULT 'base44' COMMENT 'Proveedor de API',
+    api_provider VARCHAR(50) NOT NULL DEFAULT 'api' COMMENT 'Proveedor de API',
     entity_type VARCHAR(50) NOT NULL COMMENT 'Tipo de entidad: Employee, Attendance',
 
     -- Datos crudos
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS attendance_sync_log (
 COMMENT='Historial de sincronizaciones con API externa';
 
 -- =====================================================
--- Insertar configuración inicial de Base44
+-- Insertar configuración inicial
 -- =====================================================
 INSERT INTO attendance_api_config (
     api_provider,
@@ -134,10 +134,10 @@ INSERT INTO attendance_api_config (
     webhook_url,
     config_json
 ) VALUES (
-    'base44',
+    'api',
     '40162908d71941b98636b38106be556e',
     '68dd9181444436f4bd157e1d',
-    'https://app.base44.com/api',
+    'https://app.api.com/api',
     1,
     15,
     NULL,

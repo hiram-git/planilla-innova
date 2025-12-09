@@ -20,7 +20,7 @@ $csrf_token = $data['csrf_token'] ?? '';
                     
                     <div class="form-group">
                         <label for="descripcion">Descripción de la Planilla *</label>
-                        <input type="text" class="form-control" id="descripcion" name="descripcion" required
+                        <input type="text" class="form-control" id="descripcion" name="descripcion" required readonly
                                value="PLANILLA" placeholder="Se generará automáticamente...">
                         <small class="form-text text-muted">
                             <i class="fas fa-magic text-primary"></i>

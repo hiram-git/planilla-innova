@@ -1,6 +1,6 @@
 <?php
 /**
- * Cron Job: Sincronización Automática de Asistencias desde API Base44
+ * Cron Job: Sincronización Automática de Asistencias desde API
  *
  * Este script debe ejecutarse periódicamente (recomendado cada 15 minutos)
  * mediante el crontab del sistema o el programador de tareas de Windows

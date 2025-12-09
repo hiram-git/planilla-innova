@@ -233,7 +233,7 @@ $content .= '
 <div class="modal fade" id="modalInitializeYear" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="' . \App\Core\UrlHelper::route('panel/business-calendar/initializeYear') . '" method="POST" id="formInitializeYear">
+            <form action="' . \App\Core\UrlHelper::route('panel/business-calendar/initialize-year') . '" method="POST" id="formInitializeYear">
                 <input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrf_token) . '">
                 <div class="modal-header bg-warning">
                     <h5 class="modal-title">

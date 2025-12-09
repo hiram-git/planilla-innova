@@ -193,7 +193,19 @@ class BusinessCalendar extends Model
     public function addSpecialDay($date, $dayType, $status, $description, $isPaidHoliday = 0)
     {
         try {
+            // Validar que la fecha no esté vacía
+            if (empty($date)) {
+                error_log("addSpecialDay: Fecha vacía recibida");
+                return false;
+            }
+
             $dateObj = new \DateTime($date);
+
+            // Calcular is_weekend de forma segura
+            $isWeekendValue = $this->isWeekend($date) ? 1 : 0;
+
+            // Logging para debugging
+            error_log("addSpecialDay - Date: $date, is_weekend calculated: $isWeekendValue");
 
             $sql = "INSERT INTO business_calendar
                     (date_value, day_type, status, description, is_paid_holiday, is_weekend, year_value, month_value, day_of_week)
@@ -205,19 +217,27 @@ class BusinessCalendar extends Model
                     is_paid_holiday = VALUES(is_paid_holiday)";
 
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
+
+            $params = [
                 $date,
                 $dayType,
                 $status,
                 $description,
-                $isPaidHoliday,
-                $this->isWeekend($date),
-                $dateObj->format('Y'),
-                $dateObj->format('n'),
-                $this->getDayOfWeek($date)
-            ]);
+                (int)$isPaidHoliday,
+                $isWeekendValue,
+                (int)$dateObj->format('Y'),
+                (int)$dateObj->format('n'),
+                (int)$this->getDayOfWeek($date)
+            ];
+
+            error_log("addSpecialDay - Params: " . json_encode($params));
+
+            return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log("Error adding special day: " . $e->getMessage());
+            return false;
+        } catch (\Exception $e) {
+            error_log("Error creating DateTime in addSpecialDay: " . $e->getMessage());
             return false;
         }
     }
@@ -327,6 +347,151 @@ class BusinessCalendar extends Model
         }
 
         return $workingDays;
+    }
+
+    /**
+     * Calcular fecha de Pascua (Easter) para un año dado
+     * Utiliza el algoritmo de Computus
+     *
+     * @param int $year Año
+     * @return \DateTime Fecha de Pascua
+     */
+    private function calculateEasterDate($year)
+    {
+        // PHP tiene una función nativa para calcular Easter
+        $easterTimestamp = easter_date($year);
+        $easterDate = new \DateTime();
+        $easterDate->setTimestamp($easterTimestamp);
+        return $easterDate;
+    }
+
+    /**
+     * Obtener lista de feriados de Panamá para un año específico
+     * Incluye feriados obligatorios (pagados) y no obligatorios
+     *
+     * @param int $year Año
+     * @return array Array de feriados con formato [date, description, is_paid_holiday]
+     */
+    private function getPanamaHolidays($year)
+    {
+        $holidays = [];
+
+        // ========================================
+        // FERIADOS FIJOS OBLIGATORIOS (PAGADOS)
+        // ========================================
+
+        // 1. Año Nuevo - 1 de enero
+        $holidays[] = [
+            'date' => "$year-01-01",
+            'description' => 'Año Nuevo',
+            'is_paid_holiday' => 1
+        ];
+
+        // 2. Día de los Mártires - 9 de enero
+        $holidays[] = [
+            'date' => "$year-01-09",
+            'description' => 'Día de los Mártires',
+            'is_paid_holiday' => 1
+        ];
+
+        // 6. Día del Trabajo - 1 de mayo
+        $holidays[] = [
+            'date' => "$year-05-01",
+            'description' => 'Día del Trabajo',
+            'is_paid_holiday' => 1
+        ];
+
+        // 7. Separación de Panamá de Colombia - 3 de noviembre
+        $holidays[] = [
+            'date' => "$year-11-03",
+            'description' => 'Separación de Panamá de Colombia',
+            'is_paid_holiday' => 1
+        ];
+
+        // 8. Independencia de Panamá de España - 28 de noviembre
+        $holidays[] = [
+            'date' => "$year-11-28",
+            'description' => 'Independencia de Panamá de España',
+            'is_paid_holiday' => 1
+        ];
+
+        // 9. Día de la Madre - 8 de diciembre
+        $holidays[] = [
+            'date' => "$year-12-08",
+            'description' => 'Día de la Madre',
+            'is_paid_holiday' => 1
+        ];
+
+        // 10. Navidad - 25 de diciembre
+        $holidays[] = [
+            'date' => "$year-12-25",
+            'description' => 'Navidad',
+            'is_paid_holiday' => 1
+        ];
+
+        // ========================================
+        // FERIADOS MÓVILES OBLIGATORIOS (PAGADOS)
+        // ========================================
+
+        // Calcular fecha de Pascua
+        $easter = $this->calculateEasterDate($year);
+
+        // 3. Carnaval - Lunes (48 días antes de Pascua)
+        $carnavalMonday = clone $easter;
+        $carnavalMonday->modify('-48 days');
+        $holidays[] = [
+            'date' => $carnavalMonday->format('Y-m-d'),
+            'description' => 'Carnaval - Lunes',
+            'is_paid_holiday' => 1
+        ];
+
+        // 4. Carnaval - Martes (47 días antes de Pascua)
+        $carnavalTuesday = clone $easter;
+        $carnavalTuesday->modify('-47 days');
+        $holidays[] = [
+            'date' => $carnavalTuesday->format('Y-m-d'),
+            'description' => 'Carnaval - Martes',
+            'is_paid_holiday' => 1
+        ];
+
+        // 5. Viernes Santo - Good Friday (2 días antes de Pascua)
+        $goodFriday = clone $easter;
+        $goodFriday->modify('-2 days');
+        $holidays[] = [
+            'date' => $goodFriday->format('Y-m-d'),
+            'description' => 'Viernes Santo',
+            'is_paid_holiday' => 1
+        ];
+
+        // ========================================
+        // FERIADOS NO OBLIGATORIOS (NO PAGADOS PARA SECTOR PRIVADO)
+        // ========================================
+
+        // Día de los Símbolos Patrios - 4 de noviembre
+        // No obligatorio para sector privado
+        $holidays[] = [
+            'date' => "$year-11-04",
+            'description' => 'Día de los Símbolos Patrios (No obligatorio sector privado)',
+            'is_paid_holiday' => 0
+        ];
+
+        // Consolidación de la Separación de Panamá de Colombia - 5 de noviembre
+        // Regional (Colón) - No obligatorio para resto del país
+        $holidays[] = [
+            'date' => "$year-11-05",
+            'description' => 'Consolidación de la Separación - Regional Colón (No obligatorio)',
+            'is_paid_holiday' => 0
+        ];
+
+        // Primer Grito de Independencia - 10 de noviembre
+        // Regional (Los Santos) - No obligatorio para resto del país
+        $holidays[] = [
+            'date' => "$year-11-10",
+            'description' => 'Primer Grito de Independencia - Regional Los Santos (No obligatorio)',
+            'is_paid_holiday' => 0
+        ];
+
+        return $holidays;
     }
 
     /**
@@ -465,13 +630,47 @@ class BusinessCalendar extends Model
                 $currentDate->modify('+1 day');
             }
 
+            // ========================================
+            // INSERTAR FERIADOS DE PANAMÁ AUTOMÁTICAMENTE
+            // ========================================
+            error_log("BusinessCalendar::initializeYear - Insertando feriados de Panamá para año {$year}");
+
+            $holidays = $this->getPanamaHolidays($year);
+            $holidaysInserted = 0;
+            $holidaysUpdated = 0;
+
+            foreach ($holidays as $holiday) {
+                $success = $this->addSpecialDay(
+                    $holiday['date'],
+                    'FERIADO',
+                    'NORMAL',
+                    $holiday['description'],
+                    $holiday['is_paid_holiday']
+                );
+
+                if ($success) {
+                    // Verificar si ya existía
+                    if (isset($existingDatesSet[$holiday['date']])) {
+                        $holidaysUpdated++;
+                        error_log("BusinessCalendar: Actualizado feriado - {$holiday['description']} ({$holiday['date']})");
+                    } else {
+                        $holidaysInserted++;
+                        error_log("BusinessCalendar: Insertado feriado - {$holiday['description']} ({$holiday['date']})");
+                    }
+                }
+            }
+
+            error_log("BusinessCalendar::initializeYear - Feriados procesados: {$holidaysInserted} insertados, {$holidaysUpdated} actualizados");
+
             return [
                 'success' => true,
                 'inserted' => $inserted,
                 'updated' => $updated,
                 'skipped' => count($existingDates),
                 'total' => $inserted + count($existingDates),
-                'saturday_half_day' => $saturdayHalfDay
+                'saturday_half_day' => $saturdayHalfDay,
+                'holidays_inserted' => $holidaysInserted,
+                'holidays_updated' => $holidaysUpdated
             ];
 
         } catch (\PDOException $e) {
@@ -506,6 +705,7 @@ class BusinessCalendar extends Model
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($sql);
+            $isWeekend = isset($data['is_weekend']) ? (int)$data['is_weekend'] : ($this->isWeekend($data['date_value']) ? 1 : 0);
             return $stmt->execute([
                 $data['date_value'],
                 $data['year'] ?? (int)$dateObj->format('Y'),
@@ -514,7 +714,7 @@ class BusinessCalendar extends Model
                 $data['day_type'] ?? 'LABORAL',
                 $data['status'] ?? 'NORMAL',
                 $data['description'] ?? null,
-                $data['is_weekend'] ?? $this->isWeekend($data['date_value']),
+                $isWeekend,
                 $data['is_paid_holiday'] ?? 0,
                 $data['notes'] ?? null
             ]);

@@ -208,7 +208,8 @@ class WizardModel
                 'total_execution_time' => 0
             ];
 
-            // Import each file in order
+            // PASO 1: Import base schema files
+            error_log("========== PASO 1: Importando schema base ==========");
             foreach ($schemaFiles as $type => $file) {
                 if (!file_exists($file)) {
                     error_log("Warning: {$type} file not found: {$file}, skipping...");
@@ -227,13 +228,244 @@ class WizardModel
                 error_log("{$type} imported: {$stats['successful']}/{$stats['total_statements']} statements in {$stats['total_execution_time']}s");
             }
 
+            // PASO 2: Import seed data (initial concept relations)
+            error_log("========== PASO 2: Importando datos iniciales (seed) ==========");
+            $seedStats = $this->importSeedData($tenantPdo, $dbName);
+
+            // Merge seed stats
+            $totalStats['total_statements'] += $seedStats['total_statements'];
+            $totalStats['successful'] += $seedStats['successful'];
+            $totalStats['failed'] += $seedStats['failed'];
+            $totalStats['total_execution_time'] += $seedStats['total_execution_time'];
+
+            // PASO 3: Import all migrations in chronological order
+            error_log("========== PASO 3: Importando migraciones ==========");
+            $migrationsStats = $this->importMigrations($tenantPdo, $dbName);
+
+            // Merge migration stats
+            $totalStats['total_statements'] += $migrationsStats['total_statements'];
+            $totalStats['successful'] += $migrationsStats['successful'];
+            $totalStats['failed'] += $migrationsStats['failed'];
+            $totalStats['total_execution_time'] += $migrationsStats['total_execution_time'];
+
             // Log overall success
-            error_log("Schema import completed for {$dbName}: {$totalStats['successful']}/{$totalStats['total_statements']} total statements in {$totalStats['total_execution_time']}s");
+            error_log("========== IMPORTACIÓN COMPLETA ==========");
+            error_log("Schema + seed + migrations import completed for {$dbName}");
+            error_log("Total statements: {$totalStats['successful']}/{$totalStats['total_statements']}");
+            error_log("Failed: {$totalStats['failed']}");
+            error_log("Total time: {$totalStats['total_execution_time']}s");
+            error_log("==========================================");
 
         } catch (\Exception $e) {
             error_log("Error importing schema for {$dbName}: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Import seed data file with initial concept relations
+     * File: database/install/seed_concepto_relations.sql
+     *
+     * @param PDO $tenantPdo Connection to tenant database
+     * @param string $dbName Database name for logging
+     * @return array Statistics of seed data execution
+     */
+    private function importSeedData(PDO $tenantPdo, string $dbName): array
+    {
+        $seedFile = __DIR__ . '/../../database/install/seed_concepto_relations.sql';
+        $stats = [
+            'total_statements' => 0,
+            'successful' => 0,
+            'failed' => 0,
+            'total_execution_time' => 0
+        ];
+
+        // Check if seed file exists
+        if (!file_exists($seedFile)) {
+            error_log("⚠️ Seed data file not found: {$seedFile}, skipping...");
+            return $stats;
+        }
+
+        try {
+            error_log("Importing seed data: " . basename($seedFile));
+            $startTime = microtime(true);
+
+            // Create importer instance
+            $importer = new \App\Core\SqlImporter($tenantPdo);
+            $importer->importFile($seedFile);
+
+            $fileStats = $importer->getStats();
+            $executionTime = microtime(true) - $startTime;
+
+            // Update stats
+            $stats['total_statements'] = $fileStats['total_statements'];
+            $stats['successful'] = $fileStats['successful'];
+            $stats['failed'] = $fileStats['failed'];
+            $stats['total_execution_time'] = $executionTime;
+
+            error_log("✅ Seed data imported: {$fileStats['successful']}/{$fileStats['total_statements']} statements in {$executionTime}s");
+
+            // Log details about imported data
+            error_log("   - conceptos_acumulados: initial relations");
+            error_log("   - concepto_frecuencias: initial relations");
+            error_log("   - concepto_situaciones: initial relations");
+            error_log("   - concepto_tipos_planilla: initial relations");
+
+        } catch (\Exception $e) {
+            error_log("❌ Seed data import failed: " . $e->getMessage());
+            // Don't throw - allow installation to continue even if seed fails
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Import all migration files from database/migrations/ directory
+     * Files are executed in chronological order based on filename
+     *
+     * @param PDO $tenantPdo Connection to tenant database
+     * @param string $dbName Database name for logging
+     * @return array Statistics of migration execution
+     */
+    private function importMigrations(PDO $tenantPdo, string $dbName): array
+    {
+        $migrationsDir = __DIR__ . '/../../database/migrations';
+        $stats = [
+            'total_statements' => 0,
+            'successful' => 0,
+            'failed' => 0,
+            'total_execution_time' => 0,
+            'migrations_executed' => 0,
+            'migrations_failed' => 0,
+            'migrations_skipped' => 0
+        ];
+
+        // Check if migrations directory exists
+        if (!is_dir($migrationsDir)) {
+            error_log("Migrations directory not found: {$migrationsDir}");
+            return $stats;
+        }
+
+        // Get all .sql files from migrations directory
+        $migrationFiles = $this->getMigrationFiles($migrationsDir);
+
+        if (empty($migrationFiles)) {
+            error_log("No migration files found in {$migrationsDir}");
+            return $stats;
+        }
+
+        error_log("Found " . count($migrationFiles) . " migration files to execute");
+
+        // Create new importer instance for migrations
+        $importer = new \App\Core\SqlImporter($tenantPdo);
+
+        // Execute each migration file in order
+        foreach ($migrationFiles as $file) {
+            $fileName = basename($file);
+
+            try {
+                error_log("Executing migration: {$fileName}");
+                $startTime = microtime(true);
+
+                $importer->importFile($file);
+
+                $fileStats = $importer->getStats();
+                $executionTime = microtime(true) - $startTime;
+
+                // Update overall stats
+                $stats['total_statements'] += $fileStats['total_statements'];
+                $stats['successful'] += $fileStats['successful'];
+                $stats['failed'] += $fileStats['failed'];
+                $stats['total_execution_time'] += $executionTime;
+
+                if ($fileStats['failed'] > 0) {
+                    $stats['migrations_failed']++;
+                    error_log("⚠️ Migration {$fileName} completed with {$fileStats['failed']} errors ({$fileStats['successful']}/{$fileStats['total_statements']} statements)");
+                } else {
+                    $stats['migrations_executed']++;
+                    error_log("✅ Migration {$fileName} executed successfully ({$fileStats['successful']} statements, {$executionTime}s)");
+                }
+
+            } catch (\Exception $e) {
+                $stats['migrations_failed']++;
+                error_log("❌ Migration {$fileName} failed: " . $e->getMessage());
+
+                // Continue with next migration even if this one fails
+                // This allows partial migrations to succeed
+                continue;
+            }
+        }
+
+        error_log("---------- Migrations Summary ----------");
+        error_log("Executed: {$stats['migrations_executed']}");
+        error_log("Failed: {$stats['migrations_failed']}");
+        error_log("Statements: {$stats['successful']}/{$stats['total_statements']}");
+        error_log("Time: {$stats['total_execution_time']}s");
+        error_log("----------------------------------------");
+
+        return $stats;
+    }
+
+    /**
+     * Get all migration files from directory, sorted chronologically by filename
+     *
+     * @param string $directory Path to migrations directory
+     * @return array Array of full file paths sorted chronologically
+     */
+    private function getMigrationFiles(string $directory): array
+    {
+        $files = glob($directory . '/*.sql');
+
+        if ($files === false) {
+            return [];
+        }
+
+        // Sort files chronologically based on filename
+        // Migration files follow format: YYYY_MM_DD_* or add_*
+        usort($files, function($a, $b) {
+            $fileA = basename($a);
+            $fileB = basename($b);
+
+            // Extract date prefix if exists (format: YYYY_MM_DD)
+            $dateA = $this->extractMigrationDate($fileA);
+            $dateB = $this->extractMigrationDate($fileB);
+
+            // If both have dates, compare by date
+            if ($dateA && $dateB) {
+                return strcmp($dateA, $dateB);
+            }
+
+            // Files with dates come after files without dates
+            if ($dateA && !$dateB) return 1;
+            if (!$dateA && $dateB) return -1;
+
+            // If neither has date, sort alphabetically
+            return strcmp($fileA, $fileB);
+        });
+
+        return $files;
+    }
+
+    /**
+     * Extract date prefix from migration filename
+     * Supports formats: YYYY_MM_DD_* and YYYYMMDD_*
+     *
+     * @param string $filename Migration filename
+     * @return string|null Date string in YYYYMMDD format, or null if no date found
+     */
+    private function extractMigrationDate(string $filename): ?string
+    {
+        // Match YYYY_MM_DD format (e.g., 2025_11_15_migration.sql)
+        if (preg_match('/^(\d{4})_(\d{2})_(\d{2})_/', $filename, $matches)) {
+            return $matches[1] . $matches[2] . $matches[3]; // YYYYMMDD
+        }
+
+        // Match YYYYMMDD format (e.g., 20251115_migration.sql)
+        if (preg_match('/^(\d{8})_/', $filename, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 
     public function setupTenantCompanyData(string $dbName, array $companyData, int $companyId): void

@@ -16,7 +16,7 @@ function fetchAttendanceByDate($dateString = '2025-11-11') {
     
     $filterEncoded = urlencode($filterJson);
 
-     $url = "https://app.base44.com/api/apps/68dd9181444436f4bd157e1d/entities/Attendance?filter={$filterEncoded}"; 
+     $url = "https://app.api.com/api/apps/68dd9181444436f4bd157e1d/entities/Attendance?filter={$filterEncoded}"; 
 
     // Inicializa cURL
     $ch = curl_init();

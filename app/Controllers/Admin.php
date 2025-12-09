@@ -75,7 +75,7 @@ class Admin extends Controller
             return;
         }
 
-        AuthMiddleware::rateLimit(5, 300);
+        AuthMiddleware::rateLimit(5, 120);
         AuthMiddleware::validateCSRF();
 
         $username = Security::sanitizeInput($_POST['username'] ?? '');

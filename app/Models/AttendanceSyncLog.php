@@ -159,7 +159,7 @@ class AttendanceSyncLog
             $data['sync_type'],
             $data['status'] ?? 'RUNNING',
             $data['triggered_by'] ?? 'MANUAL',
-            $data['api_provider'] ?? 'base44',
+            $data['api_provider'] ?? 'api',
             $data['filters_json'] ?? null
         ]);
 

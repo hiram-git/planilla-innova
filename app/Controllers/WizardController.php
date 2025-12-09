@@ -274,7 +274,7 @@ class WizardController{
             // 4. Crear base de datos específica para la empresa
             error_log("▶️ PASO 4: Creando base de datos tenant");
             error_log("📝 DB Name: {$databaseName}");
-            error_log("🔧 Connection params: host={$_ENV['TENANT_DB_HOST']}, user={$_ENV['TENANT_DB_USER']}, port={$_ENV['TENANT_DB_PORT']}");
+            error_log("🔧 Connection params: host=" . ($_ENV['TENANT_DB_HOST'] ?? 'localhost') . ", user=" . ($_ENV['TENANT_DB_USER'] ?? 'root') . ", port=" . ($_ENV['TENANT_DB_PORT'] ?? '3306'));
             try {
                 $this->wizardModel->createTenantDatabase($databaseName);
                 error_log("✅ Base de datos tenant creada: {$databaseName}");
@@ -548,9 +548,17 @@ class WizardController{
 
     private function sendWelcomeEmail($companyData, $databaseName) {
         try {
-            // Obtener configuración de correo desde BD (con fallback a .env)
-            $companyModel = new \App\Models\Company();
-            $mailConfig = $companyModel->getMailConfig();
+            // IMPORTANTE: Email de bienvenida usa SOLO configuración .env
+            // (No usar BD porque la empresa se está creando y aún no tiene configuración)
+            $mailConfig = [
+                'host' => $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com',
+                'port' => $_ENV['MAIL_PORT'] ?? 587,
+                'username' => $_ENV['MAIL_USERNAME'] ?? '',
+                'password' => $_ENV['MAIL_PASSWORD'] ?? '',
+                'encryption' => $_ENV['MAIL_ENCRYPTION'] ?? 'tls',
+                'from_address' => $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@planillas.com',
+                'from_name' => $_ENV['MAIL_FROM_NAME'] ?? 'Sistema de Planillas'
+            ];
 
             // Configurar PHPMailer
             $mail = new PHPMailer(true);
@@ -677,7 +685,7 @@ class WizardController{
             error_log("Error PHPMailer: " . $mail->ErrorInfo);
             error_log("Exception: " . $e->getMessage());
             error_log("Servidor SMTP: " . ($mailConfig['host'] ?? 'N/A') . ":" . ($mailConfig['port'] ?? 'N/A'));
-            error_log("Config Source: " . (!empty($mailConfig) ? 'BD Company' : '.env fallback'));
+            error_log("Config Source: .env (welcome emails always use environment variables)");
             error_log("==========================================");
 
             // No lanzamos la excepción para no interrumpir el flujo de creación de empresa

@@ -47,7 +47,7 @@ class AttendanceApiConfig extends Model
 
     /**
      * Obtener configuración por proveedor
-     * @param string $provider Nombre del proveedor (base44, clockify, etc.)
+     * @param string $provider Nombre del proveedor (api, clockify, etc.)
      * @return array|null
      */
     public function getByProvider($provider)

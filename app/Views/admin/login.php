@@ -52,7 +52,7 @@ $content = '
                         </div>
 
                         <div class="input-group mb-3">
-                            <input type="text" class="form-control" name="company_code" placeholder="Licencia (Opcional)" value="' . ($_GET['company'] ?? '') . '">
+                            <input type="text" class="form-control" name="company_code" placeholder="Licencia" value="' . ($_GET['company'] ?? '') . '">
                             <div class="input-group-append">
                                 <div class="input-group-text">
                                     <span class="fas fa-key"></span>

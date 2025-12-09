@@ -1,4 +1,4 @@
-# ✅ SUBFASE 7.1 COMPLETADA - Integración API Externa Base44
+# ✅ SUBFASE 7.1 COMPLETADA - Integración API Externa
 
 **Fecha de Finalización**: 9 de Octubre, 2025
 **Duración**: 1 día
@@ -8,14 +8,14 @@
 
 ## 📋 RESUMEN EJECUTIVO
 
-Se ha implementado exitosamente la **Subfase 7.1: Integración API Externa** del Módulo de Asistencias. Esta subfase establece la conexión robusta con la API de Base44 y proporciona sincronización automática bidireccional de datos de asistencias.
+Se ha implementado exitosamente la **Subfase 7.1: Integración API Externa** del Módulo de Asistencias. Esta subfase establece la conexión robusta con la API externa y proporciona sincronización automática bidireccional de datos de asistencias.
 
 ---
 
 ## 🎯 COMPONENTES IMPLEMENTADOS
 
-### **1. Base44ApiClient.php** (367 líneas)
-**Ubicación**: `app/Services/Attendance/Base44ApiClient.php`
+### **1. ApiClient.php** (367 líneas)
+**Ubicación**: `app/Services/Attendance/ApiClient.php`
 
 **Características**:
 - ✅ Cliente HTTP completo con cURL
@@ -57,7 +57,7 @@ Almacena configuración de conexión a API externa (multi-tenant ready).
 - `webhook_url`: URL del webhook para notificaciones
 - `webhook_secret`: Secret para validar webhooks
 
-**Registro Inicial**: Configuración Base44 insertada automáticamente.
+**Registro Inicial**: Configuración API insertada automáticamente.
 
 #### **Tabla 2: attendance_raw_data**
 Backup completo de respuestas de la API para auditoría y reprocesamiento.
@@ -117,7 +117,7 @@ getSyncStats($configId, $days = 7)
 - ✅ Estadísticas completas de sincronización
 
 **Flujo de Procesamiento**:
-1. Obtener datos desde API Base44
+1. Obtener datos desde API
 2. Guardar datos crudos en `attendance_raw_data`
 3. Detectar duplicados
 4. Insertar/actualizar registros en tabla `attendance`
@@ -217,8 +217,8 @@ Repetir cada: 15 minutos
 
 ---
 
-### **8. Base44WebhookController** (220 líneas)
-**Ubicación**: `app/Controllers/Webhooks/Base44WebhookController.php`
+### **8. ApiWebhookController** (220 líneas)
+**Ubicación**: `app/Controllers/Webhooks/ApiWebhookController.php`
 
 **Características**:
 - ✅ Endpoint público (sin autenticación)
@@ -230,7 +230,7 @@ Repetir cada: 15 minutos
 
 **Endpoint**:
 ```
-POST /webhooks/base44/attendance
+POST /webhooks/api/attendance
 ```
 
 **Headers Esperados**:
@@ -274,8 +274,8 @@ POST /panel/attendance-api-config/clean-logs
 
 #### **Rutas Webhooks** (sin autenticación):
 ```
-POST /webhooks/base44/attendance
-POST /webhooks/base44/employee
+POST /webhooks/api/attendance
+POST /webhooks/api/employee
 ```
 
 ---
@@ -303,11 +303,11 @@ CONTROL DE ASISTENCIA
 ### **Líneas de Código**
 | Componente | Líneas | Tipo |
 |------------|--------|------|
-| Base44ApiClient | 367 | PHP Service |
+| ApiClient | 367 | PHP Service |
 | AttendanceSyncService | 510 | PHP Service |
 | AttendanceApiConfig Model | 240 | PHP Model |
 | AttendanceApiConfigController | 300+ | PHP Controller |
-| Base44WebhookController | 220 | PHP Controller |
+| ApiWebhookController | 220 | PHP Controller |
 | Vista api_config.php | 500+ | PHP/HTML/JS |
 | Cron Job | 130 | PHP CLI |
 | Migración SQL | 150 | SQL |
@@ -379,7 +379,7 @@ php C:\xampp82\htdocs\planilla-innova\scripts\cron\sync_attendance.php
 ### **5. Test de Webhook**
 ```bash
 # Usar curl o Postman
-curl -X POST http://localhost/planilla-innova/webhooks/base44/attendance \
+curl -X POST http://localhost/planilla-innova/webhooks/api/attendance \
   -H "Content-Type: application/json" \
   -H "X-Webhook-Signature: test_signature" \
   -d '{
@@ -404,11 +404,11 @@ curl -X POST http://localhost/planilla-innova/webhooks/base44/attendance \
 
 | Objetivo | Estado | Notas |
 |----------|--------|-------|
-| Establecer conexión API Base44 | ✅ | Base44ApiClient completo |
+| Establecer conexión API | ✅ | ApiClient completo |
 | Autenticación robusta | ✅ | API Key + validación |
 | Sincronización automática | ✅ | Cron job + AttendanceSyncService |
 | Sincronización manual | ✅ | Botón en interfaz |
-| Webhook receiver | ✅ | Base44WebhookController |
+| Webhook receiver | ✅ | ApiWebhookController |
 | Logging completo | ✅ | 3 niveles: API, Sync, Webhooks |
 | Retry logic | ✅ | 3 intentos con backoff exponencial |
 | Error handling | ✅ | Try-catch + códigos HTTP + mensajes |
@@ -475,7 +475,7 @@ curl -X POST http://localhost/planilla-innova/webhooks/base44/attendance \
 
 ## 🎉 CONCLUSIÓN
 
-La **Subfase 7.1** ha sido implementada exitosamente cumpliendo el **100% de los objetivos** planificados. Se ha establecido una base sólida para la integración con API Base44, incluyendo:
+La **Subfase 7.1** ha sido implementada exitosamente cumpliendo el **100% de los objetivos** planificados. Se ha establecido una base sólida para la integración con API, incluyendo:
 
 - ✅ Conexión robusta con retry logic
 - ✅ Sincronización automática configurable

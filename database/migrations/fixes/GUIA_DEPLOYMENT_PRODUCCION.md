@@ -103,7 +103,7 @@ mysql -u root -p planilla_prod
 -- Deshabilitar sincronización
 UPDATE attendance_api_config
 SET sync_enabled = 0
-WHERE provider = 'base44';
+WHERE api_provider = 'api';
 
 -- Verificar
 SELECT id, provider, sync_enabled FROM attendance_api_config;
@@ -314,7 +314,7 @@ crontab -e
 ```sql
 UPDATE attendance_api_config
 SET sync_enabled = 1
-WHERE provider = 'base44';
+WHERE api_provider = 'api';
 
 -- Verificar
 SELECT id, provider, sync_enabled, last_sync_at FROM attendance_api_config;

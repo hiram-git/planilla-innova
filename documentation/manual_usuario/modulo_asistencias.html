@@ -1,20 +1,68 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Módulo de Asistencias - INNOVA Planillas 3.5.6</title>
     <style>
-        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
-        *{box-sizing:border-box;}
-        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
-        .container{max-width:1050px;margin:0 auto;padding:20px;}
-        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
-        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
-        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
-        ul,ol{padding-left:20px;margin:8px 0;}
+        :root {
+            --primary: #0f4c5c;
+            --bg: #f5f7fb;
+            --text: #1f2933;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary), #14526a);
+            color: #fff;
+            padding: 24px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            margin: 0 0 6px 0;
+        }
+
+        h2 {
+            color: var(--primary);
+            margin-top: 22px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 14px 0;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
+        }
+
+        ul,
+        ol {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -25,8 +73,9 @@
         <div class="card">
             <h2>1. Requisitos previos</h2>
             <ul>
-                <li>Empleados activos con <strong>código</strong>, <strong>horario</strong> y <strong>situación</strong> asignados.</li>
-                <li>Dispositivos registrados o API Base44 configurada.</li>
+                <li>Empleados activos con <strong>código</strong>, <strong>horario</strong> y <strong>situación</strong>
+                    asignados.</li>
+                <li>Dispositivos registrados o API configurada.</li>
                 <li>Calendario empresarial cargado (para feriados y días especiales).</li>
             </ul>
         </div>
@@ -34,8 +83,10 @@
         <div class="card">
             <h2>2. Dispositivos y API</h2>
             <ol>
-                <li>En <strong>Asistencia → Dispositivos</strong>, registre cada fuente de marcaciones (nombre, IP/host, estado).</li>
-                <li>En <strong>Asistencia → Configuración API</strong>, configure credenciales Base44 y pruebe conexión.</li>
+                <li>En <strong>Asistencia → Dispositivos</strong>, registre cada fuente de marcaciones (nombre, IP/host,
+                    estado).</li>
+                <li>En <strong>Asistencia → Configuración API</strong>, configure credenciales API y pruebe conexión.
+                </li>
             </ol>
             <p><strong>Tip:</strong> habilite sincronización programada (cron) para traer registros cada 15 minutos.</p>
         </div>
@@ -47,7 +98,8 @@
                 <li><strong>Hoy:</strong> sincroniza solo el día actual.</li>
                 <li><strong>Rango:</strong> define fechas específicas.</li>
             </ul>
-            <p>El <strong>Historial de Sync</strong> muestra fecha/hora, dispositivo, registros importados y errores.</p>
+            <p>El <strong>Historial de Sync</strong> muestra fecha/hora, dispositivo, registros importados y errores.
+            </p>
         </div>
 
         <div class="card">
@@ -62,9 +114,12 @@
         <div class="card">
             <h2>5. Cálculo y ausencias</h2>
             <ul>
-                <li><strong>AttendanceCalculator:</strong> horas trabajadas, horas extras (+25%/+50%), nocturnas, descuentos por tardanza.</li>
-                <li><strong>AbsenceDetector:</strong> marca PENDIENTE/JUSTIFIED/UNJUSTIFIED; permite justificar o rechazar.</li>
-                <li><strong>Reprocesar día:</strong> elimina cálculos previos y recalcula con horarios/tolerancias actuales.</li>
+                <li><strong>AttendanceCalculator:</strong> horas trabajadas, horas extras (+25%/+50%), nocturnas,
+                    descuentos por tardanza.</li>
+                <li><strong>AbsenceDetector:</strong> marca PENDIENTE/JUSTIFIED/UNJUSTIFIED; permite justificar o
+                    rechazar.</li>
+                <li><strong>Reprocesar día:</strong> elimina cálculos previos y recalcula con horarios/tolerancias
+                    actuales.</li>
                 <li><strong>Alertas legales:</strong> valida jornadas y feriados usando el calendario empresarial.</li>
             </ul>
         </div>
@@ -72,8 +127,10 @@
         <div class="card">
             <h2>6. Reportes de asistencia</h2>
             <ul>
-                <li><strong>Punches Report:</strong> totales de marcaciones, a tiempo, tardanzas, ausencias, horas trabajadas y extras.</li>
-                <li>Top 10 tardanzas y detalle por departamento (ID, cédula, nombre, cargo, fecha, entrada, salida, horas, tardanza, estado).</li>
+                <li><strong>Punches Report:</strong> totales de marcaciones, a tiempo, tardanzas, ausencias, horas
+                    trabajadas y extras.</li>
+                <li>Top 10 tardanzas y detalle por departamento (ID, cédula, nombre, cargo, fecha, entrada, salida,
+                    horas, tardanza, estado).</li>
                 <li>Exportable a Excel; disponible en <em>Asistencia → Reportes → Marcaciones</em>.</li>
             </ul>
         </div>
@@ -98,4 +155,5 @@
         </div>
     </div>
 </body>
+
 </html>

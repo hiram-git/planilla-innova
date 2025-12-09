@@ -62,17 +62,17 @@ class AttendanceSyncService
         if (!$this->config) {
             $this->config = [
                 'id' => null,
-                'api_provider' => 'Base44',
-                'api_key' => getenv('BASE44_API_KEY') ?: '',
-                'app_id' => getenv('BASE44_APP_ID') ?: '',
-                'api_url' => getenv('BASE44_API_URL') ?: 'https://api.base44.com',
+                'api_provider' => 'api',
+                'api_key' => getenv('API_KEY') ?: '',
+                'app_id' => getenv('API_APP_ID') ?: '',
+                'api_url' => getenv('API_URL') ?: 'https://api.api.com',
                 'sync_interval_minutes' => 15
             ];
             error_log("AttendanceSyncService: No se encontró configuración activa, usando valores por defecto");
         }
 
         // Inicializar cliente API
-        $this->apiClient = new Base44ApiClient(
+        $this->apiClient = new ApiClient(
             $this->config['api_key'],
             $this->config['app_id'],
             $this->config['api_url']
@@ -392,7 +392,7 @@ class AttendanceSyncService
     {
         $apiType = strtolower(trim($apiType));
 
-        // Mapeo de tipos Base44 a ENUM punch_type
+        // Mapeo de tipos API a ENUM punch_type
         $mapping = [
             'entrada' => 'CHECK_IN',
             'entrada_almuerzo' => 'CHECK_IN',
@@ -562,7 +562,7 @@ class AttendanceSyncService
         $this->db->query($sql, [
             $syncType,
             $triggeredBy,
-            $this->config['api_provider'] ?? 'Base44',
+            $this->config['api_provider'] ?? 'api',
             json_encode($filters)
         ]);
 

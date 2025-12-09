@@ -85,7 +85,7 @@
             <div class="col-12">
                 <div class="card card-primary">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-cog"></i> Configuración API Base44</h3>
+                        <h3 class="card-title"><i class="fas fa-cog"></i> Configuración API</h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                                 <i class="fas fa-minus"></i>
@@ -99,7 +99,7 @@
                             <div class="form-group">
                                 <label for="api_provider">Proveedor API</label>
                                 <input type="text" class="form-control" id="api_provider" name="api_provider"
-                                       value="<?= $data['config']['api_provider'] ?? 'base44' ?>" readonly>
+                                       value="<?= $data['config']['api_provider'] ?? 'api' ?>" readonly>
                             </div>
 
                             <div class="form-group">
@@ -128,7 +128,7 @@
                                 <label for="api_url">API URL <span class="text-danger">*</span></label>
                                 <input type="url" class="form-control <?= isset($_SESSION['errors']['api_url']) ? 'is-invalid' : '' ?>"
                                        id="api_url" name="api_url"
-                                       value="<?= $_SESSION['old_data']['api_url'] ?? $data['config']['api_url'] ?? 'https://app.base44.com/api' ?>"
+                                       value="<?= $_SESSION['old_data']['api_url'] ?? $data['config']['api_url'] ?? 'https://app.api.com/api' ?>"
                                        required>
                                 <?php if (isset($_SESSION['errors']['api_url'])): ?>
                                     <span class="invalid-feedback"><?= $_SESSION['errors']['api_url'] ?></span>
@@ -158,7 +158,7 @@
                                 <label for="webhook_url">Webhook URL (opcional)</label>
                                 <input type="url" class="form-control" id="webhook_url" name="webhook_url"
                                        value="<?= $data['config']['webhook_url'] ?? '' ?>"
-                                       placeholder="https://tu-dominio.com/webhooks/base44/attendance">
+                                       placeholder="https://tu-dominio.com/webhooks/api/attendance">
                                 <small class="form-text text-muted">URL para recibir notificaciones en tiempo real</small>
                             </div>
 

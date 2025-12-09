@@ -6,7 +6,7 @@ use App\Core\Controller;
 use App\Core\Security;
 use App\Middleware\AuthMiddleware;
 use App\Models\AttendanceApiConfig;
-use App\Services\Attendance\Base44ApiClient;
+use App\Services\Attendance\ApiClient;
 use App\Services\Attendance\AttendanceSyncService;
 use App\Services\Attendance\RecordsProcessor;
 use App\Models\AttendanceHeader;
@@ -110,7 +110,7 @@ class AttendanceApiConfigController extends Controller
             }
 
             $configData = [
-                'api_provider' => $data['api_provider'] ?? 'base44',
+                'api_provider' => $data['api_provider'] ?? 'api',
                 'api_key' => $data['api_key'],
                 'app_id' => $data['app_id'],
                 'api_url' => $data['api_url'],
@@ -165,7 +165,7 @@ class AttendanceApiConfigController extends Controller
                 ]);
             }
 
-            $client = new Base44ApiClient($apiKey, $appId, $apiUrl);
+            $client = new ApiClient($apiKey, $appId, $apiUrl);
             $result = $client->testConnection();
 
             $this->json($result);

@@ -1,17 +1,33 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 04 de Diciembre, 2025
-**Versión**: 3.5.14 - Fix JavaScript Module Loading (Critical Bugfix)
-**Versión Anterior**: 3.5.13 - Sistema Permisos Granulares + Liquidaciones Dinámicas
+**Fecha**: 08 de Diciembre, 2025
+**Versión**: 3.5.16 - Calendario Panamá Feriados Automáticos
+**Versión Anterior**: 3.5.15 - Wizard Migraciones + Seed Data Automáticos
 
-### 🆕 Hitos Recientes (v3.5.14 Fix JavaScript Module Loading)
+### 🆕 Hitos Recientes (v3.5.16 Calendario Panamá Feriados Automáticos)
+- **Inserción Automática Feriados**: initializeYear() ahora inserta automáticamente 13 feriados nacionales de Panamá
+- **Feriados Obligatorios**: 10 feriados pagados (Año Nuevo, Mártires, Carnaval, Viernes Santo, Trabajo, Independencias, Madre, Navidad)
+- **Feriados NO Obligatorios**: 3 feriados regionales/sector privado (Símbolos Patrios, Consolidación Colón, Grito Los Santos)
+- **Cálculo Feriados Móviles**: Carnaval y Viernes Santo calculados automáticamente según Pascua (easter_date())
+- **Diferenciación is_paid_holiday**: Campo distingue obligatorios (1) vs no obligatorios (0) para integración asistencias
+- **Actualización Inteligente**: Detecta si feriado ya existe (update) o es nuevo (insert)
+- **0 Configuración Manual**: Usuario solo ejecuta "Inicializar Año" y obtiene calendario completo con feriados
+- **Total**: BusinessCalendar.php +175 líneas | 2 métodos nuevos | 1 método refactorizado | 13 feriados/año
+
+### 🆕 Hitos Anteriores (v3.5.15 Wizard Migraciones + Seed Data Automáticos)
+- **Ejecución Automática Migraciones**: Wizard ejecuta TODAS las migraciones de /database/migrations/ al crear tenant
+- **Seed Data Precargado**: 127 registros en 4 tablas (conceptos_acumulados, concepto_frecuencias, concepto_situaciones, concepto_tipos_planilla)
+- **Orden Cronológico**: getMigrationFiles() + extractMigrationDate() ordenan migraciones por fecha
+- **Resiliente**: Continúa instalación si migración individual falla (no bloquea proceso)
+- **3 Pasos**: Schema base → Seed data → Migraciones (logging detallado cada paso)
+- **Total**: WizardModel.php +280 líneas | seed_concepto_relations.sql 8KB | 4 métodos nuevos
+
+### 🆕 Hitos Anteriores (v3.5.14 Fix JavaScript Module Loading)
 - **Lazy Initialization Pattern**: Refactorización PayrollModule para acceder APP_CONFIG en init() en lugar de definición objeto
 - **Fix Script Loading Order**: Eliminado $scriptFiles, construcción manual $scripts con orden correcto (DataTables → APP_CONFIG → payroll config → módulos)
 - **Fix TenantStorageManager**: Archivo copiado a ubicación correcta servida por el proyecto (/js/)
 - **Errores Críticos Resueltos**: APP_CONFIG is not defined + TenantStorageManager is not defined
-- **Causa Raíz Identificada**: Acceso a variables globales en definición de objeto JavaScript (ejecución inmediata durante parsing)
-- **Best Practice Aplicada**: typeof checks + fallbacks dinámicos + logging para debugging
 
 ### 🆕 Hitos Anteriores (v3.5.12 Acumulados Excel Export + Bug Fixes)
 - **Exportación Excel Acumulados**: Método exportExcel() con PhpSpreadsheet + 12 columnas profesionales
@@ -250,6 +266,14 @@
   - [x] Helper functions estáticas: getDayTypeColors(), getDayTypeIcons()
   - [x] Método initializeYear($year) para llenado automático años completos
   - [x] Modelo completo 355+ líneas en `app/Models/BusinessCalendar.php`
+  - [x] **v3.5.16: Feriados Panamá Automáticos** ✅ **COMPLETADA (08-Dic-2025)**
+    - [x] Método calculateEasterDate($year): cálculo Pascua con easter_date()
+    - [x] Método getPanamaHolidays($year): 13 feriados nacionales (10 obligatorios + 3 no obligatorios)
+    - [x] Integración initializeYear(): inserción automática feriados al inicializar año
+    - [x] Diferenciación is_paid_holiday: obligatorios (1) vs no obligatorios (0)
+    - [x] Feriados móviles: Carnaval (lunes/martes) + Viernes Santo calculados según Pascua
+    - [x] Logging detallado: inserted/updated por feriado con estadísticas finales
+    - [x] Total: +175 líneas código | 2 métodos nuevos | 1 método refactorizado
 - [x] **Subfase 4.3: Interfaz Gestión** *(1 semana)* ✅ **COMPLETADA**
   - [x] BusinessCalendarController CRUD completo
   - [x] Vista index.php con listado feriados + estadísticas + DataTables
@@ -439,7 +463,7 @@
 **Mejora v3.5.4**: ✅ Reporte marcaciones Excel + mejoras UI planillas (01-Nov-2025)
 
 - [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
-  - [x] Base44ApiClient (367 líneas): Cliente HTTP cURL + retry logic + backoff exponencial
+  - [x] ApiClient (367 líneas): Cliente HTTP cURL + retry logic + backoff exponencial
   - [x] AttendanceSyncService (510 líneas): Sincronización completa/incremental/manual
   - [x] AttendanceApiConfig Model (240 líneas): CRUD + validaciones + estadísticas
   - [x] AttendanceApiConfigController (300+ líneas): 9 endpoints REST

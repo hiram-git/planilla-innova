@@ -5,10 +5,10 @@ namespace App\Services\Attendance;
 use Exception;
 
 /**
- * Cliente para integración con API Base44
+ * Cliente para integración con API
  * Gestiona autenticación, requests HTTP y manejo de errores
  */
-class Base44ApiClient
+class ApiClient
 {
     private $apiKey;
     private $appId;
@@ -19,23 +19,23 @@ class Base44ApiClient
 
     /**
      * Constructor
-     * @param string $apiKey API Key de Base44
-     * @param string $appId App ID de Base44
+     * @param string $apiKey API Key de la API
+     * @param string $appId App ID de la API
      * @param string $baseUrl URL base de la API (opcional)
      */
     public function __construct($apiKey = null, $appId = null, $baseUrl = null)
     {
-        $this->apiKey = $apiKey ?? getenv('BASE44_API_KEY');
-        $this->appId = $appId ?? getenv('BASE44_APP_ID');
-        $this->baseUrl = $baseUrl ?? getenv('BASE44_API_URL') ?? 'https://app.base44.com/api';
+        $this->apiKey = $apiKey ?? getenv('API_KEY');
+        $this->appId = $appId ?? getenv('API_APP_ID');
+        $this->baseUrl = $baseUrl ?? getenv('API_URL') ?? 'https://app.api.com/api';
 
         if (empty($this->apiKey) || empty($this->appId)) {
-            throw new Exception('Base44 API Key y App ID son requeridos');
+            throw new Exception('API Key y App ID son requeridos');
         }
     }
 
     /**
-     * Obtener todos los empleados desde Base44
+     * Obtener todos los empleados desde la API
      * @param array $filters Filtros opcionales (user_email, full_name, employee_id, etc.)
      * @return array Lista de empleados
      */
@@ -47,7 +47,7 @@ class Base44ApiClient
 
     /**
      * Obtener un empleado específico por ID
-     * @param string $entityId ID de la entidad en Base44
+     * @param string $entityId ID de la entidad en la API
      * @return array Datos del empleado
      */
     public function getEmployee($entityId)
@@ -58,7 +58,7 @@ class Base44ApiClient
 
     /**
      * Actualizar datos de un empleado
-     * @param string $entityId ID de la entidad en Base44
+     * @param string $entityId ID de la entidad en la API
      * @param array $data Datos a actualizar
      * @return array Respuesta de la API
      */
@@ -81,7 +81,7 @@ class Base44ApiClient
 
     /**
      * Obtener una marcación específica por ID
-     * @param string $entityId ID de la entidad en Base44
+     * @param string $entityId ID de la entidad en la API
      * @return array Datos de la marcación
      */
     public function getAttendance($entityId)
@@ -92,7 +92,7 @@ class Base44ApiClient
 
     /**
      * Actualizar datos de una marcación
-     * @param string $entityId ID de la entidad en Base44
+     * @param string $entityId ID de la entidad en la API
      * @param array $data Datos a actualizar
      * @return array Respuesta de la API
      */
@@ -112,7 +112,7 @@ class Base44ApiClient
             $response = $this->getEmployees(['limit' => 1]);
             return [
                 'success' => true,
-                'message' => 'Conexión exitosa con Base44 API',
+                'message' => 'Conexión exitosa con API',
                 'response' => $response
             ];
         } catch (Exception $e) {
@@ -307,7 +307,7 @@ class Base44ApiClient
             mkdir($logDir, 0755, true);
         }
 
-        $logFile = $logDir . '/base44_api_' . date('Y-m-d') . '.log';
+        $logFile = $logDir . '/api_' . date('Y-m-d') . '.log';
         file_put_contents($logFile, $message . PHP_EOL, FILE_APPEND);
     }
 

@@ -180,6 +180,15 @@ class BusinessCalendarController extends Controller
             // Obtener campo is_paid_holiday
             $isPaidHoliday = isset($data['is_paid_holiday']) && $data['is_paid_holiday'] == '1' ? 1 : 0;
 
+            // Logging para debugging
+            error_log("BusinessCalendarController::store - Data received: " . json_encode([
+                'date_value' => $data['date_value'] ?? 'NOT SET',
+                'day_type' => $data['day_type'] ?? 'NOT SET',
+                'status' => $data['status'] ?? 'NORMAL',
+                'description' => $data['description'] ?? 'NOT SET',
+                'is_paid_holiday' => $isPaidHoliday
+            ]));
+
             $success = $businessCalendar->addSpecialDay(
                 $data['date_value'],
                 $data['day_type'],
@@ -196,6 +205,7 @@ class BusinessCalendarController extends Controller
 
             $this->redirect(UrlHelper::route('panel/business-calendar/listado'));
         } catch (\Exception $e) {
+            error_log("BusinessCalendarController::store - Exception: " . $e->getMessage());
             $_SESSION['error'] = 'Error al agregar día especial: ' . $e->getMessage();
             $this->redirect(UrlHelper::route('panel/business-calendar/listado'));
         }

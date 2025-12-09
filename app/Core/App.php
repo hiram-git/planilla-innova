@@ -1230,7 +1230,7 @@ class App
     /**
      * Manejo de rutas de webhooks
      * Ruta: /webhooks/{provider}/{entity}
-     * Ejemplo: /webhooks/base44/attendance
+     * Ejemplo: /webhooks/api/attendance
      */
     private function handleWebhookRoutes($url)
     {
@@ -1242,12 +1242,12 @@ class App
                 return;
             }
 
-            $provider = $url[1]; // base44
+            $provider = $url[1]; // api
             $entity = $url[2];   // attendance, employee, etc.
 
             // Mapeo de providers a controladores
             $providerMapping = [
-                'base44' => 'Base44WebhookController'
+                'api' => 'ApiWebhookController'
             ];
 
             if (!isset($providerMapping[$provider])) {

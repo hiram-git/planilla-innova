@@ -195,14 +195,14 @@ CREATE INDEX idx_employee_date ON attendance_detail(employee_id, header_id);
 CREATE INDEX idx_device_active ON attendance_devices(is_active, device_type);
 
 -- =====================================================
--- DATOS INICIALES: Dispositivo API Base44 (si existe)
+-- DATOS INICIALES: Dispositivo API (si existe)
 -- =====================================================
 
 -- Verificar si existe configuración API y crear dispositivo
 INSERT INTO attendance_devices (device_code, device_name, device_type, location, is_active, api_url, api_key, created_by)
 SELECT
-    'BASE44_API',
-    'API Base44 - Principal',
+    'API',
+    'API - Principal',
     'API',
     'Servidor Remoto',
     1,
@@ -210,7 +210,7 @@ SELECT
     api_key,
     1
 FROM attendance_api_config
-WHERE provider = 'base44' AND sync_enabled = 1
+WHERE api_provider = 'api' AND sync_enabled = 1
 LIMIT 1
 ON DUPLICATE KEY UPDATE
     api_url = VALUES(api_url),
