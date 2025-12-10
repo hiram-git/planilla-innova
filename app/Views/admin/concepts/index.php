@@ -10,16 +10,53 @@ $title = 'Conceptos de Nómina';
                     <a href="<?= url('/panel/concepts/create') ?>" class="btn btn-primary btn-sm ml-3">
                         <i class="fas fa-plus"></i> Nuevo Concepto
                     </a>
+                    <?php
+                    // Calcular estadísticas de completitud
+                    $totalConceptos = count($concepts);
+                    $conceptosCompletos = 0;
+                    $conceptosIncompletos = 0;
+                    foreach ($concepts as $c) {
+                        $faltantes = [];
+                        if (!intval($c['tiene_formula'] ?? 0)) $faltantes[] = 1;
+                        if (!intval($c['tiene_tipo'] ?? 0)) $faltantes[] = 1;
+                        if (intval($c['count_tipos_planilla'] ?? 0) === 0) $faltantes[] = 1;
+                        if (intval($c['count_situaciones'] ?? 0) === 0) $faltantes[] = 1;
+                        if (intval($c['count_frecuencias'] ?? 0) === 0) $faltantes[] = 1;
+
+                        if (empty($faltantes)) {
+                            $conceptosCompletos++;
+                        } else {
+                            $conceptosIncompletos++;
+                        }
+                    }
+                    if ($totalConceptos > 0):
+                    ?>
+                        <span class="ml-3">
+                            <span class="badge badge-success">
+                                <i class="fas fa-check-circle"></i> <?= $conceptosCompletos ?> Completos
+                            </span>
+                            <?php if ($conceptosIncompletos > 0): ?>
+                                <span class="badge badge-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> <?= $conceptosIncompletos ?> Incompletos
+                                </span>
+                            <?php endif; ?>
+                        </span>
+                    <?php endif; ?>
                 </h3>
                 <div class="card-tools">
-                    <div class="input-group input-group-sm" style="width: 250px;">
+                    <div class="input-group input-group-sm" style="width: 450px;">
                         <select id="filterType" class="form-control" style="width: 120px;">
                             <option value="">Todos los tipos</option>
                             <option value="INGRESO">Ingresos</option>
                             <option value="DEDUCCION">Deducciones</option>
                             <option value="PATRONAL">Patronales</option>
                         </select>
-                        <input type="text" id="searchInput" class="form-control float-right" placeholder="Buscar concepto...">
+                        <select id="filterEstado" class="form-control ml-2" style="width: 130px;">
+                            <option value="">Todos los estados</option>
+                            <option value="completo">Completos</option>
+                            <option value="incompleto">Incompletos</option>
+                        </select>
+                        <input type="text" id="searchInput" class="form-control float-right ml-2" placeholder="Buscar concepto...">
                         <div class="input-group-append">
                             <button type="button" class="btn btn-default">
                                 <i class="fas fa-search"></i>
@@ -37,6 +74,7 @@ $title = 'Conceptos de Nómina';
                                 <th>Código</th>
                                 <th>Descripción</th>
                                 <th>Tipo</th>
+                                <th>Estado</th>
                                 <th>Fórmula</th>
                                 <th>Uso</th>
                                 <th>Acciones</th>
@@ -80,8 +118,34 @@ $title = 'Conceptos de Nómina';
         $vecesUsado = intval($concept['veces_usado'] ?? 0);
         $totalMonto = floatval($concept['total_monto'] ?? 0);
         $promedioMonto = floatval($concept['promedio_monto'] ?? 0);
+
+        // Validaciones de completitud
+        $tieneFormula = intval($concept['tiene_formula'] ?? 0);
+        $tieneTipo = intval($concept['tiene_tipo'] ?? 0);
+        $countTiposPlanilla = intval($concept['count_tipos_planilla'] ?? 0);
+        $countSituaciones = intval($concept['count_situaciones'] ?? 0);
+        $countFrecuencias = intval($concept['count_frecuencias'] ?? 0);
+        $countAcumulados = intval($concept['count_acumulados'] ?? 0);
+
+        // Calcular estado de completitud
+        $camposFaltantes = [];
+        if (!$tieneFormula) $camposFaltantes[] = 'Fórmula';
+        if (!$tieneTipo) $camposFaltantes[] = 'Tipo';
+        if ($countTiposPlanilla === 0) $camposFaltantes[] = 'Tipo Planilla';
+        if ($countSituaciones === 0) $camposFaltantes[] = 'Situaciones';
+        if ($countFrecuencias === 0) $camposFaltantes[] = 'Frecuencias';
+        // Acumulados es opcional, no lo marcamos como faltante
+
+        $esCompleto = empty($camposFaltantes);
+        $estadoClass = $esCompleto ? 'badge-success' : 'badge-warning';
+        $estadoIcon = $esCompleto ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
+        $estadoText = $esCompleto ? 'Completo' : 'Incompleto';
+        $estadoTooltip = $esCompleto ? 'Concepto configurado correctamente' : 'Faltan: ' . implode(', ', $camposFaltantes);
+
+        // Clase para resaltar la fila si está incompleto
+        $rowClass = !$esCompleto ? 'table-warning' : '';
     ?>
-                            <tr>
+                            <tr class="<?= $rowClass ?>">
                                 <td><?= htmlspecialchars($concept['id']) ?></td>
                                 <td>
                                     <strong><?= htmlspecialchars($concept['concepto']) ?></strong>
@@ -99,6 +163,24 @@ $title = 'Conceptos de Nómina';
                                         <i class="<?= $typeIcon ?>"></i>
                                         <?= $typeText ?>
                                     </span>
+                                </td>
+                                <td>
+                                    <span class="badge <?= $estadoClass ?>"
+                                          data-toggle="tooltip"
+                                          title="<?= htmlspecialchars($estadoTooltip) ?>">
+                                        <i class="<?= $estadoIcon ?>"></i>
+                                        <?= $estadoText ?>
+                                    </span>
+                                    <?php if (!$esCompleto): ?>
+                                        <br><small class="text-muted mt-1" style="display: block; font-size: 10px;">
+                                            <?= implode(', ', $camposFaltantes) ?>
+                                        </small>
+                                    <?php else: ?>
+                                        <br><small class="text-success mt-1" style="display: block; font-size: 10px;">
+                                            <i class="fas fa-info-circle"></i>
+                                            <?= $countAcumulados > 0 ? "$countAcumulados acumulado(s)" : "Sin acumulados" ?>
+                                        </small>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="formula-container">
@@ -165,7 +247,7 @@ $title = 'Conceptos de Nómina';
     <?php endforeach; ?>
 <?php else: ?>
                             <tr>
-                                <td colspan="7" class="text-center text-muted">
+                                <td colspan="8" class="text-center text-muted">
                                     <i class="fas fa-info-circle"></i> No hay conceptos registrados
                                 </td>
                             </tr>
@@ -320,7 +402,7 @@ $title = 'Conceptos de Nómina';
             }
         },
         columnDefs: [
-            { orderable: false, targets: [6] } // Disable ordering on actions column
+            { orderable: false, targets: [7] } // Disable ordering on actions column
         ]
     });
 
@@ -331,6 +413,18 @@ $title = 'Conceptos de Nómina';
             table.column(3).search(filterValue).draw();
         } else {
             table.column(3).search('').draw();
+        }
+    });
+
+    // Filtro por estado de completitud
+    $('#filterEstado').on('change', function() {
+        var filterValue = $(this).val();
+        if (filterValue === 'completo') {
+            table.column(4).search('Completo').draw();
+        } else if (filterValue === 'incompleto') {
+            table.column(4).search('Incompleto').draw();
+        } else {
+            table.column(4).search('').draw();
         }
     });
 
@@ -646,6 +740,31 @@ $title = 'Conceptos de Nómina';
 
 .btn-group .btn {
     border-radius: 0.25rem;
+}
+
+/* Estilos para estado de completitud */
+.table-warning {
+    background-color: #fff3cd !important;
+}
+
+.table-warning:hover {
+    background-color: #ffe8a1 !important;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* Mejorar visualización del estado */
+td > .badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
 }
 </style>
 

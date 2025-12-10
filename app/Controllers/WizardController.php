@@ -139,7 +139,9 @@ class WizardController{
             return;
         }
 
-        // Verificar RUC único
+        // NOTA: Validación de RUC único deshabilitada para permitir múltiples empresas por distribuidor
+        // Un distribuidor puede crear tantas empresas como necesite sin validar si el RUC ya existe
+        /*
         if ($this->wizardModel->rucExists($companyData['ruc'])) {
             $this->jsonResponse([
                 'success' => false,
@@ -147,6 +149,7 @@ class WizardController{
             ]);
             return;
         }
+        */
 
         // Guardar datos en sesión para paso 3
         $_SESSION['wizard_company_data'] = $companyData;

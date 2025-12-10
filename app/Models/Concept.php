@@ -345,16 +345,23 @@ class Concept extends Model
     public function getWithUsageStats()
     {
         try {
-            $sql = "SELECT 
+            $sql = "SELECT
                         c.*,
                         COUNT(pd.id) as veces_usado,
                         COALESCE(AVG(pd.monto), 0) as promedio_monto,
-                        COALESCE(SUM(pd.monto), 0) as total_monto
+                        COALESCE(SUM(pd.monto), 0) as total_monto,
+                        -- Validaciones de completitud
+                        (CASE WHEN c.formula IS NOT NULL AND c.formula != '' THEN 1 ELSE 0 END) as tiene_formula,
+                        (CASE WHEN c.tipo_concepto IN ('A', 'D', 'P') THEN 1 ELSE 0 END) as tiene_tipo,
+                        (SELECT COUNT(*) FROM concepto_tipos_planilla ctp WHERE ctp.concepto_id = c.id) as count_tipos_planilla,
+                        (SELECT COUNT(*) FROM concepto_situaciones cs WHERE cs.concepto_id = c.id) as count_situaciones,
+                        (SELECT COUNT(*) FROM concepto_frecuencias cf WHERE cf.concepto_id = c.id) as count_frecuencias,
+                        (SELECT COUNT(*) FROM conceptos_acumulados ca WHERE ca.concepto_id = c.id) as count_acumulados
                     FROM {$this->table} c
                     LEFT JOIN planilla_detalle pd ON c.id = pd.concepto_id
                     GROUP BY c.id
                     ORDER BY c.tipo_concepto DESC, c.descripcion";
-            
+
             $stmt = $this->db->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {

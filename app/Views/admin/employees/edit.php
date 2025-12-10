@@ -69,9 +69,20 @@ $content = '
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="edit_birthdate">Fecha de Nacimiento *</label>
-                                <input type="date" class="form-control" id="edit_birthdate" name="edit_birthdate" 
+                                <input type="date" class="form-control" id="edit_birthdate" name="edit_birthdate"
                                        value="' . ($_SESSION['old_data']['edit_birthdate'] ?? $employee['birthdate']) . '" required>
                                 ' . (isset($_SESSION['errors']['edit_birthdate']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_birthdate'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_edad_display">Edad</label>
+                                <input type="text" class="form-control" id="edit_edad_display" readonly
+                                       placeholder="Se calculará automáticamente"
+                                       style="background-color: #f4f6f9;">
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-calculator"></i> Se calcula automáticamente desde la fecha de nacimiento
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -90,24 +101,24 @@ $content = '
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="edit_fecha_ingreso">Fecha de Ingreso</label>
-                                <input type="date" class="form-control" id="edit_fecha_ingreso" name="edit_fecha_ingreso" 
-                                       value="' . ($_SESSION['old_data']['edit_fecha_ingreso'] ?? $employee['fecha_ingreso']) . '">
+                                <label for="edit_fecha_ingreso">Fecha de Ingreso *</label>
+                                <input type="date" class="form-control" id="edit_fecha_ingreso" name="edit_fecha_ingreso"
+                                       value="' . ($_SESSION['old_data']['edit_fecha_ingreso'] ?? $employee['fecha_ingreso']) . '" required>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
-                        <label for="edit_address">Dirección</label>
-                        <textarea class="form-control" id="edit_address" name="edit_address" rows="2">' . ($_SESSION['old_data']['edit_address'] ?? $employee['address']) . '</textarea>
+                        <label for="edit_address">Dirección *</label>
+                        <textarea class="form-control" id="edit_address" name="edit_address" rows="2" required>' . ($_SESSION['old_data']['edit_address'] ?? $employee['address']) . '</textarea>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="edit_contact">Información de Contacto</label>
+                                <label for="edit_contact">Información de Contacto *</label>
                                 <input type="text" class="form-control" id="edit_contact" name="edit_contact"
-                                       placeholder="Teléfono, celular, etc." value="' . ($_SESSION['old_data']['edit_contact'] ?? $employee['contact_info']) . '">
+                                       placeholder="Teléfono, celular, etc." value="' . ($_SESSION['old_data']['edit_contact'] ?? $employee['contact_info']) . '" required>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -501,8 +512,8 @@ $content .= '            </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="edit_organigrama_id">Elemento del Organigrama</label>
-                                <select class="form-control" id="edit_organigrama_id" name="edit_organigrama_id">
+                                <label for="edit_organigrama_id">Elemento del Organigrama *</label>
+                                <select class="form-control" id="edit_organigrama_id" name="edit_organigrama_id" required>
                                     <option value="">Seleccionar elemento del organigrama...</option>';
 
 foreach ($organigrama_elementos as $elemento) {
@@ -512,7 +523,7 @@ foreach ($organigrama_elementos as $elemento) {
 }
 
 $content .= '                        </select>
-                                    <small class="form-text text-muted">Opcional. Elemento del organigrama al que pertenece el empleado</small>
+                                    <small class="form-text text-muted">Elemento del organigrama al que pertenece el empleado</small>
                                     ' . (isset($_SESSION['errors']['edit_organigrama_id']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_organigrama_id'] . '</small>' : '') . '
                             </div>
                         </div>
@@ -632,6 +643,186 @@ if (typeof $ !== "undefined") {
                 toastr.warning("Primero ingrese el número de cédula", "Advertencia");
             }
         });
+
+        // Calcular edad a partir de fecha de nacimiento
+        function calcularEdad(fechaNacimiento) {
+            if (!fechaNacimiento) return "";
+
+            var hoy = new Date();
+            var nacimiento = new Date(fechaNacimiento);
+            var edad = hoy.getFullYear() - nacimiento.getFullYear();
+            var mes = hoy.getMonth() - nacimiento.getMonth();
+
+            // Ajustar si el cumpleaños no ha ocurrido este año
+            if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+                edad--;
+            }
+
+            return edad >= 0 ? edad + " años" : "";
+        }
+
+        // Actualizar edad cuando cambia la fecha de nacimiento
+        $("#edit_birthdate").on("change blur", function() {
+            var edad = calcularEdad($(this).val());
+            $("#edit_edad_display").val(edad);
+        });
+
+        // Calcular edad inicial si hay fecha precargada
+        if ($("#edit_birthdate").val()) {
+            $("#edit_edad_display").val(calcularEdad($("#edit_birthdate").val()));
+        }
+
+        // ====================================
+        // VALIDACIÓN EN TIEMPO REAL DE CAMPOS
+        // ====================================
+
+        // Función para validar campo individual
+        function validateField($field) {
+            var fieldType = $field.attr("type") || $field.prop("tagName").toLowerCase();
+            var fieldName = $field.attr("name");
+            var fieldValue = $field.val();
+            var isRequired = $field.prop("required");
+            var isValid = true;
+            var errorMessage = "";
+
+            // Validación para campos requeridos vacíos
+            if (isRequired && (!fieldValue || fieldValue.trim() === "")) {
+                isValid = false;
+                errorMessage = "Este campo es obligatorio";
+            }
+
+            // Validaciones específicas por tipo de campo
+            if (isValid && fieldValue && fieldValue.trim() !== "") {
+                switch (fieldType) {
+                    case "email":
+                        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(fieldValue)) {
+                            isValid = false;
+                            errorMessage = "Ingrese un email válido";
+                        }
+                        break;
+
+                    case "date":
+                        if (fieldName === "edit_birthdate") {
+                            var birthDate = new Date(fieldValue);
+                            var today = new Date();
+                            var age = today.getFullYear() - birthDate.getFullYear();
+                            if (age < 18 || age > 100) {
+                                isValid = false;
+                                errorMessage = "La edad debe estar entre 18 y 100 años";
+                            }
+                        }
+                        break;
+
+                    case "number":
+                        if (fieldValue && parseFloat(fieldValue) < 0) {
+                            isValid = false;
+                            errorMessage = "El valor debe ser positivo";
+                        }
+                        break;
+
+                    case "text":
+                    case "textarea":
+                        // Validación de longitud mínima
+                        if (fieldValue.trim().length < 2) {
+                            isValid = false;
+                            errorMessage = "Mínimo 2 caracteres";
+                        }
+                        break;
+
+                    case "select":
+                    case "select-one":
+                    case "select-multiple":
+                        if (isRequired && (!fieldValue || fieldValue === "" || (Array.isArray(fieldValue) && fieldValue.length === 0))) {
+                            isValid = false;
+                            errorMessage = "Debe seleccionar una opción";
+                        }
+                        break;
+                }
+            }
+
+            // Aplicar clases visuales
+            if (isValid) {
+                $field.removeClass("is-invalid").addClass("is-valid");
+                $field.siblings(".invalid-feedback").remove();
+            } else {
+                $field.removeClass("is-valid").addClass("is-invalid");
+
+                // Agregar o actualizar mensaje de error
+                var $errorDiv = $field.siblings(".invalid-feedback");
+                if ($errorDiv.length === 0) {
+                    $field.after("<div class=\'invalid-feedback\'>" + errorMessage + "</div>");
+                } else {
+                    $errorDiv.text(errorMessage);
+                }
+            }
+
+            return isValid;
+        }
+
+        // Validar campos de texto y textarea
+        $("input[type=text], input[type=email], input[type=date], input[type=number], textarea").on("blur change", function() {
+            validateField($(this));
+        });
+
+        // Validar selects
+        $("select").on("change", function() {
+            validateField($(this));
+        });
+
+        // Validación especial para Select2
+        $(document).on("select2:select select2:unselect", "#edit_tipo_planilla", function() {
+            setTimeout(function() {
+                validateField($("#edit_tipo_planilla"));
+            }, 100);
+        });
+
+        // Validar todo el formulario antes de enviar
+        $("form").on("submit", function(e) {
+            var isFormValid = true;
+            var $firstInvalidField = null;
+
+            // Validar todos los campos requeridos y visibles
+            $(this).find("input:required:visible, select:required:visible, textarea:required:visible").each(function() {
+                var $field = $(this);
+
+                // Solo validar si el campo está visible y no está deshabilitado
+                if ($field.is(":visible") && !$field.is(":disabled")) {
+                    if (!validateField($field)) {
+                        isFormValid = false;
+                        if ($firstInvalidField === null) {
+                            $firstInvalidField = $field;
+                        }
+                    }
+                }
+            });
+
+            // Si el formulario no es válido, prevenir envío y hacer scroll al primer error
+            if (!isFormValid) {
+                e.preventDefault();
+                if ($firstInvalidField) {
+                    $("html, body").animate({
+                        scrollTop: $firstInvalidField.offset().top - 100
+                    }, 500);
+                    $firstInvalidField.focus();
+                }
+
+                toastr.error("Por favor corrija los errores en el formulario antes de enviar", "Validación");
+                return false;
+            }
+        });
+
+        // Limpiar validación cuando el usuario empieza a escribir
+        $("input, textarea").on("input", function() {
+            var $field = $(this);
+            if ($field.hasClass("is-invalid") || $field.hasClass("is-valid")) {
+                // Remover clases si el campo está siendo editado
+                if ($field.val().trim().length > 0) {
+                    $field.removeClass("is-invalid is-valid");
+                    $field.siblings(".invalid-feedback").remove();
+                }
+            }
+        });
     });
 }
 
@@ -641,7 +832,109 @@ window.EMPLOYEE_SALARIES = ' . json_encode($employee_salaries ?? []) . ';
 <script src="' . asset('javascript/modules/employees/edit.js') . '"></script>
 <script src="' . url('assets/javascript/modules/employees/salaries-inline.js', false) . '?v=' . date('siH') . '"></script>';
 
-$styles = '';
+$styles = '
+<style>
+/* Estilos para validación de formularios */
+
+/* Campo válido - borde verde */
+.form-control.is-valid,
+.custom-select.is-valid {
+    border-color: #28a745 !important;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 8 8\'%3e%3cpath fill=\'%2328a745\' d=\'M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z\'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control.is-valid:focus,
+.custom-select.is-valid:focus {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+}
+
+/* Campo inválido - borde rojo */
+.form-control.is-invalid,
+.custom-select.is-invalid {
+    border-color: #dc3545 !important;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'none\' stroke=\'%23dc3545\' viewBox=\'0 0 12 12\'%3e%3ccircle cx=\'6\' cy=\'6\' r=\'4.5\'/%3e%3cpath stroke-linejoin=\'round\' d=\'M5.8 3.6h.4L6 6.5z\'/%3e%3ccircle cx=\'6\' cy=\'8.2\' r=\'.6\' fill=\'%23dc3545\' stroke=\'none\'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control.is-invalid:focus,
+.custom-select.is-invalid:focus {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+/* Mensaje de error */
+.invalid-feedback {
+    display: block !important;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 80%;
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* Mensaje de éxito */
+.valid-feedback {
+    display: block !important;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 80%;
+    color: #28a745;
+}
+
+/* Select2 válido */
+.select2-container--bootstrap4 .select2-selection.is-valid {
+    border-color: #28a745 !important;
+}
+
+.select2-container--bootstrap4 .select2-selection.is-invalid {
+    border-color: #dc3545 !important;
+}
+
+/* Textarea válido/inválido */
+textarea.form-control.is-valid,
+textarea.form-control.is-invalid {
+    background-position: top calc(0.375em + 0.1875rem) right calc(0.375em + 0.1875rem);
+}
+
+/* Animación suave para las transiciones */
+.form-control,
+.custom-select {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Icono de alerta para campos obligatorios */
+label[for] {
+    font-weight: 500;
+}
+
+label[for]:has(+ input:required)::after,
+label[for]:has(+ select:required)::after,
+label[for]:has(+ textarea:required)::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Mejorar visibilidad del feedback en modo oscuro */
+@media (prefers-color-scheme: dark) {
+    .invalid-feedback {
+        color: #ff6b6b;
+    }
+
+    .valid-feedback {
+        color: #51cf66;
+    }
+}
+</style>
+';
 
 // Limpiar mensajes de sesión
 unset($_SESSION['errors'], $_SESSION['old_data']);
