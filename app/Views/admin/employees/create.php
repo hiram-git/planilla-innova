@@ -99,11 +99,23 @@ $content = '
                                 ' . (isset($_SESSION['errors']['gender']) ? '<small class="text-danger">' . $_SESSION['errors']['gender'] . '</small>' : '') . '
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="fecha_ingreso">Fecha de Ingreso *</label>
                                 <input type="date" class="form-control" id="fecha_ingreso" name="fecha_ingreso"
                                        value="' . ($_SESSION['old_data']['fecha_ingreso'] ?? date('Y-m-d')) . '" required>
+                                ' . (isset($_SESSION['errors']['fecha_ingreso']) ? '<small class="text-danger">' . $_SESSION['errors']['fecha_ingreso'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="antiguedad_display">Antigüedad</label>
+                                <input type="text" class="form-control" id="antiguedad_display" readonly
+                                       placeholder="Se calculará automáticamente"
+                                       style="background-color: #f4f6f9;">
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-calendar-check"></i> Calculado automáticamente
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -589,6 +601,67 @@ $(document).ready(function() {
         $("#edad_display").val(calcularEdad($("#birthdate").val()));
     }
 
+    // Calcular antigüedad a partir de fecha de ingreso
+    function calcularAntiguedad(fechaIngreso) {
+        if (!fechaIngreso) return "";
+
+        var hoy = new Date();
+        var ingreso = new Date(fechaIngreso);
+
+        // Validar que la fecha no sea futura
+        if (ingreso > hoy) {
+            return "Fecha futura no válida";
+        }
+
+        // Calcular diferencia en milisegundos
+        var anos = hoy.getFullYear() - ingreso.getFullYear();
+        var meses = hoy.getMonth() - ingreso.getMonth();
+        var dias = hoy.getDate() - ingreso.getDate();
+
+        // Ajustar días negativos
+        if (dias < 0) {
+            meses--;
+            // Obtener el último día del mes anterior
+            var ultimoDiaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate();
+            dias += ultimoDiaMesAnterior;
+        }
+
+        // Ajustar meses negativos
+        if (meses < 0) {
+            anos--;
+            meses += 12;
+        }
+
+        // Construir el texto de antigüedad (solo incluir valores > 0)
+        var partes = [];
+        if (anos > 0) {
+            partes.push(anos + (anos === 1 ? " año" : " años"));
+        }
+        if (meses > 0) {
+            partes.push(meses + (meses === 1 ? " mes" : " meses"));
+        }
+        if (dias > 0) {
+            partes.push(dias + (dias === 1 ? " día" : " días"));
+        }
+
+        if (partes.length === 0) {
+            return "0 días";
+        }
+
+        return partes.join(", ");
+    }
+
+    // Actualizar antigüedad cuando cambia la fecha de ingreso
+    $("#fecha_ingreso").on("change blur", function() {
+        var antiguedad = calcularAntiguedad($(this).val());
+        $("#antiguedad_display").val(antiguedad);
+    });
+
+    // Calcular antigüedad inicial si hay fecha precargada
+    if ($("#fecha_ingreso").val()) {
+        $("#antiguedad_display").val(calcularAntiguedad($("#fecha_ingreso").val()));
+    }
+
     // ====================================
     // VALIDACIÓN EN TIEMPO REAL DE CAMPOS
     // ====================================
@@ -601,15 +674,16 @@ $(document).ready(function() {
         var isRequired = $field.prop("required");
         var isValid = true;
         var errorMessage = "";
+        var isSelect2 = $field.hasClass("select2-hidden-accessible");
 
         // Validación para campos requeridos vacíos
-        if (isRequired && (!fieldValue || fieldValue.trim() === "")) {
+        if (isRequired && (!fieldValue || (typeof fieldValue === "string" && fieldValue.trim() === "") || (Array.isArray(fieldValue) && fieldValue.length === 0))) {
             isValid = false;
             errorMessage = "Este campo es obligatorio";
         }
 
         // Validaciones específicas por tipo de campo
-        if (isValid && fieldValue && fieldValue.trim() !== "") {
+        if (isValid && fieldValue && (typeof fieldValue === "string" ? fieldValue.trim() !== "" : fieldValue.length > 0)) {
             switch (fieldType) {
                 case "email":
                     var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -641,7 +715,7 @@ $(document).ready(function() {
                 case "text":
                 case "textarea":
                     // Validación de longitud mínima
-                    if (fieldValue.trim().length < 2) {
+                    if (typeof fieldValue === "string" && fieldValue.trim().length < 2) {
                         isValid = false;
                         errorMessage = "Mínimo 2 caracteres";
                     }
@@ -659,18 +733,41 @@ $(document).ready(function() {
         }
 
         // Aplicar clases visuales
-        if (isValid) {
-            $field.removeClass("is-invalid").addClass("is-valid");
-            $field.siblings(".invalid-feedback").remove();
-        } else {
-            $field.removeClass("is-valid").addClass("is-invalid");
+        if (isSelect2) {
+            // Para Select2, aplicar clases al contenedor visible
+            var $select2Container = $field.next(".select2-container").find(".select2-selection");
 
-            // Agregar o actualizar mensaje de error
-            var $errorDiv = $field.siblings(".invalid-feedback");
-            if ($errorDiv.length === 0) {
-                $field.after("<div class=\'invalid-feedback\'>" + errorMessage + "</div>");
+            if (isValid) {
+                $field.removeClass("is-invalid").addClass("is-valid");
+                $select2Container.removeClass("is-invalid").addClass("is-valid");
+                $field.parent().find(".invalid-feedback").remove();
             } else {
-                $errorDiv.text(errorMessage);
+                $field.removeClass("is-valid").addClass("is-invalid");
+                $select2Container.removeClass("is-valid").addClass("is-invalid");
+
+                // Agregar o actualizar mensaje de error
+                var $errorDiv = $field.parent().find(".invalid-feedback");
+                if ($errorDiv.length === 0) {
+                    $field.parent().append("<div class=\'invalid-feedback\'>" + errorMessage + "</div>");
+                } else {
+                    $errorDiv.text(errorMessage);
+                }
+            }
+        } else {
+            // Para campos normales
+            if (isValid) {
+                $field.removeClass("is-invalid").addClass("is-valid");
+                $field.siblings(".invalid-feedback").remove();
+            } else {
+                $field.removeClass("is-valid").addClass("is-invalid");
+
+                // Agregar o actualizar mensaje de error
+                var $errorDiv = $field.siblings(".invalid-feedback");
+                if ($errorDiv.length === 0) {
+                    $field.after("<div class=\'invalid-feedback\'>" + errorMessage + "</div>");
+                } else {
+                    $errorDiv.text(errorMessage);
+                }
             }
         }
 
