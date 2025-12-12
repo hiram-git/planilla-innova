@@ -47,17 +47,17 @@ class Employee extends Model
 
     public function getAllWithDetails()
     {
-        $sql = "SELECT e.*, 
-                       pos.codigo as position_name, 
+        $sql = "SELECT e.*,
+                       pos.codigo as position_name,
                        s.time_in, s.time_out,
                        c.descripcion as cargo_name,
-                       p.partida as partida_name,
+                       p.codigo as partida_name,
                        f.descripcion as funcion_name
                 FROM employees e
                 LEFT JOIN posiciones pos ON e.position_id = pos.id
                 LEFT JOIN schedules s ON e.schedule_id = s.id
                 LEFT JOIN cargos c ON pos.id_cargo = c.id
-                LEFT JOIN partidas p ON pos.id_partida = p.id
+                LEFT JOIN cuentas_contables p ON pos.id_partida = p.id
                 LEFT JOIN funciones f ON pos.id_funcion = f.id
                 ORDER BY e.lastname, e.firstname";
         return $this->db->findAll($sql);
@@ -223,7 +223,7 @@ class Employee extends Model
                        pos.sueldo as position_salary,
                        s.time_in, s.time_out,
                        COALESCE(cargo.nombre, pos_cargo.nombre) as cargo_name,
-                       COALESCE(partida.codigo, pos_partida.partida) as partida_name,
+                       COALESCE(partida.codigo, pos_partida.codigo) as partida_name,
                        COALESCE(funcion.nombre, pos_funcion.descripcion) as funcion_name,
                        org.descripcion as organigrama_descripcion,
                        sit.descripcion as situacion_nombre,
@@ -237,8 +237,8 @@ class Employee extends Model
                 LEFT JOIN schedules s ON e.schedule_id = s.id
                 LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                 LEFT JOIN cargos pos_cargo ON pos.id_cargo = pos_cargo.id
-                LEFT JOIN partidas partida ON e.partida_id = partida.id
-                LEFT JOIN partidas pos_partida ON pos.id_partida = pos_partida.id
+                LEFT JOIN cuentas_contables partida ON e.partida_id = partida.id
+                LEFT JOIN cuentas_contables pos_partida ON pos.id_partida = pos_partida.id
                 LEFT JOIN funciones funcion ON e.funcion_id = funcion.id
                 LEFT JOIN funciones pos_funcion ON pos.id_funcion = pos_funcion.id
                 LEFT JOIN organigrama org ON e.organigrama_id = org.id

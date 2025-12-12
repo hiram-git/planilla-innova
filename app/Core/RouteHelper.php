@@ -54,6 +54,22 @@ class RouteHelper
                 ['title' => 'Partidas', 'url' => 'panel/partidas']
             ]
         ],
+        'panel/cuentas-contables' => [
+            'title' => 'Cuentas Contables',
+            'breadcrumbs' => [
+                ['title' => 'Inicio', 'url' => 'panel/dashboard'],
+                ['title' => 'Estructura', 'url' => null],
+                ['title' => 'Cuentas Contables', 'url' => 'panel/cuentas-contables']
+            ]
+        ],
+        'panel/partidas-presupuestarias' => [
+            'title' => 'Partidas Presupuestarias',
+            'breadcrumbs' => [
+                ['title' => 'Inicio', 'url' => 'panel/dashboard'],
+                ['title' => 'Estructura', 'url' => null],
+                ['title' => 'Partidas Presupuestarias', 'url' => 'panel/partidas-presupuestarias']
+            ]
+        ],
         'panel/funciones' => [
             'title' => 'Funciones',
             'breadcrumbs' => [
@@ -451,6 +467,8 @@ class RouteHelper
             'panel/positions' => ['admin'],
             'panel/cargos' => ['admin'],
             'panel/partidas' => ['admin'],
+            'panel/cuentas-contables' => ['admin'],
+            'panel/partidas-presupuestarias' => ['admin'],
             'panel/funciones' => ['admin'],
             'panel/tipos-planilla' => ['admin'],
             'panel/frecuencias' => ['admin'],
