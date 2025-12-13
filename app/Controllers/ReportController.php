@@ -1039,8 +1039,8 @@ class ReportController extends Controller
             $tipoEmpresa = $company['tipo_institucion'] ?? 'privada';
             
             // Información del empleado con campos según tipo de empresa
-            $sql = "SELECT e.*, 
-                           pos.codigo as position_code, 
+            $sql = "SELECT e.*,
+                           pos.codigo as position_code,
                            pos.sueldo as position_salary,
                            c.nombre as cargo_name,
                            f.nombre as funcion_name,
@@ -1049,7 +1049,7 @@ class ReportController extends Controller
                    LEFT JOIN posiciones pos ON e.position_id = pos.id
                    LEFT JOIN cargos c ON e.cargo_id = c.id
                    LEFT JOIN funciones f ON e.funcion_id = f.id
-                   LEFT JOIN partidas pt ON e.partida_id = pt.id
+                   LEFT JOIN cuentas_contables pt ON e.partida_id = pt.id
                    WHERE e.id = ?";
             $stmt = $connection->prepare($sql);
             $stmt->execute([$employeeId]);
@@ -2199,6 +2199,17 @@ class ReportController extends Controller
         // Delegar al controlador especializado de Excel
         $excelController = new \App\Controllers\ExcelReportController();
         $excelController->generateInforme03($payrollId);
+    }
+
+    /**
+     * Generar Asientos Contables - Asiento de Planilla y Cuota Patronal
+     * Con información bancaria de empleados
+     */
+    public function asientosContables($payrollId)
+    {
+        // Delegar al generador especializado de asientos contables
+        $contableGenerator = new \App\Controllers\PlanillaContableExcelGenerator();
+        $contableGenerator->generateContableExcel($payrollId);
     }
 
     /**

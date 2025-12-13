@@ -168,7 +168,7 @@ class Payroll extends Model
                                    p.description as position_nombre, p.rate as position_sueldo,
                                    c.descripcion as cargo_nombre,
                                    f.descripcion as funcion_nombre,
-                                   pt.partida as partida_codigo, pt.descripcion as partida_nombre,
+                                   pt.codigo as partida_codigo, pt.nombre as partida_nombre,
                                    s.nombre as schedule_nombre,
                                    sit.descripcion as situacion_nombre,
                                    tp.descripcion as tipo_planilla_nombre,
@@ -188,7 +188,7 @@ class Payroll extends Model
                             LEFT JOIN position p ON p.id = e.position_id
                             LEFT JOIN cargos c ON c.id = e.cargo_id
                             LEFT JOIN funciones f ON f.id = e.funcion_id
-                            LEFT JOIN partidas pt ON pt.id = e.partida_id
+                            LEFT JOIN cuentas_contables pt ON pt.id = e.partida_id
                             LEFT JOIN schedules s ON s.id = e.schedule_id
                             LEFT JOIN situaciones sit ON sit.id = e.situacion_id
                             LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id";
@@ -228,7 +228,7 @@ class Payroll extends Model
                                p.description as position_nombre, p.rate as position_sueldo,
                                c.descripcion as cargo_nombre,
                                f.descripcion as funcion_nombre,
-                               pt.partida as partida_codigo, pt.descripcion as partida_nombre,
+                               pt.codigo as partida_codigo, pt.nombre as partida_nombre,
                                s.nombre as schedule_nombre,
                                sit.descripcion as situacion_nombre,
                                tp.descripcion as tipo_planilla_nombre
@@ -236,7 +236,7 @@ class Payroll extends Model
                         LEFT JOIN position p ON p.id = e.position_id
                         LEFT JOIN cargos c ON c.id = e.cargo_id
                         LEFT JOIN funciones f ON f.id = e.funcion_id
-                        LEFT JOIN partidas pt ON pt.id = e.partida_id
+                        LEFT JOIN cuentas_contables pt ON pt.id = e.partida_id
                         LEFT JOIN schedules s ON s.id = e.schedule_id
                         LEFT JOIN situaciones sit ON sit.id = e.situacion_id
                         LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id

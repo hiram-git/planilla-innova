@@ -214,6 +214,14 @@ switch ($payroll['estado']) {
                                title="Informe 03 - Reporte Gubernamental">
                                 <i class="fas fa-file-contract"></i>
                             </a>
+                            <a href="<?= \App\Core\UrlHelper::url('/panel/reports/asientos-contables/' . $payroll['id']) ?>"
+                               class="btn btn-dark btn-sm"
+                               target="_blank"
+                               data-toggle="tooltip"
+                               data-placement="top"
+                               title="Asientos Contables - Planilla y Cuota Patronal">
+                                <i class="fas fa-calculator"></i>
+                            </a>
                         <?php endif; ?>
                         <!-- Botón actualizar -->
                         <button type="button" class="btn btn-primary btn-sm" onclick="refreshEmployeesTable()">

@@ -683,7 +683,7 @@ class PayrollDetail extends Model
                         e.lastname,
                         p.codigo as position_name,
                         COALESCE(cargo.nombre, pos_cargo.nombre) as cargo_name,
-                        COALESCE(partida.codigo, pos_partida.partida) as partida_name,
+                        COALESCE(partida.codigo, pos_partida.codigo) as partida_name,
                         COALESCE(funcion.nombre, pos_funcion.descripcion) as funcion_name,
                         pc.descripcion as planilla_descripcion,
                         pc.fecha as planilla_fecha,
@@ -696,8 +696,8 @@ class PayrollDetail extends Model
                     LEFT JOIN posiciones p ON e.position_id = p.id
                     LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN cargos pos_cargo ON p.id_cargo = pos_cargo.id
-                    LEFT JOIN partidas partida ON e.partida_id = partida.id
-                    LEFT JOIN partidas pos_partida ON p.id_partida = pos_partida.id
+                    LEFT JOIN cuentas_contables partida ON e.partida_id = partida.id
+                    LEFT JOIN cuentas_contables pos_partida ON p.id_partida = pos_partida.id
                     LEFT JOIN funciones funcion ON e.funcion_id = funcion.id
                     LEFT JOIN funciones pos_funcion ON p.id_funcion = pos_funcion.id
                     WHERE pd.planilla_cabecera_id = ? AND pd.employee_id = ?
