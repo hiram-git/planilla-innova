@@ -325,11 +325,39 @@ $content .= '                </select>
                                 ' . (isset($_SESSION['errors']['gastos_representacion']) ? '<small class="text-danger">' . $_SESSION['errors']['gastos_representacion'] . '</small>' : '') . '
                             </div>
                         </div>
-                        <div class="col-md-6">
+                    </div>
+
+                    <div class="row" id="salary-tarifa-section" style="display: none;">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="tarifa_hora">Tarifa por Hora
+                                    <i class="fas fa-calculator text-info ml-1" title="Se calcula automáticamente: Sueldo ÷ 220 horas"></i>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">' . currency_symbol() . '/h</span>
+                                    </div>
+                                    <input type="number" class="form-control" id="tarifa_hora" name="tarifa_hora"
+                                           step="0.01" min="0" placeholder="0.00"
+                                           value="' . ($_SESSION['old_data']['tarifa_hora'] ?? '') . '">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn_calc_tarifa" title="Calcular automáticamente">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-clock text-primary"></i> Usado en variable <code>TARIFA_HORA</code> del calculador de planillas
+                                </small>
+                                ' . (isset($_SESSION['errors']['tarifa_hora']) ? '<small class="text-danger">' . $_SESSION['errors']['tarifa_hora'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-8">
                             <div class="callout callout-info">
                                 <i class="fas fa-info-circle"></i>
-                                <strong>Empresa Privada:</strong><br>
-                                El sueldo se asigna individualmente a cada empleado.
+                                <strong>Tarifa por Hora:</strong><br>
+                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 220 horas</strong> (8h/día × 22 días laborables promedio).<br>
+                                Puede modificarlo manualmente según las necesidades del empleado.
                             </div>
                         </div>
                     </div>
