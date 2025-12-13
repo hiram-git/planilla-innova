@@ -2202,6 +2202,17 @@ class ReportController extends Controller
     }
 
     /**
+     * Generar Asientos Contables - Asiento de Planilla y Cuota Patronal
+     * Con información bancaria de empleados
+     */
+    public function asientosContables($payrollId)
+    {
+        // Delegar al generador especializado de asientos contables
+        $contableGenerator = new \App\Controllers\PlanillaContableExcelGenerator();
+        $contableGenerator->generateContableExcel($payrollId);
+    }
+
+    /**
      * Generar Excel profesional para Panamá con múltiples hojas
      */
     public function generateExcelPanama($planillaData, $companyInfo, $signatures)
