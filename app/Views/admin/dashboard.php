@@ -291,6 +291,70 @@ $content .= '
             </div>
         </div>';
 
+// Widget: Contratos Próximos a Vencer
+if (!empty($expiring_contracts)) {
+    $content .= '
+        <div class="card card-warning">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-file-contract"></i> Contratos Próximos a Vencer
+                </h3>
+                <div class="card-tools">
+                    <span class="badge badge-warning">' . count($expiring_contracts) . '</span>
+                </div>
+            </div>
+            <div class="card-body p-0">';
+
+    $content .= '
+                <ul class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">';
+
+    $displayedCount = 0;
+    foreach ($expiring_contracts as $contract) {
+        if ($displayedCount >= 5) break;
+
+        $diasRestantes = $contract['dias_restantes'];
+        $badgeClass = 'badge-info';
+        $badgeText = $diasRestantes . ' días';
+
+        if ($diasRestantes <= 15) {
+            $badgeClass = 'badge-danger';
+            $badgeText = 'URGENTE';
+        } elseif ($diasRestantes <= 30) {
+            $badgeClass = 'badge-warning';
+            $badgeText = 'PRONTO';
+        }
+
+        $cargo = $contract['cargo'] ?? 'Sin cargo';
+        $tipo = $contract['tipo_contrato'];
+        $fecha = date('d/m/Y', strtotime($contract['fecha_vencimiento_contrato']));
+
+        $content .= '
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>' . htmlspecialchars($contract['nombre_completo']) . '</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-briefcase"></i> ' . htmlspecialchars($cargo) . ' |
+                                    <i class="fas fa-calendar"></i> ' . $fecha . ' |
+                                    <span class="badge badge-secondary">' . $tipo . '</span>
+                                </small>
+                            </div>
+                            <span class="badge ' . $badgeClass . '">' . $badgeText . '</span>
+                        </div>
+                    </li>';
+        $displayedCount++;
+    }
+
+    $content .= '
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                <small class="text-muted">Mostrando contratos que vencen en los próximos 60 días</small>
+            </div>
+        </div>';
+}
+
 // Widget de Alertas (Solo si hay alertas activas)
 if ($alert_stats['total'] > 0) {
     $content .= '

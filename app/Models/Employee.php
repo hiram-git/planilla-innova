@@ -342,4 +342,44 @@ class Employee extends Model
             return [];
         }
     }
+
+    /**
+     * Obtener empleados con contratos próximos a vencer
+     *
+     * @param int|null $tipoPlanillaId Filtrar por tipo de planilla (opcional)
+     * @param int $days Días de anticipación (por defecto 60 días = 2 meses)
+     * @return array
+     */
+    public function getExpiringContracts($tipoPlanillaId = null, $days = 60)
+    {
+        try {
+            $sql = "SELECT e.id as employee_id,
+                           CONCAT(e.firstname, ' ', e.lastname) as nombre_completo,
+                           c.nombre as cargo,
+                           e.fecha_vencimiento_contrato,
+                           e.tipo_contrato,
+                           DATEDIFF(e.fecha_vencimiento_contrato, CURDATE()) as dias_restantes
+                    FROM employees e
+                    LEFT JOIN cargos c ON e.cargo_id = c.id
+                    LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                    WHERE e.tipo_contrato IN ('DEFINIDO', 'PROYECTO', 'TEMPORAL')
+                      AND e.fecha_vencimiento_contrato IS NOT NULL
+                      AND e.fecha_vencimiento_contrato BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+                      AND (e.situacion_id = 1 OR sit.descripcion LIKE '%activ%' OR sit.descripcion LIKE '%ACTIV%')";
+
+            $params = [$days];
+
+            if ($tipoPlanillaId !== null) {
+                $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+                $params[] = $tipoPlanillaId;
+            }
+
+            $sql .= " ORDER BY e.fecha_vencimiento_contrato ASC";
+
+            return $this->db->findAll($sql, $params);
+        } catch (\Exception $e) {
+            error_log("Error getting expiring contracts: " . $e->getMessage());
+            return [];
+        }
+    }
 }

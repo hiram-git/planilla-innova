@@ -407,6 +407,41 @@ $content .= '                </select>
                         </div>
                     </div>
 
+                    <div class="row" id="edit-salary-tarifa-section" style="display: none;">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_tarifa_hora">Tarifa por Hora
+                                    <i class="fas fa-calculator text-info ml-1" title="Se calcula automáticamente: Sueldo ÷ 220 horas"></i>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">' . currency_symbol() . '/h</span>
+                                    </div>
+                                    <input type="number" class="form-control" id="edit_tarifa_hora" name="edit_tarifa_hora"
+                                           step="0.01" min="0" placeholder="0.00"
+                                           value="' . ($_SESSION['old_data']['edit_tarifa_hora'] ?? ($employee['tarifa_hora'] ?? '')) . '">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn_calc_tarifa_edit" title="Calcular automáticamente">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-clock text-primary"></i> Usado en variable <code>TARIFA_HORA</code> del calculador de planillas
+                                </small>
+                                ' . (isset($_SESSION['errors']['edit_tarifa_hora']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_tarifa_hora'] . '</small>' : '') . '
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="callout callout-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Tarifa por Hora:</strong><br>
+                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 220 horas</strong> (8h/día × 22 días laborables promedio).<br>
+                                Puede modificarlo manualmente según las necesidades del empleado.
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Campos de Contrato -->
                     <div class="row">
                         <div class="col-md-6">
@@ -576,6 +611,7 @@ function initializeEmployeeEditFallback() {
             // Empresa privada: mostrar cargos, funciones, partidas y sueldo individual (SIN posición)
             $("#edit-private-company-fields").show();
             $("#edit-salary-section").show();
+            $("#edit-salary-tarifa-section").show();
             $("#edit-public-institution-fields").hide();
 
             // Hacer obligatorios los campos de empresa privada
@@ -587,6 +623,7 @@ function initializeEmployeeEditFallback() {
             $("#edit-public-institution-fields").show();
             $("#edit-private-company-fields").hide();
             $("#edit-salary-section").hide();
+            $("#edit-salary-tarifa-section").hide();
 
             // Hacer obligatorio solo el campo de posición
             $("#edit_position").prop("required", true);
@@ -744,6 +781,35 @@ if (typeof $ !== "undefined") {
         if ($("#edit_fecha_ingreso").val()) {
             $("#edit_antiguedad_display").val(calcularAntiguedad($("#edit_fecha_ingreso").val()));
         }
+
+        // Función para calcular tarifa por hora
+        function calcularTarifaHora() {
+            var sueldo = parseFloat($("#edit_sueldo_individual").val()) || 0;
+            if (sueldo > 0) {
+                var tarifaHora = (sueldo / 220).toFixed(2);
+                $("#edit_tarifa_hora").val(tarifaHora);
+                return tarifaHora;
+            }
+            return 0;
+        }
+
+        // Botón calcular tarifa_hora
+        $("#btn_calc_tarifa_edit").click(function() {
+            var tarifa = calcularTarifaHora();
+            if (tarifa > 0) {
+                toastr.success("Tarifa por hora calculada: " + tarifa, "Calculado");
+            } else {
+                toastr.warning("Primero ingrese el sueldo individual", "Advertencia");
+            }
+        });
+
+        // Auto-calcular tarifa_hora cuando cambia el sueldo
+        $("#edit_sueldo_individual").on("blur change", function() {
+            var sueldo = parseFloat($(this).val()) || 0;
+            if (sueldo > 0) {
+                calcularTarifaHora();
+            }
+        });
 
         // ====================================
         // VALIDACIÓN EN TIEMPO REAL DE CAMPOS
