@@ -12,7 +12,7 @@ require_once BASE_PATH . '/app/Core/Bootstrap.php';
 
 use App\Core\Bootstrap;
 use App\Core\Database;
-use App\Services\Attendance\Base44ApiClient;
+use App\Services\Attendance\ApiClient;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceApiConfig;
 
@@ -34,7 +34,7 @@ if (!$config) {
 echo "✓ Configuración encontrada: {$config['api_provider']}\n\n";
 
 // 2. Obtener datos del API
-$apiClient = new Base44ApiClient(
+$apiClient = new ApiClient(
     $config['api_key'],
     $config['app_id'],
     $config['api_url']

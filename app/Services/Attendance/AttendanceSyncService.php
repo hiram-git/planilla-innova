@@ -165,7 +165,7 @@ class AttendanceSyncService
         $this->startSyncLog('INCREMENTAL', $filters);
 
         try {
-            // Nota: Base44 puede no soportar filtros de fecha directamente
+            // Nota: La API externa puede no soportar filtros de fecha directamente
             // En ese caso, filtraremos después de obtener los datos
             $attendances = $this->apiClient->getAttendances();
             $this->stats['fetched'] = is_array($attendances) ? count($attendances) : 0;

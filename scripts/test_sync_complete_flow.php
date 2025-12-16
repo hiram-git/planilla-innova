@@ -11,7 +11,7 @@ require_once BASE_PATH . '/app/Core/Bootstrap.php';
 
 use App\Core\Bootstrap;
 use App\Core\Database;
-use App\Services\Attendance\Base44ApiClient;
+use App\Services\Attendance\ApiClient;
 use App\Services\Attendance\AttendanceSyncService;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceApiConfig;
@@ -39,8 +39,8 @@ echo "   ✓ Provider: {$config['api_provider']}\n";
 echo "   ✓ Sync enabled: " . ($config['sync_enabled'] ? 'SÍ' : 'NO') . "\n\n";
 
 // 2. Obtener datos del API
-echo "2️⃣  Obteniendo datos del API Base44...\n";
-$apiClient = new Base44ApiClient(
+echo "2️⃣  Obteniendo datos de la API externa...\n";
+$apiClient = new ApiClient(
     $config['api_key'],
     $config['app_id'],
     $config['api_url']
@@ -216,7 +216,7 @@ if ($employeesNotFound > 0) {
     echo "⚠️  PROBLEMA PRINCIPAL: {$employeesNotFound} empleados NO existen en la BD\n\n";
     echo "💡 SOLUCIONES:\n";
     echo "   1. Verificar emails de empleados en la tabla 'employees'\n";
-    echo "   2. Actualizar emails para que coincidan con Base44\n";
+    echo "   2. Actualizar emails para que coincidan con la API externa\n";
     echo "   3. Crear empleados faltantes\n\n";
 
     echo "🔧 SQL para verificar emails:\n";
