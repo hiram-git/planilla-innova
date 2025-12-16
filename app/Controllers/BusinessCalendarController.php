@@ -432,7 +432,7 @@ class BusinessCalendarController extends Controller
     }
 
     /**
-     * Sincronizar calendario desde API Base44 (Manual)
+     * Sincronizar calendario desde API externa (Manual)
      * Incluye confirmación antes de proceder
      */
     public function syncFromApi()
