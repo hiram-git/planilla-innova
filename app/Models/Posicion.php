@@ -11,16 +11,16 @@ class Posicion extends Model
 
     public function getAllWithRelations()
     {
-        $sql = "SELECT 
+        $sql = "SELECT
                     posiciones.id AS posid,
                     posiciones.codigo,
                     posiciones.sueldo,
                     COALESCE(cargos.nombre, cargos.descripcion, 'Sin cargo') AS descripcion_cargo,
-                    COALESCE(partidas.nombre, partidas.descripcion, 'Sin partida') AS descripcion_partida,
+                    COALESCE(cuentas_contables.nombre, cuentas_contables.descripcion, 'Sin cuenta contable') AS descripcion_partida,
                     COALESCE(funciones.nombre, funciones.descripcion, 'Sin función') AS descripcion_funcion
-                FROM posiciones 
-                LEFT JOIN cargos ON cargos.id = posiciones.id_cargo 
-                LEFT JOIN partidas ON partidas.id = posiciones.id_partida
+                FROM posiciones
+                LEFT JOIN cargos ON cargos.id = posiciones.id_cargo
+                LEFT JOIN cuentas_contables ON cuentas_contables.id = posiciones.id_partida
                 LEFT JOIN funciones ON funciones.id = posiciones.id_funcion
                 ORDER BY posiciones.id DESC";
         
@@ -29,7 +29,7 @@ class Posicion extends Model
 
     public function getPositionWithRelations($id)
     {
-        $sql = "SELECT 
+        $sql = "SELECT
                     posiciones.id AS posid,
                     posiciones.codigo,
                     posiciones.sueldo,
@@ -37,11 +37,11 @@ class Posicion extends Model
                     posiciones.id_cargo,
                     posiciones.id_funcion,
                     COALESCE(cargos.nombre, cargos.descripcion, 'Sin cargo') AS descripcion_cargo,
-                    COALESCE(partidas.nombre, partidas.descripcion, 'Sin partida') AS descripcion_partida,
+                    COALESCE(cuentas_contables.nombre, cuentas_contables.descripcion, 'Sin cuenta contable') AS descripcion_partida,
                     COALESCE(funciones.nombre, funciones.descripcion, 'Sin función') AS descripcion_funcion
-                FROM posiciones 
-                LEFT JOIN cargos ON cargos.id = posiciones.id_cargo 
-                LEFT JOIN partidas ON partidas.id = posiciones.id_partida
+                FROM posiciones
+                LEFT JOIN cargos ON cargos.id = posiciones.id_cargo
+                LEFT JOIN cuentas_contables ON cuentas_contables.id = posiciones.id_partida
                 LEFT JOIN funciones ON funciones.id = posiciones.id_funcion
                 WHERE posiciones.id = ?";
         
@@ -95,16 +95,16 @@ class Posicion extends Model
 
     public function getPositionsWithEmployeeCount()
     {
-        $sql = "SELECT 
+        $sql = "SELECT
                     p.*,
                     COUNT(e.id) as employee_count,
                     COALESCE(c.nombre, c.descripcion, 'Sin cargo') as cargo_descripcion,
-                    COALESCE(pt.nombre, pt.descripcion, 'Sin partida') as partida_descripcion,
+                    COALESCE(pt.nombre, pt.descripcion, 'Sin cuenta contable') as partida_descripcion,
                     COALESCE(f.nombre, f.descripcion, 'Sin función') as funcion_descripcion
                 FROM posiciones p
                 LEFT JOIN employees e ON p.id = e.position_id
                 LEFT JOIN cargos c ON p.id_cargo = c.id
-                LEFT JOIN partidas pt ON p.id_partida = pt.id
+                LEFT JOIN cuentas_contables pt ON p.id_partida = pt.id
                 LEFT JOIN funciones f ON p.id_funcion = f.id
                 GROUP BY p.id
                 ORDER BY p.codigo";

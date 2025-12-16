@@ -23,7 +23,7 @@ $content = '
                 </div>
             </div>
             <div class="col-md-6 text-right">
-                <button type="button" class="btn btn-success" id="btnSyncCalendar" title="Sincronizar calendario desde API Base44">
+                <button type="button" class="btn btn-success" id="btnSyncCalendar" title="Sincronizar calendario desde API externa">
                     <i class="fas fa-sync-alt"></i> Sincronizar desde API
                 </button>
                 <a href="' . \App\Core\UrlHelper::route('panel/business-calendar/listado?year=' . $year) . '"
@@ -235,12 +235,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     calendar.render();
 
-    // Sincronización del calendario desde API Base44
+    // Sincronización del calendario desde API externa
     document.getElementById("btnSyncCalendar").addEventListener("click", function() {
         Swal.fire({
             title: "¿Sincronizar Calendario?",
             html: `
-                <p>¿Desea sincronizar el calendario empresarial desde la API de Base44?</p>
+                <p>¿Desea sincronizar el calendario empresarial desde la API externa?</p>
                 <div class="text-left mt-3">
                     <h6>Opciones:</h6>
                     <div class="form-check">
@@ -250,7 +250,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         </label>
                     </div>
                     <small class="text-muted">
-                        <i class="fas fa-info-circle"></i> Esta acción sincronizará feriados y días especiales desde Base44.
+                        <i class="fas fa-info-circle"></i> Esta acción sincronizará feriados y días especiales desde la API externa.
                         Si marca "Reemplazar", se eliminarán los registros actuales del año antes de importar los nuevos.
                     </small>
                 </div>

@@ -797,18 +797,18 @@ class ExcelReportController extends Controller
     /**
      * Obtener información de la empresa
      */
-    private function getCompanyInfo()
+    protected function getCompanyInfo()
     {
         try {
             $reportModel = $this->model('Report');
             $db = $reportModel->getDatabase();
             $connection = $db->getConnection();
-            
+
             $sql = "SELECT * FROM companies WHERE id = 1";
             $stmt = $connection->prepare($sql);
             $stmt->execute();
             $company = $stmt->fetch();
-            
+
             return [
                 'company_name' => $company['company_name'] ?? 'EMPRESA EJEMPLO S.A.',
                 'ruc' => $company['ruc'] ?? '1234567890-1-DV',
@@ -847,7 +847,7 @@ class ExcelReportController extends Controller
     /**
      * Construir contenido del Excel usando PhpSpreadsheet
      */
-    private function buildExcelContent($sheet, $payroll, $employees, $companyInfo)
+    protected function buildExcelContent($sheet, $payroll, $employees, $companyInfo)
     {
         $fechaInicio = date('d/m/Y', strtotime($payroll['fecha_inicio']));
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
@@ -856,7 +856,7 @@ class ExcelReportController extends Controller
 
         // Header de la empresa
         $sheet->setCellValue('A' . $row, $companyInfo['company_name']);
-        $sheet->mergeCells('A' . $row . ':O' . $row);
+        $sheet->mergeCells('A' . $row . ':T' . $row);
         $sheet->getStyle('A' . $row)->applyFromArray([
             'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => 'FFFFFF']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -872,7 +872,7 @@ class ExcelReportController extends Controller
 
         // Subtítulo
         $sheet->setCellValue('A' . $row, 'PLANILLA DE SUELDOS - ' . strtoupper($payroll['descripcion']));
-        $sheet->mergeCells('A' . $row . ':O' . $row);
+        $sheet->mergeCells('A' . $row . ':T' . $row);
         $sheet->getStyle('A' . $row)->applyFromArray([
             'font' => ['bold' => true, 'size' => 14],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -882,7 +882,7 @@ class ExcelReportController extends Controller
 
         // Período
         $sheet->setCellValue('A' . $row, 'Período: ' . $fechaInicio . ' al ' . $fechaFin);
-        $sheet->mergeCells('A' . $row . ':O' . $row);
+        $sheet->mergeCells('A' . $row . ':T' . $row);
         $sheet->getStyle('A' . $row)->applyFromArray([
             'font' => ['bold' => true, 'size' => 11],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -899,14 +899,19 @@ class ExcelReportController extends Controller
             'E' => 'Función',
             'F' => 'Fecha Ingreso',
             'G' => 'Sueldo Base',
-            'H' => 'Días Laborados',
-            'I' => 'Total Ingresos',
-            'J' => 'Seguro Social',
-            'K' => 'Seguro Educativo',
-            'L' => 'ISR',
-            'M' => 'Otras Deducciones',
-            'N' => 'Total Deducciones',
-            'O' => 'Salario Neto'
+            'H' => 'Forma de Pago',
+            'I' => 'Tipo de Cuenta',
+            'J' => 'Número de Cuenta',
+            'K' => 'Días Laborados',
+            'L' => 'Ausencias',
+            'M' => 'Tardanzas',
+            'N' => 'Total Ingresos',
+            'O' => 'Seguro Social',
+            'P' => 'Seguro Educativo',
+            'Q' => 'ISR',
+            'R' => 'Otras Deducciones',
+            'S' => 'Total Deducciones',
+            'T' => 'Salario Neto'
         ];
 
         foreach ($headers as $col => $header) {
@@ -934,42 +939,50 @@ class ExcelReportController extends Controller
             $sheet->setCellValue('E' . $row, $emp['funcion_name'] ?? 'N/A');
             $sheet->setCellValue('F' . $row, !empty($emp['fecha_ingreso']) ? date('d/m/Y', strtotime($emp['fecha_ingreso'])) : 'N/A');
             $sheet->setCellValue('G' . $row, $emp['salary'] ?? 0);
-            $sheet->setCellValue('H' . $row, $totales['dias_laborados']);
-            $sheet->setCellValue('I' . $row, $totales['ingresos']);
-            $sheet->setCellValue('J' . $row, $totales['seguro_social']);
-            $sheet->setCellValue('K' . $row, $totales['seguro_educativo']);
-            $sheet->setCellValue('L' . $row, $totales['impuesto_renta']);
-            $sheet->setCellValue('M' . $row, $totales['otras_deducciones']);
-            $sheet->setCellValue('N' . $row, $totales['deducciones']);
-            $sheet->setCellValue('O' . $row, $totales['neto']);
+            $sheet->setCellValue('H' . $row, $emp['forma_pago'] ?? 'EFECTIVO');
+            $sheet->setCellValue('I' . $row, $emp['tipo_cuenta'] ?? '');
+            $sheet->setCellValue('J' . $row, $emp['numero_cuenta'] ?? '');
+            $sheet->setCellValue('K' . $row, $totales['dias_laborados']);
+            $sheet->setCellValue('L' . $row, $totales['ausencias']);
+            $sheet->setCellValue('M' . $row, $totales['tardanzas']);
+            $sheet->setCellValue('N' . $row, $totales['ingresos']);
+            $sheet->setCellValue('O' . $row, $totales['seguro_social']);
+            $sheet->setCellValue('P' . $row, $totales['seguro_educativo']);
+            $sheet->setCellValue('Q' . $row, $totales['impuesto_renta']);
+            $sheet->setCellValue('R' . $row, $totales['otras_deducciones']);
+            $sheet->setCellValue('S' . $row, $totales['deducciones']);
+            $sheet->setCellValue('T' . $row, $totales['neto']);
 
             // Aplicar formatos
-            $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
+            $sheet->getStyle('A' . $row . ':T' . $row)->applyFromArray([
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
             ]);
 
             // Formato numérico para columnas de montos (sin símbolo de moneda)
             $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Sueldo Base
-            $sheet->getStyle('I' . $row . ':N' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Ingresos hasta Deducciones
-            $sheet->getStyle('O' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Salario Neto
+            $sheet->getStyle('L' . $row . ':M' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Ausencias y Tardanzas
+            $sheet->getStyle('N' . $row . ':S' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Ingresos hasta Deducciones
+            $sheet->getStyle('T' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Salario Neto
 
             $row++;
         }
 
         // Fila de totales
         $sheet->setCellValue('A' . $row, 'TOTALES GENERALES');
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $sheet->setCellValue('H' . $row, $totalesGenerales['dias_laborados']);
-        $sheet->setCellValue('I' . $row, $totalesGenerales['ingresos']);
-        $sheet->setCellValue('J' . $row, $totalesGenerales['seguro_social']);
-        $sheet->setCellValue('K' . $row, $totalesGenerales['seguro_educativo']);
-        $sheet->setCellValue('L' . $row, $totalesGenerales['impuesto_renta']);
-        $sheet->setCellValue('M' . $row, $totalesGenerales['otras_deducciones']);
-        $sheet->setCellValue('N' . $row, $totalesGenerales['deducciones']);
-        $sheet->setCellValue('O' . $row, $totalesGenerales['neto']);
+        $sheet->mergeCells('A' . $row . ':J' . $row);
+        $sheet->setCellValue('K' . $row, $totalesGenerales['dias_laborados']);
+        $sheet->setCellValue('L' . $row, $totalesGenerales['ausencias']);
+        $sheet->setCellValue('M' . $row, $totalesGenerales['tardanzas']);
+        $sheet->setCellValue('N' . $row, $totalesGenerales['ingresos']);
+        $sheet->setCellValue('O' . $row, $totalesGenerales['seguro_social']);
+        $sheet->setCellValue('P' . $row, $totalesGenerales['seguro_educativo']);
+        $sheet->setCellValue('Q' . $row, $totalesGenerales['impuesto_renta']);
+        $sheet->setCellValue('R' . $row, $totalesGenerales['otras_deducciones']);
+        $sheet->setCellValue('S' . $row, $totalesGenerales['deducciones']);
+        $sheet->setCellValue('T' . $row, $totalesGenerales['neto']);
 
         // Estilo para totales
-        $sheet->getStyle('A' . $row . ':O' . $row)->applyFromArray([
+        $sheet->getStyle('A' . $row . ':T' . $row)->applyFromArray([
             'font' => ['bold' => true, 'size' => 12],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'C5E0B4']],
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THICK]]
@@ -979,9 +992,11 @@ class ExcelReportController extends Controller
         $currencySymbol = $companyInfo['currency_symbol'];
         $currencyFormat = '"' . $currencySymbol . '"#,##0.00';
 
-        $sheet->getStyle('I' . $row . ':N' . $row)->getNumberFormat()
+        $sheet->getStyle('L' . $row . ':M' . $row)->getNumberFormat()
+              ->setFormatCode($currencyFormat); // Ausencias y Tardanzas
+        $sheet->getStyle('N' . $row . ':S' . $row)->getNumberFormat()
               ->setFormatCode($currencyFormat); // Ingresos hasta Deducciones
-        $sheet->getStyle('O' . $row)->getNumberFormat()
+        $sheet->getStyle('T' . $row)->getNumberFormat()
               ->setFormatCode($currencyFormat); // Salario Neto
 
         // Ajustar anchos de columnas
@@ -994,7 +1009,7 @@ class ExcelReportController extends Controller
     /**
      * Inicializar totales para planilla
      */
-    private function initializePayrollTotals()
+    protected function initializePayrollTotals()
     {
         return [
             'ingresos' => 0,
@@ -1004,18 +1019,24 @@ class ExcelReportController extends Controller
             'impuesto_renta' => 0,
             'otras_deducciones' => 0,
             'neto' => 0,
-            'dias_laborados' => 0
+            'dias_laborados' => 0,
+            'ausencias' => 0,
+            'tardanzas' => 0
         ];
     }
 
     /**
      * Calcular totales de un empleado
      */
-    private function calculatePayrollTotals($emp)
+    protected function calculatePayrollTotals($emp)
     {
         // Los totales ya vienen calculados en la estructura del empleado
         $totals = $emp['totals'] ?? [];
         $diasLaborados = $emp['reference_value'] ?? 15; // Campo referencia como días laborados
+
+        // Extraer ausencias y tardanzas de los conceptos
+        $ausencias = $this->getConceptAmountByType($emp, 'AUSENCIA', 'D');
+        $tardanzas = $this->getConceptAmountByType($emp, 'TARDAN', 'D');
 
         return [
             'ingresos' => $totals['ingresos'] ?? 0,
@@ -1026,13 +1047,15 @@ class ExcelReportController extends Controller
             'otras_deducciones' => $totals['otras_deducciones'] ?? 0,
             'neto' => $totals['neto'] ?? 0,
             'dias_laborados' => $diasLaborados,
+            'ausencias' => $ausencias,
+            'tardanzas' => $tardanzas
         ];
     }
 
     /**
      * Acumular totales
      */
-    private function accumulatePayrollTotals(&$totalesGenerales, $totales)
+    protected function accumulatePayrollTotals(&$totalesGenerales, $totales)
     {
         foreach ($totales as $key => $value) {
             $totalesGenerales[$key] += $value;
@@ -1042,17 +1065,42 @@ class ExcelReportController extends Controller
     /**
      * Ajustar automáticamente el ancho de las columnas
      */
-    private function autoSizeColumns($sheet)
+    protected function autoSizeColumns($sheet)
     {
-        foreach (range('A', 'O') as $column) {
+        foreach (range('A', 'T') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
     }
 
     /**
+     * Obtener monto de un concepto por tipo (Ausencias, Tardanzas, etc.)
+     */
+    protected function getConceptAmountByType($employee, $searchTerm, $tipo = 'A')
+    {
+        if (!isset($employee['concepts']) || !is_array($employee['concepts'])) {
+            return 0;
+        }
+
+        $total = 0;
+        foreach ($employee['concepts'] as $concept) {
+            $codigo = strtoupper($concept['codigo'] ?? '');
+            $descripcion = strtoupper($concept['descripcion'] ?? '');
+            $tipoConcepto = strtoupper($concept['tipo'] ?? '');
+
+            if ($tipoConcepto === $tipo &&
+                (strpos($codigo, strtoupper($searchTerm)) !== false ||
+                 strpos($descripcion, strtoupper($searchTerm)) !== false)) {
+                $total += $concept['monto'] ?? 0;
+            }
+        }
+
+        return $total;
+    }
+
+    /**
      * Insertar logos en el Excel alineados con el título
      */
-    private function insertLogosInExcel($sheet, $row, $companyInfo)
+    protected function insertLogosInExcel($sheet, $row, $companyInfo)
     {
         $logoPath = __DIR__ . '/../../images/logos/';
 

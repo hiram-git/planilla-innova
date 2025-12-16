@@ -48,7 +48,7 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
 
             $sql = "SELECT e.id, e.fecha_ingreso, e.employee_id, e.firstname, e.lastname, e.created_on,
                            e.sueldo_individual, e.gastos_representacion, e.clave_seguro_social,
-                           e.marca_asistencia,
+                           e.marca_asistencia, e.tarifa_hora,
                            p.sueldo as sueldo_posicion,
                            s.time_in, s.time_out
                     FROM employees e
@@ -79,6 +79,10 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
                     if ($salario_planilla) {
                         $salario = $salario_planilla['sueldo_base'];
                         $gastos_representacion = $salario_planilla['gastos_representacion'];
+                        // Si existe tarifa_hora en la tabla employee_payroll_salaries, usarla
+                        if (isset($salario_planilla['tarifa_hora']) && $salario_planilla['tarifa_hora'] > 0) {
+                            $tarifa_hora = $salario_planilla['tarifa_hora'];
+                        }
                     } else {
                         // Fallback: usar campos antiguos si no hay registro en la nueva tabla
                         $salario = (float)($employee['sueldo_individual'] ?: 0);
@@ -95,6 +99,9 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
                     $salario = (float)($employee['sueldo_posicion'] ?: 0);
                 }
             }
+
+            // Inicializar tarifa_hora (se puede sobrescribir luego si viene de employee_payroll_salaries)
+            $tarifa_hora = 0;
 
             $ficha = $employee['employee_id'] ?: '0';
 
@@ -115,9 +122,14 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
             // Obtener marca_asistencia (si empleado paga por horas trabajadas)
             $marca_asistencia = (int)($employee['marca_asistencia'] ?? 0);
 
-            // Calcular tarifa por hora (220 horas mensuales estándar)
-            // Esta es la base para empleados que cobran por hora
-            $tarifa_hora = $salario > 0 ? ($salario / 220) : 0;
+            // Obtener tarifa por hora desde BD (campo tarifa_hora en tabla employees)
+            // Si no existe, calcular como fallback: salario / 220 horas mensuales estándar
+            $tarifa_hora = (float)($employee['tarifa_hora'] ?? 0);
+            if ($tarifa_hora <= 0 && $salario > 0) {
+                // Fallback: calcular automáticamente si no está definido
+                $tarifa_hora = ($salario / 220);
+                error_log("ADVERTENCIA: tarifa_hora no definida para empleado ID $employee_id. Calculada automáticamente: $tarifa_hora");
+            }
 
             // Establecer variables en el executor (heredado de la clase padre)
             $this->executor->setVar('SUELDO', $salario);
@@ -1190,12 +1202,12 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
      *
      * @param int $employee_id ID del empleado
      * @param int $tipo_planilla_id ID del tipo de planilla
-     * @return array|null Array con sueldo_base y gastos_representacion o null si no existe
+     * @return array|null Array con sueldo_base, gastos_representacion y tarifa_hora o null si no existe
      */
     private function getSalarioByTipoPlanilla(int $employee_id, int $tipo_planilla_id): ?array
     {
         try {
-            $sql = "SELECT sueldo_base, gastos_representacion
+            $sql = "SELECT sueldo_base, gastos_representacion, tarifa_hora
                     FROM employee_payroll_salaries
                     WHERE employee_id = ?
                     AND tipo_planilla_id = ?
@@ -1209,9 +1221,16 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
             $salary = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($salary) {
+                $sueldo_base = (float)$salary['sueldo_base'];
+                $tarifa_hora_db = (float)($salary['tarifa_hora'] ?? 0);
+
+                // Si tarifa_hora no está definida, calcular automáticamente
+                $tarifa_hora = $tarifa_hora_db > 0 ? $tarifa_hora_db : ($sueldo_base / 220);
+
                 return [
-                    'sueldo_base' => (float)$salary['sueldo_base'],
-                    'gastos_representacion' => (float)($salary['gastos_representacion'] ?? 0)
+                    'sueldo_base' => $sueldo_base,
+                    'gastos_representacion' => (float)($salary['gastos_representacion'] ?? 0),
+                    'tarifa_hora' => $tarifa_hora
                 ];
             }
 

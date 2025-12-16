@@ -132,6 +132,8 @@ class SidebarComponent
             $this->canAccessRoute('positions') ||
             $this->canAccessRoute('cargos') ||
             $this->canAccessRoute('partidas') ||
+            $this->canAccessRoute('cuentas-contables') ||
+            $this->canAccessRoute('partidas-presupuestarias') ||
             $this->canAccessRoute('funciones') ||
             $this->canAccessRoute('schedules');
 
@@ -228,10 +230,10 @@ class SidebarComponent
                         </li>' : '') . '
 
                         ' . // Estructura Organizacional - mostrar si tiene acceso a algún submódulo
-                        (($this->canAccessRoute('positions') || $this->canAccessRoute('cargos') || $this->canAccessRoute('partidas') || $this->canAccessRoute('funciones')) ? '
+                        (($this->canAccessRoute('positions') || $this->canAccessRoute('cargos') || $this->canAccessRoute('partidas') || $this->canAccessRoute('cuentas-contables') || $this->canAccessRoute('partidas-presupuestarias') || $this->canAccessRoute('funciones')) ? '
                         <!-- Estructura Organizacional -->
-                        <li class="nav-item ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'active' : '') . '">
+                        <li class="nav-item ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/cuentas-contables') || $this->isActive('panel/partidas-presupuestarias') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/positions') || $this->isActive('panel/cargos') || $this->isActive('panel/partidas') || $this->isActive('panel/cuentas-contables') || $this->isActive('panel/partidas-presupuestarias') || $this->isActive('panel/funciones') || $this->isActive('panel/organizational') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-sitemap"></i>
                                 <p>
                                     Estructura Organizacional
@@ -257,7 +259,21 @@ class SidebarComponent
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::partida() . '" class="nav-link ' . ($this->isActive('panel/partidas') ? 'active' : '') . '">
                                         <i class="fas fa-coins nav-icon"></i>
-                                        <p>Partidas</p>
+                                        <p>Partidas (Legacy)</p>
+                                    </a>
+                                </li>' : '') .
+                            ($this->canAccessRoute('cuentas-contables') ? '
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/cuentas-contables') . '" class="nav-link ' . ($this->isActive('panel/cuentas-contables') ? 'active' : '') . '">
+                                        <i class="fas fa-file-invoice-dollar nav-icon"></i>
+                                        <p>Cuentas Contables</p>
+                                    </a>
+                                </li>' : '') .
+                            ($this->canAccessRoute('partidas-presupuestarias') ? '
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/partidas-presupuestarias') . '" class="nav-link ' . ($this->isActive('panel/partidas-presupuestarias') ? 'active' : '') . '">
+                                        <i class="fas fa-wallet nav-icon"></i>
+                                        <p>Partidas Presupuestarias</p>
                                     </a>
                                 </li>' : '') .
                             ($this->canAccessRoute('funciones') ? '

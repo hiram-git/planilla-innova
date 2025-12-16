@@ -5,12 +5,13 @@ namespace App\Models;
 use App\Core\ReferenceModel;
 
 /**
- * Modelo para gestión de partidas presupuestarias
+ * Modelo para gestión de cuentas contables (antes partidas)
  * Hereda funcionalidad CRUD básica de ReferenceModel
+ * NOTA: Este modelo se mantiene por retrocompatibilidad pero apunta a cuentas_contables
  */
 class Partida extends ReferenceModel
 {
-    public $table = 'partidas';
+    public $table = 'cuentas_contables';
 
     /**
      * Verificar si la partida está en uso por posiciones
@@ -36,16 +37,16 @@ class Partida extends ReferenceModel
     }
 
     /**
-     * Obtener partidas con contador de posiciones
+     * Obtener cuentas contables con contador de posiciones
      */
     public function getPartidasWithPositionCount()
     {
         $sql = "SELECT p.*, COUNT(pos.id) as position_count
-                FROM partidas p
+                FROM cuentas_contables p
                 LEFT JOIN posiciones pos ON p.id = pos.id_partida
                 GROUP BY p.id
                 ORDER BY p.codigo ASC";
-        
+
         return $this->db->findAll($sql);
     }
 
@@ -59,18 +60,19 @@ class Partida extends ReferenceModel
 
     /**
      * Generar el siguiente código correlativo
+     * NOTA: Usa formato 6.10.10.XXX para cuentas contables
      */
     public function getNextCode()
     {
-        $sql = "SELECT codigo FROM partidas WHERE codigo LIKE '1.01.01.%' ORDER BY codigo DESC LIMIT 1";
+        $sql = "SELECT codigo FROM cuentas_contables WHERE codigo LIKE '6.10.10.%' ORDER BY codigo DESC LIMIT 1";
         $result = $this->db->find($sql);
-        
-        if ($result && preg_match('/1\.01\.01\.(\d+)/', $result['codigo'], $matches)) {
+
+        if ($result && preg_match('/6\.10\.10\.(\d+)/', $result['codigo'], $matches)) {
             $lastNumber = intval($matches[1]);
             $nextNumber = $lastNumber + 1;
-            return '1.01.01.' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+            return '6.10.10.' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
-        
-        return '1.01.01.001'; // Primer código si no existe ninguno
+
+        return '6.10.10.001'; // Primer código si no existe ninguno
     }
 }
