@@ -260,6 +260,9 @@ class Admin extends Controller
         $absenceMonthStats = $this->getCurrentMonthAbsenceStats($tipoSeleccionado);
         $topTardinessEmployees = $this->getTopTardinessEmployees($tipoSeleccionado, 5);
 
+        // Contratos próximos a vencer (60 días = 2 meses)
+        $expiringContracts = $employee->getExpiringContracts($tipoSeleccionado, 60);
+
         $data = [
             'title' => 'Dashboard Administrativo',
             'page_title' => 'Panel de Control',
@@ -284,7 +287,9 @@ class Admin extends Controller
             'alert_stats' => $alertStats,
             'attendance_month_stats' => $attendanceMonthStats,
             'absence_month_stats' => $absenceMonthStats,
-            'top_tardiness_employees' => $topTardinessEmployees
+            'top_tardiness_employees' => $topTardinessEmployees,
+            // Contratos próximos a vencer
+            'expiring_contracts' => $expiringContracts
         ];
 
         $this->view('admin/dashboard', $data);
