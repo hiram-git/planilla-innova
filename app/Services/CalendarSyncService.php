@@ -7,7 +7,7 @@ use App\Models\BusinessCalendar;
 use Exception;
 
 /**
- * Servicio para sincronización manual del calendario empresarial desde API Base44
+ * Servicio para sincronización manual del calendario empresarial desde API externa
  * Sincroniza días especiales, feriados y configuraciones del calendario
  */
 class CalendarSyncService
@@ -30,8 +30,8 @@ class CalendarSyncService
 
     /**
      * Constructor
-     * @param string|null $apiKey API key de Base44 (opcional, usa env var si no se provee)
-     * @param string|null $appId App ID de Base44 (opcional, usa env var si no se provee)
+     * @param string|null $apiKey API key de la API externa (opcional, usa env var si no se provee)
+     * @param string|null $appId App ID de la API externa (opcional, usa env var si no se provee)
      */
     public function __construct($apiKey = null, $appId = null)
     {
@@ -45,7 +45,7 @@ class CalendarSyncService
     }
 
     /**
-     * Sincronizar calendario desde API Base44
+     * Sincronizar calendario desde API externa
      * @param array $options Opciones de sincronización
      *        - year: Año específico a sincronizar (opcional, por defecto año actual)
      *        - replace: Si true, reemplaza todos los registros existentes (opcional, default false)
@@ -107,7 +107,7 @@ class CalendarSyncService
     }
 
     /**
-     * Obtener datos del calendario desde API Base44
+     * Obtener datos del calendario desde API externa
      * @return array Array de entidades del calendario
      * @throws Exception Si falla la petición
      */
@@ -147,7 +147,7 @@ class CalendarSyncService
                 throw new Exception("Error decodificando JSON: " . json_last_error_msg());
             }
 
-            // La API de Base44 típicamente retorna: {data: [...], meta: {...}}
+            // La API externa típicamente retorna: {data: [...], meta: {...}}
             return $data['data'] ?? $data;
 
         } catch (Exception $e) {
@@ -264,7 +264,7 @@ class CalendarSyncService
             'is_weekend' => $isWeekend,
             'is_paid_holiday' => $isPaidHoliday,
             'description' => $entity['description'] ?? $entity['descripcion'] ?? null,
-            'notes' => $entity['notes'] ?? $entity['notas'] ?? 'Sincronizado desde API Base44',
+            'notes' => $entity['notes'] ?? $entity['notas'] ?? 'Sincronizado desde API externa',
             'year' => (int)$dateObj->format('Y'),
             'month' => (int)$dateObj->format('m'),
             'day' => (int)$dateObj->format('d')
