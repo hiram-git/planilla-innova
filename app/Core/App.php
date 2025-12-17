@@ -78,6 +78,8 @@ class App
                     'vacation' => ['controller' => 'VacationController', 'method' => null],
                     'business-calendar' => ['controller' => 'BusinessCalendarController', 'method' => null],
                     'organizational' => ['controller' => 'OrganizationalController', 'method' => null],
+                    'cuentas-contables' => ['controller' => 'CuentaContable', 'method' => null],
+                    'partidas-presupuestarias' => ['controller' => 'PartidaPresupuestaria', 'method' => null],
                     'users' => ['controller' => 'UserController', 'method' => null],
                     'roles' => ['controller' => 'RoleController', 'method' => null],
                     // Mantener compatibilidad con rutas singulares
