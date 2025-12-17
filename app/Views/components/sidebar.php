@@ -256,12 +256,12 @@ class SidebarComponent
                                     </a>
                                 </li>' : '') .
                             ($this->canAccessRoute('partidas') ? '
-                                <li class="nav-item">
+                                <!-- <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::partida() . '" class="nav-link ' . ($this->isActive('panel/partidas') ? 'active' : '') . '">
                                         <i class="fas fa-coins nav-icon"></i>
                                         <p>Partidas (Legacy)</p>
                                     </a>
-                                </li>' : '') .
+                                </li> -->' : '') .
                             ($this->canAccessRoute('cuentas-contables') ? '
                                 <li class="nav-item">
                                     <a href="' . \App\Core\UrlHelper::route('panel/cuentas-contables') . '" class="nav-link ' . ($this->isActive('panel/cuentas-contables') ? 'active' : '') . '">

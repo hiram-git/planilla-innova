@@ -21,7 +21,14 @@ function renderOrganizationalTree($elements, $level = 0) {
         
         // Información del elemento
         $html .= '<span class="node-title">' . htmlspecialchars($element['descripcion']) . '</span>';
-        
+
+        // Badge con número de cargos si existe
+        if (isset($element['cargos_count']) && $element['cargos_count'] > 0) {
+            $html .= '<span class="badge badge-primary ml-2" title="Cargos asociados">';
+            $html .= '<i class="fas fa-user-tie mr-1"></i>' . $element['cargos_count'];
+            $html .= '</span>';
+        }
+
         // Botones de acción
         $html .= '<div class="node-actions">';
         

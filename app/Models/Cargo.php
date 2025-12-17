@@ -64,13 +64,61 @@ class Cargo extends ReferenceModel
     {
         $sql = "SELECT codigo FROM cargos WHERE codigo LIKE 'CAR-%' ORDER BY codigo DESC LIMIT 1";
         $result = $this->db->find($sql);
-        
+
         if ($result && preg_match('/CAR-(\d+)/', $result['codigo'], $matches)) {
             $lastNumber = intval($matches[1]);
             $nextNumber = $lastNumber + 1;
             return 'CAR-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
-        
+
         return 'CAR-001'; // Primer código si no existe ninguno
+    }
+
+    /**
+     * Obtener departamento asociado al cargo
+     */
+    public function getDepartamento($cargoId)
+    {
+        $sql = "SELECT o.*
+                FROM cargos c
+                LEFT JOIN organigrama o ON c.departamento_id = o.id
+                WHERE c.id = ?";
+        return $this->db->find($sql, [$cargoId]);
+    }
+
+    /**
+     * Obtener cargos con información de departamento
+     */
+    public function getCargosWithDepartamento()
+    {
+        $sql = "SELECT c.*, o.descripcion as departamento_nombre
+                FROM cargos c
+                LEFT JOIN organigrama o ON c.departamento_id = o.id
+                WHERE c.activo = 1
+                ORDER BY o.descripcion ASC, c.nombre ASC";
+
+        return $this->db->findAll($sql);
+    }
+
+    /**
+     * Obtener cargos filtrados por departamento
+     */
+    public function getCargosByDepartamento($departamentoId)
+    {
+        $sql = "SELECT * FROM cargos
+                WHERE departamento_id = ? AND activo = 1
+                ORDER BY nombre ASC";
+
+        return $this->db->findAll($sql, [$departamentoId]);
+    }
+
+    /**
+     * Verificar si el cargo tiene empleados asociados
+     */
+    public function hasEmployees($cargoId)
+    {
+        $sql = "SELECT COUNT(*) as count FROM employees WHERE cargo_id = ?";
+        $result = $this->db->find($sql, [$cargoId]);
+        return $result['count'] > 0;
     }
 }

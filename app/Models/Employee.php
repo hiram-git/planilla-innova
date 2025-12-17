@@ -10,9 +10,9 @@ class Employee extends Model
     public $fillable = [
         'employee_id', 'firstname', 'lastname', 'address', 'birthdate',
         'fecha_ingreso', 'contact_info', 'email', 'marca_asistencia', 'permite_horas_extras', 'gender', 'position_id', 'schedule_id',
-        'photo', 'organigrama_id', 'document_id', 'clave_seguro_social',
+        'photo', 'departamento_id', 'document_id', 'clave_seguro_social',
         'situacion_id', 'tipo_planilla_id', 'cargo_id', 'funcion_id', 'partida_id',
-        'sueldo_individual', 'gastos_representacion', 'created_on',
+        'sueldo_individual', 'tarifa_hora', 'gastos_representacion', 'created_on',
         'tipo_contrato', 'fecha_inicio_contrato', 'fecha_vencimiento_contrato', 'numero_contrato',
         'forma_pago', 'banco', 'numero_cuenta', 'tipo_cuenta', 'fecha_terminacion', 'motivo_terminacion'
     ];
@@ -225,7 +225,7 @@ class Employee extends Model
                        COALESCE(cargo.nombre, pos_cargo.nombre) as cargo_name,
                        COALESCE(partida.codigo, pos_partida.codigo) as partida_name,
                        COALESCE(funcion.nombre, pos_funcion.descripcion) as funcion_name,
-                       org.descripcion as organigrama_descripcion,
+                       org.descripcion as departamento_descripcion,
                        sit.descripcion as situacion_nombre,
                        comp.currency_symbol as moneda_simbolo,
                        et.termination_date,
@@ -241,7 +241,7 @@ class Employee extends Model
                 LEFT JOIN cuentas_contables pos_partida ON pos.id_partida = pos_partida.id
                 LEFT JOIN funciones funcion ON e.funcion_id = funcion.id
                 LEFT JOIN funciones pos_funcion ON pos.id_funcion = pos_funcion.id
-                LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                LEFT JOIN organigrama org ON e.departamento_id = org.id
                 LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                 LEFT JOIN companies comp ON 1=1
                 LEFT JOIN employee_terminations et ON et.employee_id = e.id
@@ -381,5 +381,67 @@ class Employee extends Model
             error_log("Error getting expiring contracts: " . $e->getMessage());
             return [];
         }
+    }
+
+    /**
+     * Obtener departamento del empleado
+     */
+    public function getDepartamento($employeeId)
+    {
+        $sql = "SELECT o.*
+                FROM employees e
+                LEFT JOIN organigrama o ON e.departamento_id = o.id
+                WHERE e.id = ?";
+        return $this->db->find($sql, [$employeeId]);
+    }
+
+    /**
+     * Obtener cargo del empleado
+     */
+    public function getCargo($employeeId)
+    {
+        $sql = "SELECT c.*
+                FROM employees e
+                LEFT JOIN cargos c ON e.cargo_id = c.id
+                WHERE e.id = ?";
+        return $this->db->find($sql, [$employeeId]);
+    }
+
+    /**
+     * Obtener función del empleado
+     */
+    public function getFuncion($employeeId)
+    {
+        $sql = "SELECT f.*
+                FROM employees e
+                LEFT JOIN funciones f ON e.funcion_id = f.id
+                WHERE e.id = ?";
+        return $this->db->find($sql, [$employeeId]);
+    }
+
+    /**
+     * Obtener empleados por departamento
+     */
+    public function getEmployeesByDepartamento($departamentoId)
+    {
+        $sql = "SELECT e.*, CONCAT(e.firstname, ' ', e.lastname) as full_name
+                FROM employees e
+                WHERE e.departamento_id = ?
+                ORDER BY e.lastname, e.firstname";
+
+        return $this->db->findAll($sql, [$departamentoId]);
+    }
+
+    /**
+     * Obtener empleados por cargo
+     */
+    public function getEmployeesByCargo($cargoId)
+    {
+        $sql = "SELECT e.*, CONCAT(e.firstname, ' ', e.lastname) as full_name
+                FROM employees e
+                WHERE e.cargo_id = ?
+                ORDER BY e.lastname, e.firstname";
+
+        return $this->db->findAll($sql, [$cargoId]);
     }
 }

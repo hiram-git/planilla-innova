@@ -352,6 +352,7 @@ class Employee extends Controller
                     ? implode(',', $data['edit_tipo_planilla'])
                     : ($data['edit_tipo_planilla'] ?? null),
                 'sueldo_individual' => !empty($data['edit_sueldo_individual']) ? (float)$data['edit_sueldo_individual'] : null,
+                'tarifa_hora' => !empty($data['edit_tarifa_hora']) ? (float)$data['edit_tarifa_hora'] : 0.00,
                 'gastos_representacion' => !empty($data['edit_gastos_representacion']) ? (float)$data['edit_gastos_representacion'] : 0.00,
                 'cargo_id' => !empty($data['edit_cargo_id']) ? $data['edit_cargo_id'] : null,
                 'funcion_id' => !empty($data['edit_funcion_id']) ? $data['edit_funcion_id'] : null,

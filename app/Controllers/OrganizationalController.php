@@ -330,6 +330,175 @@ class OrganizationalController extends Controller
     }
 
     /**
+     * AJAX: Obtener cargos filtrados por departamento
+     * GET /panel/organizational/cargos-by-departamento/{departamentoId}
+     */
+    public function getCargosByDepartamento($departamentoId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            if ($departamentoId === null) {
+                echo json_encode(['success' => false, 'error' => 'ID de departamento requerido']);
+                exit;
+            }
+
+            $cargoModel = $this->model('Cargo');
+            $cargos = $cargoModel->getCargosByDepartamento($departamentoId);
+
+            echo json_encode([
+                'success' => true,
+                'cargos' => $cargos
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener funciones filtradas por cargo (incluye genéricas)
+     * GET /panel/organizational/funciones-by-cargo/{cargoId}
+     */
+    public function getFuncionesByCargo($cargoId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            $funcionModel = $this->model('Funcion');
+
+            // Si cargoId es null o 'all', retornar solo genéricas
+            if ($cargoId === null || $cargoId === 'all') {
+                $funciones = $funcionModel->getFuncionesGenericas();
+            } else {
+                // Retornar funciones específicas del cargo + genéricas
+                $funciones = $funcionModel->getFuncionesByCargo($cargoId);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'funciones' => $funciones
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener árbol de departamentos para selects jerárquicos
+     * GET /panel/organizational/departamentos-tree
+     */
+    public function getDepartamentosTree()
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            $excludeId = $_GET['exclude_id'] ?? null;
+
+            $organigramaModel = $this->model('Organigrama');
+            $tree = $organigramaModel->getTreeOptions($excludeId);
+
+            echo json_encode([
+                'success' => true,
+                'departamentos' => $tree
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener todos los departamentos (para select simple)
+     * GET /panel/organizational/departamentos
+     */
+    public function getDepartamentos()
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            $organigramaModel = $this->model('Organigrama');
+            $departamentos = $organigramaModel->all();
+
+            echo json_encode([
+                'success' => true,
+                'departamentos' => $departamentos
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener información completa de un departamento con sus cargos
+     * GET /panel/organizational/departamento-info/{id}
+     */
+    public function getDepartamentoInfo($departamentoId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            if ($departamentoId === null) {
+                echo json_encode(['success' => false, 'error' => 'ID de departamento requerido']);
+                exit;
+            }
+
+            $organigramaModel = $this->model('Organigrama');
+            $departamento = $organigramaModel->getDepartamentoWithCargos($departamentoId);
+
+            if (!$departamento) {
+                echo json_encode(['success' => false, 'error' => 'Departamento no encontrado']);
+                exit;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'departamento' => $departamento
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
      * Verificar autenticación
      */
     protected function requireAuth()
