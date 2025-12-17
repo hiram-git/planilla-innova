@@ -292,7 +292,7 @@ $content .= '
         </div>';
 
 // Widget: Contratos Próximos a Vencer
-if (!empty($expiring_contracts)) {
+//if (!empty($expiring_contracts)) {
     $content .= '
         <div class="card card-warning">
             <div class="card-header">
@@ -309,6 +309,7 @@ if (!empty($expiring_contracts)) {
                 <ul class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">';
 
     $displayedCount = 0;
+    if (!empty($expiring_contracts)) {
     foreach ($expiring_contracts as $contract) {
         if ($displayedCount >= 5) break;
 
@@ -344,16 +345,26 @@ if (!empty($expiring_contracts)) {
                         </div>
                     </li>';
         $displayedCount++;
-    }
+        }
+
+        $content .= '
+                    </ul>
+                </div>
+                <div class="card-footer text-center">
+                    <small class="text-muted">Mostrando contratos que vencen en los próximos 60 días</small>
+                </div>
+            </div>';
+    } else {
 
     $content .= '
                 </ul>
             </div>
             <div class="card-footer text-center">
-                <small class="text-muted">Mostrando contratos que vencen en los próximos 60 días</small>
+                <small class="text-muted">No hay Contratos para mostrar</small>
             </div>
         </div>';
-}
+    }
+//}
 
 // Widget de Alertas (Solo si hay alertas activas)
 if ($alert_stats['total'] > 0) {

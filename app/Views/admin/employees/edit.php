@@ -436,7 +436,7 @@ $content .= '                </select>
                             <div class="callout callout-info">
                                 <i class="fas fa-info-circle"></i>
                                 <strong>Tarifa por Hora:</strong><br>
-                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 220 horas</strong> (8h/día × 22 días laborables promedio).<br>
+                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 208 horas</strong> (8h/día × 26 días laborables promedio).<br>
                                 Puede modificarlo manualmente según las necesidades del empleado.
                             </div>
                         </div>
@@ -786,7 +786,7 @@ if (typeof $ !== "undefined") {
         function calcularTarifaHora() {
             var sueldo = parseFloat($("#edit_sueldo_individual").val()) || 0;
             if (sueldo > 0) {
-                var tarifaHora = (sueldo / 220).toFixed(2);
+                var tarifaHora = (sueldo / 192).toFixed(2);
                 $("#edit_tarifa_hora").val(tarifaHora);
                 return tarifaHora;
             }
@@ -807,7 +807,7 @@ if (typeof $ !== "undefined") {
         $("#edit_sueldo_individual").on("blur change", function() {
             var sueldo = parseFloat($(this).val()) || 0;
             if (sueldo > 0) {
-                calcularTarifaHora();
+                //calcularTarifaHora();
             }
         });
 
