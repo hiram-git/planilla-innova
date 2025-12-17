@@ -92,7 +92,7 @@ class Employee extends Model
         } else {
             // Empresa privada: cargo, función, partida y sueldo obligatorios
             $rules['cargo_id'] = 'required';
-            $rules['funcion_id'] = 'required';
+            //$rules['funcion_id'] = 'required';
             $rules['partida_id'] = 'required';
             $rules['sueldo_individual'] = 'required|numeric|min:0';
         }
@@ -141,7 +141,7 @@ class Employee extends Model
         } else {
             // Empresa privada: cargo, función, partida y sueldo obligatorios
             $rules['edit_cargo_id'] = 'required';
-            $rules['edit_funcion_id'] = 'required';
+            //$rules['edit_funcion_id'] = 'required';
             $rules['edit_partida_id'] = 'required';
             $rules['edit_sueldo_individual'] = 'required|numeric|min:0';
         }

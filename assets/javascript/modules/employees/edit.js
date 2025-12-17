@@ -35,8 +35,8 @@ $(document).ready(function() {
             $('#edit-public-institution-fields').hide();
 
             // Hacer obligatorios los campos de empresa privada
-            $('#edit_cargo_id, #edit_funcion_id, #edit_partida_id, #edit_sueldo_individual').prop('required', true);
-            $('#edit_position').prop('required', false);
+            $('#edit_cargo_id, #edit_partida_id, #edit_sueldo_individual').prop('required', true);
+            $('#edit_position, #edit_funcion_id').prop('required', false);
 
         } else {
             // Institución pública: mostrar solo posición
