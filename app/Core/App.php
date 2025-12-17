@@ -840,6 +840,9 @@ class App
                                     } elseif ($url[2] === 'asientos-contables' && isset($url[3]) && method_exists($this->controller, 'asientosContables')) {
                                         $this->method = 'asientosContables';
                                         $this->params = [$url[3]]; // payrollId
+                                    } elseif ($url[2] === 'asientos-contables-pdf' && isset($url[3]) && method_exists($this->controller, 'asientosContablesPdf')) {
+                                        $this->method = 'asientosContablesPdf';
+                                        $this->params = [$url[3]]; // payrollId
                                     } elseif ($url[2] === 'informe03' && method_exists($this->controller, 'informe03')) {
                                         $this->method = 'informe03';
                                         $this->params = isset($url[3]) ? [$url[3]] : [null]; // payrollId opcional
