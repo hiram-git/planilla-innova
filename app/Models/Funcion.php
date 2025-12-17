@@ -64,13 +64,82 @@ class Funcion extends ReferenceModel
     {
         $sql = "SELECT codigo FROM funciones WHERE codigo LIKE 'FUN-%' ORDER BY codigo DESC LIMIT 1";
         $result = $this->db->find($sql);
-        
+
         if ($result && preg_match('/FUN-(\d+)/', $result['codigo'], $matches)) {
             $lastNumber = intval($matches[1]);
             $nextNumber = $lastNumber + 1;
             return 'FUN-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
-        
+
         return 'FUN-001'; // Primer código si no existe ninguno
+    }
+
+    /**
+     * Obtener cargo asociado a la función
+     */
+    public function getCargo($funcionId)
+    {
+        $sql = "SELECT c.*
+                FROM funciones f
+                LEFT JOIN cargos c ON f.cargo_id = c.id
+                WHERE f.id = ?";
+        return $this->db->find($sql, [$funcionId]);
+    }
+
+    /**
+     * Obtener funciones con información de cargo
+     */
+    public function getFuncionesWithCargo()
+    {
+        $sql = "SELECT f.*, c.nombre as cargo_nombre
+                FROM funciones f
+                LEFT JOIN cargos c ON f.cargo_id = c.id
+                WHERE f.activo = 1
+                ORDER BY c.nombre ASC, f.nombre ASC";
+
+        return $this->db->findAll($sql);
+    }
+
+    /**
+     * Obtener funciones filtradas por cargo (incluyendo genéricas con cargo_id NULL)
+     */
+    public function getFuncionesByCargo($cargoId = null)
+    {
+        if ($cargoId === null) {
+            // Retornar solo funciones genéricas
+            $sql = "SELECT * FROM funciones
+                    WHERE cargo_id IS NULL AND activo = 1
+                    ORDER BY nombre ASC";
+            return $this->db->findAll($sql);
+        }
+
+        // Retornar funciones específicas del cargo + funciones genéricas
+        $sql = "SELECT * FROM funciones
+                WHERE (cargo_id = ? OR cargo_id IS NULL) AND activo = 1
+                ORDER BY CASE WHEN cargo_id IS NULL THEN 1 ELSE 0 END, nombre ASC";
+
+        return $this->db->findAll($sql, [$cargoId]);
+    }
+
+    /**
+     * Verificar si la función tiene empleados asociados
+     */
+    public function hasEmployees($funcionId)
+    {
+        $sql = "SELECT COUNT(*) as count FROM employees WHERE funcion_id = ?";
+        $result = $this->db->find($sql, [$funcionId]);
+        return $result['count'] > 0;
+    }
+
+    /**
+     * Obtener solo funciones genéricas (cargo_id = NULL)
+     */
+    public function getFuncionesGenericas()
+    {
+        $sql = "SELECT * FROM funciones
+                WHERE cargo_id IS NULL AND activo = 1
+                ORDER BY nombre ASC";
+
+        return $this->db->findAll($sql);
     }
 }

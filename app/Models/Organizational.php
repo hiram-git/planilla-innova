@@ -16,15 +16,18 @@ class Organizational extends Model
      */
     public function getOrganizationalHierarchy()
     {
-        $sql = "SELECT 
+        $sql = "SELECT
                     o.*,
-                    p.descripcion as parent_descripcion
+                    p.descripcion as parent_descripcion,
+                    COUNT(DISTINCT c.id) as cargos_count
                 FROM organigrama o
                 LEFT JOIN organigrama p ON o.id_padre = p.id
+                LEFT JOIN cargos c ON o.id = c.departamento_id AND c.activo = 1
+                GROUP BY o.id, o.descripcion, o.id_padre, o.path, o.nivel_jerarquico, p.descripcion
                 ORDER BY o.path ASC";
-                
+
         $items = $this->db->findAll($sql);
-        
+
         return $this->buildHierarchyTree($items, 'id_padre');
     }
 

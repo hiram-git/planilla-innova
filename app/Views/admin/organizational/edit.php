@@ -187,6 +187,52 @@ if (!empty($children)) {
 $content .= '
                     </div>
                 </div>
+
+                <!-- Card de Cargos Asociados -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-user-tie mr-2"></i>
+                            Cargos del Departamento
+                        </h3>
+                        <div class="card-tools">
+                            <span class="badge badge-primary" id="cargos-count">
+                                Cargando...
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="cargos-list-container">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Cargando cargos...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Empleados del Departamento -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-users mr-2"></i>
+                            Empleados del Departamento
+                        </h3>
+                        <div class="card-tools">
+                            <span class="badge badge-info" id="employees-count">
+                                Cargando...
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="employees-list-container">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Cargando empleados...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -232,27 +278,88 @@ $jsConfig = JavaScriptHelper::renderConfigScript([
 
 $scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
 
-// Agregar script para notificaciones toastr desde sesión
-$sessionNotifications = '<script type="text/javascript">
+// Agregar script para notificaciones toastr y cargar datos de departamento
+$additionalScripts = '<script type="text/javascript">
 $(document).ready(function() {';
 
 if (isset($_SESSION['success'])) {
-    $sessionNotifications .= '
+    $additionalScripts .= '
     toastr.success("' . addslashes($_SESSION['success']) . '", "Operación Exitosa");';
     unset($_SESSION['success']);
 }
 
 if (isset($_SESSION['error'])) {
-    $sessionNotifications .= '
+    $additionalScripts .= '
     toastr.error("' . addslashes($_SESSION['error']) . '", "Error");';
     unset($_SESSION['error']);
 }
 
-$sessionNotifications .= '
+$additionalScripts .= '
+
+    // Cargar datos del departamento
+    var departamentoId = ' . ($element['id'] ?? 0) . ';
+    console.log("[ORG] Loading department data for ID:", departamentoId);
+
+    if (departamentoId > 0) {
+        // Cargar cargos
+        $.ajax({
+            url: "' . \App\Core\UrlHelper::url('panel/organizational/getCargosByDepartamento') . '/" + departamentoId,
+            method: "GET",
+            dataType: "json",
+            success: function(response) {
+                console.log("[ORG] Cargos response:", response);
+                if (response.success && response.cargos && response.cargos.length > 0) {
+                    var html = "<div class=\"table-responsive\"><table class=\"table table-striped table-hover\">";
+                    html += "<thead><tr>";
+                    html += "<th style=\"width: 20%\">Código</th>";
+                    html += "<th style=\"width: 50%\">Nombre</th>";
+                    html += "<th style=\"width: 15%\" class=\"text-center\">Estado</th>";
+                    html += "<th style=\"width: 15%\" class=\"text-center\">Acciones</th>";
+                    html += "</tr></thead><tbody>";
+
+                    response.cargos.forEach(function(cargo) {
+                        var statusBadge = cargo.activo == 1
+                            ? "<span class=\"badge badge-success\">Activo</span>"
+                            : "<span class=\"badge badge-secondary\">Inactivo</span>";
+
+                        html += "<tr>";
+                        html += "<td><strong>" + cargo.codigo + "</strong></td>";
+                        html += "<td>" + cargo.nombre + "</td>";
+                        html += "<td class=\"text-center\">" + statusBadge + "</td>";
+                        html += "<td class=\"text-center\">";
+                        html += "<a href=\"' . \App\Core\UrlHelper::url('panel/cargos/edit') . '/" + cargo.id + "\" class=\"btn btn-sm btn-primary\" title=\"Editar cargo\">";
+                        html += "<i class=\"fas fa-edit\"></i>";
+                        html += "</a>";
+                        html += "</td>";
+                        html += "</tr>";
+                    });
+
+                    html += "</tbody></table></div>";
+                    $("#cargos-list-container").html(html);
+                    $("#cargos-count").text(response.cargos.length + " cargo" + (response.cargos.length !== 1 ? "s" : ""));
+                } else {
+                    $("#cargos-list-container").html("<div class=\"alert alert-info\"><i class=\"fas fa-info-circle mr-2\"></i>No hay cargos asociados a este departamento.</div>");
+                    $("#cargos-count").text("0 cargos").removeClass("badge-primary").addClass("badge-secondary");
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("[ORG] Error loading cargos:", error, xhr, status);
+                $("#cargos-list-container").html("<div class=\"alert alert-danger\"><i class=\"fas fa-exclamation-triangle mr-2\"></i>Error al cargar los cargos.</div>");
+                $("#cargos-count").text("Error").removeClass("badge-primary").addClass("badge-danger");
+            }
+        });
+
+        // Mostrar información de empleados
+        $("#employees-list-container").html("<div class=\"callout callout-info\">" +
+            "<h6><i class=\"fas fa-info-circle mr-2\"></i>Información de Empleados</h6>" +
+            "<p class=\"mb-0\">Para ver los empleados de este departamento, visite el módulo de <a href=\"' . \App\Core\UrlHelper::url('panel/employees') . '\">Gestión de Empleados</a> y filtre por departamento.</p>" +
+            "</div>");
+        $("#employees-count").text("Ver módulo").removeClass("badge-info").addClass("badge-secondary");
+    }
 });
 </script>';
 
-$scripts .= "\n" . $sessionNotifications;
+$scripts .= "\n" . $additionalScripts;
 
 include __DIR__ . '/../../layouts/admin.php';
 ?>

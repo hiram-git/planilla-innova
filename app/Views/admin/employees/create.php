@@ -221,33 +221,38 @@ $content .= '                    </select>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="cargo_id">Cargo *</label>
-                                    <select class="form-control" id="cargo_id" name="cargo_id">
-                                        <option value="">Seleccionar cargo...</option>';
+                                    <label for="departamento_id_private">Departamento *</label>
+                                    <select class="form-control" id="departamento_id_private" name="departamento_id">
+                                        <option value="">Seleccionar departamento...</option>';
 
-foreach ($cargos as $cargo) {
-    $selected = ($_SESSION['old_data']['cargo_id'] ?? '') == $cargo['id'] ? ' selected' : '';
-    $displayText = htmlspecialchars($cargo['codigo'] . ' - ' . $cargo['nombre']);
-    $content .= '<option value="' . $cargo['id'] . '"' . $selected . '>' . $displayText . '</option>';
+foreach ($organigrama_elementos as $elemento) {
+    $selected = ($_SESSION['old_data']['departamento_id'] ?? '') == $elemento['id'] ? ' selected' : '';
+    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', substr_count($elemento['path'] ?? '', '/'));
+    $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . $indent . htmlspecialchars($elemento['descripcion']) . '</option>';
 }
 
 $content .= '                    </select>
+                                    <small class="form-text text-muted">Seleccione el departamento primero</small>
+                                    ' . (isset($_SESSION['errors']['departamento_id']) ? '<small class="text-danger">' . $_SESSION['errors']['departamento_id'] . '</small>' : '') . '
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="cargo_id">Cargo *</label>
+                                    <select class="form-control" id="cargo_id" name="cargo_id" disabled>
+                                        <option value="">Primero seleccione un departamento...</option>
+                                    </select>
+                                    <small class="form-text text-muted">Cargos del departamento seleccionado</small>
                                     ' . (isset($_SESSION['errors']['cargo_id']) ? '<small class="text-danger">' . $_SESSION['errors']['cargo_id'] . '</small>' : '') . '
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="funcion_id">Función *</label>
-                                    <select class="form-control" id="funcion_id" name="funcion_id">
-                                        <option value="">Seleccionar función...</option>';
-
-foreach ($funciones as $funcion) {
-    $selected = ($_SESSION['old_data']['funcion_id'] ?? '') == $funcion['id'] ? ' selected' : '';
-    $displayText = htmlspecialchars($funcion['codigo'] . ' - ' . $funcion['nombre']);
-    $content .= '<option value="' . $funcion['id'] . '"' . $selected . '>' . $displayText . '</option>';
-}
-
-$content .= '                    </select>
+                                    <label for="funcion_id">Función</label>
+                                    <select class="form-control" id="funcion_id" name="funcion_id" disabled>
+                                        <option value="">Primero seleccione un cargo...</option>
+                                    </select>
+                                    <small class="form-text text-muted">Funciones del cargo (opcional)</small>
                                     ' . (isset($_SESSION['errors']['funcion_id']) ? '<small class="text-danger">' . $_SESSION['errors']['funcion_id'] . '</small>' : '') . '
                                 </div>
                             </div>
@@ -540,19 +545,19 @@ $content .= '                </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="organigrama_id">Elemento del Organigrama *</label>
-                        <select class="form-control" id="organigrama_id" name="organigrama_id" required>
-                            <option value="">Seleccionar elemento del organigrama...</option>';
+                        <label for="departamento_id">Departamento *</label>
+                        <select class="form-control" id="departamento_id" name="departamento_id" required>
+                            <option value="">Seleccionar departamento...</option>';
 
 foreach ($organigrama_elementos as $elemento) {
-    $selected = ($_SESSION['old_data']['organigrama_id'] ?? '') == $elemento['id'] ? ' selected' : '';
+    $selected = ($_SESSION['old_data']['departamento_id'] ?? '') == $elemento['id'] ? ' selected' : '';
     $indent = str_repeat('&nbsp;&nbsp;&nbsp;', substr_count($elemento['path'] ?? '', '/'));
     $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . $indent . htmlspecialchars($elemento['descripcion']) . '</option>';
 }
 
 $content .= '                        </select>
-                                    <small class="form-text text-muted">Elemento del organigrama al que pertenece el empleado</small>
-                                    ' . (isset($_SESSION['errors']['organigrama_id']) ? '<small class="text-danger">' . $_SESSION['errors']['organigrama_id'] . '</small>' : '') . '
+                                    <small class="form-text text-muted">Departamento al que pertenece el empleado</small>
+                                    ' . (isset($_SESSION['errors']['departamento_id']) ? '<small class="text-danger">' . $_SESSION['errors']['departamento_id'] . '</small>' : '') . '
                     </div>
                 </div>
 
@@ -863,6 +868,137 @@ $(document).ready(function() {
                 $field.removeClass("is-invalid is-valid");
                 $field.siblings(".invalid-feedback").remove();
             }
+        }
+    });
+
+    // ============================================================================
+    // SELECTS DEPENDIENTES: Departamento → Cargo → Función
+    // ============================================================================
+
+    /**
+     * Cargar cargos según departamento seleccionado
+     */
+    function loadCargosByDepartamento(departamentoId, selectedCargoId = null) {
+        const $cargoSelect = $("#cargo_id");
+        const $funcionSelect = $("#funcion_id");
+
+        if (!departamentoId) {
+            // Resetear ambos selects
+            $cargoSelect.html("<option value=\"\">Primero seleccione un departamento...</option>").prop("disabled", true);
+            $funcionSelect.html("<option value=\"\">Primero seleccione un cargo...</option>").prop("disabled", true);
+            return;
+        }
+
+        // Mostrar loading en cargo
+        $cargoSelect.html("<option value=\"\">Cargando cargos...</option>").prop("disabled", true);
+        $funcionSelect.html("<option value=\"\">Primero seleccione un cargo...</option>").prop("disabled", true);
+
+        // AJAX request
+        $.ajax({
+            url: "' . url('/panel/organizational/getCargosByDepartamento') . '/" + departamentoId,
+            method: "GET",
+            dataType: "json",
+            success: function(response) {
+                if (response.success && response.cargos) {
+                    let options = "<option value=\"\">Seleccionar cargo...</option>";
+
+                    response.cargos.forEach(function(cargo) {
+                        const selected = (selectedCargoId && cargo.id == selectedCargoId) ? " selected" : "";
+                        options += `<option value="${cargo.id}"${selected}>${cargo.codigo} - ${cargo.nombre}</option>`;
+                    });
+
+                    $cargoSelect.html(options).prop("disabled", false);
+
+                    // Si hay un cargo seleccionado, cargar sus funciones
+                    if (selectedCargoId) {
+                        loadFuncionesByCargo(selectedCargoId);
+                    }
+                } else {
+                    $cargoSelect.html("<option value=\"\">No hay cargos en este departamento</option>").prop("disabled", true);
+                    toastr.warning("No se encontraron cargos para este departamento", "Advertencia");
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error loading cargos:", error);
+                $cargoSelect.html("<option value=\"\">Error al cargar cargos</option>").prop("disabled", true);
+                toastr.error("Error al cargar los cargos del departamento", "Error");
+            }
+        });
+    }
+
+    /**
+     * Cargar funciones según cargo seleccionado (incluye genéricas)
+     */
+    function loadFuncionesByCargo(cargoId, selectedFuncionId = null) {
+        const $funcionSelect = $("#funcion_id");
+
+        if (!cargoId) {
+            $funcionSelect.html("<option value=\"\">Primero seleccione un cargo...</option>").prop("disabled", true);
+            return;
+        }
+
+        // Mostrar loading
+        $funcionSelect.html("<option value=\"\">Cargando funciones...</option>").prop("disabled", true);
+
+        // AJAX request
+        $.ajax({
+            url: "' . url('/panel/organizational/getFuncionesByCargo') . '/" + cargoId,
+            method: "GET",
+            dataType: "json",
+            success: function(response) {
+                if (response.success && response.funciones) {
+                    let options = "<option value=\"\">Seleccionar función (opcional)...</option>";
+
+                    response.funciones.forEach(function(funcion) {
+                        const selected = (selectedFuncionId && funcion.id == selectedFuncionId) ? " selected" : "";
+                        const label = funcion.cargo_id === null ? " (Genérica)" : "";
+                        options += `<option value="${funcion.id}"${selected}>${funcion.codigo} - ${funcion.nombre}${label}</option>`;
+                    });
+
+                    $funcionSelect.html(options).prop("disabled", false);
+                } else {
+                    $funcionSelect.html("<option value=\"\">No hay funciones disponibles</option>").prop("disabled", false);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error loading funciones:", error);
+                $funcionSelect.html("<option value=\"\">Error al cargar funciones</option>").prop("disabled", true);
+                toastr.error("Error al cargar las funciones del cargo", "Error");
+            }
+        });
+    }
+
+    /**
+     * Evento: Cambio de departamento en empresa privada
+     */
+    $("#departamento_id_private").on("change", function() {
+        const departamentoId = $(this).val();
+        loadCargosByDepartamento(departamentoId);
+    });
+
+    /**
+     * Evento: Cambio de cargo
+     */
+    $("#cargo_id").on("change", function() {
+        const cargoId = $(this).val();
+        loadFuncionesByCargo(cargoId);
+    });
+
+    /**
+     * Cargar cargos y funciones si hay valores pre-seleccionados (para validación de errores)
+     */
+    $(document).ready(function() {
+        const departamentoIdSelected = $("#departamento_id_private").val();
+        const cargoIdSelected = "' . ($_SESSION['old_data']['cargo_id'] ?? '') . '";
+        const funcionIdSelected = "' . ($_SESSION['old_data']['funcion_id'] ?? '') . '";
+
+        if (departamentoIdSelected) {
+            loadCargosByDepartamento(departamentoIdSelected, cargoIdSelected || null);
+        }
+
+        // Si hay cargo seleccionado pero no departamento (caso de error), cargar funciones genéricas
+        if (cargoIdSelected && !departamentoIdSelected) {
+            loadFuncionesByCargo(cargoIdSelected, funcionIdSelected || null);
         }
     });
 });
