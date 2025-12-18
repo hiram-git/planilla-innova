@@ -364,6 +364,85 @@ class OrganizationalController extends Controller
     }
 
     /**
+     * AJAX: Obtener todos los cargos activos
+     * GET /panel/organizational/all-cargos
+     */
+    public function getAllCargos()
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            $cargoModel = $this->model('Cargo');
+            $cargos = $cargoModel->getAllActive();
+
+            echo json_encode([
+                'success' => true,
+                'cargos' => $cargos
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Actualizar asociaciones de cargos al departamento
+     * POST /panel/organizational/update-cargos/{departamentoId}
+     */
+    public function updateCargosDepartamento($departamentoId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'error' => 'Método no permitido']);
+            exit;
+        }
+
+        try {
+            if ($departamentoId === null) {
+                echo json_encode(['success' => false, 'error' => 'ID de departamento requerido']);
+                exit;
+            }
+
+            // Obtener IDs de cargos desde el body JSON
+            $input = json_decode(file_get_contents('php://input'), true);
+            $cargoIds = $input['cargo_ids'] ?? [];
+
+            // Validar que sea un array
+            if (!is_array($cargoIds)) {
+                echo json_encode(['success' => false, 'error' => 'Los IDs de cargos deben ser un array']);
+                exit;
+            }
+
+            $cargoModel = $this->model('Cargo');
+            $result = $cargoModel->updateDepartamentoAsociaciones($departamentoId, $cargoIds);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Asociaciones actualizadas exitosamente',
+                'updated' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
      * AJAX: Obtener funciones filtradas por cargo (incluye genéricas)
      * GET /panel/organizational/funciones-by-cargo/{cargoId}
      */
@@ -486,6 +565,119 @@ class OrganizationalController extends Controller
             echo json_encode([
                 'success' => true,
                 'departamento' => $departamento
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener todas las funciones activas
+     * GET /panel/organizational/all-funciones
+     */
+    public function getAllFunciones()
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            $funcionModel = $this->model('Funcion');
+            $funciones = $funcionModel->getAllActive();
+
+            echo json_encode([
+                'success' => true,
+                'funciones' => $funciones
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener funciones por departamento
+     * GET /panel/organizational/getFuncionesByDepartamento/{departamentoId}
+     */
+    public function getFuncionesByDepartamento($departamentoId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            if ($departamentoId === null) {
+                echo json_encode(['success' => false, 'error' => 'ID de departamento requerido']);
+                exit;
+            }
+
+            $funcionModel = $this->model('Funcion');
+            $funciones = $funcionModel->getFuncionesByDepartamento($departamentoId);
+
+            echo json_encode([
+                'success' => true,
+                'funciones' => $funciones
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Actualizar asociaciones de funciones a un cargo
+     * POST /panel/organizational/update-funciones/{cargoId}
+     */
+    public function updateFuncionesCargo($cargoId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'error' => 'Método no permitido']);
+            exit;
+        }
+
+        try {
+            if ($cargoId === null) {
+                echo json_encode(['success' => false, 'error' => 'ID de cargo requerido']);
+                exit;
+            }
+
+            // Obtener IDs de funciones desde el body JSON
+            $input = json_decode(file_get_contents('php://input'), true);
+            $funcionIds = $input['funcion_ids'] ?? [];
+
+            // Validar que sea un array
+            if (!is_array($funcionIds)) {
+                echo json_encode(['success' => false, 'error' => 'Los IDs de funciones deben ser un array']);
+                exit;
+            }
+
+            $funcionModel = $this->model('Funcion');
+            $result = $funcionModel->updateCargoAsociaciones($cargoId, $funcionIds);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Asociaciones actualizadas exitosamente',
+                'updated' => $result
             ]);
 
         } catch (\Exception $e) {

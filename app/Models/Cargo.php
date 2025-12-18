@@ -121,4 +121,61 @@ class Cargo extends ReferenceModel
         $result = $this->db->find($sql, [$cargoId]);
         return $result['count'] > 0;
     }
+
+    /**
+     * Obtener todos los cargos activos
+     */
+    public function getAllActive()
+    {
+        $sql = "SELECT id, codigo, nombre, departamento_id, activo
+                FROM cargos
+                WHERE activo = 1
+                ORDER BY nombre ASC";
+
+        return $this->db->findAll($sql);
+    }
+
+    /**
+     * Actualizar asociaciones de cargos a un departamento
+     * Actualiza departamento_id para los cargos seleccionados
+     * y establece NULL para los no seleccionados del mismo departamento
+     *
+     * @param int $departamentoId ID del departamento
+     * @param array $cargoIds Array de IDs de cargos a asociar
+     * @return int Número de registros actualizados
+     */
+    public function updateDepartamentoAsociaciones($departamentoId, $cargoIds)
+    {
+        try {
+            $conn = $this->db->getConnection();
+            $conn->beginTransaction();
+
+            $updated = 0;
+
+            // 1. Desasociar todos los cargos actuales de este departamento
+            $sqlRemove = "UPDATE cargos SET departamento_id = NULL WHERE departamento_id = ?";
+            $stmtRemove = $conn->prepare($sqlRemove);
+            $stmtRemove->execute([$departamentoId]);
+
+            // 2. Asociar los cargos seleccionados al departamento
+            if (!empty($cargoIds)) {
+                $sqlAssign = "UPDATE cargos SET departamento_id = ? WHERE id = ?";
+                $stmtAssign = $conn->prepare($sqlAssign);
+
+                foreach ($cargoIds as $cargoId) {
+                    $stmtAssign->execute([$departamentoId, $cargoId]);
+                    $updated++;
+                }
+            }
+
+            $conn->commit();
+            return $updated;
+
+        } catch (\Exception $e) {
+            if (isset($conn)) {
+                $conn->rollBack();
+            }
+            throw new \Exception("Error al actualizar asociaciones: " . $e->getMessage());
+        }
+    }
 }
