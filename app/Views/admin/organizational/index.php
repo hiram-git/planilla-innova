@@ -147,6 +147,9 @@ $content = '
                             <button type="button" class="btn btn-success mb-2" onclick="printChart()">
                                 <i class="fas fa-print mr-2"></i>Imprimir
                             </button>
+                            <a href="' . \App\Core\UrlHelper::url('panel/organizational/report-tree') . '" class="btn btn-danger mb-2" target="_blank">
+                                <i class="fas fa-file-pdf mr-2"></i>Descargar Organigrama PDF
+                            </a>
                         </div>
                     </div>
                 </div>

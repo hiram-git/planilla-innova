@@ -619,6 +619,10 @@ class App
                                     // GET /panel/organizational/create
                                     $this->method = 'create';
                                     $this->params = [];
+                                } elseif ($url[2] === 'report-tree' && method_exists($this->controller, 'reportTree')) {
+                                    // GET /panel/organizational/report-tree
+                                    $this->method = 'reportTree';
+                                    $this->params = [];
                                 } else {
                                     // Fallback a index
                                     $this->method = 'index';
