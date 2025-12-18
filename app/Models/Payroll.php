@@ -347,7 +347,7 @@ class Payroll extends Model
                             $payrollId,
                             $employee['id'],
                             $concepto['id'],
-                            $monto,
+                            round($monto, 2),
                             $concepto['tipo'],
                             $employee['departamento_id'],
                             $employee['position_id'],
