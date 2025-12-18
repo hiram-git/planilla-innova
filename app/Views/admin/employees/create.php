@@ -343,7 +343,7 @@ $content .= '                </select>
                                         <span class="input-group-text">' . currency_symbol() . '/h</span>
                                     </div>
                                     <input type="number" class="form-control" id="tarifa_hora" name="tarifa_hora"
-                                           step="0.01" min="0" placeholder="0.00"
+                                           step="0.0001" min="0" placeholder="0.0000"
                                            value="' . ($_SESSION['old_data']['tarifa_hora'] ?? '') . '">
                                     <div class="input-group-append">
                                         <button type="button" class="btn btn-outline-secondary" id="btn_calc_tarifa" title="Calcular automáticamente">
@@ -543,22 +543,6 @@ $content .= '                </select>
                             <p class="text-muted small mt-1">Vista previa de la foto</p>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="departamento_id">Departamento *</label>
-                        <select class="form-control" id="departamento_id" name="departamento_id" required>
-                            <option value="">Seleccionar departamento...</option>';
-
-foreach ($organigrama_elementos as $elemento) {
-    $selected = ($_SESSION['old_data']['departamento_id'] ?? '') == $elemento['id'] ? ' selected' : '';
-    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', substr_count($elemento['path'] ?? '', '/'));
-    $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . $indent . htmlspecialchars($elemento['descripcion']) . '</option>';
-}
-
-$content .= '                        </select>
-                                    <small class="form-text text-muted">Departamento al que pertenece el empleado</small>
-                                    ' . (isset($_SESSION['errors']['departamento_id']) ? '<small class="text-danger">' . $_SESSION['errors']['departamento_id'] . '</small>' : '') . '
-                    </div>
                 </div>
 
                 <div class="card-footer">
@@ -700,7 +684,7 @@ $(document).ready(function() {
         var sueldo = parseFloat($("#sueldo_individual").val()) || 0;
         if (sueldo > 0) {
             // Fórmula: Sueldo ÷ 26 días ÷ 8 horas = Sueldo ÷ 208
-            var tarifaHora = (sueldo / 26 / 8).toFixed(2);
+            var tarifaHora = (sueldo / 26 / 8).toFixed(4);
             $("#tarifa_hora").val(tarifaHora);
             return tarifaHora;
         }
