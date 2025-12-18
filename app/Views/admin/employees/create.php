@@ -336,7 +336,7 @@ $content .= '                </select>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="tarifa_hora">Tarifa por Hora
-                                    <i class="fas fa-calculator text-info ml-1" title="Se calcula automáticamente: Sueldo ÷ 220 horas"></i>
+                                    <i class="fas fa-calculator text-info ml-1" title="Se calcula automáticamente: Sueldo ÷ 26 días ÷ 8 horas"></i>
                                 </label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -361,7 +361,7 @@ $content .= '                </select>
                             <div class="callout callout-info">
                                 <i class="fas fa-info-circle"></i>
                                 <strong>Tarifa por Hora:</strong><br>
-                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 220 horas</strong> (8h/día × 22 días laborables promedio).<br>
+                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 26 días ÷ 8 horas</strong> (26 días laborables × 8 horas/día = 208 horas).<br>
                                 Puede modificarlo manualmente según las necesidades del empleado.
                             </div>
                         </div>
@@ -694,6 +694,35 @@ $(document).ready(function() {
     if ($("#fecha_ingreso").val()) {
         $("#antiguedad_display").val(calcularAntiguedad($("#fecha_ingreso").val()));
     }
+
+    // Función para calcular tarifa por hora
+    function calcularTarifaHora() {
+        var sueldo = parseFloat($("#sueldo_individual").val()) || 0;
+        if (sueldo > 0) {
+            // Fórmula: Sueldo ÷ 26 días ÷ 8 horas = Sueldo ÷ 208
+            var tarifaHora = (sueldo / 26 / 8).toFixed(2);
+            $("#tarifa_hora").val(tarifaHora);
+            return tarifaHora;
+        }
+        return 0;
+    }
+
+    // Evento: Click en botón calcular tarifa
+    $("#btn_calc_tarifa").click(function() {
+        var tarifa = calcularTarifaHora();
+        if (tarifa > 0) {
+            toastr.success("Tarifa calculada: $" + tarifa + "/h", "Cálculo Exitoso");
+        } else {
+            toastr.warning("Primero ingrese el sueldo individual", "Advertencia");
+        }
+    });
+
+    // Evento: Cambio en sueldo individual - actualizar tarifa automáticamente
+    $("#sueldo_individual").on("change blur", function() {
+        if ($(this).val()) {
+            calcularTarifaHora();
+        }
+    });
 
     // ====================================
     // VALIDACIÓN EN TIEMPO REAL DE CAMPOS

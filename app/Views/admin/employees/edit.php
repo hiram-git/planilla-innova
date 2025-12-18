@@ -418,7 +418,7 @@ $content .= '                </select>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_tarifa_hora">Tarifa por Hora
-                                    <i class="fas fa-calculator text-info ml-1" title="Se calcula automáticamente: Sueldo ÷ 220 horas"></i>
+                                    <i class="fas fa-calculator text-info ml-1" title="Se calcula automáticamente: Sueldo ÷ 26 días ÷ 8 horas"></i>
                                 </label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -443,7 +443,7 @@ $content .= '                </select>
                             <div class="callout callout-info">
                                 <i class="fas fa-info-circle"></i>
                                 <strong>Tarifa por Hora:</strong><br>
-                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 208 horas</strong> (8h/día × 26 días laborables promedio).<br>
+                                Se calcula automáticamente como: <strong>Sueldo Individual ÷ 26 días ÷ 8 horas</strong> (26 días laborables × 8 horas/día).<br>
                                 Puede modificarlo manualmente según las necesidades del empleado.
                             </div>
                         </div>
@@ -794,7 +794,8 @@ if (typeof $ !== "undefined") {
         function calcularTarifaHora() {
             var sueldo = parseFloat($("#edit_sueldo_individual").val()) || 0;
             if (sueldo > 0) {
-                var tarifaHora = (sueldo / 192).toFixed(2);
+                // Fórmula: Sueldo ÷ 26 días ÷ 8 horas = Sueldo ÷ 208
+                var tarifaHora = (sueldo / 26 / 8).toFixed(2);
                 $("#edit_tarifa_hora").val(tarifaHora);
                 return tarifaHora;
             }
