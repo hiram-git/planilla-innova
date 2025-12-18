@@ -161,7 +161,7 @@ class Payroll extends Model
 
                 // 3. TERCERO: Obtener empleados de la temporal con su salario original
                 $sqlEmps = "SELECT DISTINCT
-                                   e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
+                                   e.id, e.employee_id, e.firstname, e.lastname, e.departamento_id,
                                    e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
                                    e.cargo_id, e.funcion_id, e.partida_id,
                                    e.fecha_ingreso,
@@ -221,7 +221,7 @@ class Payroll extends Model
                 // Filtrar por empleados activos, con situación activa y que correspondan al tipo de planilla
                 // VALIDACIÓN PERÍODO: Solo empleados activos durante el período de la planilla
                 // NOTA: tipo_planilla_id ahora es VARCHAR con múltiples IDs separados por comas (ej: "1,2,3")
-                $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.organigrama_id,
+                $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.departamento_id,
                                e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
                                e.cargo_id, e.funcion_id, e.partida_id,
                                e.fecha_ingreso,
@@ -337,11 +337,11 @@ class Payroll extends Model
                     // Insertar en planilla_detalle si hay monto o si el concepto permite monto cero
                     if ($monto > 0 || ($concepto['monto_cero'] == 1 && $monto == 0)) {
                         $sql = "INSERT INTO planilla_detalle (
-                            planilla_cabecera_id, employee_id, concepto_id, monto, tipo, 
-                            organigrama_id, position_id, schedule_id, cargo_id, funcion_id, partida_id,
+                            planilla_cabecera_id, employee_id, concepto_id, monto, tipo,
+                            departamento_id, position_id, schedule_id, cargo_id, funcion_id, partida_id,
                             firstname, lastname
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                        
+
                         $stmt = $this->db->prepare($sql);
                         $result = $stmt->execute([
                             $payrollId,
@@ -349,7 +349,7 @@ class Payroll extends Model
                             $concepto['id'],
                             $monto,
                             $concepto['tipo'],
-                            $employee['organigrama_id'],
+                            $employee['departamento_id'],
                             $employee['position_id'],
                             $employee['schedule_id'],
                             $employee['cargo_id'],
@@ -534,7 +534,7 @@ class Payroll extends Model
                         pd.cargo_id,
                         pd.funcion_id,
                         pd.partida_id,
-                        pd.organigrama_id,
+                        pd.departamento_id,
                         -- Obtener employee_code del empleado
                         e.employee_id as employee_code,
                         -- Obtener datos de la posición
