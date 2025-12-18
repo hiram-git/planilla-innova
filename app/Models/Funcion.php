@@ -142,4 +142,75 @@ class Funcion extends ReferenceModel
 
         return $this->db->findAll($sql);
     }
+
+    /**
+     * Obtener todas las funciones activas
+     */
+    public function getAllActive()
+    {
+        $sql = "SELECT id, codigo, nombre, cargo_id, activo
+                FROM funciones
+                WHERE activo = 1
+                ORDER BY nombre ASC";
+
+        return $this->db->findAll($sql);
+    }
+
+    /**
+     * Obtener funciones por departamento (a través de cargos asociados)
+     */
+    public function getFuncionesByDepartamento($departamentoId)
+    {
+        $sql = "SELECT f.*
+                FROM funciones f
+                INNER JOIN cargos c ON f.cargo_id = c.id
+                WHERE c.departamento_id = ? AND f.activo = 1
+                ORDER BY f.nombre ASC";
+
+        return $this->db->findAll($sql, [$departamentoId]);
+    }
+
+    /**
+     * Actualizar asociaciones de funciones a cargos de un departamento
+     * Actualiza cargo_id para las funciones seleccionadas, asignándolas
+     * a un cargo específico del departamento
+     *
+     * @param int $cargoId ID del cargo al que se asignarán las funciones
+     * @param array $funcionIds Array de IDs de funciones a asociar
+     * @return int Número de registros actualizados
+     */
+    public function updateCargoAsociaciones($cargoId, $funcionIds)
+    {
+        try {
+            $conn = $this->db->getConnection();
+            $conn->beginTransaction();
+
+            $updated = 0;
+
+            // 1. Desasociar todas las funciones actuales de este cargo
+            $sqlRemove = "UPDATE funciones SET cargo_id = NULL WHERE cargo_id = ?";
+            $stmtRemove = $conn->prepare($sqlRemove);
+            $stmtRemove->execute([$cargoId]);
+
+            // 2. Asociar las funciones seleccionadas al cargo
+            if (!empty($funcionIds)) {
+                $sqlAssign = "UPDATE funciones SET cargo_id = ? WHERE id = ?";
+                $stmtAssign = $conn->prepare($sqlAssign);
+
+                foreach ($funcionIds as $funcionId) {
+                    $stmtAssign->execute([$cargoId, $funcionId]);
+                    $updated++;
+                }
+            }
+
+            $conn->commit();
+            return $updated;
+
+        } catch (\Exception $e) {
+            if (isset($conn)) {
+                $conn->rollBack();
+            }
+            throw new \Exception("Error al actualizar asociaciones: " . $e->getMessage());
+        }
+    }
 }

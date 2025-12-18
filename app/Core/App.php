@@ -581,6 +581,86 @@ class App
                             }
                         }
 
+                        // ✅ MANEJO ESPECIAL: organizational subroutes
+                        if ($url[1] === 'organizational') {
+                            $this->controller = new \App\Controllers\OrganizationalController();
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            if ($httpMethod === 'GET') {
+                                if (!isset($url[2])) {
+                                    // GET /panel/organizational
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'all-cargos' && method_exists($this->controller, 'getAllCargos')) {
+                                    // GET /panel/organizational/all-cargos
+                                    $this->method = 'getAllCargos';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'getCargosByDepartamento' && isset($url[3]) && method_exists($this->controller, 'getCargosByDepartamento')) {
+                                    // GET /panel/organizational/getCargosByDepartamento/{id}
+                                    $this->method = 'getCargosByDepartamento';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'all-funciones' && method_exists($this->controller, 'getAllFunciones')) {
+                                    // GET /panel/organizational/all-funciones
+                                    $this->method = 'getAllFunciones';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'getFuncionesByDepartamento' && isset($url[3]) && method_exists($this->controller, 'getFuncionesByDepartamento')) {
+                                    // GET /panel/organizational/getFuncionesByDepartamento/{id}
+                                    $this->method = 'getFuncionesByDepartamento';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'getFuncionesByCargo' && isset($url[3]) && method_exists($this->controller, 'getFuncionesByCargo')) {
+                                    // GET /panel/organizational/getFuncionesByCargo/{id}
+                                    $this->method = 'getFuncionesByCargo';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
+                                    // GET /panel/organizational/edit/{id}
+                                    $this->method = 'edit';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'create' && method_exists($this->controller, 'create')) {
+                                    // GET /panel/organizational/create
+                                    $this->method = 'create';
+                                    $this->params = [];
+                                } else {
+                                    // Fallback a index
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            } elseif ($httpMethod === 'POST') {
+                                if ($url[2] === 'update-cargos' && isset($url[3]) && method_exists($this->controller, 'updateCargosDepartamento')) {
+                                    // POST /panel/organizational/update-cargos/{id}
+                                    $this->method = 'updateCargosDepartamento';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'update-funciones' && isset($url[3]) && method_exists($this->controller, 'updateFuncionesCargo')) {
+                                    // POST /panel/organizational/update-funciones/{id}
+                                    $this->method = 'updateFuncionesCargo';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'store' && method_exists($this->controller, 'store')) {
+                                    // POST /panel/organizational/store
+                                    $this->method = 'store';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'delete' && isset($url[3]) && method_exists($this->controller, 'delete')) {
+                                    // POST /panel/organizational/delete/{id}
+                                    $this->method = 'delete';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
+                                    // POST /panel/organizational/edit/{id} (para guardar)
+                                    $this->method = 'edit';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'create' && method_exists($this->controller, 'create')) {
+                                    // POST /panel/organizational/create
+                                    $this->method = 'create';
+                                    $this->params = [];
+                                } else {
+                                    // Fallback a index en POST no reconocido
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            }
+                        }
+
                         // ✅ MIDDLEWARE DE PERMISOS - Verificar acceso antes de instanciar controlador
                         $currentRoute = implode('/', array_slice($url, 0, 3)); // panel/module/action
                         

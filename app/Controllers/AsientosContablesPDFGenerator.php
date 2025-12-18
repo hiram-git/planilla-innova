@@ -216,7 +216,7 @@ class AsientosContablesPDFGenerator extends PDFReportController
         $payroll = $planillaData['payroll'];
         $employees = $planillaData['employees'] ?? [];
 
-        // Crear instancia de TCPDF
+        // Crear instancia de TCPDF sin tamaño fijo (se configurará por página)
         $pdf = new TCPDF('P', 'mm', 'LETTER', true, 'UTF-8', false);
 
         // Configurar documento
@@ -235,16 +235,18 @@ class AsientosContablesPDFGenerator extends PDFReportController
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
 
-        // PÁGINA 1: Planilla Completa (Horizontal)
-        $pdf->AddPage('L'); // 'L' = Landscape (horizontal)
+        // PÁGINA 1: Planilla Completa (Extra Oficio Horizontal = Legal Landscape)
+        // Legal: 216 x 356 mm (horizontal)
+        $pdf->AddPage('L', 'LEGAL'); // 'L' = Landscape, 'LEGAL' = Extra Oficio
         $this->renderPlanillaCompletaPDF($pdf, $payroll, $employees, $companyInfo);
 
-        // PÁGINA 2: Asiento de Planilla
-        $pdf->AddPage('P'); // 'P' = Portrait (vertical)
+        // PÁGINA 2: Asiento de Planilla (Carta Vertical = Letter Portrait)
+        // Letter: 216 x 279 mm (vertical)
+        $pdf->AddPage('P', 'LETTER'); // 'P' = Portrait, 'LETTER' = Carta
         $this->renderAsientoPlanillaPDF($pdf, $payroll, $employees, $companyInfo);
 
-        // PÁGINA 3: Asiento de Cuota Patronal
-        $pdf->AddPage('P');
+        // PÁGINA 3: Asiento de Cuota Patronal (Carta Vertical = Letter Portrait)
+        $pdf->AddPage('P', 'LETTER');
         $this->renderAsientoCuotaPatronalPDF($pdf, $payroll, $employees, $companyInfo);
 
         // Nombre del archivo
@@ -533,59 +535,55 @@ class AsientosContablesPDFGenerator extends PDFReportController
         $fechaFin = date('d/m/Y', strtotime($payroll['fecha_fin']));
         $currencySymbol = $companyInfo['currency_symbol'] ?? '$';
 
-        // Configurar para orientación horizontal (la página ya fue agregada con 'L')
+        // Configurar para orientación horizontal Legal (356mm ancho)
         $pdf->SetMargins(10, 10, 10);
         $y = 10;
+        $anchoUtil = 336; // 356mm - 20mm márgenes (10+10)
 
-        // Header de la empresa
-        $pdf->SetFillColor(68, 114, 196); // Azul
-        $pdf->SetTextColor(255, 255, 255);
-        $pdf->SetFont('helvetica', 'B', 14);
-        $pdf->SetXY(10, $y);
-        $pdf->Cell(257, 8, $companyInfo['company_name'], 0, 1, 'C', true);
-        $y += 8;
-
-        // Subtítulo
-        $pdf->SetFillColor(143, 170, 220); // Azul claro
-        $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->SetXY(10, $y);
-        $titulo = 'PLANILLA DE SUELDOS - ' . strtoupper($payroll['descripcion']);
-        $pdf->MultiCell(257, 6, $titulo, 0, 'C', true, 1);
+        // Insertar logos y nombre de empresa
+        $this->insertLogosInPDF($pdf, $companyInfo);
         $y = $pdf->GetY();
 
-        // Período
-        $pdf->SetFillColor(217, 226, 243); // Azul muy claro
-        $pdf->SetFont('helvetica', 'B', 9);
-        $pdf->SetXY(10, $y);
-        $pdf->Cell(257, 5, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C', true);
-        $y += 7;
+        // Título del reporte
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->Cell($anchoUtil, 5, 'PLANILLA DE SUELDOS', 0, 1, 'C');
+        $y = $pdf->GetY();
 
-        // Headers de columnas - 19 columnas (sin Función, nombres unidos, anchos compactos)
+        // Descripción y período
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell($anchoUtil, 4, strtoupper($payroll['descripcion']), 0, 1, 'C');
+        $y = $pdf->GetY();
+
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell($anchoUtil, 4, 'Período: ' . $fechaInicio . ' al ' . $fechaFin, 0, 1, 'C');
+        $y = $pdf->GetY() + 3;
+
+        // Headers de columnas - 18 columnas (sin Función, nombres unidos) - Optimizado para Legal
+        // Total: 336mm disponibles (Legal horizontal 356mm - 20mm márgenes)
         $headers = [
-            ['width' => 18, 'label' => 'Cédula'],
-            ['width' => 40, 'label' => 'Nombre Completo'],
-            ['width' => 22, 'label' => 'Puesto'],
-            ['width' => 18, 'label' => 'Fecha Ing.'],
-            ['width' => 16, 'label' => 'Sueldo Base'],
-            ['width' => 14, 'label' => 'Forma Pago'],
-            ['width' => 12, 'label' => 'Tipo Cta.'],
-            ['width' => 20, 'label' => 'Núm. Cuenta'],
-            ['width' => 10, 'label' => 'Días Lab.'],
-            ['width' => 13, 'label' => 'Ausencias'],
-            ['width' => 13, 'label' => 'Tardanzas'],
-            ['width' => 16, 'label' => 'Tot. Ingresos'],
-            ['width' => 13, 'label' => 'Seg. Social'],
-            ['width' => 13, 'label' => 'Seg. Educ.'],
-            ['width' => 10, 'label' => 'ISR'],
-            ['width' => 14, 'label' => 'Otras Ded.'],
-            ['width' => 16, 'label' => 'Tot. Ded.'],
-            ['width' => 16, 'label' => 'Salario Neto']
+            ['width' => 15, 'label' => 'Cédula'],
+            ['width' => 50, 'label' => 'Nombre Completo'],
+            ['width' => 19, 'label' => 'Puesto'],
+            ['width' => 15, 'label' => 'Fecha Ing.'],
+            ['width' => 15, 'label' => 'Sueldo'],
+            ['width' => 18, 'label' => 'Forma Pago'],
+            ['width' => 16, 'label' => 'Tipo Cta.'],
+            ['width' => 19, 'label' => 'Núm. Cuenta'],
+            ['width' => 14, 'label' => 'Días Lab.'],
+            ['width' => 16, 'label' => 'Ausencias'],
+            ['width' => 16, 'label' => 'Tardanzas'],
+            ['width' => 19, 'label' => 'Tot. Ing.'],
+            ['width' => 16, 'label' => 'Seg. Social'],
+            ['width' => 16, 'label' => 'Seg. Educ.'],
+            ['width' => 14, 'label' => 'ISR'],
+            ['width' => 18, 'label' => 'Otras Ded.'],
+            ['width' => 19, 'label' => 'Tot. Ded.'],
+            ['width' => 19, 'label' => 'Salario Neto']
         ];
 
-        $pdf->SetFillColor(226, 239, 218); // Verde claro
+        $pdf->SetFillColor(220, 220, 220); // Gris claro (mismo color que planillaPdf)
         $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetFont('helvetica', 'B', 7);
+        $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetXY(10, $y);
 
         foreach ($headers as $header) {
@@ -625,63 +623,67 @@ class AsientosContablesPDFGenerator extends PDFReportController
 
             $pdf->SetXY(10, $y);
 
-            // Fila de datos - 18 columnas (sin Función, nombres unidos)
+            // Fila de datos - 18 columnas (optimizadas para Legal)
             $nombreCompleto = trim(($emp['firstname'] ?? '') . ' ' . ($emp['lastname'] ?? ''));
 
-            $pdf->Cell(18, 5, $emp['document_id'] ?? 'N/A', 1, 0, 'C');
-            $pdf->Cell(40, 5, substr($nombreCompleto, 0, 32), 1, 0, 'L');
-            $pdf->Cell(22, 5, substr($emp['puesto_actual'] ?? 'N/A', 0, 16), 1, 0, 'L');
-            $pdf->Cell(18, 5, !empty($emp['fecha_ingreso']) ? date('d/m/Y', strtotime($emp['fecha_ingreso'])) : 'N/A', 1, 0, 'C');
-            $pdf->Cell(16, 5, number_format($emp['salary'] ?? 0, 2), 1, 0, 'R');
-            $pdf->Cell(14, 5, substr($emp['forma_pago'] ?? 'EFECTIVO', 0, 10), 1, 0, 'C');
-            $pdf->Cell(12, 5, substr($emp['tipo_cuenta'] ?? '', 0, 8), 1, 0, 'C');
-            $pdf->Cell(20, 5, substr($emp['numero_cuenta'] ?? '', 0, 14), 1, 0, 'C');
-            $pdf->Cell(10, 5, $totales['dias_laborados'], 1, 0, 'C');
-            $pdf->Cell(13, 5, number_format($totales['ausencias'], 2), 1, 0, 'R');
-            $pdf->Cell(13, 5, number_format($totales['tardanzas'], 2), 1, 0, 'R');
-            $pdf->Cell(16, 5, number_format($totales['ingresos'], 2), 1, 0, 'R');
-            $pdf->Cell(13, 5, number_format($totales['seguro_social'], 2), 1, 0, 'R');
-            $pdf->Cell(13, 5, number_format($totales['seguro_educativo'], 2), 1, 0, 'R');
-            $pdf->Cell(10, 5, number_format($totales['impuesto_renta'], 2), 1, 0, 'R');
-            $pdf->Cell(14, 5, number_format($totales['otras_deducciones'], 2), 1, 0, 'R');
-            $pdf->Cell(16, 5, number_format($totales['deducciones'], 2), 1, 0, 'R');
-            $pdf->Cell(16, 5, number_format($totales['neto'], 2), 1, 0, 'R');
+            $pdf->Cell(15, 5, $emp['document_id'] ?? 'N/A', 1, 0, 'C');
+            $pdf->Cell(50, 5, substr($nombreCompleto, 0, 40), 1, 0, 'L');
+            $pdf->Cell(19, 5, substr($emp['puesto_actual'] ?? 'N/A', 0, 24), 1, 0, 'L');
+            $pdf->Cell(15, 5, !empty($emp['fecha_ingreso']) ? date('d/m/Y', strtotime($emp['fecha_ingreso'])) : 'N/A', 1, 0, 'C');
+            $pdf->Cell(15, 5, number_format($emp['salary'] ?? 0, 2), 1, 0, 'R');
+            $pdf->Cell(18, 5, substr($emp['forma_pago'] ?? 'EFECTIVO', 0, 12), 1, 0, 'C');
+            $pdf->Cell(16, 5, substr($emp['tipo_cuenta'] ?? '', 0, 10), 1, 0, 'C');
+            $pdf->Cell(19, 5, substr($emp['numero_cuenta'] ?? '', 0, 18), 1, 0, 'C');
+            $pdf->Cell(14, 5, $totales['dias_laborados'], 1, 0, 'C');
+            $pdf->Cell(16, 5, number_format($totales['ausencias'], 2), 1, 0, 'R');
+            $pdf->Cell(16, 5, number_format($totales['tardanzas'], 2), 1, 0, 'R');
+            $pdf->Cell(19, 5, number_format($totales['ingresos'], 2), 1, 0, 'R');
+            $pdf->Cell(16, 5, number_format($totales['seguro_social'], 2), 1, 0, 'R');
+            $pdf->Cell(16, 5, number_format($totales['seguro_educativo'], 2), 1, 0, 'R');
+            $pdf->Cell(14, 5, number_format($totales['impuesto_renta'], 2), 1, 0, 'R');
+            $pdf->Cell(18, 5, number_format($totales['otras_deducciones'], 2), 1, 0, 'R');
+            $pdf->Cell(19, 5, number_format($totales['deducciones'], 2), 1, 0, 'R');
+            $pdf->Cell(19, 5, number_format($totales['neto'], 2), 1, 0, 'R');
 
             $y += 5;
 
-            // Si se acerca al final de la página, agregar nueva página
+            // Si se acerca al final de la página, agregar nueva página Legal
             if ($y > 185) {
-                $pdf->AddPage('L');
+                $pdf->AddPage('L', 'LEGAL');
                 $y = 10;
 
                 // Repetir headers en nueva página
-                $pdf->SetFillColor(226, 239, 218);
-                $pdf->SetFont('helvetica', 'B', 7);
+                $pdf->SetFillColor(220, 220, 220);
+                $pdf->SetFont('helvetica', 'B', 8);
                 $pdf->SetXY(10, $y);
                 foreach ($headers as $header) {
                     $pdf->Cell($header['width'], 6, $header['label'], 1, 0, 'C', true);
                 }
                 $y += 6;
-                $pdf->SetFont('helvetica', '', 6);
+                $pdf->SetFont('helvetica', '', 7);
             }
         }
 
-        // Fila de totales generales
-        $pdf->SetFillColor(197, 224, 180); // Verde claro
-        $pdf->SetFont('helvetica', 'B', 7);
+        // Fila de totales generales - 18 columnas (optimizadas para Legal)
+        $pdf->SetFillColor(220, 220, 220); // Gris claro (mismo color que planillaPdf)
+        $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetXY(10, $y);
 
-        $pdf->Cell(188, 6, 'TOTALES GENERALES', 1, 0, 'R', true);
-        $pdf->Cell(12, 6, $totalesGenerales['dias_laborados'], 1, 0, 'C', true);
-        $pdf->Cell(15, 6, $currencySymbol . number_format($totalesGenerales['ausencias'], 2), 1, 0, 'R', true);
-        $pdf->Cell(15, 6, $currencySymbol . number_format($totalesGenerales['tardanzas'], 2), 1, 0, 'R', true);
-        $pdf->Cell(18, 6, $currencySymbol . number_format($totalesGenerales['ingresos'], 2), 1, 0, 'R', true);
-        $pdf->Cell(15, 6, $currencySymbol . number_format($totalesGenerales['seguro_social'], 2), 1, 0, 'R', true);
-        $pdf->Cell(15, 6, $currencySymbol . number_format($totalesGenerales['seguro_educativo'], 2), 1, 0, 'R', true);
-        $pdf->Cell(12, 6, $currencySymbol . number_format($totalesGenerales['impuesto_renta'], 2), 1, 0, 'R', true);
-        $pdf->Cell(16, 6, $currencySymbol . number_format($totalesGenerales['otras_deducciones'], 2), 1, 0, 'R', true);
-        $pdf->Cell(18, 6, $currencySymbol . number_format($totalesGenerales['deducciones'], 2), 1, 0, 'R', true);
-        $pdf->Cell(18, 6, $currencySymbol . number_format($totalesGenerales['neto'], 2), 1, 0, 'R', true);
+        // Merge: Cédula (24) + Nombre Completo (50) + Puesto (30) + Fecha Ing. (22) + Sueldo Base (20) + Forma Pago (18) + Tipo Cta. (16) + Núm. Cuenta (26) = 206
+        $pdf->Cell(167, 6, 'TOTALES GENERALES', 1, 0, 'R', true);
+        $pdf->Cell(14, 6, $totalesGenerales['dias_laborados'], 1, 0, 'C', true);
+        $pdf->Cell(16, 6, $currencySymbol . number_format($totalesGenerales['ausencias'], 2), 1, 0, 'R', true);
+        $pdf->Cell(16, 6, $currencySymbol . number_format($totalesGenerales['tardanzas'], 2), 1, 0, 'R', true);
+        $pdf->Cell(19, 6, $currencySymbol . number_format($totalesGenerales['ingresos'], 2), 1, 0, 'R', true);
+        $pdf->Cell(16, 6, $currencySymbol . number_format($totalesGenerales['seguro_social'], 2), 1, 0, 'R', true);
+        $pdf->Cell(16, 6, $currencySymbol . number_format($totalesGenerales['seguro_educativo'], 2), 1, 0, 'R', true);
+        $pdf->Cell(14, 6, $currencySymbol . number_format($totalesGenerales['impuesto_renta'], 2), 1, 0, 'R', true);
+        $pdf->Cell(18, 6, $currencySymbol . number_format($totalesGenerales['otras_deducciones'], 2), 1, 0, 'R', true);
+        $pdf->Cell(19, 6, $currencySymbol . number_format($totalesGenerales['deducciones'], 2), 1, 0, 'R', true);
+        $pdf->Cell(19, 6, $currencySymbol . number_format($totalesGenerales['neto'], 2), 1, 0, 'R', true);
+
+        // Agregar firmas de responsables
+        $this->addSignatures($pdf, $companyInfo);
 
         // Restaurar márgenes normales para páginas siguientes
         $pdf->SetMargins(15, 15, 15);
@@ -755,5 +757,165 @@ class AsientosContablesPDFGenerator extends PDFReportController
             'ausencias' => $ausencias,
             'tardanzas' => $tardanzas
         ];
+    }
+
+    /**
+     * Insertar logos en el PDF alineados con el título
+     * Reutilizado de PDFReportController
+     */
+    protected function insertLogosInPDF($pdf, $companyInfo)
+    {
+        $logoPath = __DIR__ . '/../../images/logos/';
+        $logoHeight = 10;
+        $pageWidth = $pdf->getPageWidth();
+        $margin = 10;
+
+        $currentY = $pdf->GetY();
+
+        // Logo izquierdo
+        if (!empty($companyInfo['logo_izquierdo_reportes'])) {
+            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
+            if (file_exists($leftLogoPath)) {
+                $leftLogoWidth = 20;
+                try {
+                    $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo izquierdo: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo derecho
+        if (!empty($companyInfo['logo_derecho_reportes'])) {
+            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
+            if (file_exists($rightLogoPath)) {
+                $rightLogoWidth = 30;
+                $rightX = $pageWidth - $margin - $rightLogoWidth;
+                try {
+                    $pdf->Image($rightLogoPath, $rightX, $currentY, $rightLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo derecho: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo principal (centro) - solo si no hay logos laterales
+        if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
+            $mainLogoPath = $logoPath . $companyInfo['logo_empresa'];
+            if (file_exists($mainLogoPath)) {
+                $mainLogoWidth = 40;
+                $centerX = ($pageWidth - $mainLogoWidth) / 2;
+                $pdf->Image($mainLogoPath, $centerX, $currentY, $mainLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+            }
+        }
+
+        // Nombre de la empresa centrado a la misma altura de los logos
+        if (!empty($companyInfo['company_name'])) {
+            $currentFont = $pdf->getFontFamily();
+            $currentSize = $pdf->getFontSizePt();
+
+            $pdf->SetFont('helvetica', 'B', 16);
+            $companyNameWidth = $pdf->GetStringWidth($companyInfo['company_name']);
+            $centerX = ($pageWidth - $companyNameWidth) / 2;
+            $textY = $currentY + ($logoHeight / 2) - ($pdf->getFontSizePt() / 2) + 1;
+
+            $pdf->SetXY($centerX, $textY);
+            $pdf->Cell($companyNameWidth, 0, $companyInfo['company_name'], 0, 0, 'C');
+
+            $pdf->SetFont($currentFont, '', $currentSize);
+        }
+
+        // Reservar espacio después de los logos
+        if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
+            $pdf->SetY(20);
+        }
+    }
+
+    /**
+     * Agregar firmas de responsables del reporte
+     * Reutilizado de PDFReportController con ajustes para Legal landscape
+     */
+    protected function addSignatures($pdf, $companyInfo)
+    {
+        $pdf->Ln(8);
+
+        // Determinar qué firmas mostrar
+        $firmas = [];
+
+        $firmas[] = [
+            'nombre' => $companyInfo['elaborado_por'],
+            'cargo' => $companyInfo['cargo_elaborador']
+        ];
+
+        $firmas[] = [
+            'nombre' => $companyInfo['jefe_recursos_humanos'],
+            'cargo' => $companyInfo['cargo_jefe_rrhh']
+        ];
+
+        // Firma director solo si tiene contenido
+        if (!empty($companyInfo['firma_director_planilla']) && trim($companyInfo['firma_director_planilla']) !== '') {
+            $firmas[] = [
+                'nombre' => $companyInfo['firma_director_planilla'],
+                'cargo' => $companyInfo['cargo_director_planilla']
+            ];
+        }
+
+        $numFirmas = count($firmas);
+        $colWidth = $numFirmas > 0 ? (316 / $numFirmas) : 105; // Ajustado para Legal landscape (336mm - 20mm)
+        $sigHeight = 15;
+
+        // Primera fila de firmas
+        $pdf->SetFont('helvetica', '', 9);
+
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, $sigHeight, '', 'B', ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, $sigHeight, '', 0, 0, 'C');
+            }
+        }
+
+        // Nombres bajo las líneas de firma
+        $pdf->SetFont('helvetica', 'B', 8);
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, 6, strtoupper($firmas[$i]['nombre']), 0, ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, 6, '', 0, 0, 'C');
+            }
+        }
+
+        // Cargos bajo los nombres
+        $pdf->SetFont('helvetica', '', 7);
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, 5, $firmas[$i]['cargo'], 0, ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, 5, '', 0, 0, 'C');
+            }
+        }
+
+        $pdf->Ln(5);
+
+        // Segunda fila para firma del contador si existe
+        if (!empty($companyInfo['firma_contador_planilla']) && trim($companyInfo['firma_contador_planilla']) !== '') {
+            $pdf->SetFont('helvetica', '', 9);
+
+            // Centrar la firma del contador
+            $pdf->Cell(115, $sigHeight, '', 0, 0, 'C');
+            $pdf->Cell($colWidth, $sigHeight, '', 'B', 1, 'C');
+
+            // Nombre del contador
+            $pdf->SetFont('helvetica', 'B', 8);
+            $pdf->Cell(115, 6, '', 0, 0, 'C');
+            $pdf->Cell($colWidth, 6, strtoupper($companyInfo['firma_contador_planilla']), 0, 1, 'C');
+
+            // Cargo del contador
+            $pdf->SetFont('helvetica', '', 7);
+            $pdf->Cell(115, 5, '', 0, 0, 'C');
+            $pdf->Cell($colWidth, 5, $companyInfo['cargo_contador_planilla'], 0, 1, 'C');
+        }
+
+        // Información adicional al final
+        $pdf->Ln(3);
+        $pdf->SetFont('helvetica', '', 7);
+        $pdf->Cell(0, 4, 'Fecha de Generación: ' . date('d/m/Y H:i:s'), 0, 1, 'R');
     }
 }

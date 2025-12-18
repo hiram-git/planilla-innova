@@ -188,7 +188,41 @@ $content .= '
                     </div>
                 </div>
 
-                <!-- Card de Cargos Asociados -->
+                <!-- Card de Asociar Cargos -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-link mr-2"></i>
+                            Asociar Cargos al Departamento
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="cargos-multiselect">
+                                <i class="fas fa-user-tie mr-1"></i>
+                                Seleccione los cargos para este departamento
+                            </label>
+                            <select id="cargos-multiselect"
+                                    class="form-control select2"
+                                    multiple="multiple"
+                                    style="width: 100%;">
+                                <option value="">Cargando cargos...</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Puede seleccionar múltiples cargos usando Ctrl+Click o Cmd+Click
+                            </small>
+                        </div>
+
+                        <button type="button"
+                                id="btn-save-cargos"
+                                class="btn btn-success btn-block">
+                            <i class="fas fa-save mr-2"></i>
+                            Guardar Asociaciones
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card de Cargos Asociados (Vista) -->
                 <div class="card mt-3">
                     <div class="card-header">
                         <h3 class="card-title">
@@ -206,6 +240,29 @@ $content .= '
                             <div class="text-center">
                                 <i class="fas fa-spinner fa-spin fa-2x"></i>
                                 <p class="mt-2">Cargando cargos...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Funciones Asociadas (Vista) -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-clipboard-list mr-2"></i>
+                            Funciones del Departamento
+                        </h3>
+                        <div class="card-tools">
+                            <span class="badge badge-primary" id="funciones-count">
+                                Cargando...
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="funciones-list-container">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Cargando funciones...</p>
                             </div>
                         </div>
                     </div>
@@ -267,7 +324,7 @@ foreach ($elementsFlat as $flatElement) {
 // JavaScript externo con configuración
 $scriptFiles = [
     '/plugins/select2/js/select2.full.min.js',
-    '/assets/javascript/modules/organizational/edit.js'
+    '/assets/javascript/modules/organizational/edit.js?v=' . time()
 ];
 
 $jsConfig = JavaScriptHelper::renderConfigScript([
@@ -278,7 +335,7 @@ $jsConfig = JavaScriptHelper::renderConfigScript([
 
 $scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
 
-// Agregar script para notificaciones toastr y cargar datos de departamento
+// Agregar script para notificaciones toastr
 $additionalScripts = '<script type="text/javascript">
 $(document).ready(function() {';
 
@@ -295,67 +352,6 @@ if (isset($_SESSION['error'])) {
 }
 
 $additionalScripts .= '
-
-    // Cargar datos del departamento
-    var departamentoId = ' . ($element['id'] ?? 0) . ';
-    console.log("[ORG] Loading department data for ID:", departamentoId);
-
-    if (departamentoId > 0) {
-        // Cargar cargos
-        $.ajax({
-            url: "' . \App\Core\UrlHelper::url('panel/organizational/getCargosByDepartamento') . '/" + departamentoId,
-            method: "GET",
-            dataType: "json",
-            success: function(response) {
-                console.log("[ORG] Cargos response:", response);
-                if (response.success && response.cargos && response.cargos.length > 0) {
-                    var html = "<div class=\"table-responsive\"><table class=\"table table-striped table-hover\">";
-                    html += "<thead><tr>";
-                    html += "<th style=\"width: 20%\">Código</th>";
-                    html += "<th style=\"width: 50%\">Nombre</th>";
-                    html += "<th style=\"width: 15%\" class=\"text-center\">Estado</th>";
-                    html += "<th style=\"width: 15%\" class=\"text-center\">Acciones</th>";
-                    html += "</tr></thead><tbody>";
-
-                    response.cargos.forEach(function(cargo) {
-                        var statusBadge = cargo.activo == 1
-                            ? "<span class=\"badge badge-success\">Activo</span>"
-                            : "<span class=\"badge badge-secondary\">Inactivo</span>";
-
-                        html += "<tr>";
-                        html += "<td><strong>" + cargo.codigo + "</strong></td>";
-                        html += "<td>" + cargo.nombre + "</td>";
-                        html += "<td class=\"text-center\">" + statusBadge + "</td>";
-                        html += "<td class=\"text-center\">";
-                        html += "<a href=\"' . \App\Core\UrlHelper::url('panel/cargos/edit') . '/" + cargo.id + "\" class=\"btn btn-sm btn-primary\" title=\"Editar cargo\">";
-                        html += "<i class=\"fas fa-edit\"></i>";
-                        html += "</a>";
-                        html += "</td>";
-                        html += "</tr>";
-                    });
-
-                    html += "</tbody></table></div>";
-                    $("#cargos-list-container").html(html);
-                    $("#cargos-count").text(response.cargos.length + " cargo" + (response.cargos.length !== 1 ? "s" : ""));
-                } else {
-                    $("#cargos-list-container").html("<div class=\"alert alert-info\"><i class=\"fas fa-info-circle mr-2\"></i>No hay cargos asociados a este departamento.</div>");
-                    $("#cargos-count").text("0 cargos").removeClass("badge-primary").addClass("badge-secondary");
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("[ORG] Error loading cargos:", error, xhr, status);
-                $("#cargos-list-container").html("<div class=\"alert alert-danger\"><i class=\"fas fa-exclamation-triangle mr-2\"></i>Error al cargar los cargos.</div>");
-                $("#cargos-count").text("Error").removeClass("badge-primary").addClass("badge-danger");
-            }
-        });
-
-        // Mostrar información de empleados
-        $("#employees-list-container").html("<div class=\"callout callout-info\">" +
-            "<h6><i class=\"fas fa-info-circle mr-2\"></i>Información de Empleados</h6>" +
-            "<p class=\"mb-0\">Para ver los empleados de este departamento, visite el módulo de <a href=\"' . \App\Core\UrlHelper::url('panel/employees') . '\">Gestión de Empleados</a> y filtre por departamento.</p>" +
-            "</div>");
-        $("#employees-count").text("Ver módulo").removeClass("badge-info").addClass("badge-secondary");
-    }
 });
 </script>';
 
