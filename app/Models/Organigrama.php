@@ -256,4 +256,97 @@ class Organigrama extends Model
 
         return $tree;
     }
+
+    /**
+     * Obtener estructura organizacional completa en formato de árbol
+     * Incluye departamentos, cargos y empleados
+     */
+    public function getOrganizationalTree()
+    {
+        // Obtener todos los departamentos ordenados por path
+        $sql = "SELECT o.*,
+                       (SELECT COUNT(*) FROM organigrama WHERE id_padre = o.id) as hijos_count,
+                       (SELECT COUNT(*) FROM employees WHERE departamento_id = o.id) as empleados_count,
+                       (SELECT COUNT(*) FROM cargos WHERE departamento_id = o.id AND activo = 1) as cargos_count
+                FROM organigrama o
+                ORDER BY o.path ASC";
+
+        $departamentos = $this->db->findAll($sql);
+
+        // Construir estructura de árbol recursiva
+        $tree = $this->buildTree($departamentos);
+
+        return $tree;
+    }
+
+    /**
+     * Construir árbol recursivo de departamentos
+     */
+    private function buildTree($departamentos, $parentId = null)
+    {
+        $branch = [];
+
+        foreach ($departamentos as $dept) {
+            if ($dept['id_padre'] == $parentId) {
+                // Obtener empleados del departamento
+                $empleados = $this->getEmpleadosWithDetails($dept['id']);
+
+                // Obtener cargos del departamento
+                $cargos = $this->getCargosWithCount($dept['id']);
+
+                // Agregar información adicional
+                $dept['empleados'] = $empleados;
+                $dept['cargos'] = $cargos;
+
+                // Construir hijos recursivamente
+                $children = $this->buildTree($departamentos, $dept['id']);
+                if (!empty($children)) {
+                    $dept['children'] = $children;
+                }
+
+                $branch[] = $dept;
+            }
+        }
+
+        return $branch;
+    }
+
+    /**
+     * Obtener empleados de un departamento con detalles completos
+     */
+    private function getEmpleadosWithDetails($departamentoId)
+    {
+        $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname,
+                       CONCAT(e.firstname, ' ', e.lastname) as full_name,
+                       c.nombre as cargo_nombre,
+                       c.codigo as cargo_codigo,
+                       f.nombre as funcion_nombre,
+                       s.descripcion as situacion,
+                       e.fecha_ingreso,
+                       e.sueldo_individual
+                FROM employees e
+                LEFT JOIN cargos c ON e.cargo_id = c.id
+                LEFT JOIN funciones f ON e.funcion_id = f.id
+                LEFT JOIN situaciones s ON e.situacion_id = s.id
+                WHERE e.departamento_id = ?
+                ORDER BY c.nombre, e.lastname, e.firstname";
+
+        return $this->db->findAll($sql, [$departamentoId]);
+    }
+
+    /**
+     * Obtener cargos de un departamento con conteo de empleados
+     */
+    private function getCargosWithCount($departamentoId)
+    {
+        $sql = "SELECT c.*,
+                       COUNT(e.id) as empleados_count
+                FROM cargos c
+                LEFT JOIN employees e ON c.id = e.cargo_id
+                WHERE c.departamento_id = ? AND c.activo = 1
+                GROUP BY c.id
+                ORDER BY c.nombre ASC";
+
+        return $this->db->findAll($sql, [$departamentoId]);
+    }
 }
