@@ -425,7 +425,7 @@ $content .= '                </select>
                                         <span class="input-group-text">' . currency_symbol() . '/h</span>
                                     </div>
                                     <input type="number" class="form-control" id="edit_tarifa_hora" name="edit_tarifa_hora"
-                                           step="0.01" min="0" placeholder="0.00"
+                                           step="0.0001" min="0" placeholder="0.0000"
                                            value="' . ($_SESSION['old_data']['edit_tarifa_hora'] ?? ($employee['tarifa_hora'] ?? '')) . '">
                                     <div class="input-group-append">
                                         <button type="button" class="btn btn-outline-secondary" id="btn_calc_tarifa_edit" title="Calcular automáticamente">
@@ -546,42 +546,21 @@ $content .= '                </select>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_photo">Foto del Empleado</label>
-                                <input type="file" class="form-control-file" id="edit_photo" name="edit_photo" accept="image/*">
-                                <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</small>';
+                    <div class="form-group">
+                        <label for="edit_photo">Foto del Empleado</label>
+                        <input type="file" class="form-control-file" id="edit_photo" name="edit_photo" accept="image/*">
+                        <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</small>';
 
 if (!empty($employee['photo'])) {
     $photoUrl = url('images/' . $employee['photo'], false);
     $content .= '<div class="mt-2">
-                                    <img src="' . $photoUrl . '" alt="Foto actual" 
-                                         style="max-width: 150px; max-height: 150px;" class="img-thumbnail">
-                                    <p class="text-muted small">Foto actual</p>
-                                </div>';
+                            <img src="' . $photoUrl . '" alt="Foto actual"
+                                 style="max-width: 150px; max-height: 150px;" class="img-thumbnail">
+                            <p class="text-muted small">Foto actual</p>
+                        </div>';
 }
 
-$content .= '            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_departamento_id">Departamento *</label>
-                                <select class="form-control" id="edit_departamento_id" name="edit_departamento_id" required>
-                                    <option value="">Seleccionar departamento...</option>';
-
-foreach ($organigrama_elementos as $elemento) {
-    $selected = ($_SESSION['old_data']['edit_departamento_id'] ?? ($employee['departamento_id'] ?? '')) == $elemento['id'] ? ' selected' : '';
-    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', substr_count($elemento['path'] ?? '', '/'));
-    $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . $indent . htmlspecialchars($elemento['descripcion']) . '</option>';
-}
-
-$content .= '                        </select>
-                                    <small class="form-text text-muted">Departamento al que pertenece el empleado</small>
-                                    ' . (isset($_SESSION['errors']['edit_departamento_id']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_departamento_id'] . '</small>' : '') . '
-                            </div>
-                        </div>
-                    </div>
+$content .= '    </div>
                 </div>
 
                 <div class="card-footer">
@@ -795,7 +774,7 @@ if (typeof $ !== "undefined") {
             var sueldo = parseFloat($("#edit_sueldo_individual").val()) || 0;
             if (sueldo > 0) {
                 // Fórmula: Sueldo ÷ 26 días ÷ 8 horas = Sueldo ÷ 208
-                var tarifaHora = (sueldo / 26 / 8).toFixed(2);
+                var tarifaHora = (sueldo / 26 / 8).toFixed(4);
                 $("#edit_tarifa_hora").val(tarifaHora);
                 return tarifaHora;
             }
