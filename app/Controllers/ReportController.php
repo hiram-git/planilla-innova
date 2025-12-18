@@ -2203,13 +2203,35 @@ class ReportController extends Controller
 
     /**
      * Generar Asientos Contables - Asiento de Planilla y Cuota Patronal
-     * Con información bancaria de empleados
+     * Con información bancaria de empleados (Excel con 3 hojas)
      */
     public function asientosContables($payrollId)
     {
-        // Delegar al generador especializado de asientos contables
+        // Delegar al generador especializado de asientos contables Excel
         $contableGenerator = new \App\Controllers\PlanillaContableExcelGenerator();
         $contableGenerator->generateContableExcel($payrollId);
+    }
+
+    /**
+     * Generar PDF de Asientos Contables - Asiento de Planilla y Cuota Patronal
+     * Delega a clase especializada para mantener ReportController limpio
+     */
+    public function asientosContablesPdf($payrollId)
+    {
+        // Delegar al generador especializado de asientos contables PDF
+        $pdfGenerator = new \App\Controllers\AsientosContablesPDFGenerator();
+        $pdfGenerator->generateAsientosContablesPDF($payrollId);
+    }
+
+    /**
+     * Generar Excel de Asientos Contables - Asiento de Planilla y Cuota Patronal
+     * Delega a clase especializada para mantener ReportController limpio
+     */
+    public function asientosContablesExcel($payrollId)
+    {
+        // Delegar al generador especializado de asientos contables Excel
+        $excelGenerator = new \App\Controllers\AsientosContablesExcelGenerator();
+        $excelGenerator->generateAsientosContablesExcel($payrollId);
     }
 
     /**

@@ -10,13 +10,28 @@
 SELECT 'Estado actual de tabla organigrama:' as info;
 DESCRIBE organigrama;
 
--- PASO 2: Verificar que los campos legacy están vacíos
-SELECT 'PASO 2: Verificando datos en campos legacy...' as info;
+-- PASO 2: Verificar que los campos legacy están vacíos (solo si existen)
+SELECT 'PASO 2: Verificando existencia de campos legacy...' as info;
+
+SET @column_cargo_exists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'organigrama'
+      AND COLUMN_NAME = 'cargo_id'
+      AND TABLE_SCHEMA = DATABASE()
+);
+
+SET @column_funcion_exists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'organigrama'
+      AND COLUMN_NAME = 'funcion_id'
+      AND TABLE_SCHEMA = DATABASE()
+);
+
 SELECT
-    COUNT(*) as total_registros,
-    SUM(CASE WHEN cargo_id IS NOT NULL THEN 1 ELSE 0 END) as con_cargo_id,
-    SUM(CASE WHEN funcion_id IS NOT NULL THEN 1 ELSE 0 END) as con_funcion_id
-FROM organigrama;
+    @column_cargo_exists as cargo_id_existe,
+    @column_funcion_exists as funcion_id_existe;
 
 -- PASO 3: Verificar foreign keys existentes
 SELECT 'PASO 3: Verificando Foreign Keys actuales...' as info;
@@ -74,19 +89,58 @@ PREPARE stmt FROM @sql_drop_fk_funcion;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- PASO 6: Eliminar columna cargo_id
+-- PASO 6: Eliminar columna cargo_id (solo si existe)
 SELECT 'PASO 6: Eliminando columna cargo_id...' as info;
-ALTER TABLE organigrama DROP COLUMN cargo_id;
 
--- PASO 7: Eliminar columna funcion_id
+SET @sql_drop_cargo_column = IF(@column_cargo_exists > 0,
+    'ALTER TABLE organigrama DROP COLUMN cargo_id',
+    'SELECT "Columna cargo_id no existe, skip" as info'
+);
+
+PREPARE stmt FROM @sql_drop_cargo_column;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- PASO 7: Eliminar columna funcion_id (solo si existe)
 SELECT 'PASO 7: Eliminando columna funcion_id...' as info;
-ALTER TABLE organigrama DROP COLUMN funcion_id;
+
+SET @sql_drop_funcion_column = IF(@column_funcion_exists > 0,
+    'ALTER TABLE organigrama DROP COLUMN funcion_id',
+    'SELECT "Columna funcion_id no existe, skip" as info'
+);
+
+PREPARE stmt FROM @sql_drop_funcion_column;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- PASO 8: Renombrar 'nivel' a 'nivel_jerarquico' para mayor claridad
 SELECT 'PASO 8: Renombrando columna nivel a nivel_jerarquico...' as info;
-ALTER TABLE organigrama
-CHANGE COLUMN nivel nivel_jerarquico INT DEFAULT 0
-COMMENT 'Nivel en la jerarquía organizacional (0=raíz)';
+
+SET @column_nivel_exists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'organigrama'
+      AND COLUMN_NAME = 'nivel'
+      AND TABLE_SCHEMA = DATABASE()
+);
+
+SET @column_nivel_jerarquico_exists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'organigrama'
+      AND COLUMN_NAME = 'nivel_jerarquico'
+      AND TABLE_SCHEMA = DATABASE()
+);
+
+-- Solo renombrar si existe 'nivel' y no existe 'nivel_jerarquico'
+SET @sql_rename_nivel = IF(@column_nivel_exists > 0 AND @column_nivel_jerarquico_exists = 0,
+    'ALTER TABLE organigrama CHANGE COLUMN nivel nivel_jerarquico INT DEFAULT 0 COMMENT ''Nivel en la jerarquía organizacional (0=raíz)''',
+    'SELECT "Columna ya renombrada o no existe nivel, skip" as info'
+);
+
+PREPARE stmt FROM @sql_rename_nivel;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- PASO 9: Actualizar comentario de tabla
 SELECT 'PASO 9: Actualizando comentario de tabla...' as info;

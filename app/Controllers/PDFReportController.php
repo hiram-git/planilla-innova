@@ -280,7 +280,7 @@ class PDFReportController extends Controller
     /**
      * Generar el documento PDF de la planilla
      */
-    private function generatePDFReport($planillaData, $companyInfo)
+    protected function generatePDFReport($planillaData, $companyInfo)
     {
         $payroll = $planillaData['payroll'];
         $employees = $planillaData['employees'] ?? [];
@@ -321,7 +321,7 @@ class PDFReportController extends Controller
     /**
      * Agregar header del PDF con logos alineados al título
      */
-    private function addPDFHeader($pdf, $companyInfo, $payroll)
+    protected function addPDFHeader($pdf, $companyInfo, $payroll)
     {
         // Insertar logos y nombre de empresa centrado
         $this->insertLogosInPDF($pdf, $companyInfo);
@@ -363,7 +363,7 @@ class PDFReportController extends Controller
     /**
      * Agregar tabla de empleados
      */
-    private function addEmployeeTable($pdf, $employees)
+    protected function addEmployeeTable($pdf, $employees)
     {
         // Anchos de columna para orientación horizontal
         $colWidths = [70, 20, 20, 20, 30, 20, 20, 20, 20, 20];
@@ -432,7 +432,7 @@ class PDFReportController extends Controller
     /**
      * Agregar firmas de responsables del reporte
      */
-    private function addSignatures($pdf, $companyInfo)
+    protected function addSignatures($pdf, $companyInfo)
     {
         $pdf->Ln(8); // Espacio reducido antes de firmas
 
@@ -522,7 +522,7 @@ class PDFReportController extends Controller
     /**
      * Generar PDF del comprobante de pago individual
      */
-    private function generatePaySlipPDFDocument($data)
+    protected function generatePaySlipPDFDocument($data)
     {
         $pdf = new TCPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
@@ -648,7 +648,7 @@ class PDFReportController extends Controller
     /**
      * Obtener datos de la planilla para reportes
      */
-    private function getPayrollReportData($payrollId)
+    protected function getPayrollReportData($payrollId)
     {
         try {
             $reportModel = $this->model('Report');
@@ -822,7 +822,7 @@ class PDFReportController extends Controller
     /**
      * Obtener información de la empresa
      */
-    private function getCompanyInfo()
+    protected function getCompanyInfo()
     {
         try {
             $reportModel = $this->model('Report');
@@ -894,7 +894,7 @@ class PDFReportController extends Controller
     /**
      * Insertar logos en el PDF alineados con el título y triple ancho
      */
-    private function insertLogosInPDF($pdf, $companyInfo)
+    protected function insertLogosInPDF($pdf, $companyInfo)
     {
         $logoPath = __DIR__ . '/../../images/logos/';
         $logoHeight = 10; // Altura aumentada para mejor proporción
@@ -979,7 +979,7 @@ class PDFReportController extends Controller
     /**
      * Verificar permisos
      */
-    private function checkPermission($permission)
+    protected function checkPermission($permission)
     {
         // Preferir el sistema de permisos unificado
         try {
