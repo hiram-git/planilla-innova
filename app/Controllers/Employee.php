@@ -248,6 +248,17 @@ class Employee extends Controller
             $this->redirect(\App\Core\UrlHelper::employee());
         }
 
+        // ✅ CORREGIR: Si el empleado NO tiene departamento_id pero SÍ tiene cargo_id,
+        // obtener el departamento desde el cargo
+        if (empty($employeeData['departamento_id']) && !empty($employeeData['cargo_id'])) {
+            $cargoModel = $this->model('Cargo');
+            $cargoData = $cargoModel->find($employeeData['cargo_id']);
+            if ($cargoData && !empty($cargoData['departamento_id'])) {
+                $employeeData['departamento_id'] = $cargoData['departamento_id'];
+                error_log("[Employee::edit] Departamento obtenido desde cargo {$employeeData['cargo_id']}: {$cargoData['departamento_id']}");
+            }
+        }
+
         // Obtener salarios existentes del empleado
         $existingSalaries = $employeePayrollSalary->getAllSalariesForEmployee($id);
         $salariesByType = [];
@@ -370,6 +381,10 @@ class Employee extends Controller
                 'fecha_vencimiento_contrato' => !empty(trim($data['edit_fecha_vencimiento_contrato'] ?? '')) ? trim($data['edit_fecha_vencimiento_contrato']) : null,
                 'numero_contrato' => !empty($data['edit_numero_contrato']) ? $data['edit_numero_contrato'] : null
             ];
+
+            // Log para debug
+            error_log("[Employee::update] Llamando a db->update() en tabla 'employees' para ID {$id}");
+            error_log("[Employee::update] Datos a actualizar: " . print_r($updateData, true));
 
             $employee->update($id, $updateData);
 

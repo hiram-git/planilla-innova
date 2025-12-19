@@ -187,6 +187,9 @@ $(document).ready(function() {
             // Obtener departamento seleccionado del empleado
             var selectedDepartamentoId = $('#edit_departamento_id_private').val() || null;
 
+            // Inicializar contador para detectar carga inicial vs cambios posteriores
+            let isInitialLoad = true;
+
             departamentosJerarquicos = new window.DepartamentosJerarquicos('edit-departamentos-jerarquicos-container', {
                 fieldName: 'edit_departamento_id',
                 selectedDepartamentoId: selectedDepartamentoId,
@@ -194,15 +197,32 @@ $(document).ready(function() {
                 showLabels: true,
                 labelText: 'Departamento',
                 onSelectionChange: function(data) {
-                    console.log('[Edit] Departamento seleccionado:', data);
+                    console.log('[Edit] Departamento seleccionado:', data, 'isInitialLoad:', isInitialLoad);
 
                     // Cuando cambia el departamento, cargar cargos correspondientes
                     if (data.value) {
-                        loadCargosByDepartamento(data.value);
+                        // En la carga inicial, preservar valores pre-seleccionados
+                        if (isInitialLoad) {
+                            const cargoIdPreSelected = window.APP_CONFIG?.old_data?.edit_cargo_id || null;
+                            const funcionIdPreSelected = window.APP_CONFIG?.old_data?.edit_funcion_id || null;
+
+                            console.log('[Edit] Initial load - preserving values:', {
+                                cargo: cargoIdPreSelected,
+                                funcion: funcionIdPreSelected
+                            });
+
+                            loadCargosByDepartamento(data.value, cargoIdPreSelected);
+                            isInitialLoad = false; // Marcar que ya no es carga inicial
+                        } else {
+                            // Cambio manual del usuario - resetear selecciones
+                            console.log('[Edit] User changed departamento - resetting cargo/funcion');
+                            loadCargosByDepartamento(data.value);
+                        }
                     } else {
                         // Resetear cargos y funciones
                         $('#edit_cargo_id').html('<option value="">Primero seleccione un departamento...</option>').prop('disabled', true);
                         $('#edit_funcion_id').html('<option value="">Primero seleccione un cargo...</option>').prop('disabled', true);
+                        isInitialLoad = false;
                     }
                 }
             });
@@ -221,10 +241,16 @@ $(document).ready(function() {
      * Cargar cargos según departamento seleccionado
      */
     function loadCargosByDepartamento(departamentoId, selectedCargoId = null) {
+        console.log('[loadCargosByDepartamento] Called with:', { departamentoId, selectedCargoId });
+
         const $cargoSelect = $("#edit_cargo_id");
         const $funcionSelect = $("#edit_funcion_id");
 
+        console.log('[loadCargosByDepartamento] Cargo select found:', $cargoSelect.length > 0);
+        console.log('[loadCargosByDepartamento] Funcion select found:', $funcionSelect.length > 0);
+
         if (!departamentoId) {
+            console.log('[loadCargosByDepartamento] No departamento ID provided, resetting selects');
             // Resetear ambos selects
             $cargoSelect.html('<option value="">Primero seleccione un departamento...</option>').prop('disabled', true);
             $funcionSelect.html('<option value="">Primero seleccione un cargo...</option>').prop('disabled', true);
@@ -239,33 +265,45 @@ $(document).ready(function() {
         const baseUrl = window.APP_CONFIG?.urls?.organizationalApi || '/panel/organizational';
         const url = `${baseUrl}/getCargosByDepartamento/${departamentoId}`;
 
+        console.log('[loadCargosByDepartamento] Making AJAX request to:', url);
+
         // AJAX request
         $.ajax({
             url: url,
             method: 'GET',
             dataType: 'json',
             success: function(response) {
+                console.log('[loadCargosByDepartamento] AJAX Success:', response);
+
                 if (response.success && response.cargos) {
+                    console.log('[loadCargosByDepartamento] Found', response.cargos.length, 'cargos');
                     let options = '<option value="">Seleccionar cargo...</option>';
 
                     response.cargos.forEach(function(cargo) {
                         const selected = (selectedCargoId && cargo.id == selectedCargoId) ? ' selected' : '';
                         options += `<option value="${cargo.id}"${selected}>${cargo.codigo} - ${cargo.nombre}</option>`;
+                        console.log('[loadCargosByDepartamento] Added cargo option:', cargo.codigo, selected ? '(SELECTED)' : '');
                     });
 
                     $cargoSelect.html(options).prop('disabled', false);
+                    console.log('[loadCargosByDepartamento] Cargo select populated and enabled');
 
                     // Si hay un cargo seleccionado, cargar sus funciones
                     if (selectedCargoId) {
-                        loadFuncionesByCargo(selectedCargoId);
+                        console.log('[loadCargosByDepartamento] Loading funciones for selected cargo:', selectedCargoId);
+                        // ✅ CORREGIDO: Pasar funcion_id pre-seleccionada si está disponible
+                        const funcionIdPreSelected = window.APP_CONFIG?.old_data?.edit_funcion_id || null;
+                        loadFuncionesByCargo(selectedCargoId, funcionIdPreSelected);
                     }
                 } else {
+                    console.warn('[loadCargosByDepartamento] No cargos found or unsuccessful response');
                     $cargoSelect.html('<option value="">No hay cargos en este departamento</option>').prop('disabled', true);
                     toastr.warning('No se encontraron cargos para este departamento', 'Advertencia');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error loading cargos:', error);
+                console.error('[loadCargosByDepartamento] AJAX Error:', { xhr, status, error });
+                console.error('[loadCargosByDepartamento] Response text:', xhr.responseText);
                 $cargoSelect.html('<option value="">Error al cargar cargos</option>').prop('disabled', true);
                 toastr.error('Error al cargar los cargos del departamento', 'Error');
             }
@@ -336,6 +374,9 @@ $(document).ready(function() {
 
     /**
      * Cargar cargos y funciones si hay valores pre-seleccionados (para edición)
+     *
+     * NOTA: Si hay sistema jerárquico, este se encarga automáticamente de la carga inicial
+     * mediante el callback onSelectionChange con isInitialLoad=true
      */
     const departamentoIdSelected = $('#edit_departamento_id_private').val();
 
@@ -343,15 +384,27 @@ $(document).ready(function() {
     const cargoIdSelected = window.APP_CONFIG?.old_data?.edit_cargo_id || null;
     const funcionIdSelected = window.APP_CONFIG?.old_data?.edit_funcion_id || null;
 
-    // Si hay departamento seleccionado, cargar cargos y funciones
-    if (departamentoIdSelected && !departamentosJerarquicos) {
-        // Solo cargar si no hay sistema jerárquico (fallback legacy)
-        loadCargosByDepartamento(departamentoIdSelected, cargoIdSelected);
-    }
+    console.log('[Edit] Initial values:', {
+        departamentoIdSelected,
+        cargoIdSelected,
+        funcionIdSelected,
+        hasDepartamentosJerarquicos: !!departamentosJerarquicos
+    });
 
-    // Si hay cargo seleccionado pero no departamento (caso de error), cargar funciones genéricas
-    if (cargoIdSelected && !departamentoIdSelected) {
-        loadFuncionesByCargo(cargoIdSelected, funcionIdSelected);
+    // Solo cargar manualmente si NO hay sistema jerárquico (fallback legacy)
+    if (!departamentosJerarquicos) {
+        if (departamentoIdSelected) {
+            console.log('[Edit] No hierarchical system - loading cargos manually for departamento:', departamentoIdSelected);
+            loadCargosByDepartamento(departamentoIdSelected, cargoIdSelected);
+        }
+
+        // Si hay cargo seleccionado pero no departamento (caso de error), cargar funciones genéricas
+        if (cargoIdSelected && !departamentoIdSelected) {
+            console.log('[Edit] Loading funciones for cargo without departamento:', cargoIdSelected);
+            loadFuncionesByCargo(cargoIdSelected, funcionIdSelected);
+        }
+    } else {
+        console.log('[Edit] Hierarchical system active - onSelectionChange will handle cargo loading');
     }
 
     console.log('Employees Edit Module Loaded Successfully');
