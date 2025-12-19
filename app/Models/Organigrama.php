@@ -53,6 +53,70 @@ class Organigrama extends Model
     }
 
     /**
+     * Obtener elementos raíz (sin padre) - Alias para selectores jer select2
+     */
+    public function getRootElements()
+    {
+        $sql = "SELECT id, descripcion, id_padre, nivel_jerarquico,
+                       (SELECT COUNT(*) FROM organigrama WHERE id_padre = o.id) as children_count
+                FROM organigrama o
+                WHERE id_padre IS NULL
+                ORDER BY descripcion ASC";
+
+        return $this->db->findAll($sql);
+    }
+
+    /**
+     * Obtener hijos directos de un padre con conteo de descendientes
+     */
+    public function getChildrenByParent($parentId)
+    {
+        $sql = "SELECT id, descripcion, id_padre, nivel_jerarquico,
+                       (SELECT COUNT(*) FROM organigrama WHERE id_padre = o.id) as children_count
+                FROM organigrama o
+                WHERE id_padre = ?
+                ORDER BY descripcion ASC";
+
+        return $this->db->findAll($sql, [$parentId]);
+    }
+
+    /**
+     * Obtener ruta de ancestros desde un departamento hasta la raíz
+     * Retorna array con todos los padres ordenados desde raíz hasta el elemento
+     */
+    public function getAncestorPath($departamentoId)
+    {
+        $path = [];
+        $current = $this->find($departamentoId);
+
+        if (!$current) {
+            return $path;
+        }
+
+        // Agregar elemento actual
+        $path[] = [
+            'id' => $current['id'],
+            'descripcion' => $current['descripcion'],
+            'nivel' => $current['nivel_jerarquico']
+        ];
+
+        // Recorrer hacia arriba hasta la raíz
+        while ($current && $current['id_padre'] !== null) {
+            $current = $this->find($current['id_padre']);
+            if ($current) {
+                // Insertar al inicio para mantener orden desde raíz
+                array_unshift($path, [
+                    'id' => $current['id'],
+                    'descripcion' => $current['descripcion'],
+                    'nivel' => $current['nivel_jerarquico']
+                ]);
+            }
+        }
+
+        return $path;
+    }
+
+    /**
      * Obtener departamento con sus cargos asociados
      */
     public function getDepartamentoWithCargos($departamentoId)

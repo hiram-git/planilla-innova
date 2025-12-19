@@ -172,5 +172,187 @@ $(document).ready(function() {
         }
     });
 
+    // ============================================================================
+    // SISTEMA JERÁRQUICO DE DEPARTAMENTOS (EDIT MODE)
+    // ============================================================================
+
+    // Inicializar sistema de departamentos jerárquicos solo para empresas privadas
+    var departamentosJerarquicos = null;
+
+    if (companyType === 'privada') {
+        // Verificar si el módulo DepartamentosJerarquicos está disponible
+        if (typeof window.DepartamentosJerarquicos !== 'undefined') {
+            console.log('[Edit] Inicializando sistema jerárquico de departamentos...');
+
+            // Obtener departamento seleccionado del empleado
+            var selectedDepartamentoId = $('#edit_departamento_id_private').val() || null;
+
+            departamentosJerarquicos = new window.DepartamentosJerarquicos('edit-departamentos-jerarquicos-container', {
+                fieldName: 'edit_departamento_id',
+                selectedDepartamentoId: selectedDepartamentoId,
+                requiredField: true,
+                showLabels: true,
+                labelText: 'Departamento',
+                onSelectionChange: function(data) {
+                    console.log('[Edit] Departamento seleccionado:', data);
+
+                    // Cuando cambia el departamento, cargar cargos correspondientes
+                    if (data.value) {
+                        loadCargosByDepartamento(data.value);
+                    } else {
+                        // Resetear cargos y funciones
+                        $('#edit_cargo_id').html('<option value="">Primero seleccione un departamento...</option>').prop('disabled', true);
+                        $('#edit_funcion_id').html('<option value="">Primero seleccione un cargo...</option>').prop('disabled', true);
+                    }
+                }
+            });
+
+            console.log('[Edit] Sistema jerárquico inicializado correctamente');
+        } else {
+            console.warn('[Edit] Módulo DepartamentosJerarquicos no disponible, usando sistema legacy');
+        }
+    }
+
+    // ============================================================================
+    // FUNCIONES AUXILIARES - Cargos y Funciones
+    // ============================================================================
+
+    /**
+     * Cargar cargos según departamento seleccionado
+     */
+    function loadCargosByDepartamento(departamentoId, selectedCargoId = null) {
+        const $cargoSelect = $("#edit_cargo_id");
+        const $funcionSelect = $("#edit_funcion_id");
+
+        if (!departamentoId) {
+            // Resetear ambos selects
+            $cargoSelect.html('<option value="">Primero seleccione un departamento...</option>').prop('disabled', true);
+            $funcionSelect.html('<option value="">Primero seleccione un cargo...</option>').prop('disabled', true);
+            return;
+        }
+
+        // Mostrar loading en cargo
+        $cargoSelect.html('<option value="">Cargando cargos...</option>').prop('disabled', true);
+        $funcionSelect.html('<option value="">Primero seleccione un cargo...</option>').prop('disabled', true);
+
+        // Construir URL usando APP_CONFIG si está disponible
+        const baseUrl = window.APP_CONFIG?.urls?.organizationalApi || '/panel/organizational';
+        const url = `${baseUrl}/getCargosByDepartamento/${departamentoId}`;
+
+        // AJAX request
+        $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.cargos) {
+                    let options = '<option value="">Seleccionar cargo...</option>';
+
+                    response.cargos.forEach(function(cargo) {
+                        const selected = (selectedCargoId && cargo.id == selectedCargoId) ? ' selected' : '';
+                        options += `<option value="${cargo.id}"${selected}>${cargo.codigo} - ${cargo.nombre}</option>`;
+                    });
+
+                    $cargoSelect.html(options).prop('disabled', false);
+
+                    // Si hay un cargo seleccionado, cargar sus funciones
+                    if (selectedCargoId) {
+                        loadFuncionesByCargo(selectedCargoId);
+                    }
+                } else {
+                    $cargoSelect.html('<option value="">No hay cargos en este departamento</option>').prop('disabled', true);
+                    toastr.warning('No se encontraron cargos para este departamento', 'Advertencia');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading cargos:', error);
+                $cargoSelect.html('<option value="">Error al cargar cargos</option>').prop('disabled', true);
+                toastr.error('Error al cargar los cargos del departamento', 'Error');
+            }
+        });
+    }
+
+    /**
+     * Cargar funciones según cargo seleccionado (incluye genéricas)
+     */
+    function loadFuncionesByCargo(cargoId, selectedFuncionId = null) {
+        const $funcionSelect = $("#edit_funcion_id");
+
+        if (!cargoId) {
+            $funcionSelect.html('<option value="">Primero seleccione un cargo...</option>').prop('disabled', true);
+            return;
+        }
+
+        // Mostrar loading
+        $funcionSelect.html('<option value="">Cargando funciones...</option>').prop('disabled', true);
+
+        // Construir URL usando APP_CONFIG si está disponible
+        const baseUrl = window.APP_CONFIG?.urls?.organizationalApi || '/panel/organizational';
+        const url = `${baseUrl}/getFuncionesByCargo/${cargoId}`;
+
+        // AJAX request
+        $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.funciones) {
+                    let options = '<option value="">Seleccionar función (opcional)...</option>';
+
+                    response.funciones.forEach(function(funcion) {
+                        const selected = (selectedFuncionId && funcion.id == selectedFuncionId) ? ' selected' : '';
+                        const label = funcion.cargo_id === null ? ' (Genérica)' : '';
+                        options += `<option value="${funcion.id}"${selected}>${funcion.codigo} - ${funcion.nombre}${label}</option>`;
+                    });
+
+                    $funcionSelect.html(options).prop('disabled', false);
+                } else {
+                    $funcionSelect.html('<option value="">No hay funciones disponibles</option>').prop('disabled', false);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading funciones:', error);
+                $funcionSelect.html('<option value="">Error al cargar funciones</option>').prop('disabled', true);
+                toastr.error('Error al cargar las funciones del cargo', 'Error');
+            }
+        });
+    }
+
+    // ============================================================================
+    // EVENTOS - Selects Dependientes
+    // ============================================================================
+
+    /**
+     * Evento: Cambio de cargo
+     */
+    $("#edit_cargo_id").on("change", function() {
+        const cargoId = $(this).val();
+        loadFuncionesByCargo(cargoId);
+    });
+
+    // ============================================================================
+    // INICIALIZACIÓN - Cargar valores pre-seleccionados
+    // ============================================================================
+
+    /**
+     * Cargar cargos y funciones si hay valores pre-seleccionados (para edición)
+     */
+    const departamentoIdSelected = $('#edit_departamento_id_private').val();
+
+    // Obtener valores de old_data desde PHP (si están disponibles en window)
+    const cargoIdSelected = window.APP_CONFIG?.old_data?.edit_cargo_id || null;
+    const funcionIdSelected = window.APP_CONFIG?.old_data?.edit_funcion_id || null;
+
+    // Si hay departamento seleccionado, cargar cargos y funciones
+    if (departamentoIdSelected && !departamentosJerarquicos) {
+        // Solo cargar si no hay sistema jerárquico (fallback legacy)
+        loadCargosByDepartamento(departamentoIdSelected, cargoIdSelected);
+    }
+
+    // Si hay cargo seleccionado pero no departamento (caso de error), cargar funciones genéricas
+    if (cargoIdSelected && !departamentoIdSelected) {
+        loadFuncionesByCargo(cargoIdSelected, funcionIdSelected);
+    }
+
     console.log('Employees Edit Module Loaded Successfully');
 });
