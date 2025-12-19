@@ -259,6 +259,8 @@
             // ✅ Disparar evento INMEDIATAMENTE cuando se selecciona un departamento
             // Esto permite cargar los cargos asociados a ESTE nivel específico
             this.selectedValue = departamentoId;
+            this.updateHiddenField();
+            console.log(`[DepartamentosJerarquicos] Updated hidden field for level ${level}, value: ${this.selectedValue}`);
             this.triggerChangeEvent();
 
             // Verificar si tiene hijos
