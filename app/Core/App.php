@@ -623,6 +623,14 @@ class App
                                     // GET /panel/organizational/report-tree
                                     $this->method = 'reportTree';
                                     $this->params = [];
+                                } elseif ($url[2] === 'getChildrenByParent' && method_exists($this->controller, 'getChildrenByParent')) {
+                                    // GET /panel/organizational/getChildrenByParent/{parentId}
+                                    $this->method = 'getChildrenByParent';
+                                    $this->params = isset($url[3]) ? [$url[3]] : [null];
+                                } elseif ($url[2] === 'getHierarchyPath' && isset($url[3]) && method_exists($this->controller, 'getHierarchyPath')) {
+                                    // GET /panel/organizational/getHierarchyPath/{departamentoId}
+                                    $this->method = 'getHierarchyPath';
+                                    $this->params = [$url[3]];
                                 } else {
                                     // Fallback a index
                                     $this->method = 'index';

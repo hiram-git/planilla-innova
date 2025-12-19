@@ -85,7 +85,9 @@ abstract class Model
         if ($this->timestamps) {
             $data['updated_at'] = date('Y-m-d H:i:s');
         }
-        
+        error_log("Llamando a db->update() en tabla '{$this->table}' para ID {$id}");
+        error_log("Datos a actualizar (" . count($data) . " campos): " . implode(', ', array_keys($data)));
+        error_log("Datos completos: " . print_r($data, true));
         return $this->db->update($this->table, $data, "{$this->primaryKey} = :id", ['id' => $id]);
     }
 

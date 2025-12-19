@@ -578,6 +578,78 @@ class OrganizationalController extends Controller
     }
 
     /**
+     * AJAX: Obtener departamentos hijos de un padre específico (para selectores jerárquicos)
+     * GET /panel/organizational/getChildrenByParent/{parentId}
+     */
+    public function getChildrenByParent($parentId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            $organigramaModel = $this->model('Organigrama');
+
+            // Si parentId es null o 'root', obtener elementos raíz (sin padre)
+            if ($parentId === null || $parentId === 'root' || $parentId === '0') {
+                $children = $organigramaModel->getRootElements();
+            } else {
+                // Obtener hijos del padre especificado
+                $children = $organigramaModel->getChildrenByParent((int)$parentId);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'children' => $children,
+                'parent_id' => $parentId
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener ruta jerárquica completa de un departamento (para reconstruir selectores)
+     * GET /panel/organizational/getHierarchyPath/{departamentoId}
+     */
+    public function getHierarchyPath($departamentoId = null)
+    {
+        $this->requireAuth();
+
+        header('Content-Type: application/json');
+
+        try {
+            if ($departamentoId === null) {
+                echo json_encode(['success' => false, 'error' => 'ID de departamento requerido']);
+                exit;
+            }
+
+            $organigramaModel = $this->model('Organigrama');
+            $path = $organigramaModel->getAncestorPath((int)$departamentoId);
+
+            echo json_encode([
+                'success' => true,
+                'path' => $path,
+                'departamento_id' => $departamentoId
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
      * AJAX: Obtener todas las funciones activas
      * GET /panel/organizational/all-funciones
      */

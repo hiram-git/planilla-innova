@@ -219,29 +219,25 @@ $content .= '                    </select>
                     
                     <div id="edit-private-company-fields" style="display: none;">
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="edit_departamento_id_private">Departamento *</label>
-                                    <select class="form-control" id="edit_departamento_id_private" name="edit_departamento_id">
-                                        <option value="">Seleccionar departamento...</option>';
-
-foreach ($organigrama_elementos as $elemento) {
-    $selected = ($_SESSION['old_data']['edit_departamento_id'] ?? ($employee['departamento_id'] ?? '')) == $elemento['id'] ? ' selected' : '';
-    $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . htmlspecialchars($elemento['descripcion']) . '</option>';
-}
-
-$content .= '                    </select>
-                                    <small class="form-text text-muted">Seleccione el departamento primero</small>
-                                    ' . (isset($_SESSION['errors']['edit_departamento_id']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_departamento_id'] . '</small>' : '') . '
+                            <div class="col-md-12">
+                                <!-- Contenedor para selectores jerárquicos de departamentos -->
+                                <div id="edit-departamentos-jerarquicos-container" class="mb-3">
+                                    <!-- Los selectores se generarán dinámicamente aquí -->
                                 </div>
+                                <!-- Campo oculto para mantener compatibilidad con select legacy (fallback) -->
+                                <select class="form-control d-none" id="edit_departamento_id_private" name="edit_departamento_id">
+                                    <option value="' . ($_SESSION['old_data']['edit_departamento_id'] ?? ($employee['departamento_id'] ?? '')) . '">' . ($_SESSION['old_data']['edit_departamento_id'] ?? ($employee['departamento_id'] ?? '')) . '</option>
+                                </select>
+                                ' . (isset($_SESSION['errors']['edit_departamento_id']) ? '<div class="text-danger mt-2"><small>' . $_SESSION['errors']['edit_departamento_id'] . '</small></div>' : '') . '
                             </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="edit_cargo_id">Cargo *</label>
                                     <select class="form-control" id="edit_cargo_id" name="edit_cargo_id" disabled>
-                                        <option value="">Primero seleccione un departamento...</option>';
-
-$content .= '                    </select>
+                                        <option value="">Primero seleccione un departamento...</option>
+                                    </select>
                                     <small class="form-text text-muted">Cargos del departamento seleccionado</small>
                                     ' . (isset($_SESSION['errors']['edit_cargo_id']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_cargo_id'] . '</small>' : '') . '
                                 </div>
@@ -256,8 +252,6 @@ $content .= '                    </select>
                                     ' . (isset($_SESSION['errors']['edit_funcion_id']) ? '<small class="text-danger">' . $_SESSION['errors']['edit_funcion_id'] . '</small>' : '') . '
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="edit_partida_id">Partida *</label>
@@ -584,8 +578,16 @@ window.APP_CONFIG = window.APP_CONFIG || {};
 window.APP_CONFIG.company = {
     tipo_institucion: "' . ($company_config['tipo_institucion'] ?? 'privada') . '"
 };
+window.APP_CONFIG.urls = {
+    base: "' . url('', false) . '",
+    organizationalApi: "' . url('/panel/organizational', false) . '"
+};
 window.APP_CONFIG.config = window.APP_CONFIG.config || {};
 window.APP_CONFIG.config.csrf_token = "' . ($csrf_token ?? '') . '";
+window.APP_CONFIG.old_data = {
+    edit_cargo_id: "' . ($_SESSION['old_data']['edit_cargo_id'] ?? ($employee['cargo_id'] ?? '')) . '",
+    edit_funcion_id: "' . ($_SESSION['old_data']['edit_funcion_id'] ?? ($employee['funcion_id'] ?? '')) . '"
+};
 
 // Función para alternar campos según el tipo de empresa (fallback si el módulo falla)
 function initializeEmployeeEditFallback() {
@@ -1081,7 +1083,8 @@ if (typeof $ !== "undefined") {
 // Datos de salarios existentes para el empleado
 window.EMPLOYEE_SALARIES = ' . json_encode($employee_salaries ?? []) . ';
 </script>
-<script src="' . asset('javascript/modules/employees/edit.js') . '"></script>
+<script src="' . url('assets/javascript/modules/employees/departamentos-jerarquicos.js', false) . '?v=' . date('siH') . '"></script>
+<script src="' . asset('javascript/modules/employees/edit.js') . '?v=' . date('siH') . '"></script>
 <script src="' . url('assets/javascript/modules/employees/salaries-inline.js', false) . '?v=' . date('siH') . '"></script>';
 
 $styles = '

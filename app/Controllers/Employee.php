@@ -190,8 +190,8 @@ class Employee extends Controller
                 'cargo_id' => !empty($data['cargo_id']) ? $data['cargo_id'] : null,
                 'funcion_id' => !empty($data['funcion_id']) ? $data['funcion_id'] : null,
                 'partida_id' => !empty($data['partida_id']) ? $data['partida_id'] : null,
+                'departamento_id' => !empty($data['departamento_id']) ? $data['departamento_id'] : null,
                 'photo' => $photoFilename,
-                'organigrama_id' => !empty($data['organigrama_id']) ? $data['organigrama_id'] : null,
                 // Campos de forma de pago
                 'forma_pago' => $data['forma_pago'] ?? 'EFECTIVO',
                 'banco' => !empty($data['banco']) ? $data['banco'] : null,
@@ -357,8 +357,8 @@ class Employee extends Controller
                 'cargo_id' => !empty($data['edit_cargo_id']) ? $data['edit_cargo_id'] : null,
                 'funcion_id' => !empty($data['edit_funcion_id']) ? $data['edit_funcion_id'] : null,
                 'partida_id' => !empty($data['edit_partida_id']) ? $data['edit_partida_id'] : null,
+                'departamento_id' => !empty($data['edit_departamento_id']) ? $data['edit_departamento_id'] : null,
                 'photo' => $photoFilename,
-                'organigrama_id' => !empty($data['edit_organigrama_id']) ? $data['edit_organigrama_id'] : null,
                 // Campos de forma de pago
                 'forma_pago' => $data['edit_forma_pago'] ?? 'EFECTIVO',
                 'banco' => !empty($data['edit_banco']) ? $data['edit_banco'] : null,

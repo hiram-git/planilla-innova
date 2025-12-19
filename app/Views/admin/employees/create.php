@@ -219,23 +219,19 @@ $content .= '                    </select>
                     
                     <div id="private-company-fields" style="display: none;">
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="departamento_id_private">Departamento *</label>
-                                    <select class="form-control" id="departamento_id_private" name="departamento_id">
-                                        <option value="">Seleccionar departamento...</option>';
-
-foreach ($organigrama_elementos as $elemento) {
-    $selected = ($_SESSION['old_data']['departamento_id'] ?? '') == $elemento['id'] ? ' selected' : '';
-    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', substr_count($elemento['path'] ?? '', '/'));
-    $content .= '<option value="' . $elemento['id'] . '"' . $selected . '>' . $indent . htmlspecialchars($elemento['descripcion']) . '</option>';
-}
-
-$content .= '                    </select>
-                                    <small class="form-text text-muted">Seleccione el departamento primero</small>
-                                    ' . (isset($_SESSION['errors']['departamento_id']) ? '<small class="text-danger">' . $_SESSION['errors']['departamento_id'] . '</small>' : '') . '
+                            <div class="col-md-12">
+                                <!-- Contenedor para selectores jerárquicos de departamentos -->
+                                <div id="departamentos-jerarquicos-container" class="mb-3">
+                                    <!-- Los selectores se generarán dinámicamente aquí -->
                                 </div>
+                                <!-- Campo oculto para mantener compatibilidad con select legacy (fallback) -->
+                                <select class="form-control d-none" id="departamento_id_private" name="departamento_id">
+                                    <option value="' . ($_SESSION['old_data']['departamento_id'] ?? '') . '">' . ($_SESSION['old_data']['departamento_id'] ?? '') . '</option>
+                                </select>
+                                ' . (isset($_SESSION['errors']['departamento_id']) ? '<div class="text-danger mt-2"><small>' . $_SESSION['errors']['departamento_id'] . '</small></div>' : '') . '
                             </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="cargo_id">Cargo *</label>
@@ -566,8 +562,16 @@ window.APP_CONFIG = window.APP_CONFIG || {};
 window.APP_CONFIG.company = {
     tipo_institucion: "' . ($company_config['tipo_institucion'] ?? 'privada') . '"
 };
+window.APP_CONFIG.urls = {
+    base: "' . url('', false) . '",
+    organizationalApi: "' . url('/panel/organizational', false) . '"
+};
 window.APP_CONFIG.config = window.APP_CONFIG.config || {};
 window.APP_CONFIG.config.csrf_token = "' . ($csrf_token ?? '') . '";
+window.APP_CONFIG.old_data = {
+    cargo_id: "' . ($_SESSION['old_data']['cargo_id'] ?? '') . '",
+    funcion_id: "' . ($_SESSION['old_data']['funcion_id'] ?? '') . '"
+};
 
 // Funcionalidad copiar cédula a seguro social
 $(document).ready(function() {
@@ -702,8 +706,9 @@ $(document).ready(function() {
     });
 
     // Evento: Cambio en sueldo individual - actualizar tarifa automáticamente
-    $("#sueldo_individual").on("change blur", function() {
-        if ($(this).val()) {
+    $("#sueldo_individual").on("blur change", function() {
+        var sueldo = parseFloat($(this).val()) || 0;
+        if (sueldo > 0) {
             calcularTarifaHora();
         }
     });
@@ -884,138 +889,9 @@ $(document).ready(function() {
         }
     });
 
-    // ============================================================================
-    // SELECTS DEPENDIENTES: Departamento → Cargo → Función
-    // ============================================================================
-
-    /**
-     * Cargar cargos según departamento seleccionado
-     */
-    function loadCargosByDepartamento(departamentoId, selectedCargoId = null) {
-        const $cargoSelect = $("#cargo_id");
-        const $funcionSelect = $("#funcion_id");
-
-        if (!departamentoId) {
-            // Resetear ambos selects
-            $cargoSelect.html("<option value=\"\">Primero seleccione un departamento...</option>").prop("disabled", true);
-            $funcionSelect.html("<option value=\"\">Primero seleccione un cargo...</option>").prop("disabled", true);
-            return;
-        }
-
-        // Mostrar loading en cargo
-        $cargoSelect.html("<option value=\"\">Cargando cargos...</option>").prop("disabled", true);
-        $funcionSelect.html("<option value=\"\">Primero seleccione un cargo...</option>").prop("disabled", true);
-
-        // AJAX request
-        $.ajax({
-            url: "' . url('/panel/organizational/getCargosByDepartamento') . '/" + departamentoId,
-            method: "GET",
-            dataType: "json",
-            success: function(response) {
-                if (response.success && response.cargos) {
-                    let options = "<option value=\"\">Seleccionar cargo...</option>";
-
-                    response.cargos.forEach(function(cargo) {
-                        const selected = (selectedCargoId && cargo.id == selectedCargoId) ? " selected" : "";
-                        options += `<option value="${cargo.id}"${selected}>${cargo.codigo} - ${cargo.nombre}</option>`;
-                    });
-
-                    $cargoSelect.html(options).prop("disabled", false);
-
-                    // Si hay un cargo seleccionado, cargar sus funciones
-                    if (selectedCargoId) {
-                        loadFuncionesByCargo(selectedCargoId);
-                    }
-                } else {
-                    $cargoSelect.html("<option value=\"\">No hay cargos en este departamento</option>").prop("disabled", true);
-                    toastr.warning("No se encontraron cargos para este departamento", "Advertencia");
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("Error loading cargos:", error);
-                $cargoSelect.html("<option value=\"\">Error al cargar cargos</option>").prop("disabled", true);
-                toastr.error("Error al cargar los cargos del departamento", "Error");
-            }
-        });
-    }
-
-    /**
-     * Cargar funciones según cargo seleccionado (incluye genéricas)
-     */
-    function loadFuncionesByCargo(cargoId, selectedFuncionId = null) {
-        const $funcionSelect = $("#funcion_id");
-
-        if (!cargoId) {
-            $funcionSelect.html("<option value=\"\">Primero seleccione un cargo...</option>").prop("disabled", true);
-            return;
-        }
-
-        // Mostrar loading
-        $funcionSelect.html("<option value=\"\">Cargando funciones...</option>").prop("disabled", true);
-
-        // AJAX request
-        $.ajax({
-            url: "' . url('/panel/organizational/getFuncionesByCargo') . '/" + cargoId,
-            method: "GET",
-            dataType: "json",
-            success: function(response) {
-                if (response.success && response.funciones) {
-                    let options = "<option value=\"\">Seleccionar función (opcional)...</option>";
-
-                    response.funciones.forEach(function(funcion) {
-                        const selected = (selectedFuncionId && funcion.id == selectedFuncionId) ? " selected" : "";
-                        const label = funcion.cargo_id === null ? " (Genérica)" : "";
-                        options += `<option value="${funcion.id}"${selected}>${funcion.codigo} - ${funcion.nombre}${label}</option>`;
-                    });
-
-                    $funcionSelect.html(options).prop("disabled", false);
-                } else {
-                    $funcionSelect.html("<option value=\"\">No hay funciones disponibles</option>").prop("disabled", false);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("Error loading funciones:", error);
-                $funcionSelect.html("<option value=\"\">Error al cargar funciones</option>").prop("disabled", true);
-                toastr.error("Error al cargar las funciones del cargo", "Error");
-            }
-        });
-    }
-
-    /**
-     * Evento: Cambio de departamento en empresa privada
-     */
-    $("#departamento_id_private").on("change", function() {
-        const departamentoId = $(this).val();
-        loadCargosByDepartamento(departamentoId);
-    });
-
-    /**
-     * Evento: Cambio de cargo
-     */
-    $("#cargo_id").on("change", function() {
-        const cargoId = $(this).val();
-        loadFuncionesByCargo(cargoId);
-    });
-
-    /**
-     * Cargar cargos y funciones si hay valores pre-seleccionados (para validación de errores)
-     */
-    $(document).ready(function() {
-        const departamentoIdSelected = $("#departamento_id_private").val();
-        const cargoIdSelected = "' . ($_SESSION['old_data']['cargo_id'] ?? '') . '";
-        const funcionIdSelected = "' . ($_SESSION['old_data']['funcion_id'] ?? '') . '";
-
-        if (departamentoIdSelected) {
-            loadCargosByDepartamento(departamentoIdSelected, cargoIdSelected || null);
-        }
-
-        // Si hay cargo seleccionado pero no departamento (caso de error), cargar funciones genéricas
-        if (cargoIdSelected && !departamentoIdSelected) {
-            loadFuncionesByCargo(cargoIdSelected, funcionIdSelected || null);
-        }
-    });
 });
 </script>
+<script src="' . url('assets/javascript/modules/employees/departamentos-jerarquicos.js', false) . '?v=' . date('siH') . '"></script>
 <script src="' . url('assets/javascript/modules/employees/create.js', false) . '?v=' . date('siH') . '"></script>
 <script src="' . url('assets/javascript/modules/employees/salaries-inline.js', false) . '?v=' . date('siH') . '"></script>';
 
