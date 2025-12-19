@@ -224,8 +224,10 @@ $content .= '                    </select>
                                 <div id="edit-departamentos-jerarquicos-container" class="mb-3">
                                     <!-- Los selectores se generarán dinámicamente aquí -->
                                 </div>
-                                <!-- Campo oculto para mantener compatibilidad con select legacy (fallback) -->
-                                <select class="form-control d-none" id="edit_departamento_id_private" name="edit_departamento_id">
+                                <!-- Campo oculto que será actualizado por JavaScript con el departamento seleccionado -->
+                                <input type="hidden" id="edit_departamento_id_hidden" name="edit_departamento_id" value="' . ($_SESSION['old_data']['edit_departamento_id'] ?? ($employee['departamento_id'] ?? '')) . '">
+                                <!-- Select oculto para referencia del JS (NO se envía en el form) -->
+                                <select class="form-control d-none" id="edit_departamento_id_private">
                                     <option value="' . ($_SESSION['old_data']['edit_departamento_id'] ?? ($employee['departamento_id'] ?? '')) . '">' . ($_SESSION['old_data']['edit_departamento_id'] ?? ($employee['departamento_id'] ?? '')) . '</option>
                                 </select>
                                 ' . (isset($_SESSION['errors']['edit_departamento_id']) ? '<div class="text-danger mt-2"><small>' . $_SESSION['errors']['edit_departamento_id'] . '</small></div>' : '') . '

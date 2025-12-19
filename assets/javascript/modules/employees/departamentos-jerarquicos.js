@@ -83,6 +83,10 @@
                 }
 
                 this.selectedValue = departamentoId;
+
+                // ✅ Actualizar campo oculto con el valor inicial
+                this.updateHiddenField();
+
                 this.triggerChangeEvent();
 
             } catch (error) {
@@ -121,15 +125,12 @@
                 select.dataset.level = level;
                 select.dataset.parentId = parentId || 'root';
 
-                // Nombre del campo (solo el último select tiene el name real)
-                if (level === 0 || !this.options.requiredField) {
-                    select.name = this.options.fieldName;
-                }
+                // ✅ NO asignar name a los selectores jerárquicos
+                // El valor se enviará mediante el campo <input type="hidden" name="edit_departamento_id">
+                // Esto evita conflictos cuando hay múltiples niveles
 
-                // Required solo en el primer nivel si es campo obligatorio
-                if (this.options.requiredField && level === 0) {
-                    select.required = true;
-                }
+                // NO aplicar required a selectores jerárquicos
+                // El campo oculto ya tiene la validación necesaria
 
                 // Agregar opción vacía
                 const emptyOption = document.createElement('option');
@@ -252,6 +253,14 @@
             // Actualizar ruta actual
             this.updateCurrentPath(level, departamentoId);
 
+            // Actualizar el atributo name del select actual
+            this.updateSelectNames(level);
+
+            // ✅ Disparar evento INMEDIATAMENTE cuando se selecciona un departamento
+            // Esto permite cargar los cargos asociados a ESTE nivel específico
+            this.selectedValue = departamentoId;
+            this.triggerChangeEvent();
+
             // Verificar si tiene hijos
             const hasChildren = selectedOption.dataset.hasChildren === 'true';
             const childrenCount = parseInt(selectedOption.dataset.childrenCount || 0);
@@ -259,9 +268,6 @@
             if (hasChildren && childrenCount > 0) {
                 // Agregar siguiente nivel de selección
                 await this.addSelectLevel(departamentoId, level + 1);
-            } else {
-                // Es un nodo hoja, actualizar valor final
-                this.updateFinalValue();
             }
         }
 
@@ -281,7 +287,43 @@
         }
 
         /**
-         * Actualizar valor final y asignar name al último select
+         * Actualizar atributo name de los selectores
+         * ✅ FIX: NO asignar name a los selects dinámicos, solo actualizar campo oculto
+         * Esto evita conflictos cuando hay múltiples niveles jerárquicos
+         */
+        updateSelectNames(currentLevel) {
+            // Remover name de todos los selects dinámicos
+            this.selects.forEach((select, index) => {
+                if (select) {
+                    select.removeAttribute('name');
+                }
+            });
+
+            // ✅ NO asignar name a selectores jerárquicos - solo usar campo oculto
+            // El valor se enviará mediante el campo <input type="hidden" name="edit_departamento_id">
+
+            // Actualizar campo oculto con el valor seleccionado actual
+            this.updateHiddenField();
+            console.log(`[DepartamentosJerarquicos] Updated hidden field for level ${currentLevel}, value: ${this.selectedValue}`);
+        }
+
+        /**
+         * Actualizar campo oculto con el valor seleccionado actual
+         * Esto garantiza que el valor se envíe en el formulario aunque los selects dinámicos cambien
+         */
+        updateHiddenField() {
+            // Buscar campo oculto con el mismo nombre
+            const hiddenField = document.querySelector(`input[type="hidden"][name="${this.options.fieldName}"]`);
+
+            if (hiddenField) {
+                hiddenField.value = this.selectedValue || '';
+                console.log(`[DepartamentosJerarquicos] Updated hidden field value:`, this.selectedValue);
+            }
+        }
+
+        /**
+         * Actualizar valor final
+         * ✅ FIX: Solo actualizar campo oculto, no asignar name a selects
          */
         updateFinalValue() {
             // El valor final es el último elemento del path
@@ -289,22 +331,20 @@
                 ? this.currentPath[this.currentPath.length - 1]
                 : null;
 
-            // Remover name de todos los selects
+            // Remover name de todos los selects dinámicos
             this.selects.forEach(select => {
                 if (select) {
                     select.removeAttribute('name');
                 }
             });
 
-            // Asignar name solo al último select visible
-            if (this.selects.length > 0) {
-                const lastSelect = this.selects[this.selects.length - 1];
-                if (lastSelect) {
-                    lastSelect.name = this.options.fieldName;
-                }
-            }
+            // ✅ NO asignar name a selectores jerárquicos - solo usar campo oculto
+            // El valor se enviará mediante el campo <input type="hidden">
 
             console.log('[DepartamentosJerarquicos] Final value:', this.selectedValue);
+
+            // ✅ Actualizar campo oculto con el valor final
+            this.updateHiddenField();
 
             this.triggerChangeEvent();
         }

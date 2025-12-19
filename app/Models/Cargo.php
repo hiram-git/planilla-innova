@@ -101,7 +101,10 @@ class Cargo extends ReferenceModel
     }
 
     /**
-     * Obtener cargos filtrados por departamento
+     * Obtener cargos filtrados por departamento (solo departamento específico)
+     *
+     * @param int $departamentoId ID del departamento
+     * @return array Lista de cargos activos del departamento
      */
     public function getCargosByDepartamento($departamentoId)
     {
