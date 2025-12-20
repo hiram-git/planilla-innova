@@ -208,131 +208,461 @@ class EstimateReportController extends ReportController
     }
 
     /**
-     * Estimado anual de planillas
-     * Proyecta el costo mensual de planillas basándose en la última planilla procesada
-     * y lo proyecta a 12 meses
+     * Generar PDF del estimado anual de liquidaciones
+     * Similar al reporte de planilla pero para estimado de liquidaciones
      */
-    public function estimadoAnualPlanillas()
+    public function estimadoAnualLiquidacionesPdf()
     {
         try {
             $this->requireAuth();
 
-            // Obtener tipo de planilla del filtro (si existe)
-            $tipo_planilla_id = isset($_GET['tipo_planilla_id']) ? (int)$_GET['tipo_planilla_id'] : null;
+            // Reutilizar la lógica de cálculo del estimado
+            // Obtener todos los empleados activos (no terminados)
+            $sql = "SELECT
+                        e.id,
+                        e.employee_id,
+                        e.document_id,
+                        e.firstname,
+                        e.lastname,
+                        e.fecha_ingreso,
+                        e.sueldo_individual,
+                        e.tipo_planilla_id,
+                        IFNULL(c.nombre, 'Sin Cargo') as position_name,
+                        DATEDIFF(CURDATE(), e.fecha_ingreso) / 365 as years_worked
+                    FROM employees e
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    LEFT JOIN cargos c ON p.id_cargo = c.id
+                    WHERE e.id NOT IN (
+                        SELECT employee_id FROM employee_terminations WHERE status IN ('CALCULADA', 'PROCESADA')
+                    )
+                    AND e.fecha_ingreso IS NOT NULL
+                    ORDER BY e.lastname, e.firstname";
 
-            // Obtener tipos de planilla disponibles
-            $sql = "SELECT id, nombre FROM tipos_planilla ORDER BY nombre";
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
-            $tipos_planilla = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $employees = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Obtener todas las planillas procesadas del año actual o último año disponible
-            $where_clause = "pc.estado = 'PROCESADA'";
-            $params = [];
-
-            if ($tipo_planilla_id) {
-                $where_clause .= " AND pc.tipo_planilla_id = ?";
-                $params[] = $tipo_planilla_id;
-            }
-
-            // Obtener la última planilla procesada para usar como base
-            $sql = "SELECT
-                        pc.id,
-                        pc.descripcion,
-                        pc.fecha_desde,
-                        pc.fecha_hasta,
-                        tp.nombre as tipo_planilla_nombre,
-                        f.nombre as frecuencia_nombre,
-                        SUM(CASE WHEN c.tipo_concepto IN ('ASIGNACION', 'A') THEN pd.monto ELSE 0 END) as total_asignaciones,
-                        SUM(CASE WHEN c.tipo_concepto IN ('DEDUCCION', 'D') THEN pd.monto ELSE 0 END) as total_deducciones,
-                        COUNT(DISTINCT pd.employee_id) as total_empleados
-                    FROM planilla_cabecera pc
-                    INNER JOIN planilla_detalle pd ON pc.id = pd.planilla_cabecera_id
-                    INNER JOIN concepto c ON pd.concepto_id = c.id
-                    LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
-                    LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
-                    WHERE $where_clause
-                    GROUP BY pc.id
-                    ORDER BY pc.fecha_hasta DESC
-                    LIMIT 1";
-
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
-            $ultima_planilla = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$ultima_planilla) {
-                $_SESSION['error'] = 'No hay planillas procesadas para generar el estimado';
-                $this->redirect('/panel/reports');
+            if (empty($employees)) {
+                $_SESSION['error'] = 'No hay empleados activos para calcular estimado';
+                $this->redirect('/panel/reports/estimado-anual-liquidaciones');
                 return;
             }
 
-            // Calcular el costo promedio mensual basado en la última planilla
-            $costo_mensual_base = $ultima_planilla['total_asignaciones'] - $ultima_planilla['total_deducciones'];
+            // Obtener calculadora de liquidación
+            $calculatorModel = new \App\Services\PlanillaConceptCalculator();
 
-            // Proyectar a 12 meses
-            $meses = [
-                1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
-                5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
-                9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
-            ];
+            // Obtener frecuencia de liquidación dinámicamente
+            $liquidationController = new \App\Controllers\LiquidationController();
+            $liquidation_frequency_id = $liquidationController->getLiquidationFrequencyId();
 
-            $proyeccion_mensual = [];
-            $total_anual_asignaciones = 0;
-            $total_anual_deducciones = 0;
-            $total_anual_neto = 0;
-
-            foreach ($meses as $num_mes => $nombre_mes) {
-                // Usar el costo de la última planilla como base
-                $asignaciones_mes = $ultima_planilla['total_asignaciones'];
-                $deducciones_mes = $ultima_planilla['total_deducciones'];
-                $neto_mes = $asignaciones_mes - $deducciones_mes;
-
-                $proyeccion_mensual[] = [
-                    'mes_numero' => $num_mes,
-                    'mes_nombre' => $nombre_mes,
-                    'asignaciones' => $asignaciones_mes,
-                    'deducciones' => $deducciones_mes,
-                    'neto' => $neto_mes,
-                    'empleados' => $ultima_planilla['total_empleados']
-                ];
-
-                $total_anual_asignaciones += $asignaciones_mes;
-                $total_anual_deducciones += $deducciones_mes;
-                $total_anual_neto += $neto_mes;
+            if (!$liquidation_frequency_id) {
+                $_SESSION['error'] = 'No se pudo obtener la frecuencia de liquidación';
+                $this->redirect('/panel/reports/estimado-anual-liquidaciones');
+                return;
             }
 
-            // Preparar datos para la vista
-            $companyInfo = $this->getCompanyInfo();
-            $signatures = $this->companyModel->getSignaturesForReports();
+            // Array para almacenar cálculos de todos los empleados
+            $estimates = [];
+            $total_general_asignaciones = 0;
+            $total_general_deducciones = 0;
+            $total_general_neto = 0;
 
-            $data = [
-                'title' => 'Estimado Anual de Planillas',
-                'page_title' => 'Estimado Anual de Planillas',
-                'breadcrumb' => [
-                    ['name' => 'Dashboard', 'url' => '/panel/dashboard'],
-                    ['name' => 'Reportes', 'url' => '/panel/reports'],
-                    ['name' => 'Estimado Anual Planillas', 'url' => '#']
-                ],
-                'proyeccion_mensual' => $proyeccion_mensual,
-                'total_anual_asignaciones' => $total_anual_asignaciones,
-                'total_anual_deducciones' => $total_anual_deducciones,
-                'total_anual_neto' => $total_anual_neto,
-                'ultima_planilla' => $ultima_planilla,
-                'tipos_planilla' => $tipos_planilla,
-                'tipo_planilla_id' => $tipo_planilla_id,
-                'ano_estimado' => date('Y'),
-                'fecha_estimado' => date('d/m/Y'),
-                'companyInfo' => $companyInfo,
-                'signatures' => $signatures
+            foreach ($employees as $employee) {
+                // Simular variables de liquidación para el empleado
+                $today = date('Y-m-d');
+
+                // Configurar calculadora con variables del empleado
+                $calculatorModel->setVariablesColaborador(
+                    $employee['id'],
+                    $employee['tipo_planilla_id'] ? explode(',', $employee['tipo_planilla_id'])[0] : 1,
+                    $today,
+                    $today
+                );
+
+                // Establecer variables específicas de liquidación manualmente
+                $fecha_ingreso = new \DateTime($employee['fecha_ingreso']);
+                $fecha_simulada_terminacion = new \DateTime($today);
+                $total_years = $fecha_ingreso->diff($fecha_simulada_terminacion)->y;
+                $total_months = $fecha_ingreso->diff($fecha_simulada_terminacion)->m;
+                $dias_trabajados = $fecha_ingreso->diff($fecha_simulada_terminacion)->days;
+
+                // Establecer solo variables numéricas necesarias para liquidación
+                $calculatorModel->setVariable('ANOS_TRABAJADOS', (float)$total_years);
+                $calculatorModel->setVariable('MESES_TRABAJADOS', (float)$total_months);
+                $calculatorModel->setVariable('DIAS_TRABAJADOS', (float)$dias_trabajados);
+                $calculatorModel->setVariable('DIAS_PREAVISO', 0);
+
+                // Establecer salarios calculados para liquidaciones
+                $calculatorModel->setVariable('SUELDO_SEMANAL', (float)($employee['sueldo_individual'] / 4.33));
+                $calculatorModel->setVariable('SUELDO_MENSUAL', (float)$employee['sueldo_individual']);
+                $calculatorModel->setVariable('SUELDO_DIARIO', (float)($employee['sueldo_individual'] / 30));
+
+                // Obtener conceptos de liquidación
+                $employee_tipo_planilla_ids = !empty($employee['tipo_planilla_id'])
+                    ? explode(',', $employee['tipo_planilla_id'])
+                    : [];
+
+                if (!empty($employee_tipo_planilla_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($employee_tipo_planilla_ids), '?'));
+                    $sql = "SELECT DISTINCT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
+                            FROM concepto c
+                            INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
+                            INNER JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id
+                            WHERE cf.frecuencia_id = ?
+                            AND ctp.tipo_planilla_id IN ($placeholders)
+                            ORDER BY c.tipo_concepto, c.concepto";
+
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->execute(array_merge([$liquidation_frequency_id], $employee_tipo_planilla_ids));
+                } else {
+                    $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
+                            FROM concepto c
+                            INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
+                            WHERE cf.frecuencia_id = ?
+                            ORDER BY c.tipo_concepto, c.concepto";
+
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->execute([$liquidation_frequency_id]);
+                }
+
+                $concepts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+                $employee_calculations = [];
+                $total_asignaciones = 0;
+                $total_deducciones = 0;
+
+                foreach ($concepts as $concept) {
+                    try {
+                        // Calcular monto según fórmula
+                        $amount = $calculatorModel->evaluarFormula($concept['formula']);
+
+                        if ($concept['tipo_concepto'] === 'ASIGNACION' || $concept['tipo_concepto'] === 'A') {
+                            $total_asignaciones += $amount;
+                        } elseif ($concept['tipo_concepto'] === 'DEDUCCION' || $concept['tipo_concepto'] === 'D') {
+                            $total_deducciones += $amount;
+                        }
+
+                        $employee_calculations[] = [
+                            'concept_code' => $concept['concepto'],
+                            'concept_description' => $concept['descripcion'],
+                            'amount' => $amount,
+                            'type' => $concept['tipo_concepto']
+                        ];
+                    } catch (\Exception $e) {
+                        error_log("Error calculando concepto {$concept['concepto']} para empleado {$employee['id']}: " . $e->getMessage());
+                    }
+                }
+
+                $neto = $total_asignaciones - $total_deducciones;
+
+                $estimates[] = [
+                    'employee' => $employee,
+                    'calculations' => $employee_calculations,
+                    'total_asignaciones' => $total_asignaciones,
+                    'total_deducciones' => $total_deducciones,
+                    'neto' => $neto
+                ];
+
+                $total_general_asignaciones += $total_asignaciones;
+                $total_general_deducciones += $total_deducciones;
+                $total_general_neto += $neto;
+            }
+
+            // Obtener información de la empresa
+            $companyInfo = $this->getCompanyInfo();
+
+            // Preparar datos para el PDF
+            $estimateData = [
+                'estimates' => $estimates,
+                'total_general_asignaciones' => $total_general_asignaciones,
+                'total_general_deducciones' => $total_general_deducciones,
+                'total_general_neto' => $total_general_neto,
+                'total_employees' => count($employees),
+                'fecha_estimado' => date('d/m/Y')
             ];
 
-            $this->view('admin/reports/estimado_planillas', $data);
+            // Generar PDF usando PDFReportController
+            $this->generateEstimadoLiquidacionesPDF($estimateData, $companyInfo);
 
         } catch (\Exception $e) {
-            error_log("Error en estimadoAnualPlanillas: " . $e->getMessage());
+            error_log("Error en estimadoAnualLiquidacionesPdf: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
-            $_SESSION['error'] = 'Error al generar estimado de planillas: ' . $e->getMessage();
-            $this->redirect('/panel/reports');
+            $_SESSION['error'] = 'Error al generar PDF de estimado de liquidaciones: ' . $e->getMessage();
+            $this->redirect('/panel/reports/estimado-anual-liquidaciones');
         }
     }
+
+    /**
+     * Generar el documento PDF del estimado de liquidaciones
+     * Usando la clase PDFReportController como base
+     */
+    protected function generateEstimadoLiquidacionesPDF($estimateData, $companyInfo)
+    {
+        // Requerir TCPDF
+        require_once 'vendor/autoload.php';
+
+        // Crear instancia de TCPDF en orientación horizontal
+        $pdf = new \TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+        // Desactivar header y footer por defecto
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
+        // Configuración del documento
+        $pdf->SetCreator('Sistema de Planillas MVC');
+        $pdf->SetAuthor($companyInfo['company_name']);
+        $pdf->SetTitle('Estimado Anual de Liquidaciones');
+        $pdf->SetSubject('Reporte de Estimado de Liquidaciones');
+
+        // Configuración de la página
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(TRUE, 10);
+        $pdf->AddPage();
+
+        // Header del estimado
+        $this->addEstimadoPDFHeader($pdf, $companyInfo, $estimateData);
+
+        // Tabla de empleados con estimados
+        $this->addEstimadoTable($pdf, $estimateData['estimates']);
+
+        // Firmas de responsables (reutilizando método de PDFReportController)
+        $this->addEstimadoSignatures($pdf, $companyInfo);
+
+        // Output del PDF
+        $filename = 'estimado_liquidaciones_' . date('Y-m-d') . '.pdf';
+        $pdf->Output($filename, 'I'); // I = inline browser
+        exit;
+    }
+
+    /**
+     * Agregar header del PDF de estimado
+     */
+    protected function addEstimadoPDFHeader($pdf, $companyInfo, $estimateData)
+    {
+        // Insertar logos y nombre de empresa (reutilizando método)
+        $this->insertLogosInPDF($pdf, $companyInfo);
+
+        // Título del reporte
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->Cell(0, 5, 'ESTIMADO ANUAL DE LIQUIDACIONES', 0, 1, 'C');
+
+        // Información del estimado
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell(0, 4, 'Fecha del Estimado: ' . $estimateData['fecha_estimado'] . ' | Empleados Incluidos: ' . $estimateData['total_employees'], 0, 1, 'C');
+
+        $pdf->Ln(3);
+
+        // Headers de la tabla
+        $pdf->SetFont('helvetica', 'B', 8);
+        $pdf->SetFillColor(255, 193, 7); // Fondo amarillo/naranja para destacar que es estimado
+
+        // Anchos de columna para orientación horizontal
+        $colWidths = [60, 25, 25, 20, 30, 30, 30];
+
+        $pdf->Cell($colWidths[0], 6, 'Empleado', 1, 0, 'C', true);
+        $pdf->Cell($colWidths[1], 6, 'Cédula', 1, 0, 'C', true);
+        $pdf->Cell($colWidths[2], 6, 'Cargo', 1, 0, 'C', true);
+        $pdf->Cell($colWidths[3], 6, 'Años', 1, 0, 'C', true);
+        $pdf->Cell($colWidths[4], 6, 'Asignaciones', 1, 0, 'C', true);
+        $pdf->Cell($colWidths[5], 6, 'Deducciones', 1, 0, 'C', true);
+        $pdf->Cell($colWidths[6], 6, 'Neto Estimado', 1, 1, 'C', true);
+    }
+
+    /**
+     * Agregar tabla de estimados de empleados
+     */
+    protected function addEstimadoTable($pdf, $estimates)
+    {
+        // Anchos de columna
+        $colWidths = [60, 25, 25, 20, 30, 30, 30];
+
+        // Datos de empleados
+        $pdf->SetFont('helvetica', '', 7);
+        $pdf->SetFillColor(255, 255, 255);
+
+        $totalGeneral = [
+            'asignaciones' => 0,
+            'deducciones' => 0,
+            'neto' => 0
+        ];
+
+        foreach ($estimates as $estimate) {
+            $employee = $estimate['employee'];
+            $years_worked = number_format($employee['years_worked'], 1);
+
+            // Nombre completo (truncado si es muy largo)
+            $nombreCompleto = $employee['lastname'] . ', ' . $employee['firstname'];
+            if (strlen($nombreCompleto) > 40) {
+                $nombreCompleto = substr($nombreCompleto, 0, 37) . '...';
+            }
+
+            // Cargo truncado
+            $cargo = $employee['position_name'];
+            if (strlen($cargo) > 20) {
+                $cargo = substr($cargo, 0, 17) . '...';
+            }
+
+            $pdf->Cell($colWidths[0], 6, $nombreCompleto, 1, 0, 'L');
+            $pdf->Cell($colWidths[1], 6, $employee['document_id'] ?? 'N/A', 1, 0, 'C');
+            $pdf->Cell($colWidths[2], 6, $cargo, 1, 0, 'L');
+            $pdf->Cell($colWidths[3], 6, $years_worked, 1, 0, 'C');
+            $pdf->Cell($colWidths[4], 6, '$' . number_format($estimate['total_asignaciones'], 2), 1, 0, 'R');
+            $pdf->Cell($colWidths[5], 6, '$' . number_format($estimate['total_deducciones'], 2), 1, 0, 'R');
+            $pdf->Cell($colWidths[6], 6, '$' . number_format($estimate['neto'], 2), 1, 0, 'R');
+            $pdf->Ln();
+
+            // Acumular totales
+            $totalGeneral['asignaciones'] += $estimate['total_asignaciones'];
+            $totalGeneral['deducciones'] += $estimate['total_deducciones'];
+            $totalGeneral['neto'] += $estimate['neto'];
+        }
+
+        // Fila de totales
+        $pdf->SetFont('helvetica', 'B', 8);
+        $pdf->SetFillColor(255, 193, 7); // Mismo color del header
+        $pdf->Cell($colWidths[0] + $colWidths[1] + $colWidths[2] + $colWidths[3], 7, 'TOTAL GENERAL ESTIMADO', 1, 0, 'C', true);
+        $pdf->Cell($colWidths[4], 7, '$' . number_format($totalGeneral['asignaciones'], 2), 1, 0, 'R', true);
+        $pdf->Cell($colWidths[5], 7, '$' . number_format($totalGeneral['deducciones'], 2), 1, 0, 'R', true);
+        $pdf->Cell($colWidths[6], 7, '$' . number_format($totalGeneral['neto'], 2), 1, 0, 'R', true);
+        $pdf->Ln();
+    }
+
+    /**
+     * Agregar firmas de responsables (reutilizando estructura de PDFReportController)
+     */
+    protected function addEstimadoSignatures($pdf, $companyInfo)
+    {
+        $pdf->Ln(8);
+
+        // Determinar firmas
+        $firmas = [];
+
+        $firmas[] = [
+            'nombre' => $companyInfo['elaborado_por'],
+            'cargo' => $companyInfo['cargo_elaborador']
+        ];
+
+        $firmas[] = [
+            'nombre' => $companyInfo['jefe_recursos_humanos'],
+            'cargo' => $companyInfo['cargo_jefe_rrhh']
+        ];
+
+        if (!empty($companyInfo['firma_director_planilla']) && trim($companyInfo['firma_director_planilla']) !== '') {
+            $firmas[] = [
+                'nombre' => $companyInfo['firma_director_planilla'],
+                'cargo' => $companyInfo['cargo_director_planilla']
+            ];
+        }
+
+        $numFirmas = count($firmas);
+        $colWidth = $numFirmas > 0 ? (270 / $numFirmas) : 90;
+        $sigHeight = 15;
+
+        // Primera fila de firmas
+        $pdf->SetFont('helvetica', '', 9);
+
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, $sigHeight, '', 'B', ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, $sigHeight, '', 0, 0, 'C');
+            }
+        }
+
+        // Nombres bajo las líneas
+        $pdf->SetFont('helvetica', 'B', 8);
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, 6, strtoupper($firmas[$i]['nombre']), 0, ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, 6, '', 0, 0, 'C');
+            }
+        }
+
+        // Cargos bajo los nombres
+        $pdf->SetFont('helvetica', '', 7);
+        for ($i = 0; $i < $numFirmas; $i++) {
+            $pdf->Cell($colWidth, 5, $firmas[$i]['cargo'], 0, ($i == $numFirmas - 1) ? 1 : 0, 'C');
+            if ($i < $numFirmas - 1) {
+                $pdf->Cell(5, 5, '', 0, 0, 'C');
+            }
+        }
+
+        $pdf->Ln(3);
+        $pdf->SetFont('helvetica', '', 7);
+        $pdf->Cell(0, 4, 'Fecha de Generación: ' . date('d/m/Y H:i:s'), 0, 1, 'R');
+    }
+
+    /**
+     * Insertar logos en el PDF (reutilizado de PDFReportController)
+     */
+    public function insertLogosInPDF($pdf, $companyInfo)
+    {
+        $logoPath = __DIR__ . '/../../images/logos/';
+        $logoHeight = 10;
+        $pageWidth = $pdf->getPageWidth();
+        $margin = 10;
+
+        $currentY = $pdf->GetY();
+
+        // Logo izquierdo
+        if (!empty($companyInfo['logo_izquierdo_reportes'])) {
+            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
+            if (file_exists($leftLogoPath)) {
+                $leftLogoWidth = 20;
+                try {
+                    $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo izquierdo: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo derecho
+        if (!empty($companyInfo['logo_derecho_reportes'])) {
+            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
+            if (file_exists($rightLogoPath)) {
+                $rightLogoWidth = 30;
+                $rightX = $pageWidth - $margin - $rightLogoWidth;
+                try {
+                    $pdf->Image($rightLogoPath, $rightX, $currentY, $rightLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                } catch (\Exception $e) {
+                    error_log("Error cargando logo derecho: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Logo principal centro
+        if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
+            $mainLogoPath = $logoPath . $companyInfo['logo_empresa'];
+            if (file_exists($mainLogoPath)) {
+                $mainLogoWidth = 40;
+                $centerX = ($pageWidth - $mainLogoWidth) / 2;
+                $pdf->Image($mainLogoPath, $centerX, $currentY, $mainLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+            }
+        }
+
+        // Nombre de empresa centrado
+        if (!empty($companyInfo['company_name'])) {
+            $currentFont = $pdf->getFontFamily();
+            $currentSize = $pdf->getFontSizePt();
+
+            $pdf->SetFont('helvetica', 'B', 16);
+
+            $companyNameWidth = $pdf->GetStringWidth($companyInfo['company_name']);
+            $centerX = ($pageWidth - $companyNameWidth) / 2;
+
+            $textY = $currentY + ($logoHeight / 2) - 3;
+
+            $pdf->SetXY($centerX, $textY);
+            $pdf->Cell($companyNameWidth, 0, $companyInfo['company_name'], 0, 0, 'C');
+
+            $pdf->SetFont($currentFont, '', $currentSize);
+        }
+
+        // Reservar espacio después de logos
+        if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
+            $pdf->SetY(20);
+        }
+    }
+
+
 }

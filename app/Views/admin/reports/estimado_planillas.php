@@ -36,9 +36,9 @@ $content .= '
                     <a href="' . \App\Core\UrlHelper::url('/panel/reports') . '" class="btn btn-sm btn-light">
                         <i class="fas fa-arrow-left"></i> Volver a Reportes
                     </a>
-                    <button type="button" class="btn btn-sm btn-light" onclick="window.print()">
-                        <i class="fas fa-print"></i> Imprimir
-                    </button>
+                    <a href="' . \App\Core\UrlHelper::url('/panel/reports/estimado-anual-planillas-pdf') . (isset($data['tipo_planilla_id']) ? '?tipo_planilla_id=' . $data['tipo_planilla_id'] : '') . '" class="btn btn-sm btn-danger" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </a>
                 </div>
             </div>
             <div class="card-body">

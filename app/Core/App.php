@@ -976,10 +976,20 @@ class App
                                         $estimateController = new \App\Controllers\EstimateReportController();
                                         $estimateController->estimadoAnualLiquidaciones();
                                         return;
-                                    } elseif ($url[2] === 'estimado-anual-planillas') {
-                                        // Ruta: /panel/reports/estimado-anual-planillas - usa EstimateReportController
+                                    } elseif ($url[2] === 'estimado-anual-liquidaciones-pdf') {
+                                        // Ruta: /panel/reports/estimado-anual-liquidaciones-pdf - PDF del estimado
                                         $estimateController = new \App\Controllers\EstimateReportController();
-                                        $estimateController->estimadoAnualPlanillas();
+                                        $estimateController->estimadoAnualLiquidacionesPdf();
+                                        return;
+                                    } elseif ($url[2] === 'estimado-anual-planillas') {
+                                        // Ruta: /panel/reports/estimado-anual-planillas
+                                        $estimateController = new \App\Controllers\AnnualPayrollEstimateController();
+                                        $estimateController->index();
+                                        return;
+                                    } elseif ($url[2] === 'estimado-anual-planillas-pdf') {
+                                        // Ruta: /panel/reports/estimado-anual-planillas-pdf
+                                        $estimateController = new \App\Controllers\AnnualPayrollEstimateController();
+                                        $estimateController->exportPdf();
                                         return;
                                     } elseif ($url[2] === 'comprobantes-planilla-horizontal' && isset($url[3]) && method_exists($this->controller, 'comprobantesPlanillaHorizontal')) {
                                         // Ruta: /panel/reports/comprobantes-planilla-horizontal/{payrollId}
