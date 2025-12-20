@@ -33,9 +33,12 @@ $startTime = microtime(true);
 // Cargar autoload de Composer
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-// Cargar archivo de configuración .env
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../..');
-$dotenv->load();
+// Cargar variables de entorno (.env). En producción puede no existir phpdotenv, usar fallback.
+if (class_exists(\Dotenv\Dotenv::class)) {
+    \Dotenv\Dotenv::createImmutable(__DIR__ . '/../..')->safeLoad();
+} else {
+    \App\Core\Config::load();
+}
 
 // Inicializar sesión (requerido para algunos modelos)
 if (session_status() === PHP_SESSION_NONE) {
