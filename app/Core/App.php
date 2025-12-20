@@ -74,6 +74,7 @@ class App
                     'company' => ['controller' => 'CompanyController', 'method' => null],
                     'tipos-acumulados' => ['controller' => 'TipoAcumuladoController', 'method' => null],
                     'acumulados' => ['controller' => 'AcumuladoController', 'method' => null],
+                    'accumulated' => ['controller' => 'Admin\\AccumulatedImportController', 'method' => null],
                     'liquidation' => ['controller' => 'LiquidationController', 'method' => null],
                     'vacation' => ['controller' => 'VacationController', 'method' => null],
                     'business-calendar' => ['controller' => 'BusinessCalendarController', 'method' => null],
@@ -128,6 +129,29 @@ class App
                             $this->params = array_slice($url, 2);
                             call_user_func_array([$this->controller, $this->method], $this->params);
                             return;
+                        }
+                        
+
+                        // ✅ MANEJO ESPECIAL: accumulated subroutes
+                        if ($url[1] === 'accumulated') {
+                            $this->controller = new \App\Controllers\Admin\AccumulatedImportController();
+                            $this->method = null;
+                            $this->params = [];
+
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+                            $action = $url[2] ?? null;
+                            $subaction = $url[3] ?? null;
+
+                            if ($httpMethod === 'GET' && $action === 'import') {
+                                $this->method = ($subaction === 'template') ? 'downloadTemplate' : 'index';
+                            } elseif ($httpMethod === 'POST' && $action === 'import') {
+                                $this->method = 'import';
+                            }
+                            
+                            if ($this->method) {
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            }
                         }
 
                         // ✅ MANEJO ESPECIAL: attendance submethods
@@ -265,6 +289,7 @@ class App
                                     $this->params = [];
                                     call_user_func_array([$this->controller, $this->method], $this->params);
                                     return;
+
                                 } elseif ($url[2] === 'import-file' && method_exists($this->controller, 'importFile')) {
                                     // POST: /panel/attendance/import-file
                                     $this->method = 'importFile';

@@ -314,6 +314,14 @@ class RouteHelper
                 ['title' => 'Acumulados', 'url' => 'panel/acumulados']
             ]
         ],
+        'panel/accumulated/import' => [
+            'title' => 'Importar Acumulados',
+            'breadcrumbs' => [
+                ['title' => 'Inicio', 'url' => 'panel/dashboard'],
+                ['title' => 'Acumulados', 'url' => 'panel/acumulados'],
+                ['title' => 'Importar Excel', 'url' => null]
+            ]
+        ],
         'panel/acumulados/allEmployees' => [
             'title' => 'Acumulados por Empleados',
             'breadcrumbs' => [
@@ -483,6 +491,10 @@ class RouteHelper
             'panel/acumulados/allEmployees' => ['admin', 'manager', 'operator'],
             'panel/acumulados/export' => ['admin', 'manager'],
             'panel/acumulados/exportExcel' => ['admin', 'manager'],
+            // Importación manual de acumulados
+            'panel/accumulated/import' => ['admin', 'manager'],
+            'panel/accumulated/import/template' => ['admin', 'manager'],
+            'panel/accumulated/import/process' => ['admin', 'manager'],
             // Administración de Tipos de Acumulados (solo admin)
             'panel/tipos-acumulados' => ['admin'],
             'panel/tipos-acumulados/create' => ['admin'],

@@ -151,6 +151,7 @@ class SidebarComponent
             $this->canAccessRoute('situaciones') ||
             $this->canAccessRoute('tipos-acumulados') ||
             $this->canAccessRoute('acumulados') ||
+            $this->canAccessRoute('panel/accumulated/import') ||
             $this->canAccessRoute('liquidation') ||
             $this->canAccessRoute('vacation') ||
             $this->canAccessRoute('creditors');
@@ -518,10 +519,10 @@ class SidebarComponent
                         </li>' : '') . '
 
                         ' . // Acumulados
-                        ($this->canAccessRoute('acumulados') ? '
+                        ($this->canAccessRoute('acumulados') || $this->canAccessRoute('panel/accumulated/import') ? '
                         <!-- Acumulados -->
-                        <li class="nav-item ' . ($this->isActive('panel/acumulados') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/acumulados') ? 'active' : '') . '">
+                        <li class="nav-item ' . (($this->isActive('panel/acumulados') || $this->isActive('panel/accumulated')) ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . (($this->isActive('panel/acumulados') || $this->isActive('panel/accumulated')) ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-coins"></i>
                                 <p>
                                     Acumulados
@@ -539,6 +540,12 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::route('panel/acumulados/byConcepto') . '" class="nav-link ' . ($this->isActive('panel/acumulados/byConcepto') ? 'active' : '') . '">
                                         <i class="fas fa-tags nav-icon"></i>
                                         <p>Por Concepto</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/accumulated/import') . '" class="nav-link ' . ($this->isActive('panel/accumulated/import') ? 'active' : '') . '">
+                                        <i class="fas fa-file-import nav-icon"></i>
+                                        <p>Importar Acumulados</p>
                                     </a>
                                 </li>
                             </ul>
