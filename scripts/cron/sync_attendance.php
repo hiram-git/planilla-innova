@@ -39,6 +39,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+use App\Core\MasterDatabase;
+use App\Core\TenantResolver;
+use App\Core\Database;
 use App\Models\AttendanceApiConfig;
 use App\Services\Attendance\AttendanceSyncService;
 
@@ -50,79 +53,115 @@ echo "║   Fecha: " . date('Y-m-d H:i:s') . "                              ║\
 echo "╚════════════════════════════════════════════════════════════╝\n";
 echo "\n";
 
-try {
-    // Obtener configuración activa
-    $configModel = new AttendanceApiConfig();
-    $config = $configModel->getActiveConfig();
-
-    if (!$config) {
-        echo "⚠️  No hay configuración activa de API. Saliendo...\n";
-        exit(0);
-    }
-
-    echo "✓ Configuración encontrada:\n";
-    echo "  - Proveedor: {$config['api_provider']}\n";
-    echo "  - Sincronización habilitada: " . ($config['sync_enabled'] ? 'Sí' : 'No') . "\n";
-    echo "  - Intervalo: {$config['sync_interval_minutes']} minutos\n";
-    echo "\n";
-
-    // Verificar si está habilitada
-    if (!$config['sync_enabled']) {
-        echo "⚠️  La sincronización automática está deshabilitada. Saliendo...\n";
-        exit(0);
-    }
-
-    // Verificar si debe ejecutarse
-    if (!$configModel->shouldSync($config['id'])) {
-        $minutesUntilNext = $configModel->getMinutesUntilNextSync($config['id']);
-        echo "⏰ Aún no es tiempo de sincronizar. Próxima ejecución en {$minutesUntilNext} minutos.\n";
-        exit(0);
-    }
-
-    echo "🚀 Iniciando sincronización...\n\n";
-
-    // Iniciar sincronización
-    $syncService = new AttendanceSyncService($config['id']);
-    $stats = $syncService->syncSince(); // Sincronizar solo registros nuevos
-
-    // Mostrar resultados
-    echo "✅ Sincronización completada:\n";
-    echo "  - Registros obtenidos: {$stats['fetched']}\n";
-    echo "  - Registros insertados: {$stats['inserted']}\n";
-    echo "  - Registros actualizados: {$stats['updated']}\n";
-    echo "  - Registros omitidos: {$stats['skipped']}\n";
-    echo "  - Errores: {$stats['errors']}\n";
-
-    // Mostrar errores si existen
-    if ($stats['errors'] > 0) {
-        $errors = $syncService->getErrors();
-        echo "\n⚠️  Detalles de errores:\n";
-        foreach ($errors as $error) {
-            echo "  - {$error}\n";
-        }
-    }
-
-    // Tiempo de ejecución
-    $endTime = microtime(true);
-    $executionTime = round($endTime - $startTime, 2);
-    echo "\n⏱️  Tiempo de ejecución: {$executionTime} segundos\n";
-
-    // Código de salida
-    $exitCode = ($stats['errors'] > 0) ? 1 : 0;
-    echo "\n" . ($exitCode === 0 ? "✓" : "✗") . " Finalizado con código: {$exitCode}\n";
-
-    exit($exitCode);
-
-} catch (Exception $e) {
-    echo "\n❌ ERROR FATAL:\n";
-    echo "  {$e->getMessage()}\n";
-    echo "\n  Stack trace:\n";
-    echo "  {$e->getTraceAsString()}\n";
-
-    // Tiempo de ejecución
-    $endTime = microtime(true);
-    $executionTime = round($endTime - $startTime, 2);
-    echo "\n⏱️  Tiempo de ejecución: {$executionTime} segundos\n";
-
-    exit(1);
+/**
+ * Cambiar de tenant reseteando la conexión global
+ */
+function switchTenant(string $dbName): void
+{
+    TenantResolver::clear();
+    Database::resetInstance();
+    $_SESSION['tenant_db'] = $dbName;
 }
+
+/**
+ * Obtener lista de tenants activos desde planilla_master
+ */
+function getActiveTenants(): array
+{
+    try {
+        $master = MasterDatabase::getInstance()->getConnection();
+        $stmt = $master->query("SELECT db_name FROM tenants WHERE status = 'ACTIVE'");
+        $tenants = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $tenants ?: [];
+    } catch (\Exception $e) {
+        echo "⚠️  No se pudieron obtener tenants desde planilla_master: {$e->getMessage()}\n";
+        return [];
+    }
+}
+
+$tenants = getActiveTenants();
+if (empty($tenants)) {
+    // Fallback: usar base por defecto del .env
+    $tenants = [$_ENV['DB_NAME'] ?? 'planilla_prod'];
+}
+
+$overallExit = 0;
+$processedTenants = 0;
+
+foreach ($tenants as $tenantDb) {
+    $processedTenants++;
+    echo "\n══════════════════════════════════════════════════════\n";
+    echo "▶️  Tenant: {$tenantDb}\n";
+    echo "══════════════════════════════════════════════════════\n";
+
+    try {
+        switchTenant($tenantDb);
+
+        // Obtener configuración activa
+        $configModel = new AttendanceApiConfig();
+        $config = $configModel->getActiveConfig();
+
+        if (!$config) {
+            echo "⚠️  Tenant {$tenantDb}: No hay configuración activa de API. Saltando...\n";
+            continue;
+        }
+
+        echo "✓ Configuración encontrada:\n";
+        echo "  - Proveedor: {$config['api_provider']}\n";
+        echo "  - Sincronización habilitada: " . ($config['sync_enabled'] ? 'Sí' : 'No') . "\n";
+        echo "  - Intervalo: {$config['sync_interval_minutes']} minutos\n";
+        echo "\n";
+
+        // Verificar si está habilitada
+        if (!$config['sync_enabled']) {
+            echo "⚠️  Tenant {$tenantDb}: Sincronización automática deshabilitada. Saltando...\n";
+            continue;
+        }
+
+        // Verificar si debe ejecutarse
+        if (!$configModel->shouldSync($config['id'])) {
+            $minutesUntilNext = $configModel->getMinutesUntilNextSync($config['id']);
+            echo "⏰ Tenant {$tenantDb}: Aún no es tiempo de sincronizar. Próxima ejecución en {$minutesUntilNext} minutos.\n";
+            continue;
+        }
+
+        echo "🚀 Iniciando sincronización...\n\n";
+
+        // Iniciar sincronización
+        $syncService = new AttendanceSyncService($config['id']);
+        $stats = $syncService->syncSince(); // Sincronizar solo registros nuevos
+
+        // Mostrar resultados
+        echo "✅ Sincronización completada para {$tenantDb}:\n";
+        echo "  - Registros obtenidos: {$stats['fetched']}\n";
+        echo "  - Registros insertados: {$stats['inserted']}\n";
+        echo "  - Registros actualizados: {$stats['updated']}\n";
+        echo "  - Registros omitidos: {$stats['skipped']}\n";
+        echo "  - Errores: {$stats['errors']}\n";
+
+        // Mostrar errores si existen
+        if ($stats['errors'] > 0) {
+            $overallExit = 1;
+            $errors = $syncService->getErrors();
+            echo "\n⚠️  Detalles de errores:\n";
+            foreach ($errors as $error) {
+                echo "  - {$error}\n";
+            }
+        }
+
+    } catch (Exception $e) {
+        $overallExit = 1;
+        echo "\n❌ ERROR en tenant {$tenantDb}:\n";
+        echo "  {$e->getMessage()}\n";
+        echo "\n  Stack trace:\n";
+        echo "  {$e->getTraceAsString()}\n";
+    }
+}
+
+// Tiempo de ejecución total
+$endTime = microtime(true);
+$executionTime = round($endTime - $startTime, 2);
+echo "\n⏱️  Tiempo de ejecución total: {$executionTime} segundos ({$processedTenants} tenants)\n";
+echo "\n" . ($overallExit === 0 ? "✓" : "✗") . " Finalizado con código: {$overallExit}\n";
+
+exit($overallExit);
