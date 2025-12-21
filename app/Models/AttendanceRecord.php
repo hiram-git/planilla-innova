@@ -178,6 +178,34 @@ class AttendanceRecord
     }
 
     /**
+     * Contar registros sin procesar (no duplicados)
+     */
+    public function countUnprocessed($dateFrom = null, $dateTo = null)
+    {
+        $sql = "SELECT COUNT(*) as total
+                FROM {$this->table} r
+                WHERE r.is_duplicate = 0";
+
+        $params = [];
+
+        if ($dateFrom) {
+            $sql .= " AND r.punch_date >= ?";
+            $params[] = $dateFrom;
+        }
+
+        if ($dateTo) {
+            $sql .= " AND r.punch_date <= ?";
+            $params[] = $dateTo;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['total'] ?? 0);
+    }
+
+    /**
      * Obtener registros agrupados por empleado y fecha
      * @param string|null $dateFrom
      * @param string|null $dateTo
