@@ -915,15 +915,17 @@ class AttendanceSyncService
             // Esto incluye empleados activos al final del período
             $referenceDate = $this->stats['max_date'] ?? date('Y-m-d');
 
-            $sql = "SELECT id, firstname, lastname, employee_id, email, fecha_ingreso
-                    FROM employees
-                    WHERE marca_asistencia = 1
-                    AND (termination_date IS NULL OR termination_date >= ?)
-                    ORDER BY id";
+            // Considerar empleados activos por situación (igual que Employee::getActiveMarkingEmployees)
+            $sql = "SELECT e.id, e.firstname, e.lastname, e.employee_id, e.email, e.fecha_ingreso
+                    FROM employees e
+                    LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                    WHERE (e.situacion_id = 1 OR sit.descripcion LIKE '%activ%' OR sit.descripcion LIKE '%ACTIV%' OR e.situacion_id IS NULL)
+                      AND COALESCE(e.marca_asistencia, 0) = 1
+                    ORDER BY e.lastname, e.firstname";
 
-            $results = $this->db->findAll($sql, [$referenceDate]);
+            $results = $this->db->findAll($sql);
 
-            $this->log("Empleados con marca_asistencia encontrados: " . count($results) . " (referencia: {$referenceDate})");
+            $this->log("Empleados con marca_asistencia encontrados: " . count($results) . " (filtro por situación activa)");
 
             return $results ?: [];
 
