@@ -7,6 +7,7 @@ use App\Core\Config;
 use App\Core\Security;
 use App\Core\ActivityLogger;
 use App\Middleware\AuthMiddleware;
+use App\Core\MasterDatabase;
 
 class Admin extends Controller
 {
@@ -136,8 +137,7 @@ class Admin extends Controller
                 $_SESSION['tenant_license'] = $tenantInfo['db_name'] ?? null;
                 $_SESSION['tenant_db'] = $tenantInfo['db_name'] ?? null;
                 $licenseKey = $tenantInfo['license_key'] ?? null;
-                $_SESSION['license_days_remaining'] = $tenantInfo['license_expires_at'] ?? null;
-            } else {
+                $licenseExpiresAt = $tenantInfo['license_expires_at'] ?? null;} else {
                 // BD principal (planilla_prod) - sin validación de licencia
                 $_SESSION['tenant_id'] = 'default';
                 $_SESSION['tenant_license'] = 'default';
@@ -951,3 +951,5 @@ class Admin extends Controller
         }
     }
 }
+
+
