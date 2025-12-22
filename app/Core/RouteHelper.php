@@ -329,6 +329,21 @@ class RouteHelper
                 ['title' => 'Acumulados', 'url' => 'panel/acumulados'],
                 ['title' => 'Por Empleados', 'url' => 'panel/acumulados/allEmployees']
             ]
+        ],
+        'panel/loans' => [
+            'title' => 'Préstamos',
+            'breadcrumbs' => [
+                ['title' => 'Inicio', 'url' => 'panel/dashboard'],
+                ['title' => 'Préstamos', 'url' => 'panel/loans']
+            ]
+        ],
+        'panel/loans/create' => [
+            'title' => 'Nuevo Préstamo',
+            'breadcrumbs' => [
+                ['title' => 'Inicio', 'url' => 'panel/dashboard'],
+                ['title' => 'Préstamos', 'url' => 'panel/loans'],
+                ['title' => 'Nuevo', 'url' => null]
+            ]
         ]
     ];
 
@@ -495,6 +510,9 @@ class RouteHelper
             'panel/accumulated/import' => ['admin', 'manager'],
             'panel/accumulated/import/template' => ['admin', 'manager'],
             'panel/accumulated/import/process' => ['admin', 'manager'],
+            // Préstamos
+            'panel/loans' => ['admin', 'manager'],
+            'panel/loans/create' => ['admin', 'manager'],
             // Administración de Tipos de Acumulados (solo admin)
             'panel/tipos-acumulados' => ['admin'],
             'panel/tipos-acumulados/create' => ['admin'],

@@ -152,6 +152,7 @@ class SidebarComponent
             $this->canAccessRoute('tipos-acumulados') ||
             $this->canAccessRoute('acumulados') ||
             $this->canAccessRoute('panel/accumulated/import') ||
+            $this->canAccessRoute('loans') ||
             $this->canAccessRoute('liquidation') ||
             $this->canAccessRoute('vacation') ||
             $this->canAccessRoute('creditors');
@@ -549,6 +550,15 @@ class SidebarComponent
                                     </a>
                                 </li>
                             </ul>
+                        </li>' : '') .
+
+                        ($this->canAccessRoute('loans') ? '
+                        <!-- Préstamos -->
+                        <li class="nav-item ' . ($this->isActive('panel/loans') ? 'menu-open' : '') . '">
+                            <a href="' . \App\Core\UrlHelper::route('panel/loans') . '" class="nav-link ' . ($this->isActive('panel/loans') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-hand-holding-usd"></i>
+                                <p>Préstamos</p>
+                            </a>
                         </li>' : '') .
 
                         // Liquidaciones
