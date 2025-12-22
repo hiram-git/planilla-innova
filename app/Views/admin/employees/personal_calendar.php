@@ -351,9 +351,9 @@ document.addEventListener("DOMContentLoaded", function() {
         var formData = new FormData();
         formData.append("file", fileInput.files[0]);
 
-        var $btn = $(this);
-        var originalBtnText = $btn.text();
-        $btn.prop("disabled", true).text("Importando...");
+        var btnImport = $(this);
+        var originalBtnText = btnImport.text();
+        btnImport.prop("disabled", true).text("Importando...");
         $("#importResult").html("");
 
         $.ajax({
@@ -363,7 +363,7 @@ document.addEventListener("DOMContentLoaded", function() {
             processData: false,
             contentType: false,
             success: function(res) {
-                $btn.prop("disabled", false).text(originalBtnText);
+                btnImport.prop("disabled", false).text(originalBtnText);
 
                 if(res.success) {
                     $("#modalImport").modal("hide");
@@ -374,7 +374,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             },
             error: function() {
-                $btn.prop("disabled", false).text(originalBtnText);
+                btnImport.prop("disabled", false).text(originalBtnText);
                 Swal.fire("Error", "Error en la solicitud", "error");
             }
         });

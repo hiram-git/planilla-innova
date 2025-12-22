@@ -229,6 +229,7 @@ class PersonalScheduleController extends Controller
         }
         
         $dailyScheduleModel = $this->model('EmployeeDailySchedule');
+        $businessCalendar = $this->model('BusinessCalendar');
         $start = new \DateTime($data['start_date']);
         $end = new \DateTime($data['end_date']);
         
@@ -238,21 +239,42 @@ class PersonalScheduleController extends Controller
         }
         
         $count = 0;
+        $skipped = 0;
         try {
             $db = \App\Core\Database::getInstance();
             $db->beginTransaction();
             
             while ($start <= $end) {
-                // Apply setting for every day in range
-                // Future improvement: Filter by days of week if passed
                 $dateStr = $start->format('Y-m-d');
-                $dailyScheduleModel->saveDay($data['employee_id'], $dateStr, $data['schedule_id']);
-                $count++;
+                $dayInfo = $businessCalendar->getDayInfo($dateStr);
+                $dayOfWeek = (int)$start->format('N'); // 1=Mon .. 7=Sun
+
+                $isWorking = false;
+                if ($dayInfo) {
+                    $dayType = $dayInfo['day_type'] ?? null;
+                    if (in_array($dayType, ['LABORAL', 'ESPECIAL'], true)) {
+                        $isWorking = true;
+                    }
+                } else {
+                    $isWorking = ($dayOfWeek >= 1 && $dayOfWeek <= 5);
+                }
+
+                if ($isWorking) {
+                    $dailyScheduleModel->saveDay($data['employee_id'], $dateStr, $data['schedule_id']);
+                    $count++;
+                } else {
+                    $skipped++;
+                }
+
                 $start->modify('+1 day');
             }
-            
+
             $db->commit();
-            echo json_encode(['success' => true, 'message' => "Se actualizaron $count días."]);
+            $message = "Se actualizaron $count d?as.";
+            if ($skipped > 0) {
+                $message .= " Omitidos por no laborables: $skipped.";
+            }
+            echo json_encode(['success' => true, 'message' => $message]);
             
         } catch (\Exception $e) {
             $db->rollback();
