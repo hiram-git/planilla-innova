@@ -6,6 +6,7 @@ use App\Core\Controller;
 use App\Core\UrlHelper;
 use App\Core\Security;
 use App\Middleware\AuthMiddleware;
+use App\Models\BusinessCalendar;
 
 class PersonalScheduleController extends Controller
 {
@@ -53,26 +54,34 @@ class PersonalScheduleController extends Controller
 
         $events = [];
 
-        // 1. Get Business Calendar (Holidays)
+        // 1. Business calendar as base layer (background events)
         $businessCalendar = $this->model('BusinessCalendar');
-        // We need a method to fetch holidays in range. 
-        // Current methods in BusinessCalendar are getHolidaysByYear or getDayInfo.
-        // I'll assume we can filter locally or add filtered query if needed.
-        // For now let's query raw filtered or use what we have.
-        // Doing raw query filter for efficiency:
-        $sql = "SELECT * FROM business_calendar 
-                WHERE date_value BETWEEN ? AND ? 
-                AND day_type = 'FERIADO'";
-        $holidays = $businessCalendar->db->findAll($sql, [$start, $end]);
+        $dayTypeColors = BusinessCalendar::getDayTypeColors();
 
-        foreach ($holidays as $holiday) {
+        $calendarDays = $businessCalendar->db->findAll(
+            "SELECT date_value, day_type, status, description 
+             FROM business_calendar 
+             WHERE date_value BETWEEN ? AND ?",
+            [$start, $end]
+        );
+
+        $businessByDate = [];
+        foreach ($calendarDays as $day) {
+            $businessByDate[$day['date_value']] = $day;
+            $color = $dayTypeColors[$day['day_type']] ?? '#6c757d';
+
             $events[] = [
-                'title' => $holiday['description'],
-                'start' => $holiday['date_value'],
+                'title' => $day['description'] ?: $day['day_type'],
+                'start' => $day['date_value'],
                 'allDay' => true,
-                'color' => '#dc3545', // Red for holidays
-                'rendering' => 'background', // Optional: make it background
-                'editable' => false
+                'display' => 'background',
+                'color' => $color,
+                'extendedProps' => [
+                    'source' => 'business',
+                    'day_type' => $day['day_type'],
+                    'status' => $day['status'] ?? null,
+                    'description' => $day['description'] ?? null
+                ]
             ];
         }
 
@@ -99,6 +108,12 @@ class PersonalScheduleController extends Controller
         while ($currentDate <= $endDate) {
             $dateStr = $currentDate->format('Y-m-d');
             $dayOfWeek = $currentDate->format('N'); // 1-7 (Mon-Sun)
+            $dayInfo = $businessByDate[$dateStr] ?? null;
+            $dayType = $dayInfo['day_type'] ?? null;
+            $isNonWorking = $dayType && in_array($dayType, ['FERIADO', 'NO_LABORAL', 'DUELO_NACIONAL']);
+            $isWorkingDay = $dayType
+                ? in_array($dayType, ['LABORAL', 'ESPECIAL'])
+                : $dayOfWeek <= 5; // Fallback to Mon-Fri when no business calendar entry
             
             // Check for overrides first
             if (isset($overridesByDate[$dateStr])) {
@@ -108,32 +123,32 @@ class PersonalScheduleController extends Controller
                     'start' => $dateStr . 'T' . $schedule['time_in'],
                     'end' => $dateStr . 'T' . $schedule['time_out'],
                     'color' => '#28a745', // Green for personal assignment
-                    'schedule_id' => $schedule['schedule_id']
+                    'schedule_id' => $schedule['schedule_id'],
+                    'extendedProps' => [
+                        'source' => 'personal',
+                        'is_default' => false,
+                        'schedule_id' => $schedule['schedule_id'],
+                        'day_type' => $dayType,
+                        'business_status' => $dayInfo['status'] ?? null
+                    ]
                 ];
             } else {
-                // Default Schedule Logic
-                // Assume default schedule applies to Mon-Fri (or based on business rules)
-                // If BusinessCalendar says it's a workday...
-                
-                // Let's check if it's a holiday (already handled visually, but logic-wise?)
-                // If holiday, usually no work.
-                $isHoliday = false;
-                foreach ($holidays as $h) {
-                    if ($h['date_value'] === $dateStr) {
-                        $isHoliday = true; 
-                        break;
-                    }
-                }
-
-                if (!$isHoliday && $dayOfWeek <= 5 && $defaultSchedule) { // Simple Mon-Fri Assumption
-                    // Show default schedule as "Standard"
+                // Default Schedule only if the day is considered working
+                if ($defaultSchedule && $isWorkingDay && !$isNonWorking) {
                     $events[] = [
                         'title' => $defaultSchedule['codigo'] . ' (Std)',
                         'start' => $dateStr . 'T' . $defaultSchedule['time_in'],
                         'end' => $dateStr . 'T' . $defaultSchedule['time_out'],
                         'color' => '#007bff', // Blue for default
                         'schedule_id' => $defaultSchedule['id'],
-                        'is_default' => true
+                        'is_default' => true,
+                        'extendedProps' => [
+                            'source' => 'default',
+                            'is_default' => true,
+                            'schedule_id' => $defaultSchedule['id'],
+                            'day_type' => $dayType,
+                            'business_status' => $dayInfo['status'] ?? null
+                        ]
                     ];
                 }
             }
