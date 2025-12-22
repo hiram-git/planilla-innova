@@ -92,7 +92,8 @@ class App
                     'funcion' => ['controller' => 'Funcion', 'method' => null],
                     'schedule' => ['controller' => 'Schedule', 'method' => null],
                     'payroll' => ['controller' => 'PayrollController', 'method' => null],
-                    'concept' => ['controller' => 'ConceptController', 'method' => null]
+                    'concept' => ['controller' => 'ConceptController', 'method' => null],
+                    'personal-schedule' => ['controller' => 'Admin\\PersonalScheduleController', 'method' => null]
                 ];
                 
                 if (isset($routeMapping[$url[1]])) {
