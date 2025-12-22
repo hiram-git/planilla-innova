@@ -33,25 +33,6 @@ $content = <<<HTML
             </div>
         </div>
 
-        <div class="card mb-3">
-            <div class="card-body py-3">
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
-                    <div class="d-flex align-items-center mb-2 mb-md-0">
-                        <i class="fas fa-layer-group text-info mr-2"></i>
-                        <span><strong>Capas:</strong> Fondo muestra el calendario empresarial (/panel/business-calendar); encima se pintan los horarios personales del empleado.</span>
-                    </div>
-                    <div class="schedule-legend d-flex flex-wrap">
-                        <span class="legend-pill" style="background:#28a745">Laboral (emp.)</span>
-                        <span class="legend-pill" style="background:#6c757d">No laboral</span>
-                        <span class="legend-pill" style="background:#dc3545">Feriado/Duelo</span>
-                        <span class="legend-pill" style="background:#17a2b8">Especial</span>
-                        <span class="legend-pill" style="background:#007bff">Horario predeterm.</span>
-                        <span class="legend-pill" style="background:#28a745">Horario personal</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="card">
             <div class="card-header p-2">
                 <ul class="nav nav-pills">
@@ -192,6 +173,17 @@ $content = <<<HTML
     #calendar .fc-bg-event {
         opacity: 0.18;
     }
+    .fc-badge-business {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        background: #6c757d;
+        line-height: 1.2;
+        white-space: normal;
+    }
 </style>
 
 <script>
@@ -228,6 +220,22 @@ document.addEventListener("DOMContentLoaded", function() {
             if (tips.length) {
                 info.el.setAttribute("title", tips.join(" | "));
             }
+        },
+        eventContent: function(arg) {
+            var props = arg.event.extendedProps || {};
+            // Reemplazar texto itálico por badge en eventos de calendario empresarial
+            if (props.source === "business") {
+                var color = arg.event.backgroundColor || "#6c757d";
+                var textColor = "#fff";
+                // Mejorar contraste: si es el gris de no laborables, usar texto oscuro
+                if (color.toLowerCase() === "#6c757d") {
+                    textColor = "#212529";
+                }
+                return {
+                    html: '<span class="fc-badge-business" style="background:' + color + ';color:' + textColor + ';">' + arg.event.title + '</span>'
+                };
+            }
+            return true; // usar render por defecto
         },
         editable: false
     });
