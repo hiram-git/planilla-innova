@@ -84,11 +84,16 @@ if (empty($tenants)) {
     // Fallback: usar base por defecto del .env
     $tenants = [$_ENV['DB_NAME'] ?? 'planilla_prod'];
 }
+$tenants = array_values(array_filter($tenants)); // limpiar nulos/vacíos
 
 $overallExit = 0;
 $processedTenants = 0;
 
 foreach ($tenants as $tenantDb) {
+    if (empty($tenantDb)) {
+        echo "⚠️  Tenant con db_name vacío; se omite.\n";
+        continue;
+    }
     $processedTenants++;
     echo "\n══════════════════════════════════════════════════════\n";
     echo "▶️  Tenant: {$tenantDb}\n";

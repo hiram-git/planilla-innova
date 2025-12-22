@@ -45,6 +45,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+use App\Core\MasterDatabase;
+use App\Core\TenantResolver;
+use App\Core\Database;
 use App\Services\Attendance\RecordsProcessor;
 use App\Services\Attendance\Calculators\AttendanceCalculator;
 use App\Services\Attendance\Calculators\AbsenceDetector;
@@ -90,11 +93,16 @@ $tenants = getActiveTenants();
 if (empty($tenants)) {
     $tenants = [$_ENV['DB_NAME'] ?? 'planilla_prod'];
 }
+$tenants = array_values(array_filter($tenants)); // limpiar nulos/vacíos
 
 $overallExit = 0;
 $processedTenants = 0;
 
 foreach ($tenants as $tenantDb) {
+    if (empty($tenantDb)) {
+        echo "⚠️  Tenant con db_name vacío; se omite.\n";
+        continue;
+    }
     $processedTenants++;
     echo "\n════════════════════════════════════════════════════════════════════\n";
     echo "▶️  Tenant: {$tenantDb}\n";
