@@ -202,7 +202,7 @@ class AccumulatedImportController extends Controller
                 }
                 $concept = $conceptsByCode[strtoupper($data['concept_code'])];
                 $frecuenciaId = $validation['frecuencia_id'];
-                $tipoAcumulado = $validation['tipo_acumulado'];
+                $tipoAcumulado = $validation['tipo_acumulado'] ?: strtoupper($data['concept_code']);
                 $planillaId = $data['planilla_id'] ?? 0;
 
                 // Evitar duplicados

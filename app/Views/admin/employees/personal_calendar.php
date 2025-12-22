@@ -1,16 +1,28 @@
 <?php
 use App\Core\UrlHelper;
 
-$content = '
+$scheduleOptions = '';
+foreach ($schedules as $sch) {
+    $scheduleOptions .= '<option value="' . $sch['id'] . '">' . $sch['codigo'] . ' (' . date('h:i A', strtotime($sch['time_in'])) . ' - ' . date('h:i A', strtotime($sch['time_out'])) . ')</option>';
+}
+
+$eventsUrl = UrlHelper::url('panel/personal-schedule/events/' . $employee['id']);
+$saveUrl = UrlHelper::url('panel/personal-schedule/saveDay');
+$deleteUrl = UrlHelper::url('panel/personal-schedule/deleteDay');
+$initializeUrl = UrlHelper::url('panel/personal-schedule/initialize');
+$importUrl = UrlHelper::url('panel/personal-schedule/import');
+$backUrl = UrlHelper::employee();
+$employeeId = (int)$employee['id'];
+
+$content = <<<HTML
 <section class="content">
     <div class="container-fluid">
         <div class="row mb-3">
             <div class="col-md-6">
-                 <a href="' . UrlHelper::employee() . '" class="btn btn-secondary">
+                <a href="{$backUrl}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Volver a Empleados
-                 </a>
+                </a>
             </div>
-            <div class="col-md-6 text-right">
             <div class="col-md-6 text-right">
                 <button type="button" class="btn btn-info mr-2" data-toggle="modal" data-target="#modalInitialize">
                     <i class="fas fa-magic"></i> Inicializar Rango
@@ -19,6 +31,24 @@ $content = '
                     <i class="fas fa-file-upload"></i> Importar Horarios
                 </button>
             </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+                    <div class="d-flex align-items-center mb-2 mb-md-0">
+                        <i class="fas fa-layer-group text-info mr-2"></i>
+                        <span><strong>Capas:</strong> Fondo muestra el calendario empresarial (/panel/business-calendar); encima se pintan los horarios personales del empleado.</span>
+                    </div>
+                    <div class="schedule-legend d-flex flex-wrap">
+                        <span class="legend-pill" style="background:#28a745">Laboral (emp.)</span>
+                        <span class="legend-pill" style="background:#6c757d">No laboral</span>
+                        <span class="legend-pill" style="background:#dc3545">Feriado/Duelo</span>
+                        <span class="legend-pill" style="background:#17a2b8">Especial</span>
+                        <span class="legend-pill" style="background:#007bff">Horario predeterm.</span>
+                        <span class="legend-pill" style="background:#28a745">Horario personal</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -31,7 +61,7 @@ $content = '
             <div class="card-body">
                 <div class="tab-content">
                     <div class="active tab-pane" id="calendar-tab">
-                         <div id="calendar"></div>
+                        <div id="calendar"></div>
                     </div>
                 </div>
             </div>
@@ -39,10 +69,7 @@ $content = '
     </div>
 </section>
 
-    </div>
-</section>
-
-<!-- Modal: Initialize Range -->
+<!-- Modal: Inicializar rango -->
 <div class="modal fade" id="modalInitialize" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -69,13 +96,9 @@ $content = '
                     </div>
                     <div class="form-group">
                         <label>Horario a Asignar</label>
-                         <select class="form-control" id="initScheduleId" required>
+                        <select class="form-control" id="initScheduleId" required>
                             <option value="">-- Seleccionar Horario --</option>
-                            ';
-                            foreach ($schedules as $sch) {
-                                $content .= '<option value="' . $sch['id'] . '">' . $sch['codigo'] . ' (' . date('h:i A', strtotime($sch['time_in'])) . ' - ' . date('h:i A', strtotime($sch['time_out'])) . ')</option>';
-                            }
-                            $content .= '
+                            {$scheduleOptions}
                         </select>
                     </div>
                 </form>
@@ -88,7 +111,7 @@ $content = '
     </div>
 </div>
 
-<!-- Modal: Import Schedules -->
+<!-- Modal: Importar horarios -->
 <div class="modal fade" id="modalImport" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -103,7 +126,7 @@ $content = '
                     <div class="form-group">
                         <label>Archivo CSV</label>
                         <input type="file" class="form-control-file" id="importFile" accept=".csv">
-                        <small class="form-text text-muted">Formato: Cédula, Fecha (YYYY-MM-DD), Código Horario</small>
+                        <small class="form-text text-muted">Formato: Cedula, Fecha (YYYY-MM-DD), Codigo Horario</small>
                     </div>
                 </form>
                 <div id="importResult" class="mt-3"></div>
@@ -116,7 +139,7 @@ $content = '
     </div>
 </div>
 
-<!-- Modal: Edit Day Schedule -->
+<!-- Modal: Editar dia -->
 <div class="modal fade" id="modalDaySchedule" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -129,19 +152,15 @@ $content = '
             <div class="modal-body">
                 <form id="formDaySchedule">
                     <input type="hidden" id="editDate" name="date">
-                    <input type="hidden" id="employeeId" name="employee_id" value="' . $employee['id'] . '">
-                    
+                    <input type="hidden" id="employeeId" name="employee_id" value="{$employeeId}">
+
                     <div class="form-group">
                         <label>Horario</label>
                         <select class="form-control" id="scheduleSelect" name="schedule_id">
                             <option value="">-- Seleccionar Horario --</option>
-                            '; 
-                            foreach ($schedules as $sch) {
-                                $content .= '<option value="' . $sch['id'] . '">' . $sch['codigo'] . ' (' . date('h:i A', strtotime($sch['time_in'])) . ' - ' . date('h:i A', strtotime($sch['time_out'])) . ')</option>';
-                            }
-                            $content .= '
+                            {$scheduleOptions}
                         </select>
-                        <small class="text-muted">Seleccione un horario para anular el predeterminado de este día.</small>
+                        <small class="text-muted">Seleccione un horario para anular el predeterminado de este dia.</small>
                     </div>
                 </form>
             </div>
@@ -158,59 +177,86 @@ $content = '
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/es.global.min.js"></script>
 
+<style>
+    .schedule-legend .legend-pill {
+        color: #fff;
+        font-weight: 600;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        margin-left: 6px;
+        margin-bottom: 6px;
+        display: inline-flex;
+        align-items: center;
+    }
+    #calendar .fc-bg-event {
+        opacity: 0.18;
+    }
+</style>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     var calendarEl = document.getElementById("calendar");
-    var employeeId = ' . $employee['id'] . ';
-    
+    var employeeId = {$employeeId};
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
         locale: "es",
         initialView: "dayGridMonth",
+        height: "auto",
         headerToolbar: {
             left: "prev,next today",
             center: "title",
             right: "dayGridMonth,listMonth"
         },
-        events: "' . UrlHelper::url('panel/personal-schedule/events/' . $employee['id']) . '",
+        events: "{$eventsUrl}",
         dateClick: function(info) {
             openModal(info.dateStr);
         },
         eventClick: function(info) {
-            // If clicking an event, open modal for that day
-            // We use start date normalized
+            if (info.event.extendedProps && info.event.extendedProps.source === "business") {
+                return;
+            }
             var dateStr = info.event.startStr.split("T")[0];
             openModal(dateStr, info.event);
         },
+        eventDidMount: function(info) {
+            var props = info.event.extendedProps || {};
+            var tips = [];
+            if (props.day_type) tips.push("Tipo: " + props.day_type);
+            if (props.business_status) tips.push("Estado: " + props.business_status);
+            if (props.description && props.source === "business") tips.push(props.description);
+            if (tips.length) {
+                info.el.setAttribute("title", tips.join(" | "));
+            }
+        },
         editable: false
     });
-    
+
     calendar.render();
-    
-    function openModal(dateStr, event = null) {
+
+    function openModal(dateStr, event) {
         $("#modalDateDisplay").text(dateStr);
         $("#editDate").val(dateStr);
-        
-        // Reset selection
         $("#scheduleSelect").val("");
-        
-        if (event && event.extendedProps.schedule_id && !event.extendedProps.is_default) {
-             $("#scheduleSelect").val(event.extendedProps.schedule_id);
+
+        if (event && event.extendedProps && event.extendedProps.schedule_id && !event.extendedProps.is_default) {
+            $("#scheduleSelect").val(event.extendedProps.schedule_id);
         }
-        
+
         $("#modalDaySchedule").modal("show");
     }
-    
-    $("#btnSaveDay").click(function() {
+
+    $("#btnSaveDay").on("click", function() {
         var scheduleId = $("#scheduleSelect").val();
         var date = $("#editDate").val();
-        
+
         if (!scheduleId) {
             Swal.fire("Error", "Seleccione un horario", "error");
             return;
         }
-        
+
         $.ajax({
-            url: "' . UrlHelper::url('panel/personal-schedule/saveDay') . '",
+            url: "{$saveUrl}",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify({
@@ -229,20 +275,20 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     });
-    
-    $("#btnResetDay").click(function() {
+
+    $("#btnResetDay").on("click", function() {
         var date = $("#editDate").val();
-        
+
         Swal.fire({
-            title: "¿Restaurar horario por defecto?",
-            text: "Se eliminará la asignación personalizada para este día.",
+            title: "Restaurar horario por defecto?",
+            text: "Se eliminara la asignacion personalizada para este dia.",
             icon: "warning",
             showCancelButton: true,
-            confirmButtonText: "Sí, restaurar"
+            confirmButtonText: "Si, restaurar"
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: "' . UrlHelper::url('panel/personal-schedule/deleteDay') . '",
+                    url: "{$deleteUrl}",
                     method: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({
@@ -262,23 +308,19 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     });
-    
-        });
-    });
-    
-    // Initialize Logic
-    $("#btnInitialize").click(function() {
+
+    $("#btnInitialize").on("click", function() {
         var start = $("#initStartDate").val();
         var end = $("#initEndDate").val();
         var scheduleId = $("#initScheduleId").val();
-        
+
         if (!start || !end || !scheduleId) {
              Swal.fire("Error", "Complete todos los campos", "error");
              return;
         }
-        
+
         $.ajax({
-            url: "' . UrlHelper::url('panel/personal-schedule/initialize') . '",
+            url: "{$initializeUrl}",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify({
@@ -291,55 +333,54 @@ document.addEventListener("DOMContentLoaded", function() {
                  if (res.success) {
                      $("#modalInitialize").modal("hide");
                      calendar.refetchEvents();
-                     Swal.fire("Éxito", res.message, "success");
+                     Swal.fire("Exito", res.message, "success");
                  } else {
                      Swal.fire("Error", res.message || "Error al inicializar", "error");
                  }
             }
         });
     });
-    
-    // Import Logic
-    $("#btnImport").click(function() {
+
+    $("#btnImport").on("click", function() {
         var fileInput = document.getElementById("importFile");
         if (fileInput.files.length === 0) {
             Swal.fire("Error", "Seleccione un archivo", "error");
             return;
         }
-        
+
         var formData = new FormData();
         formData.append("file", fileInput.files[0]);
-        
-        // Show loading state
-        let originalBtnText = $(this).text();
-        $(this).prop("disabled", true).text("Importando...");
+
+        var $btn = $(this);
+        var originalBtnText = $btn.text();
+        $btn.prop("disabled", true).text("Importando...");
         $("#importResult").html("");
-        
+
         $.ajax({
-            url: "' . UrlHelper::url('panel/personal-schedule/import') . '",
+            url: "{$importUrl}",
             method: "POST",
             data: formData,
             processData: false,
             contentType: false,
             success: function(res) {
-                $("#btnImport").prop("disabled", false).text(originalBtnText);
-                
+                $btn.prop("disabled", false).text(originalBtnText);
+
                 if(res.success) {
                     $("#modalImport").modal("hide");
                     calendar.refetchEvents();
-                    Swal.fire("Éxito", res.message, "success");
+                    Swal.fire("Exito", res.message, "success");
                 } else {
-                    $("#importResult").html(\'<div class="alert alert-danger">\' + res.message + \'</div>\');
+                    $("#importResult").html('<div class="alert alert-danger">' + (res.message || "Error al importar") + '</div>');
                 }
             },
             error: function() {
-                $("#btnImport").prop("disabled", false).text(originalBtnText);
+                $btn.prop("disabled", false).text(originalBtnText);
                 Swal.fire("Error", "Error en la solicitud", "error");
             }
         });
     });
 });
 </script>
-';
+HTML;
 
 require_once __DIR__ . '/../../layouts/admin.php';
