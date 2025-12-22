@@ -142,7 +142,7 @@
                         <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
                             <i class="fas fa-upload"></i> Importar Acumulados
                         </button>
-                        <a href="<?= \App\Core\UrlHelper::route('panel/acumulados') ?>" class="btn btn-secondary btn-block mt-2">
+                        <a href="<?= \App\Core\UrlHelper::route('panel/acumulados/byEmployee') ?>" class="btn btn-secondary btn-block mt-2">
                             <i class="fas fa-arrow-left"></i> Volver a Acumulados
                         </a>
                     </div>

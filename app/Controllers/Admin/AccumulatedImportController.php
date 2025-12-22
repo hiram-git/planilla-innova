@@ -158,7 +158,7 @@ class AccumulatedImportController extends Controller
             }
 
             // Precargar catálogos para validar rápido
-            $employeesByCode = $this->getEmployeesIndexed();
+            [$employeesByCode, $employeesByDocument] = $this->getEmployeesIndexed();
             $conceptsByCode = $this->getConceptsIndexed();
             $frecuenciasByCode = $this->getFrecuenciasIndexed();
             $tiposAcumuladosByCode = $this->getTiposAcumuladosIndexed();
@@ -186,14 +186,20 @@ class AccumulatedImportController extends Controller
                     continue;
                 }
 
-                $validation = $this->validateRow($data, $row, $employeesByCode, $conceptsByCode, $frecuenciasByCode, $tiposAcumuladosByCode);
+                $validation = $this->validateRow($data, $row, $employeesByCode, $employeesByDocument, $conceptsByCode, $frecuenciasByCode, $tiposAcumuladosByCode);
                 if (!$validation['valid']) {
                     $errors[] = $validation['message'];
                     $skipped++;
                     continue;
                 }
 
-                $employee = $employeesByCode[strtoupper($data['employee_code'])];
+                // Resolver empleado por código o cédula
+                $employeeLookupCode = strtoupper($data['employee_code']);
+                $employee = $employeesByCode[$employeeLookupCode] ?? null;
+
+                if (!$employee && isset($employeesByDocument[$employeeLookupCode])) {
+                    $employee = $employeesByDocument[$employeeLookupCode];
+                }
                 $concept = $conceptsByCode[strtoupper($data['concept_code'])];
                 $frecuenciaId = $validation['frecuencia_id'];
                 $tipoAcumulado = $validation['tipo_acumulado'];
@@ -270,7 +276,7 @@ class AccumulatedImportController extends Controller
     /**
      * Validar datos de una fila
      */
-    private function validateRow(array $data, int $row, array $employeesByCode, array $conceptsByCode, array $frecuenciasByCode, array $tiposAcumuladosByCode)
+    private function validateRow(array $data, int $row, array $employeesByCode, array $employeesByDocument, array $conceptsByCode, array $frecuenciasByCode, array $tiposAcumuladosByCode)
     {
         $errors = [];
 
@@ -302,8 +308,12 @@ class AccumulatedImportController extends Controller
         $employeeCode = strtoupper($data['employee_code']);
         $conceptCode = strtoupper($data['concept_code']);
 
-        if (!isset($employeesByCode[$employeeCode])) {
-            $errors[] = "Empleado con código {$data['employee_code']} no existe (Columna A)";
+        $employeeExists = isset($employeesByCode[$employeeCode]) ||
+                          isset($employeesByCode['DOC:' . $employeeCode]) ||
+                          isset($employeesByDocument[$employeeCode]);
+
+        if (!$employeeExists) {
+            $errors[] = "Empleado con código/cédula {$data['employee_code']} no existe (Columna A)";
         }
 
         if (!isset($conceptsByCode[$conceptCode])) {
@@ -412,14 +422,21 @@ class AccumulatedImportController extends Controller
     private function getEmployeesIndexed()
     {
         $employees = $this->employeeModel->getAllEmployees() ?? [];
-        $indexed = [];
+        $byCode = [];
+        $byDocument = [];
         foreach ($employees as $employee) {
             $code = strtoupper($employee['employee_id'] ?? '');
+            $doc = strtoupper($employee['document_id'] ?? '');
             if ($code) {
-                $indexed[$code] = $employee;
+                $byCode[$code] = $employee;
+            }
+            if ($doc) {
+                $byDocument[$doc] = $employee;
+                // Prefijo DOC: para lookup rápido en validación
+                $byCode['DOC:' . $doc] = $employee;
             }
         }
-        return $indexed;
+        return [$byCode, $byDocument];
     }
 
     private function getConceptsIndexed()
