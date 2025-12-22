@@ -643,6 +643,9 @@ class Employee extends Controller
                 if (PermissionHelper::canRead('employees')) {
                     $actionsHtml .= '<a href="' . \App\Core\UrlHelper::employee($emp['id']) . '" class="btn btn-info btn-sm" title="Ver">
                                         <i class="fas fa-eye"></i>
+                                     </a> 
+                                     <a href="' . \App\Core\UrlHelper::url('panel/personal-schedule/index/' . $emp['id']) . '" class="btn btn-primary btn-sm" title="Horario Personal">
+                                        <i class="fas fa-calendar-alt"></i>
                                      </a> ';
                 }
                 
