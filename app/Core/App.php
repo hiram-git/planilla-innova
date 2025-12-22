@@ -75,6 +75,7 @@ class App
                     'tipos-acumulados' => ['controller' => 'TipoAcumuladoController', 'method' => null],
                     'acumulados' => ['controller' => 'AcumuladoController', 'method' => null],
                     'accumulated' => ['controller' => 'Admin\\AccumulatedImportController', 'method' => null],
+                    'loans' => ['controller' => 'LoanController', 'method' => null],
                     'liquidation' => ['controller' => 'LiquidationController', 'method' => null],
                     'vacation' => ['controller' => 'VacationController', 'method' => null],
                     'business-calendar' => ['controller' => 'BusinessCalendarController', 'method' => null],
