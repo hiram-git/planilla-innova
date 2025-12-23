@@ -1155,6 +1155,16 @@ class LiquidationController extends Controller
             $stmt->execute([$payroll_id]);
             $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            $liquidationAccumulations = [];
+            if (!empty($details)) {
+                $employeeId = (int)$details[0]['employee_id'];
+                $endDate = $payroll['fecha_hasta'] ?? $payroll['fecha'] ?? date('Y-m-d');
+                $accumulatedMonths = $this->getLiquidationAccumulatedMonths($employeeId, $endDate);
+                foreach (['LIQ005', 'LIQ007'] as $conceptCode) {
+                    $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
+                }
+            }
+
             // Calcular totales
             $totals = [
                 'total_asignaciones' => array_sum(array_column(array_filter($details, fn($d) => $d['tipo'] === 'A'), 'monto')),
@@ -1166,6 +1176,7 @@ class LiquidationController extends Controller
                 'payroll' => $payroll,
                 'details' => $details,
                 'totals' => $totals,
+                'liquidationAccumulations' => $liquidationAccumulations,
                 'pageTitle' => 'Detalle de Planilla de Liquidación'
             ]);
 
@@ -1564,7 +1575,7 @@ class LiquidationController extends Controller
                     INNER JOIN planilla_detalle pd ON pd.planilla_cabecera_id = pc.id
                     INNER JOIN concepto c ON pd.concepto_id = c.id
                     INNER JOIN employees e ON pd.employee_id = e.id
-                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN organigrama org ON e.departamento_id = org.id
                     LEFT JOIN posiciones p ON e.position_id = p.id
                     LEFT JOIN cargos ON p.id_cargo = cargos.id
                     LEFT JOIN employee_terminations et ON et.employee_id = e.id
@@ -1924,7 +1935,7 @@ class LiquidationController extends Controller
                     INNER JOIN planilla_detalle pd ON pd.planilla_cabecera_id = pc.id
                     INNER JOIN concepto c ON pd.concepto_id = c.id
                     INNER JOIN employees e ON pd.employee_id = e.id
-                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN organigrama org ON e.departamento_id = org.id
                     LEFT JOIN posiciones p ON e.position_id = p.id
                     LEFT JOIN cargos ON cargos.id = e.cargo_id
                     LEFT JOIN employee_terminations et ON et.employee_id = e.id
@@ -1935,6 +1946,17 @@ class LiquidationController extends Controller
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$payroll_id]);
             $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $accumulatedConceptCodes = ['LIQ005', 'LIQ007'];
+            $liquidationAccumulations = [];
+            if (!empty($details)) {
+                $employeeId = (int)$details[0]['employee_id'];
+                $endDate = $payroll['fecha_hasta'] ?? $payroll['fecha'] ?? date('Y-m-d');
+                $accumulatedMonths = $this->getLiquidationAccumulatedMonths($employeeId, $endDate);
+                foreach ($accumulatedConceptCodes as $conceptCode) {
+                    $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
+                }
+            }
 
             // Obtener datos de la empresa para las firmas y logos
             $sql_company = "SELECT legal_representative, jefe_recursos_humanos,
@@ -2117,6 +2139,74 @@ class LiquidationController extends Controller
             $colCodigo = $availableWidth * 0.17;
             $colDescripcion = $availableWidth * 0.58;
             $colMonto = $availableWidth * 0.25;
+
+            $accumulatedTotal = $liquidationAccumulations['LIQ005']['total']
+                ?? $liquidationAccumulations['LIQ007']['total']
+                ?? 0.0;
+            $xiiiAmount = $accumulatedTotal > 0 ? ($accumulatedTotal / 12) : 0.0;
+            $vacAmount = $accumulatedTotal > 0 ? ($accumulatedTotal / 11) : 0.0;
+
+            $conceptDetails = [];
+            foreach ($details as $detail) {
+                if (in_array($detail['concepto'], $accumulatedConceptCodes, true)) {
+                    $conceptDetails[$detail['concepto']] = $detail;
+                }
+            }
+
+            $xiiiCode = 'LIQ007';
+            $vacCode = 'LIQ005';
+            $xiiiDescription = $conceptDetails[$xiiiCode]['concepto_descripcion'] ?? 'XIII proporcional';
+            $vacDescription = $conceptDetails[$vacCode]['concepto_descripcion'] ?? 'Vacaciones proporcionales';
+
+            $compactCodeWidth = $availableWidth * 0.12;
+            $compactDescWidth = $availableWidth * 0.28;
+            $compactAmountWidth = $availableWidth * 0.10;
+
+            $pdf->SetFillColor(224, 224, 224);
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->Cell($compactCodeWidth, 6, 'Codigo', 1, 0, 'C', true);
+            $pdf->Cell($compactDescWidth, 6, 'Descripcion', 1, 0, 'C', true);
+            $pdf->Cell($compactAmountWidth, 6, 'Monto', 1, 0, 'C', true);
+            $pdf->Cell($compactCodeWidth, 6, 'Codigo', 1, 0, 'C', true);
+            $pdf->Cell($compactDescWidth, 6, 'Descripcion', 1, 0, 'C', true);
+            $pdf->Cell($compactAmountWidth, 6, 'Monto', 1, 1, 'C', true);
+
+            $months = $liquidationAccumulations[$vacCode]['months']
+                ?? $liquidationAccumulations[$xiiiCode]['months']
+                ?? [];
+            while (count($months) < 12) {
+                $months[] = [
+                    'label' => '',
+                    'amount' => 0.0
+                ];
+            }
+
+            $monthLabelWidth = $compactCodeWidth + $compactDescWidth;
+            $monthAmountWidth = $compactAmountWidth;
+
+            $pdf->SetFillColor(245, 245, 245);
+            $pdf->SetFont('helvetica', 'B', 8);
+            $pdf->Cell($monthLabelWidth, 5, 'Mes', 1, 0, 'L', true);
+            $pdf->Cell($monthAmountWidth, 5, 'Acumulado', 1, 0, 'R', true);
+            $pdf->Cell($monthLabelWidth, 5, 'Mes', 1, 0, 'L', true);
+            $pdf->Cell($monthAmountWidth, 5, 'Acumulado', 1, 1, 'R', true);
+
+            $pdf->SetFont('helvetica', '', 8);
+            foreach ($months as $month) {
+                $pdf->Cell($monthLabelWidth, 5, $month['label'], 1, 0, 'L');
+                $pdf->Cell($monthAmountWidth, 5, '$' . number_format($month['amount'], 2), 1, 0, 'R');
+                $pdf->Cell($monthLabelWidth, 5, $month['label'], 1, 0, 'L');
+                $pdf->Cell($monthAmountWidth, 5, '$' . number_format($month['amount'], 2), 1, 1, 'R');
+            }
+
+            $pdf->SetFont('helvetica', '', 9);
+            $pdf->Cell($compactCodeWidth, 6, $xiiiCode, 1, 0, 'L');
+            $pdf->Cell($compactDescWidth, 6, $xiiiDescription, 1, 0, 'L');
+            $pdf->Cell($compactAmountWidth, 6, '$' . number_format($xiiiAmount, 2), 1, 0, 'R');
+            $pdf->Cell($compactCodeWidth, 6, $vacCode, 1, 0, 'L');
+            $pdf->Cell($compactDescWidth, 6, $vacDescription, 1, 0, 'L');
+            $pdf->Cell($compactAmountWidth, 6, '$' . number_format($vacAmount, 2), 1, 1, 'R');
+            $pdf->Ln(3);
 
             // ===== ASIGNACIONES =====
             $pdf->SetFillColor(255, 140, 0); // Naranja intenso
