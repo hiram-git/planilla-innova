@@ -8,6 +8,7 @@ use PDO;
 class ActivityLogger
 {
     private static $db = null;
+    private static $tableEnsured = false;
     
     private static function getConnection()
     {
@@ -30,6 +31,9 @@ class ActivityLogger
      */
     public static function log($action, $table_affected = null, $record_id = null, $description = null, $old_data = null, $new_data = null, $user_id = null)
     {
+        $hasRetried = false;
+
+        retry_logging:
         try {
             $conn = self::getConnection();
             
@@ -69,8 +73,64 @@ class ActivityLogger
             ]);
             
         } catch (\Exception $e) {
+            $message = $e->getMessage();
+
+            // Si la tabla no existe en el tenant actual, la creamos y reintentamos una sola vez
+            if (!$hasRetried && self::isMissingSystemLogsTableError($message)) {
+                self::ensureSystemLogsTable();
+                $hasRetried = true;
+                goto retry_logging;
+            }
+
             // Log to file as fallback (don't break the application)
-            error_log("ActivityLogger Error: " . $e->getMessage());
+            error_log("ActivityLogger Error: " . $message);
+        }
+    }
+
+    /**
+     * Detecta si el error corresponde a la falta de la tabla system_logs.
+     */
+    private static function isMissingSystemLogsTableError($errorMessage)
+    {
+        return stripos($errorMessage, 'system_logs') !== false &&
+               (stripos($errorMessage, 'Base table or view not found') !== false ||
+                stripos($errorMessage, 'doesn\'t exist') !== false);
+    }
+
+    /**
+     * Crea la tabla system_logs si no existe en el tenant actual.
+     */
+    private static function ensureSystemLogsTable()
+    {
+        if (self::$tableEnsured) {
+            return;
+        }
+
+        try {
+            $conn = self::getConnection()->getConnection();
+            $sql = "
+                CREATE TABLE IF NOT EXISTS `system_logs` (
+                  `id` int NOT NULL AUTO_INCREMENT,
+                  `user_id` int DEFAULT NULL,
+                  `action` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+                  `table_affected` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                  `record_id` int DEFAULT NULL,
+                  `description` text COLLATE utf8mb4_unicode_ci,
+                  `additional_data` json DEFAULT NULL,
+                  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                  `user_agent` text COLLATE utf8mb4_unicode_ci,
+                  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  KEY `idx_user_id` (`user_id`),
+                  KEY `idx_action` (`action`),
+                  KEY `idx_table_affected` (`table_affected`),
+                  KEY `idx_created_at` (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ";
+            $conn->exec($sql);
+            self::$tableEnsured = true;
+        } catch (\Exception $e) {
+            error_log("No se pudo crear la tabla system_logs: " . $e->getMessage());
         }
     }
     

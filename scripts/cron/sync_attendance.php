@@ -84,7 +84,8 @@ if (empty($tenants)) {
     // Fallback: usar base por defecto del .env
     $tenants = [$_ENV['DB_NAME'] ?? 'planilla_prod'];
 }
-$tenants = array_values(array_filter($tenants)); // limpiar nulos/vacíos
+$tenants[] = 'planilla_prod';
+$tenants = array_values(array_unique(array_filter($tenants))); // limpiar nulos/vacíos y duplicados
 
 $overallExit = 0;
 $processedTenants = 0;

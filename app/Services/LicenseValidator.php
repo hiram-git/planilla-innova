@@ -7,37 +7,36 @@ use Exception;
 /**
  * LicenseValidator - Servicio de Validación de Licencias
  *
- * Valida licencias contra el servidor de Innovasoft Latam
- * Basado en el sistema legacy con mejoras de seguridad y logging
- *
- * @version 1.0.0
- * @date 2025-11-24
+ * Valida licencias contra el servidor de Innovasoft Latam y retorna
+ * siempre una respuesta estandarizada para evitar errores en login.
  */
 class LicenseValidator
 {
-    private $validationUrl;
+    private $licenseApiUrl;
+    private $userApiUrl;
     private $timeout;
     private $sslVerify;
+    private $prefix;
 
     public function __construct()
     {
-        $this->validationUrl = $_ENV['LICENSE_VALIDATION_URL'] ?? 'https://plataforma.innovasoftlatam.com:8080/ajax/licensePlanilla.php';
+        $baseUrl = $_ENV['LICENSE_VALIDATION_URL'] ?? 'https://plataforma.innovasoftlatam.com:8080';
+        // Remover el path de endpoint si viene en la URL base.
+        $baseUrl = rtrim(str_replace('/ajax/license.php', '', $baseUrl), '/');
+
+        $this->licenseApiUrl = $baseUrl . '/ajax/license.php';
+        $this->userApiUrl = $baseUrl . '/ajax/user.php';
         $this->timeout = (int)($_ENV['HTTP_TIMEOUT'] ?? 8);
-        $this->sslVerify = (bool)($_ENV['LICENSING_SSL_VERIF'] ?? false);
+        $this->sslVerify = $this->envToBool($_ENV['LICENSING_SSL_VERIF'] ?? null, true);
+        $this->prefix = $_ENV['LICENSE_PREFIX'] ?? 'PINN'; // PINN = Panama Innova
     }
 
     /**
-     * Validar licencia contra servidor remoto
-     *
-     * @param string $licenseKey Clave de licencia a validar
-     * @return array [
-     *   'valid' => bool,
-     *   'expiration_date' => string|null,
-     *   'days_remaining' => int|null,
-     *   'message' => string,
-     *   'raw_response' => array|null
-     * ]
-     */
+    * Validar licencia contra servidor remoto.
+    *
+    * @param string $licenseKey
+    * @return array{valid:bool,expiration_date:?string,days_remaining:?int,message:string,raw_response:mixed}
+    */
     public function validate($licenseKey)
     {
         if (empty($licenseKey)) {
@@ -45,73 +44,85 @@ class LicenseValidator
         }
 
         try {
-            // Realizar petición cURL
             $response = $this->makeRequest($licenseKey);
-
-            if (!$response) {
-                return $this->buildResponse(false, null, 'No se pudo conectar al servidor de licencias');
+            if ($response === false) {
+                return $this->buildResponse(false, null, 'No se pudo contactar el servidor de licencias');
             }
 
-            // Parsear respuesta
             $data = json_decode($response, true);
-
-            if (!isset($data['success']) || $data['success'] != 1) {
-                $message = $data['message'] ?? 'Licencia no válida o inactiva';
-                error_log("Validación de licencia fallida para: {$licenseKey} - {$message}");
-                return $this->buildResponse(false, null, $message, $data);
+            if (!is_array($data)) {
+                return $this->buildResponse(false, null, 'Respuesta de licencia inválida', $data);
             }
 
-            // Verificar fecha de expiración
-            $expirationDate = $data['Expiration'] ?? null;
+            $isValid = false;
+            $expirationRaw = null;
+            $message = $data['message'] ?? 'Licencia no valida';
 
-            if (!$expirationDate) {
-                return $this->buildResponse(false, null, 'Fecha de expiración no disponible', $data);
+            if ((isset($data['success']) && (int)$data['success'] === 1) || isset($data['Expiration']) || isset($data['expiration'])) {
+                $isValid = true;
+                $expirationRaw = $data['Expiration'] ?? $data['expiration'] ?? null;
+                $message = 'Licencia valida';
             }
 
-            $isExpired = $this->isLicenseExpired($expirationDate);
-            $daysRemaining = $this->getDaysRemaining($expirationDate);
+            $normalizedExpiration = $this->normalizeExpirationDate($expirationRaw);
+            $daysRemaining = $normalizedExpiration ? $this->getDaysRemaining($normalizedExpiration) : null;
 
-            if ($isExpired) {
-                $formattedDate = date('d/m/Y', strtotime($expirationDate));
-                $message = "Su licencia {$licenseKey} expiró el {$formattedDate}. Por favor, contactar al distribuidor.";
-                error_log("Licencia expirada: {$licenseKey} - Expiró: {$formattedDate}");
-                return $this->buildResponse(false, $expirationDate, $message, $data, $daysRemaining);
-            }
-
-            // Licencia válida
-            error_log("Licencia válida: {$licenseKey} - Días restantes: {$daysRemaining}");
-            return $this->buildResponse(true, $expirationDate, 'Licencia válida', $data, $daysRemaining);
-
+            return $this->buildResponse($isValid, $normalizedExpiration, $message, $data, $daysRemaining);
         } catch (Exception $e) {
-            error_log("Error validando licencia {$licenseKey}: " . $e->getMessage());
-            return $this->buildResponse(false, null, 'Error al validar licencia: ' . $e->getMessage());
+            error_log("Excepcion verificando licencia: " . $e->getMessage());
+            return $this->buildResponse(false, null, 'Error al validar la licencia');
         }
     }
 
     /**
-     * Realizar petición cURL al servidor de licencias
-     *
-     * @param string $licenseKey
-     * @return string|false
+     * Convierte variables de entorno en booleanos confiables.
+     */
+    private function envToBool($value, $default = false)
+    {
+        if ($value === null) {
+            return $default;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $value = strtolower((string)$value);
+        $truthy = ['1', 'true', 'yes', 'on'];
+        $falsy = ['0', 'false', 'no', 'off', ''];
+
+        if (in_array($value, $truthy, true)) {
+            return true;
+        }
+
+        if (in_array($value, $falsy, true)) {
+            return false;
+        }
+
+        return $default;
+    }
+
+    /**
+     * Realizar petición cURL al servidor de licencias.
      */
     private function makeRequest($licenseKey)
     {
         $curl = curl_init();
 
-        $data_json = json_encode([
+        $payload = json_encode([
             'searchLicense' => 'yes',
             'License' => $licenseKey
         ]);
 
         curl_setopt_array($curl, [
-            CURLOPT_URL => $this->validationUrl,
+            CURLOPT_URL => $this->licenseApiUrl,
             CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
                 'Content-Type: application/json',
             ],
             CURLOPT_POST => 1,
             CURLOPT_SSL_VERIFYPEER => $this->sslVerify,
-            CURLOPT_POSTFIELDS => $data_json,
+            CURLOPT_POSTFIELDS => $payload,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => $this->timeout
@@ -137,46 +148,41 @@ class LicenseValidator
     }
 
     /**
-     * Verificar si una licencia está expirada
-     *
-     * @param string $expirationDate Fecha en formato Y-m-d
-     * @return bool
+     * Normaliza fecha de expiración a formato Y-m-d H:i:s.
      */
-    private function isLicenseExpired($expirationDate)
+    private function normalizeExpirationDate($expirationRaw)
     {
-        try {
-            $datetime1 = new \DateTime($expirationDate);
-            $datetime2 = new \DateTime(date("Y-m-d"));
-            $interval = $datetime1->diff($datetime2);
+        if (empty($expirationRaw)) {
+            return null;
+        }
 
-            // Si invert es 0, significa que la fecha de expiración ya pasó
-            return $interval->invert == 0;
+        try {
+            $clean = preg_replace('/\\.\\d+$/', '', str_replace('T', ' ', $expirationRaw));
+            $date = new \DateTime($clean);
+            return $date->format('Y-m-d H:i:s');
         } catch (Exception $e) {
-            error_log("Error comparando fechas de licencia: " . $e->getMessage());
-            return true; // Por seguridad, considerar expirada si hay error
+            error_log("No se pudo normalizar fecha de licencia: " . $e->getMessage());
+            return null;
         }
     }
 
     /**
-     * Obtener días restantes de la licencia
-     *
-     * @param string $expirationDate
-     * @return int|null
+     * Obtener días restantes de la licencia.
      */
     private function getDaysRemaining($expirationDate)
     {
         try {
-            $datetime1 = new \DateTime($expirationDate);
-            $datetime2 = new \DateTime(date("Y-m-d"));
-            $interval = $datetime1->diff($datetime2);
+            $expiration = new \DateTime($expirationDate);
+            $today = new \DateTime(date("Y-m-d"));
+            $interval = $expiration->diff($today);
 
             if ($interval->invert == 1) {
                 // La fecha de expiración está en el futuro
                 return $interval->days;
-            } else {
-                // La licencia ya expiró
-                return -$interval->days;
             }
+
+            // Ya expiró
+            return -$interval->days;
         } catch (Exception $e) {
             error_log("Error calculando días restantes: " . $e->getMessage());
             return null;
@@ -184,14 +190,7 @@ class LicenseValidator
     }
 
     /**
-     * Construir respuesta estandarizada
-     *
-     * @param bool $valid
-     * @param string|null $expirationDate
-     * @param string $message
-     * @param array|null $rawResponse
-     * @param int|null $daysRemaining
-     * @return array
+     * Construir respuesta estandarizada.
      */
     private function buildResponse($valid, $expirationDate, $message, $rawResponse = null, $daysRemaining = null)
     {
@@ -205,10 +204,7 @@ class LicenseValidator
     }
 
     /**
-     * Verificar si una licencia está próxima a vencer (menos de 30 días)
-     *
-     * @param string $expirationDate
-     * @return bool
+     * Verifica si la licencia vence pronto.
      */
     public function isLicenseExpiringSoon($expirationDate, $warningDays = 30)
     {
@@ -217,10 +213,7 @@ class LicenseValidator
     }
 
     /**
-     * Validar licencia y almacenar resultado en sesión
-     *
-     * @param string $licenseKey
-     * @return array Resultado de validación
+     * Validar licencia y almacenar resultado en sesión.
      */
     public function validateAndStore($licenseKey)
     {
@@ -233,12 +226,10 @@ class LicenseValidator
             $_SESSION['license_days_remaining'] = $result['days_remaining'];
             $_SESSION['license_validated_at'] = date('Y-m-d H:i:s');
 
-            // Advertencia si está próxima a vencer
-            if ($this->isLicenseExpiringSoon($result['expiration_date'])) {
+            if ($result['expiration_date'] && $this->isLicenseExpiringSoon($result['expiration_date'])) {
                 $_SESSION['license_warning'] = "Su licencia vence en {$result['days_remaining']} días. Por favor, renueve pronto.";
             }
         } else {
-            // Limpiar datos de licencia de la sesión
             unset($_SESSION['license_validated']);
             unset($_SESSION['license_key']);
             unset($_SESSION['license_expiration']);
@@ -251,9 +242,7 @@ class LicenseValidator
     }
 
     /**
-     * Verificar si hay una licencia válida en sesión
-     *
-     * @return bool
+     * Verificar si hay una licencia válida en sesión.
      */
     public static function hasValidLicenseInSession()
     {

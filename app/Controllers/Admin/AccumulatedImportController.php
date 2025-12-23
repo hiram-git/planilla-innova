@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\Concept;
 use App\Models\TipoAcumulado;
 use App\Models\Frecuencia;
+use App\Models\TipoPlanilla;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -20,6 +21,7 @@ class AccumulatedImportController extends Controller
     private $conceptModel;
     private $tipoAcumuladoModel;
     private $frecuenciaModel;
+    private $tipoPlanillaModel;
 
     public function __construct()
     {
@@ -28,6 +30,7 @@ class AccumulatedImportController extends Controller
         $this->conceptModel = new Concept();
         $this->tipoAcumuladoModel = new TipoAcumulado();
         $this->frecuenciaModel = new Frecuencia();
+        $this->tipoPlanillaModel = new TipoPlanilla();
     }
 
     /**
@@ -80,7 +83,8 @@ class AccumulatedImportController extends Controller
                 'E1' => ['value' => 'AÑO* (YYYY)', 'width' => 12],
                 'F1' => ['value' => 'FRECUENCIA* (ID/CÓDIGO)', 'width' => 24],
                 'G1' => ['value' => 'PLANILLA ID (opcional)', 'width' => 18],
-                'H1' => ['value' => 'TIPO ACUMULADO (opcional)', 'width' => 26],
+                'H1' => ['value' => 'TIPO PLANILLA (ID/CODIGO)', 'width' => 24],
+                'I1' => ['value' => 'TIPO ACUMULADO (opcional)', 'width' => 26],
             ];
 
             foreach ($headers as $cell => $config) {
@@ -97,8 +101,8 @@ class AccumulatedImportController extends Controller
 
             // Ejemplos
             $examples = [
-                ['EMP001', 'SALARIO', 850.00, 1, date('Y'), 'quincenal', 0, 'XIII_MES'],
-                ['EMP002', 'ISR', -50.25, 1, date('Y'), 2, '', 'DEDUCCION'],
+                ['EMP001', 'SALARIO', 850.00, 1, date('Y'), 'quincenal', 0, 'MENSUAL', 'XIII_MES'],
+                ['EMP002', 'ISR', -50.25, 1, date('Y'), 2, '', 'MENSUAL', 'DEDUCCION'],
             ];
 
             $row = 2;
@@ -162,16 +166,17 @@ class AccumulatedImportController extends Controller
             $conceptsByCode = $this->getConceptsIndexed();
             $frecuenciasByCode = $this->getFrecuenciasIndexed();
             $tiposAcumuladosByCode = $this->getTiposAcumuladosIndexed();
+            $tiposPlanillaByCode = $this->getTiposPlanillaIndexed();
 
             $insertStmt = $this->db->prepare("
                 INSERT INTO acumulados_por_empleado
-                (employee_id, concepto_id, planilla_id, monto, mes, ano, frecuencia, tipo_concepto, tipo_acumulado, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                (employee_id, concepto_id, planilla_id, tipo_planilla_id, monto, mes, ano, frecuencia, tipo_concepto, tipo_acumulado, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ");
 
             $existsStmt = $this->db->prepare("
                 SELECT COUNT(*) FROM acumulados_por_empleado 
-                WHERE employee_id = ? AND concepto_id = ? AND ano = ? AND mes = ? AND planilla_id = ?
+                WHERE employee_id = ? AND concepto_id = ? AND ano = ? AND mes = ? AND planilla_id = ? AND ((tipo_planilla_id = ?) OR (tipo_planilla_id IS NULL AND ? IS NULL))
                 AND ((tipo_acumulado = ?) OR (tipo_acumulado IS NULL AND ? IS NULL))
             ");
 
@@ -186,7 +191,7 @@ class AccumulatedImportController extends Controller
                     continue;
                 }
 
-                $validation = $this->validateRow($data, $row, $employeesByCode, $employeesByDocument, $conceptsByCode, $frecuenciasByCode, $tiposAcumuladosByCode);
+                $validation = $this->validateRow($data, $row, $employeesByCode, $employeesByDocument, $conceptsByCode, $frecuenciasByCode, $tiposAcumuladosByCode, $tiposPlanillaByCode);
                 if (!$validation['valid']) {
                     $errors[] = $validation['message'];
                     $skipped++;
@@ -202,6 +207,7 @@ class AccumulatedImportController extends Controller
                 }
                 $concept = $conceptsByCode[strtoupper($data['concept_code'])];
                 $frecuenciaId = $validation['frecuencia_id'];
+                $tipoPlanillaId = $validation['tipo_planilla_id'] ?? null;
                 $tipoAcumulado = $validation['tipo_acumulado'] ?: strtoupper($data['concept_code']);
                 $planillaId = $data['planilla_id'] ?? 0;
 
@@ -212,6 +218,8 @@ class AccumulatedImportController extends Controller
                     $data['year'],
                     $data['month'],
                     $planillaId,
+                    $tipoPlanillaId,
+                    $tipoPlanillaId,
                     $tipoAcumulado,
                     $tipoAcumulado
                 ]);
@@ -228,6 +236,7 @@ class AccumulatedImportController extends Controller
                     $employee['id'],
                     $concept['id'],
                     $planillaId,
+                    $tipoPlanillaId,
                     $data['amount'],
                     $data['month'],
                     $data['year'],
@@ -269,14 +278,15 @@ class AccumulatedImportController extends Controller
             'year' => $this->formatNumber($sheet->getCell("E{$row}")->getCalculatedValue()),
             'frecuencia' => $this->safeTrim($sheet->getCell("F{$row}")->getCalculatedValue()),
             'planilla_id' => $this->formatNumber($sheet->getCell("G{$row}")->getCalculatedValue()),
-            'tipo_acumulado' => strtoupper($this->safeTrim($sheet->getCell("H{$row}")->getCalculatedValue())),
+            'tipo_planilla' => $this->safeTrim($sheet->getCell("H{$row}")->getCalculatedValue()),
+            'tipo_acumulado' => strtoupper($this->safeTrim($sheet->getCell("I{$row}")->getCalculatedValue())),
         ];
     }
 
     /**
      * Validar datos de una fila
      */
-    private function validateRow(array $data, int $row, array $employeesByCode, array $employeesByDocument, array $conceptsByCode, array $frecuenciasByCode, array $tiposAcumuladosByCode)
+    private function validateRow(array $data, int $row, array $employeesByCode, array $employeesByDocument, array $conceptsByCode, array $frecuenciasByCode, array $tiposAcumuladosByCode, array $tiposPlanillaByCode)
     {
         $errors = [];
 
@@ -338,6 +348,24 @@ class AccumulatedImportController extends Controller
             }
         }
 
+        // Validar tipo planilla (opcional)
+        $tipoPlanillaId = null;
+        if (!empty($data['tipo_planilla'])) {
+            if (is_numeric($data['tipo_planilla'])) {
+                $tipoPlanillaId = (int)$data['tipo_planilla'];
+                if (!isset($tiposPlanillaByCode[$tipoPlanillaId])) {
+                    $errors[] = "Tipo planilla ID {$data['tipo_planilla']} no existe (Columna H)";
+                }
+            } else {
+                $tipoPlanillaKey = strtolower($data['tipo_planilla']);
+                if (isset($tiposPlanillaByCode[$tipoPlanillaKey])) {
+                    $tipoPlanillaId = $tiposPlanillaByCode[$tipoPlanillaKey]['id'];
+                } else {
+                    $errors[] = "Tipo planilla código {$data['tipo_planilla']} no existe (Columna H)";
+                }
+            }
+        }
+
         // Validar tipo acumulado (opcional)
         $tipoAcumulado = null;
         if (!empty($data['tipo_acumulado'])) {
@@ -365,7 +393,8 @@ class AccumulatedImportController extends Controller
         return [
             'valid' => true,
             'frecuencia_id' => $frecuenciaId ?? null,
-            'tipo_acumulado' => $tipoAcumulado
+            'tipo_acumulado' => $tipoAcumulado,
+            'tipo_planilla_id' => $tipoPlanillaId
         ];
     }
 
@@ -463,6 +492,17 @@ class AccumulatedImportController extends Controller
         return $indexed;
     }
 
+    private function getTiposPlanillaIndexed()
+    {
+        $tipos = $this->tipoPlanillaModel->getAll() ?? [];
+        $indexed = [];
+        foreach ($tipos as $tipo) {
+            $indexed[$tipo['id']] = $tipo;
+            $indexed[strtolower($tipo['codigo'])] = $tipo;
+        }
+        return $indexed;
+    }
+
     private function getTiposAcumuladosIndexed()
     {
         $tipos = $this->tipoAcumuladoModel->getActivos() ?? [];
@@ -540,6 +580,22 @@ class AccumulatedImportController extends Controller
         foreach ($this->tipoAcumuladoModel->getActivos() as $tipo) {
             $ref->setCellValue("A{$row}", $tipo['codigo']);
             $ref->setCellValue("B{$row}", $tipo['descripcion']);
+            $row++;
+        }
+
+        $row += 2;
+        $ref->setCellValue("A{$row}", 'TIPOS PLANILLA');
+        $ref->getStyle("A{$row}")->getFont()->setBold(true);
+        $row++;
+        $ref->setCellValue("A{$row}", 'ID');
+        $ref->setCellValue("B{$row}", 'CÓDIGO');
+        $ref->setCellValue("C{$row}", 'NOMBRE');
+        $row++;
+
+        foreach ($this->tipoPlanillaModel->getAll() as $tp) {
+            $ref->setCellValue("A{$row}", $tp['id']);
+            $ref->setCellValue("B{$row}", $tp['codigo']);
+            $ref->setCellValue("C{$row}", $tp['nombre']);
             $row++;
         }
 
