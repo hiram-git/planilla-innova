@@ -139,7 +139,7 @@
                                         <div class="custom-file">
                                             <input type="file" class="custom-file-input" id="excel_file" name="excel_file"
                                                    accept=".xlsx,.xls" required>
-                                            <label class="custom-file-label" for="excel_file">Seleccionar archivo...</label>
+                                            <label class="custom-file-label" for="excel_file">Seleccione archivo</label>
                                         </div>
                                     </div>
                                     <small class="form-text text-muted">
@@ -213,50 +213,68 @@
 
 <!-- Scripts -->
 <script>
-$(document).ready(function() {
-    // Mostrar nombre del archivo seleccionado
-    $('#excel_file').on('change', function() {
-        var fileName = $(this).val().split('\\').pop();
-        $(this).next('.custom-file-label').html(fileName);
+document.addEventListener('DOMContentLoaded', function() {
+    const defaultFileText = 'Seleccione archivo';
+    const fileInput = document.getElementById('excel_file');
+    const fileLabel = fileInput ? fileInput.nextElementSibling : null;
+    const importForm = document.getElementById('importForm');
+    const confirmBackup = document.getElementById('confirm_backup');
+    const submitBtn = document.getElementById('submitBtn');
 
-        // Validar tamaño del archivo (5MB)
-        if (this.files[0] && this.files[0].size > 5 * 1024 * 1024) {
-            alert('El archivo es demasiado grande. Máximo 5MB permitido.');
-            $(this).val('');
-            $(this).next('.custom-file-label').html('Seleccionar archivo...');
-        }
-    });
+    if (fileInput && fileLabel) {
+        fileLabel.textContent = defaultFileText;
+        fileInput.addEventListener('change', function() {
+            const files = fileInput.files;
+            const fileName = (files && files.length) ? files[0].name : '';
+            fileLabel.textContent = fileName || defaultFileText;
+            fileLabel.classList.toggle('selected', !!fileName);
 
-    // Validación del formulario
-    $('#importForm').on('submit', function(e) {
-        var fileInput = $('#excel_file')[0];
-        var confirmBackup = $('#confirm_backup').is(':checked');
+            if (files && files.length && files[0].size > 5 * 1024 * 1024) {
+                window.alert('El archivo es demasiado grande. Maximo 5MB permitido.');
+                fileInput.value = '';
+                fileLabel.textContent = defaultFileText;
+                fileLabel.classList.remove('selected');
+            }
+        });
+    }
 
-        if (!fileInput.files.length) {
-            e.preventDefault();
-            alert('Por favor seleccione un archivo Excel.');
-            return false;
-        }
+    if (importForm) {
+        importForm.addEventListener('submit', function(e) {
+            const files = (fileInput && fileInput.files) ? fileInput.files : null;
 
-        if (!confirmBackup) {
-            e.preventDefault();
-            alert('Debe confirmar que ha realizado respaldo antes de importar.');
-            return false;
-        }
+            if (!files || !files.length) {
+                e.preventDefault();
+                window.alert('Por favor seleccione un archivo Excel.');
+                return;
+            }
 
-        // Mostrar spinner en el botón
-        $('#submitBtn').html('<i class="fas fa-spinner fa-spin"></i> Procesando...').prop('disabled', true);
+            if (!confirmBackup || !confirmBackup.checked) {
+                e.preventDefault();
+                window.alert('Debe confirmar que ha realizado respaldo antes de importar.');
+                return;
+            }
 
-        // Mostrar mensaje de progreso
-        $('<div class="alert alert-info mt-3" id="progressAlert">' +
-          '<i class="fas fa-spinner fa-spin"></i> Procesando archivo... ' +
-          'Esto puede tomar varios minutos dependiendo del tamaño del archivo.' +
-          '</div>').insertAfter('#importForm');
-    });
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+                submitBtn.disabled = true;
+            }
 
-    // Prevenir doble envío
-    $('#importForm').on('submit', function() {
-        $(this).find('button[type="submit"]').prop('disabled', true);
-    });
+            const progress = document.createElement('div');
+            progress.className = 'alert alert-info mt-3';
+            progress.id = 'progressAlert';
+            progress.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando archivo... Esto puede tomar varios minutos dependiendo del tamano del archivo.';
+            importForm.insertAdjacentElement('afterend', progress);
+
+            importForm.querySelectorAll('button[type="submit"]').forEach(function(btn) {
+                btn.disabled = true;
+            });
+        });
+
+        importForm.addEventListener('submit', function() {
+            importForm.querySelectorAll('button[type="submit"]').forEach(function(btn) {
+                btn.disabled = true;
+            });
+        });
+    }
 });
 </script>

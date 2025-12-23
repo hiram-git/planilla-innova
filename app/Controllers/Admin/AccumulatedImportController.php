@@ -8,12 +8,14 @@ use App\Models\Concept;
 use App\Models\TipoAcumulado;
 use App\Models\Frecuencia;
 use App\Models\TipoPlanilla;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class AccumulatedImportController extends Controller
 {
@@ -92,6 +94,11 @@ class AccumulatedImportController extends Controller
                 $sheet->getColumnDimension(substr($cell, 0, -1))->setWidth($config['width']);
             }
 
+            // Forzar texto en columnas que requieren ceros a la izquierda
+            $sheet->getStyle('B:B')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+            $sheet->getStyle('H:H')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+            $sheet->getStyle('I:I')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+
             $sheet->getStyle('A1:H1')->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E78']],
@@ -109,7 +116,12 @@ class AccumulatedImportController extends Controller
             foreach ($examples as $example) {
                 $col = 'A';
                 foreach ($example as $value) {
-                    $sheet->setCellValue($col . $row, $value);
+                    $cell = $col . $row;
+                    if (in_array($col, ['B', 'H', 'I'])) {
+                        $sheet->setCellValueExplicit($cell, (string)$value, DataType::TYPE_STRING);
+                    } else {
+                        $sheet->setCellValue($cell, $value);
+                    }
                     $col++;
                 }
                 $row++;
@@ -271,15 +283,19 @@ class AccumulatedImportController extends Controller
     private function extractRow($sheet, $row)
     {
         return [
-            'employee_code' => $this->safeTrim($sheet->getCell("A{$row}")->getCalculatedValue()),
-            'concept_code' => $this->safeTrim($sheet->getCell("B{$row}")->getCalculatedValue()),
+            // Conservar ceros a la izquierda para el código de empleado
+            'employee_code' => $this->safeTrim($sheet->getCell("A{$row}")->getFormattedValue()),
+            // Usar getFormattedValue para conservar ceros a la izquierda
+            'concept_code' => $this->safeTrim($sheet->getCell("B{$row}")->getFormattedValue()),
             'amount' => $this->formatDecimal($sheet->getCell("C{$row}")->getCalculatedValue()),
             'month' => $this->formatNumber($sheet->getCell("D{$row}")->getCalculatedValue()),
             'year' => $this->formatNumber($sheet->getCell("E{$row}")->getCalculatedValue()),
             'frecuencia' => $this->safeTrim($sheet->getCell("F{$row}")->getCalculatedValue()),
             'planilla_id' => $this->formatNumber($sheet->getCell("G{$row}")->getCalculatedValue()),
-            'tipo_planilla' => $this->safeTrim($sheet->getCell("H{$row}")->getCalculatedValue()),
-            'tipo_acumulado' => strtoupper($this->safeTrim($sheet->getCell("I{$row}")->getCalculatedValue())),
+            // Conservar ceros a la izquierda en tipo planilla (ID o código)
+            'tipo_planilla' => $this->safeTrim($sheet->getCell("H{$row}")->getFormattedValue()),
+            // Conservar ceros a la izquierda en tipo acumulado
+            'tipo_acumulado' => strtoupper($this->safeTrim($sheet->getCell("I{$row}")->getFormattedValue())),
         ];
     }
 
@@ -494,7 +510,7 @@ class AccumulatedImportController extends Controller
 
     private function getTiposPlanillaIndexed()
     {
-        $tipos = $this->tipoPlanillaModel->getAll() ?? [];
+        $tipos = $this->tipoPlanillaModel->getAllSorted() ?? [];
         $indexed = [];
         foreach ($tipos as $tipo) {
             $indexed[$tipo['id']] = $tipo;
