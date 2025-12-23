@@ -592,7 +592,8 @@ class AccumulatedImportController extends Controller
         $ref->setCellValue("C{$row}", 'NOMBRE');
         $row++;
 
-        foreach ($this->tipoPlanillaModel->getAll() as $tp) {
+        // ReferenceModel no expone getAll(); usamos getAllSorted para catálogo completo
+        foreach ($this->tipoPlanillaModel->getAllSorted() as $tp) {
             $ref->setCellValue("A{$row}", $tp['id']);
             $ref->setCellValue("B{$row}", $tp['codigo']);
             $ref->setCellValue("C{$row}", $tp['nombre']);
