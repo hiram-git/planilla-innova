@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\TenantStorage;
 
 class CompanyController extends Controller
 {
@@ -278,14 +279,14 @@ class CompanyController extends Controller
         }
 
         // Crear directorio si no existe
-        $logoDir = __DIR__ . '/../../images/logos/';
-        if (!is_dir($logoDir)) {
-            mkdir($logoDir, 0755, true);
-        }
+        $tenantSubdir = TenantStorage::getTenantSubdir();
+        $logoDir = TenantStorage::getLogoDirectory();
+        TenantStorage::ensureDirectory($logoDir);
 
         // Generar nombre único
         $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
         $filename = $fieldName . '_' . time() . '.' . $extension;
+        $relativePath = $tenantSubdir . '/' . $filename;
         $targetPath = $logoDir . $filename;
 
         // Mover archivo
@@ -295,7 +296,7 @@ class CompanyController extends Controller
 
         return [
             'success' => true,
-            'filename' => $filename,
+            'filename' => $relativePath,
             'message' => 'Logo subido correctamente'
         ];
     }
