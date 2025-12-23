@@ -424,11 +424,20 @@ class LiquidationController extends Controller
             $calculations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $totals = $this->calculateTotals($calculations);
+            $liquidationAccumulations = [];
+            $accumulatedMonths = $this->getLiquidationAccumulatedMonths(
+                (int)$termination['employee_table_id'],
+                $termination['termination_date']
+            );
+            foreach (['LIQ005', 'LIQ007'] as $conceptCode) {
+                $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
+            }
 
             $this->render('admin/liquidation/preview', [
                 'termination' => $termination,
                 'calculations' => $calculations,
                 'totals' => $totals,
+                'liquidationAccumulations' => $liquidationAccumulations,
                 'pageTitle' => 'Vista Previa de Liquidación'
             ]);
 
@@ -843,6 +852,83 @@ class LiquidationController extends Controller
             'total_asignaciones' => $total_asignaciones,
             'total_deducciones' => $total_deducciones,
             'total_neto' => $total_asignaciones - $total_deducciones
+        ];
+    }
+
+    /**
+     * Obtener acumulados por mes para liquidacion (ultimos 12 meses).
+     */
+    private function getLiquidationAccumulatedMonths(int $employeeId, string $terminationDate, string $tipoAcumulado = 'SALARIO_BASE'): array
+    {
+        try {
+            $fechaFin = new \DateTime($terminationDate);
+            $fechaInicio = (clone $fechaFin)->modify('-11 months');
+
+            $sql = "SELECT ape.ano, ape.mes, SUM(ape.monto) as total
+                    FROM acumulados_por_empleado ape
+                    INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    WHERE ape.employee_id = ?
+                    AND ape.tipo_acumulado = ?
+                    AND pc.fecha_hasta >= ?
+                    AND pc.fecha_desde <= ?
+                    GROUP BY ape.ano, ape.mes
+                    ORDER BY ape.ano, ape.mes";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                $employeeId,
+                $tipoAcumulado,
+                $fechaInicio->format('Y-m-d'),
+                $fechaFin->format('Y-m-d')
+            ]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $byMonth = [];
+            foreach ($rows as $row) {
+                $key = sprintf('%04d-%02d', (int)$row['ano'], (int)$row['mes']);
+                $byMonth[$key] = (float)$row['total'];
+            }
+
+            $months = [];
+            $total = 0.0;
+            $cursor = (clone $fechaFin)->modify('first day of this month')->modify('-11 months');
+            for ($i = 0; $i < 12; $i++) {
+                $key = $cursor->format('Y-m');
+                $amount = (float)($byMonth[$key] ?? 0);
+                $months[] = [
+                    'label' => $cursor->format('m/Y'),
+                    'amount' => $amount
+                ];
+                $total += $amount;
+                $cursor->modify('+1 month');
+            }
+
+            return [
+                'start' => $fechaInicio->format('Y-m-d'),
+                'end' => $fechaFin->format('Y-m-d'),
+                'months' => $months,
+                'total' => $total
+            ];
+        } catch (\Exception $e) {
+            error_log("Error building liquidation accumulations: " . $e->getMessage());
+        }
+
+        $months = [];
+        $cursor = new \DateTime(date('Y-m-01'));
+        $cursor->modify('-11 months');
+        for ($i = 0; $i < 12; $i++) {
+            $months[] = [
+                'label' => $cursor->format('m/Y'),
+                'amount' => 0.0
+            ];
+            $cursor->modify('+1 month');
+        }
+
+        return [
+            'start' => null,
+            'end' => null,
+            'months' => $months,
+            'total' => 0.0
         ];
     }
 

@@ -141,6 +141,11 @@ $pageTitle = "Vista Previa de Liquidación - " . htmlspecialchars($termination['
                 <div class="mb-4">
                     <h5><i class="fas fa-calculator mr-2"></i>DETALLE DE LIQUIDACIÓN</h5>
 
+                    <?php
+                    $accumulatedConceptCodes = ['LIQ005', 'LIQ007'];
+                    $liquidationAccumulations = $liquidationAccumulations ?? [];
+                    ?>
+
                     <!-- Asignaciones -->
                     <h6 class="text-success mt-3"><i class="fas fa-plus mr-2"></i>ASIGNACIONES</h6>
                     <table class="table table-bordered table-striped">
@@ -161,6 +166,42 @@ $pageTitle = "Vista Previa de Liquidación - " . htmlspecialchars($termination['
 
                                     if ($isAsignacion):
                                         $totalAsignaciones += $calc['calculated_amount'];
+                                        $showAccumulated = in_array($calc['concept_code'], $accumulatedConceptCodes, true);
+                                        if ($showAccumulated):
+                                            $accumulatedData = $liquidationAccumulations[$calc['concept_code']] ?? null;
+                            ?>
+                                <tr class="bg-light">
+                                    <td colspan="3">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th width="40%">Mes</th>
+                                                    <th width="60%" class="text-right">Acumulado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if (!empty($accumulatedData['months'])): ?>
+                                                    <?php foreach ($accumulatedData['months'] as $month): ?>
+                                                        <tr>
+                                                            <td><?= htmlspecialchars($month['label']) ?></td>
+                                                            <td class="text-right"><?= currency_symbol() ?><?= number_format($month['amount'], 2) ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                    <tr class="font-weight-bold">
+                                                        <td>Total acumulado</td>
+                                                        <td class="text-right"><?= currency_symbol() ?><?= number_format($accumulatedData['total'], 2) ?></td>
+                                                    </tr>
+                                                <?php else: ?>
+                                                    <tr>
+                                                        <td colspan="2" class="text-center text-muted">Sin acumulados</td>
+                                                    </tr>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            <?php
+                                        endif; // Cierra if ($showAccumulated)
                             ?>
                                 <tr>
                                     <td><strong><?= htmlspecialchars($calc['concept_code']) ?></strong></td>
@@ -201,6 +242,42 @@ $pageTitle = "Vista Previa de Liquidación - " . htmlspecialchars($termination['
 
                                     if ($isDeduccion):
                                         $totalDeducciones += $calc['calculated_amount'];
+                                        $showAccumulated = in_array($calc['concept_code'], $accumulatedConceptCodes, true);
+                                        if ($showAccumulated):
+                                            $accumulatedData = $liquidationAccumulations[$calc['concept_code']] ?? null;
+                            ?>
+                                <tr class="bg-light">
+                                    <td colspan="3">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th width="40%">Mes</th>
+                                                    <th width="60%" class="text-right">Acumulado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if (!empty($accumulatedData['months'])): ?>
+                                                    <?php foreach ($accumulatedData['months'] as $month): ?>
+                                                        <tr>
+                                                            <td><?= htmlspecialchars($month['label']) ?></td>
+                                                            <td class="text-right"><?= currency_symbol() ?><?= number_format($month['amount'], 2) ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                    <tr class="font-weight-bold">
+                                                        <td>Total acumulado</td>
+                                                        <td class="text-right"><?= currency_symbol() ?><?= number_format($accumulatedData['total'], 2) ?></td>
+                                                    </tr>
+                                                <?php else: ?>
+                                                    <tr>
+                                                        <td colspan="2" class="text-center text-muted">Sin acumulados</td>
+                                                    </tr>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            <?php
+                                        endif; // Cierra if ($showAccumulated)
                             ?>
                                 <tr>
                                     <td><strong><?= htmlspecialchars($calc['concept_code']) ?></strong></td>
