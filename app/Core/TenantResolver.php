@@ -128,7 +128,7 @@ class TenantResolver
             $master = MasterDatabase::getInstance()->getConnection();
 
             $stmt = $master->prepare("
-                SELECT id, company_name, ruc, db_name, status,license_expires_at,
+                SELECT id, company_name, ruc, db_name, status,license_expires_at, license_key,
                        db_host, db_port, db_user, db_pass_enc, db_charset
                 FROM tenants
                 WHERE db_name = ? AND status = 'ACTIVE'
