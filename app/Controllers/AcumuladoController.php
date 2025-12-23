@@ -209,13 +209,15 @@ class AcumuladoController extends Controller
                     END as tipo_concepto,
                     ape.tipo_acumulado,
                     COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado_descripcion,
-                    pc.descripcion as planilla_descripcion,
+                    COALESCE(tp_ape.descripcion, tp_pc.descripcion, 'N/A') as planilla_descripcion,
                     DATE_FORMAT(ape.created_at, '%Y-%m-%d %H:%i:%s') as fecha_calculo
                 FROM acumulados_por_empleado ape
                 INNER JOIN employees e ON ape.employee_id = e.id
                 INNER JOIN concepto c ON ape.concepto_id = c.id
                 {$conceptoJoin}
                 LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                LEFT JOIN tipos_planilla tp_ape ON tp_ape.id = ape.tipo_planilla_id
+                LEFT JOIN tipos_planilla tp_pc ON tp_pc.id = pc.tipo_planilla_id
                 LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                 WHERE {$whereClause}
                 {$conceptoFilter}
@@ -359,13 +361,15 @@ class AcumuladoController extends Controller
                     END as tipo_concepto,
                     ape.tipo_acumulado,
                     COALESCE(ta.descripcion, ape.tipo_acumulado, 'N/A') as tipo_acumulado_descripcion,
-                    pc.descripcion as planilla_descripcion,
+                    COALESCE(tp_ape.descripcion, tp_pc.descripcion, 'N/A') as planilla_descripcion,
                     DATE_FORMAT(ape.created_at, '%Y-%m-%d %H:%i:%s') as fecha_calculo
                 FROM acumulados_por_empleado ape
                 INNER JOIN employees e ON ape.employee_id = e.id
                 INNER JOIN concepto c ON ape.concepto_id = c.id
                 {$conceptoJoin}
                 LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                LEFT JOIN tipos_planilla tp_ape ON tp_ape.id = ape.tipo_planilla_id
+                LEFT JOIN tipos_planilla tp_pc ON tp_pc.id = pc.tipo_planilla_id
                 LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                 WHERE {$whereClause}
                 {$conceptoFilter}
@@ -1146,13 +1150,15 @@ class AcumuladoController extends Controller
                         CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
                         e.document_id,
                         c.descripcion as concepto_descripcion,
-                        pc.descripcion as planilla_descripcion,
+                        COALESCE(tp_ape.descripcion, tp_pc.descripcion, 'N/A') as planilla_descripcion,
                         pc.fecha_inicio,
                         pc.fecha_fin
                     FROM acumulados_por_empleado ape
                     INNER JOIN employees e ON ape.employee_id = e.id
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN tipos_planilla tp_ape ON tp_ape.id = ape.tipo_planilla_id
+                    LEFT JOIN tipos_planilla tp_pc ON tp_pc.id = pc.tipo_planilla_id
                     WHERE {$whereClause}
                     ORDER BY e.lastname, e.firstname, ape.ano, ape.mes";
 
@@ -1314,7 +1320,7 @@ class AcumuladoController extends Controller
                         e.tipo_planilla_id,
                         CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
                         c.descripcion as concepto_descripcion,
-                        pc.descripcion as planilla_descripcion,
+                        COALESCE(tp_ape.descripcion, tp_pc.descripcion, 'N/A') as planilla_descripcion,
                         pc.fecha_desde as fecha_inicio,
                         pc.fecha_hasta as fecha_fin
                     FROM acumulados_por_empleado ape
@@ -1323,6 +1329,8 @@ class AcumuladoController extends Controller
                     {$acumuladoJoin}
                     {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN tipos_planilla tp_ape ON tp_ape.id = ape.tipo_planilla_id
+                    LEFT JOIN tipos_planilla tp_pc ON tp_pc.id = pc.tipo_planilla_id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
                     {$conceptoFilter}
@@ -1641,7 +1649,7 @@ class AcumuladoController extends Controller
                         ape.tipo_concepto,
                         ape.created_at,
                         c.descripcion as concepto_descripcion,
-                        pc.descripcion as planilla_descripcion,
+                        COALESCE(tp_ape.descripcion, tp_pc.descripcion, 'N/A') as planilla_descripcion,
                         pc.fecha_desde as fecha_inicio,
                         pc.fecha_hasta as fecha_fin,
                         ape.tipo_acumulado as tipo_acumulado_codigo,
@@ -1650,6 +1658,8 @@ class AcumuladoController extends Controller
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     {$acumuladoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN tipos_planilla tp_ape ON tp_ape.id = ape.tipo_planilla_id
+                    LEFT JOIN tipos_planilla tp_pc ON tp_pc.id = pc.tipo_planilla_id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
                     ORDER BY ape.ano DESC, ape.mes DESC, ape.tipo_concepto, c.descripcion";
@@ -2084,7 +2094,7 @@ class AcumuladoController extends Controller
                         e.tipo_planilla_id,
                         CONCAT(e.firstname, ' ', e.lastname) as nombre_empleado,
                         c.descripcion as concepto_descripcion,
-                        pc.descripcion as planilla_descripcion,
+                        COALESCE(tp_ape.descripcion, tp_pc.descripcion, 'N/A') as planilla_descripcion,
                         pc.fecha_desde as fecha_inicio,
                         pc.fecha_hasta as fecha_fin
                     FROM acumulados_por_empleado ape
@@ -2093,6 +2103,8 @@ class AcumuladoController extends Controller
                     {$acumuladoJoin}
                     {$conceptoJoin}
                     LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN tipos_planilla tp_ape ON tp_ape.id = ape.tipo_planilla_id
+                    LEFT JOIN tipos_planilla tp_pc ON tp_pc.id = pc.tipo_planilla_id
                     LEFT JOIN tipos_acumulados ta ON ape.tipo_acumulado = ta.codigo
                     WHERE {$whereClause}
                     {$conceptoFilter}

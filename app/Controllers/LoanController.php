@@ -6,6 +6,7 @@ use App\Core\Controller;
 use App\Models\Loan;
 use App\Models\LoanInstallment;
 use App\Models\Employee;
+use App\Models\Creditor;
 use DateInterval;
 use DateTime;
 use Exception;
@@ -15,6 +16,7 @@ class LoanController extends Controller
     private Loan $loanModel;
     private LoanInstallment $installmentModel;
     private Employee $employeeModel;
+    private Creditor $creditorModel;
 
     public function __construct()
     {
@@ -23,6 +25,7 @@ class LoanController extends Controller
         $this->loanModel = new Loan();
         $this->installmentModel = new LoanInstallment();
         $this->employeeModel = new Employee();
+        $this->creditorModel = new Creditor();
     }
 
     public function index()
@@ -44,9 +47,11 @@ class LoanController extends Controller
     public function create()
     {
         $employees = $this->employeeModel->getAllEmployees();
+        $creditors = $this->creditorModel->getOptions();
         $this->render('admin/loans/create', [
             'title' => 'Nuevo Préstamo',
             'employees' => $employees,
+            'creditors' => $creditors,
             'csrf_token' => \App\Middleware\AuthMiddleware::generateCSRF()
         ]);
     }
@@ -59,8 +64,10 @@ class LoanController extends Controller
 
         \App\Middleware\AuthMiddleware::validateCSRF();
 
+        $creditorId = isset($_POST['creditor_id']) ? (int)$_POST['creditor_id'] : 0;
         $data = [
             'employee_id' => $_POST['employee_id'] ?? null,
+            'creditor_id' => $creditorId ?: null,
             'loan_type' => trim($_POST['loan_type'] ?? ''),
             'frequency' => $_POST['frequency'] ?? 'mensual',
             'allow_december' => isset($_POST['allow_december']) ? 1 : 0,
@@ -73,6 +80,11 @@ class LoanController extends Controller
         // Validaciones básicas
         $errors = [];
         if (empty($data['employee_id'])) $errors[] = 'Seleccione un empleado.';
+        if (empty($data['creditor_id'])) {
+            $errors[] = 'Seleccione un acreedor.';
+        } elseif (!$this->creditorModel->findById($data['creditor_id'])) {
+            $errors[] = 'El acreedor seleccionado no existe.';
+        }
         if (empty($data['loan_type'])) $errors[] = 'Tipo de préstamo requerido.';
         if (!in_array($data['frequency'], ['semanal', 'quincenal', 'mensual'])) $errors[] = 'Frecuencia inválida.';
         if ($data['total_amount'] <= 0) $errors[] = 'Monto total debe ser mayor a 0.';

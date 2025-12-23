@@ -64,7 +64,7 @@ class Admin extends Controller
 
         $data = [
 
-            'title' => 'AdministraciÃ³n - Login',
+            'title' => 'Administración - Login',
 
             'csrf_token' => AuthMiddleware::generateCSRF(),
 
