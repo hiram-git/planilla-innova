@@ -11,6 +11,9 @@ if (!empty($details)) {
     ];
 }
 
+$accumulatedConceptCodes = ['LIQ005', 'LIQ007'];
+$liquidationAccumulations = $liquidationAccumulations ?? [];
+
 // Scripts específicos de esta página - se cargarán después de jQuery
 ob_start();
 ?>
@@ -237,6 +240,42 @@ $scripts = ob_get_clean();
                                     if (!empty($asignaciones)):
                                     ?>
                                         <?php foreach ($asignaciones as $asignacion): ?>
+                                            <?php
+                                            $showAccumulated = in_array($asignacion['concepto'], $accumulatedConceptCodes, true);
+                                            if ($showAccumulated):
+                                                $accumulatedData = $liquidationAccumulations[$asignacion['concepto']] ?? null;
+                                            ?>
+                                                <tr class="bg-light">
+                                                    <td colspan="3">
+                                                        <table class="table table-sm table-bordered mb-0">
+                                                            <thead class="thead-light">
+                                                                <tr>
+                                                                    <th width="40%">Mes</th>
+                                                                    <th width="60%" class="text-right">Acumulado</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php if (!empty($accumulatedData['months'])): ?>
+                                                                    <?php foreach ($accumulatedData['months'] as $month): ?>
+                                                                        <tr>
+                                                                            <td><?= htmlspecialchars($month['label']) ?></td>
+                                                                            <td class="text-right"><?= currency_symbol() ?><?= number_format($month['amount'], 2) ?></td>
+                                                                        </tr>
+                                                                    <?php endforeach; ?>
+                                                                    <tr class="font-weight-bold">
+                                                                        <td>Total acumulado</td>
+                                                                        <td class="text-right"><?= currency_symbol() ?><?= number_format($accumulatedData['total'], 2) ?></td>
+                                                                    </tr>
+                                                                <?php else: ?>
+                                                                    <tr>
+                                                                        <td colspan="2" class="text-center text-muted">Sin acumulados</td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?>
                                             <tr>
                                                 <td>
                                                     <strong><?= htmlspecialchars($asignacion['concepto']) ?></strong>
@@ -292,6 +331,42 @@ $scripts = ob_get_clean();
                                     if (!empty($deducciones)):
                                     ?>
                                         <?php foreach ($deducciones as $deduccion): ?>
+                                            <?php
+                                            $showAccumulated = in_array($deduccion['concepto'], $accumulatedConceptCodes, true);
+                                            if ($showAccumulated):
+                                                $accumulatedData = $liquidationAccumulations[$deduccion['concepto']] ?? null;
+                                            ?>
+                                                <tr class="bg-light">
+                                                    <td colspan="3">
+                                                        <table class="table table-sm table-bordered mb-0">
+                                                            <thead class="thead-light">
+                                                                <tr>
+                                                                    <th width="40%">Mes</th>
+                                                                    <th width="60%" class="text-right">Acumulado</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php if (!empty($accumulatedData['months'])): ?>
+                                                                    <?php foreach ($accumulatedData['months'] as $month): ?>
+                                                                        <tr>
+                                                                            <td><?= htmlspecialchars($month['label']) ?></td>
+                                                                            <td class="text-right"><?= currency_symbol() ?><?= number_format($month['amount'], 2) ?></td>
+                                                                        </tr>
+                                                                    <?php endforeach; ?>
+                                                                    <tr class="font-weight-bold">
+                                                                        <td>Total acumulado</td>
+                                                                        <td class="text-right"><?= currency_symbol() ?><?= number_format($accumulatedData['total'], 2) ?></td>
+                                                                    </tr>
+                                                                <?php else: ?>
+                                                                    <tr>
+                                                                        <td colspan="2" class="text-center text-muted">Sin acumulados</td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?>
                                             <tr>
                                                 <td>
                                                     <strong><?= htmlspecialchars($deduccion['concepto']) ?></strong>

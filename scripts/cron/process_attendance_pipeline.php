@@ -89,8 +89,6 @@ if (session_status() === PHP_SESSION_NONE) {
 use App\Core\MasterDatabase;
 use App\Core\TenantResolver;
 use App\Core\Database;
-use App\Core\MasterDatabase;
-use App\Core\TenantResolver;
 use App\Services\Attendance\RecordsProcessor;
 use App\Services\Attendance\Calculators\AttendanceCalculator;
 use App\Services\Attendance\Calculators\AbsenceDetector;
