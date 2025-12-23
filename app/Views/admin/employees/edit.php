@@ -548,7 +548,7 @@ $content .= '                </select>
                         <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</small>';
 
 if (!empty($employee['photo'])) {
-    $photoUrl = url('images/' . $employee['photo'], false);
+    $photoUrl = \App\Core\TenantStorage::getPublicImageUrl($employee['photo']);
     $content .= '<div class="mt-2">
                             <img src="' . $photoUrl . '" alt="Foto actual"
                                  style="max-width: 150px; max-height: 150px;" class="img-thumbnail">

@@ -900,9 +900,9 @@ class OrganizationalController extends Controller
     private function calculateNodePositions($tree, $level = 0, $parentId = null, &$positions = [], &$currentX = 10)
     {
         $boxWidth = 50;
-        $boxHeight = 22; // Aumentado para acomodar empleado
+        $baseBoxHeight = 10; // Altura base para nombre del departamento
         $horizontalGap = 5;
-        $verticalGap = 40; // Aumentado para mejor espaciado
+        $verticalGap = 50; // Aumentado para mejor espaciado con múltiples empleados
         $startY = 40; // Posición Y inicial para evitar superposición con header
 
         foreach ($tree as $node) {
@@ -938,6 +938,24 @@ class OrganizationalController extends Controller
 
             $y = $startY + ($level * $verticalGap);
 
+            // Calcular altura dinámica según cantidad de empleados y cargos
+            $empleadosCount = count($node['empleados'] ?? []);
+            $cargosCount = count($node['cargos'] ?? []);
+
+            // Altura: base + líneas para cargos + líneas para empleados
+            $lineHeight = 3.5;
+            $boxHeight = $baseBoxHeight; // Título del departamento
+
+            if ($cargosCount > 0) {
+                $boxHeight += ($cargosCount * $lineHeight) + 2; // Espacio para cargos
+            }
+
+            if ($empleadosCount > 0) {
+                $boxHeight += ($empleadosCount * $lineHeight * 2) + 2; // Espacio para empleados (nombre + cargo)
+            } else if ($cargosCount == 0) {
+                $boxHeight += 4; // Espacio para "Sin asignar"
+            }
+
             // Guardar posición del nodo
             $positions[$node['id']] = [
                 'id' => $node['id'],
@@ -948,6 +966,7 @@ class OrganizationalController extends Controller
                 'level' => $level,
                 'descripcion' => $node['descripcion'],
                 'empleados' => $node['empleados'] ?? [],
+                'cargos' => $node['cargos'] ?? [],
                 'parent_id' => $parentId,
                 'has_children' => $childrenCount > 0
             ];
@@ -1034,38 +1053,68 @@ class OrganizationalController extends Controller
 
             $pdf->Cell($w, 4, $descripcion, 0, 1, 'C');
 
-            // Mostrar nombre del empleado asignado debajo del departamento
-            if (!empty($node['empleados'])) {
-                $empleado = $node['empleados'][0];
-                $nombre = $empleado['full_name'] ?? '';
+            $currentY = $pdf->GetY();
 
-                if (!empty($nombre)) {
-                    $pdf->SetFont('helvetica', '', 6);
-                    $pdf->SetX($x);
+            // Mostrar cargos asociados al departamento
+            if (!empty($node['cargos']) && count($node['cargos']) > 0) {
+                $pdf->SetFont('helvetica', 'B', 5.5);
+                $pdf->SetX($x);
+                $pdf->Cell($w, 3, 'Cargos:', 0, 1, 'L');
 
-                    // Truncar nombre si es muy largo
-                    if (strlen($nombre) > 28) {
-                        $nombre = substr($nombre, 0, 25) . '...';
+                $pdf->SetFont('helvetica', 'I', 5);
+                foreach ($node['cargos'] as $cargo) {
+                    $cargoNombre = $cargo['nombre'] ?? '';
+
+                    // Truncar cargo si es muy largo
+                    if (strlen($cargoNombre) > 28) {
+                        $cargoNombre = substr($cargoNombre, 0, 25) . '...';
                     }
 
-                    $pdf->Cell($w, 3, $nombre, 0, 1, 'C');
+                    $pdf->SetX($x + 2);
+                    $pdf->Cell($w - 2, 3, '- ' . $cargoNombre, 0, 1, 'L');
+                }
+                $pdf->Ln(1);
+            }
 
-                    // Mostrar cargo debajo del nombre
-                    if (!empty($empleado['cargo_nombre'])) {
-                        $pdf->SetFont('helvetica', 'I', 5);
-                        $pdf->SetX($x);
-                        $cargo = $empleado['cargo_nombre'];
+            // Mostrar TODOS los empleados del departamento
+            if (!empty($node['empleados']) && count($node['empleados']) > 0) {
+                $pdf->SetFont('helvetica', 'B', 5.5);
+                $pdf->SetX($x);
+                $pdf->Cell($w, 3, 'Colaboradores:', 0, 1, 'L');
 
-                        // Truncar cargo si es muy largo
-                        if (strlen($cargo) > 28) {
-                            $cargo = substr($cargo, 0, 25) . '...';
+                $pdf->SetFont('helvetica', '', 5.5);
+                foreach ($node['empleados'] as $empleado) {
+                    $nombre = $empleado['full_name'] ?? '';
+
+                    if (!empty($nombre)) {
+                        // Truncar nombre si es muy largo
+                        if (strlen($nombre) > 26) {
+                            $nombre = substr($nombre, 0, 23) . '...';
                         }
 
-                        $pdf->Cell($w, 3, $cargo, 0, 1, 'C');
+                        $pdf->SetX($x + 2);
+                        $pdf->Cell($w - 2, 3, $nombre, 0, 1, 'L');
+
+                        // Mostrar cargo debajo del nombre si existe
+                        if (!empty($empleado['cargo_nombre'])) {
+                            $pdf->SetFont('helvetica', 'I', 4.5);
+                            $pdf->SetX($x + 4);
+                            $cargo = $empleado['cargo_nombre'];
+
+                            // Truncar cargo si es muy largo
+                            if (strlen($cargo) > 24) {
+                                $cargo = substr($cargo, 0, 21) . '...';
+                            }
+
+                            $pdf->Cell($w - 4, 3, '(' . $cargo . ')', 0, 1, 'L');
+                            $pdf->SetFont('helvetica', '', 5.5);
+                        }
                     }
                 }
-            } else {
-                // Si no hay empleados, mostrar texto indicativo
+            }
+
+            // Si no hay cargos ni empleados
+            if (empty($node['cargos']) && empty($node['empleados'])) {
                 $pdf->SetFont('helvetica', 'I', 5);
                 $pdf->SetX($x);
                 $pdf->Cell($w, 3, 'Sin asignar', 0, 1, 'C');

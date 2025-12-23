@@ -106,7 +106,9 @@ class Security
             'details' => $details
         ];
 
-        $logFile = '../storage/logs/security.log';
+        $logDir = TenantStorage::getLogDirectory();
+        TenantStorage::ensureDirectory($logDir);
+        $logFile = $logDir . 'security.log';
         file_put_contents($logFile, json_encode($logEntry) . "\n", FILE_APPEND | LOCK_EX);
     }
 

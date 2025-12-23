@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Security;
+use App\Core\TenantStorage;
 use App\Middleware\AuthMiddleware;
 use App\Helpers\PermissionHelper;
 
@@ -520,17 +521,16 @@ class Employee extends Controller
 
     private function uploadPhoto($file)
     {
-        $uploadDir = './images/';
+        $tenantSubdir = TenantStorage::getTenantSubdir();
+        $uploadDir = TenantStorage::getImageDirectory();
         $fileName = time() . '_' . $this->sanitizeFileName($file['name']);
+        $relativePath = $tenantSubdir . '/' . $fileName;
         $uploadPath = $uploadDir . $fileName;
 
-        // Crear directorio si no existe
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+        TenantStorage::ensureDirectory($uploadDir);
 
         if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
-            return $fileName;
+            return $relativePath;
         }
         
         return false;
@@ -631,7 +631,8 @@ class Employee extends Controller
                     ? date('h:i A', strtotime($emp['time_in'])) . ' - ' . date('h:i A', strtotime($emp['time_out']))
                     : 'Sin horario';
                 
-                $photo = $emp['photo'] ? \App\Core\UrlHelper::url('images/' . $emp['photo']) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iIzZCN0I4NCIvPgo8cGF0aCBkPSJNMzAgMzJDMzAgMjYuNDc3MSAyNS41MjI5IDIyIDIwIDIyUzEwIDI2LjQ3NzEgMTAgMzJIMzBaIiBmaWxsPSIjNkI3Qjg0Ii8+Cjwvc3ZnPgo=';
+                $photoUrl = $emp['photo'] ? TenantStorage::getPublicImageUrl($emp['photo']) : '';
+                $photo = $photoUrl ?: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iIzZCN0I4NCIvPgo8cGF0aCBkPSJNMzAgMzJDMzAgMjYuNDc3MSAyNS41MjI5IDIyIDIwIDIyUzEwIDI2LjQ3NzEgMTAgMzJIMzBaIiBmaWxsPSIjNkI3Qjg0Ii8+Cjwvc3ZnPgo=';
                 
                 $photoHtml = '<img src="' . $photo . '" alt="Foto" class="img-circle" style="width: 40px; height: 40px; object-fit: cover;">';
                 
@@ -794,7 +795,8 @@ class Employee extends Controller
 
             $data = [];
             foreach ($employees as $emp) {
-                $photo = $emp['photo'] ? \App\Core\UrlHelper::url('images/' . $emp['photo']) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iIzZCN0I4NCIvPgo8cGF0aCBkPSJNMzAgMzJDMzAgMjYuNDc3MSAyNS41MjI5IDIyIDIwIDIyUzEwIDI2LjQ3NzEgMTAgMzJIMzBaIiBmaWxsPSIjNkI3Qjg0Ii8+Cjwvc3ZnPgo=';
+                $photoUrl = $emp['photo'] ? TenantStorage::getPublicImageUrl($emp['photo']) : '';
+                $photo = $photoUrl ?: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iIzZCN0I4NCIvPgo8cGF0aCBkPSJNMzAgMzJDMzAgMjYuNDc3MSAyNS41MjI5IDIyIDIwIDIyUzEwIDI2LjQ3NzEgMTAgMzJIMzBaIiBmaWxsPSIjNkI3Qjg0Ii8+Cjwvc3ZnPgo=';
 
                 $photoHtml = '<img src="' . $photo . '" alt="Foto" class="img-circle" style="width: 40px; height: 40px; object-fit: cover;">';
 

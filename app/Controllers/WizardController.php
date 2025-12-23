@@ -14,6 +14,7 @@ namespace App\Controllers;
  */
 
 use App\Core\Database;
+use App\Core\TenantStorage;
 use App\Models\WizardModel;
 use App\Services\LicenseGenerator;
 use Exception;
@@ -328,6 +329,17 @@ class WizardController{
             } catch (Exception $e) {
                 error_log("❌ ERROR actualizando registro empresa: " . $e->getMessage());
                 error_log("🔍 Stack trace: " . $e->getTraceAsString());
+                throw $e;
+            }
+
+            // 8.1 Crear storage aislado por tenant
+            error_log("PASO 8.1: Creando storage aislado por tenant");
+            try {
+                TenantStorage::initializeTenantStorage($companyId, $databaseName);
+                error_log("Storage aislado creado para tenant {$companyId}");
+            } catch (Exception $e) {
+                error_log("ERROR creando storage aislado: " . $e->getMessage());
+                error_log("Stack trace: " . $e->getTraceAsString());
                 throw $e;
             }
 

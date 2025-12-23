@@ -31,7 +31,7 @@ $content = '
                         <div class="employee-photo mb-3">';
                         
 if (!empty($employee['photo'])) {
-    $photoUrl = \App\Core\UrlHelper::url('images/' . $employee['photo']);
+    $photoUrl = \App\Core\TenantStorage::getPublicImageUrl($employee['photo']);
     $content .= '<img src="' . htmlspecialchars($photoUrl) . '" alt="Foto del empleado" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">';
 } else {
     $content .= '<div class="bg-light d-flex align-items-center justify-content-center" style="width: 200px; height: 200px; margin: 0 auto;">
