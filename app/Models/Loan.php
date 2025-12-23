@@ -9,6 +9,7 @@ class Loan extends Model
     public $table = 'loans';
     protected $fillable = [
         'employee_id',
+        'creditor_id',
         'loan_type',
         'frequency',
         'allow_december',
