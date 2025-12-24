@@ -447,22 +447,42 @@ class WizardModel
     }
 
     /**
-     * Extract date prefix from migration filename
-     * Supports formats: YYYY_MM_DD_* and YYYYMMDD_*
+     * Extract date/timestamp prefix from migration filename
+     * Supports formats:
+     * - YYYY_MM_DD_HHMMSS_* (recommended: full timestamp)
+     * - YYYY_MM_DD_HHMM_* (timestamp without seconds)
+     * - YYYY_MM_DD_* (date only, legacy)
+     * - YYYYMMDDHHMMSS_* (compact timestamp)
+     * - YYYYMMDD_* (compact date only, legacy)
      *
      * @param string $filename Migration filename
-     * @return string|null Date string in YYYYMMDD format, or null if no date found
+     * @return string|null Timestamp string in YYYYMMDDHHmmss format (padded), or null if no date found
      */
     private function extractMigrationDate(string $filename): ?string
     {
-        // Match YYYY_MM_DD format (e.g., 2025_11_15_migration.sql)
-        if (preg_match('/^(\d{4})_(\d{2})_(\d{2})_/', $filename, $matches)) {
-            return $matches[1] . $matches[2] . $matches[3]; // YYYYMMDD
+        // Match YYYY_MM_DD_HHMMSS format (e.g., 2025_12_23_143025_migration.sql)
+        if (preg_match('/^(\d{4})_(\d{2})_(\d{2})_(\d{6})_/', $filename, $matches)) {
+            return $matches[1] . $matches[2] . $matches[3] . $matches[4]; // YYYYMMDDHHmmss
         }
 
-        // Match YYYYMMDD format (e.g., 20251115_migration.sql)
+        // Match YYYY_MM_DD_HHMM format (e.g., 2025_12_23_1430_migration.sql)
+        if (preg_match('/^(\d{4})_(\d{2})_(\d{2})_(\d{4})_/', $filename, $matches)) {
+            return $matches[1] . $matches[2] . $matches[3] . $matches[4] . '00'; // YYYYMMDDHHmm00
+        }
+
+        // Match YYYY_MM_DD format (legacy, e.g., 2025_11_15_migration.sql)
+        if (preg_match('/^(\d{4})_(\d{2})_(\d{2})_/', $filename, $matches)) {
+            return $matches[1] . $matches[2] . $matches[3] . '000000'; // YYYYMMDD000000
+        }
+
+        // Match YYYYMMDDHHMMSS format (compact, e.g., 20251223143025_migration.sql)
+        if (preg_match('/^(\d{14})_/', $filename, $matches)) {
+            return $matches[1]; // YYYYMMDDHHmmss
+        }
+
+        // Match YYYYMMDD format (compact legacy, e.g., 20251115_migration.sql)
         if (preg_match('/^(\d{8})_/', $filename, $matches)) {
-            return $matches[1];
+            return $matches[1] . '000000'; // YYYYMMDD000000
         }
 
         return null;
