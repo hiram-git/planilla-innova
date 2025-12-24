@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Core\TenantStorage;
+
 /**
  * Controlador de Reportes de Estimados Anuales
  * Extiende ReportController para mantener acceso a métodos compartidos
@@ -596,7 +598,6 @@ class EstimateReportController extends ReportController
      */
     public function insertLogosInPDF($pdf, $companyInfo)
     {
-        $logoPath = __DIR__ . '/../../images/logos/';
         $logoHeight = 10;
         $pageWidth = $pdf->getPageWidth();
         $margin = 10;
@@ -605,8 +606,8 @@ class EstimateReportController extends ReportController
 
         // Logo izquierdo
         if (!empty($companyInfo['logo_izquierdo_reportes'])) {
-            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
-            if (file_exists($leftLogoPath)) {
+            $leftLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_izquierdo_reportes']);
+            if ($leftLogoPath) {
                 $leftLogoWidth = 20;
                 try {
                     $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
@@ -618,8 +619,8 @@ class EstimateReportController extends ReportController
 
         // Logo derecho
         if (!empty($companyInfo['logo_derecho_reportes'])) {
-            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
-            if (file_exists($rightLogoPath)) {
+            $rightLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_derecho_reportes']);
+            if ($rightLogoPath) {
                 $rightLogoWidth = 30;
                 $rightX = $pageWidth - $margin - $rightLogoWidth;
                 try {
@@ -632,8 +633,8 @@ class EstimateReportController extends ReportController
 
         // Logo principal centro
         if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
-            $mainLogoPath = $logoPath . $companyInfo['logo_empresa'];
-            if (file_exists($mainLogoPath)) {
+            $mainLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_empresa']);
+            if ($mainLogoPath) {
                 $mainLogoWidth = 40;
                 $centerX = ($pageWidth - $mainLogoWidth) / 2;
                 $pdf->Image($mainLogoPath, $centerX, $currentY, $mainLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);

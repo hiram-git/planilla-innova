@@ -239,8 +239,8 @@ class CompanyController extends Controller
             }
 
             // Eliminar archivo del servidor
-            $logoPath = __DIR__ . '/../../images/logos/' . $filename;
-            if (file_exists($logoPath)) {
+            $logoPath = TenantStorage::getLogoFilesystemPath($filename);
+            if ($logoPath && file_exists($logoPath)) {
                 unlink($logoPath);
             }
 

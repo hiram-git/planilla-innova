@@ -16,25 +16,99 @@ class TenantStorage
         }
 
         if (strpos($clean, 'images/') === 0) {
-            return UrlHelper::asset($clean);
+            $clean = substr($clean, strlen('images/'));
         }
+
+        $baseDir = __DIR__ . '/../../images/';
+        $candidates = [];
 
         if (strpos($clean, 'tenants/') === 0) {
-            return UrlHelper::asset('images/' . $clean);
+            $candidates[] = $clean;
+            $candidates[] = basename($clean);
+        } else {
+            $tenantSubdir = self::getTenantSubdir();
+            $candidates[] = $tenantSubdir . '/' . $clean;
+            $candidates[] = $clean;
         }
 
-        $tenantSubdir = self::getTenantSubdir();
-        $tenantPath = __DIR__ . '/../../images/' . $tenantSubdir . '/' . $clean;
-        if (is_file($tenantPath)) {
-            return UrlHelper::asset('images/' . $tenantSubdir . '/' . $clean);
-        }
-
-        $legacyPath = __DIR__ . '/../../images/' . $clean;
-        if (is_file($legacyPath)) {
-            return UrlHelper::asset('images/' . $clean);
+        foreach ($candidates as $candidate) {
+            $candidatePath = $baseDir . $candidate;
+            if (is_file($candidatePath)) {
+                return UrlHelper::asset('images/' . $candidate);
+            }
         }
 
         return UrlHelper::asset('images/' . $clean);
+    }
+
+    public static function getPublicLogoUrl(?string $path): string
+    {
+        if (!$path) {
+            return '';
+        }
+
+        $clean = ltrim($path, '/');
+        if (preg_match('#^https?://#i', $clean)) {
+            return $clean;
+        }
+
+        if (strpos($clean, 'images/logos/') === 0) {
+            $clean = substr($clean, strlen('images/logos/'));
+        }
+
+        $baseDir = __DIR__ . '/../../images/logos/';
+        $candidates = [];
+
+        if (strpos($clean, 'tenants/') === 0) {
+            $candidates[] = $clean;
+            $candidates[] = basename($clean);
+        } else {
+            $tenantSubdir = self::getTenantSubdir();
+            $candidates[] = $tenantSubdir . '/' . $clean;
+            $candidates[] = $clean;
+        }
+
+        foreach ($candidates as $candidate) {
+            $candidatePath = $baseDir . $candidate;
+            if (is_file($candidatePath)) {
+                return UrlHelper::asset('images/logos/' . $candidate);
+            }
+        }
+
+        return UrlHelper::asset('images/logos/' . $clean);
+    }
+
+    public static function getLogoFilesystemPath(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        $clean = ltrim($path, '/');
+        if (strpos($clean, 'images/logos/') === 0) {
+            $clean = substr($clean, strlen('images/logos/'));
+        }
+
+        $baseDir = __DIR__ . '/../../images/logos/';
+        $candidates = [];
+
+        if (strpos($clean, 'tenants/') === 0) {
+            $candidates[] = $clean;
+            $candidates[] = basename($clean);
+        } else {
+            $tenantSubdir = self::getTenantSubdir();
+            $candidates[] = $tenantSubdir . '/' . $clean;
+            $candidates[] = $clean;
+        }
+
+        foreach ($candidates as $candidate) {
+            $candidatePath = $baseDir . $candidate;
+            if (is_file($candidatePath)) {
+                return $candidatePath;
+            }
+        }
+
+        return null;
     }
 
     public static function getTenantKey(?int $tenantId = null, ?string $tenantDb = null): string
