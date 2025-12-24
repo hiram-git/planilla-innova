@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\TenantStorage;
 use App\Models\Payroll;
 use App\Models\Employee;
 
@@ -896,7 +897,6 @@ class PDFReportController extends Controller
      */
     protected function insertLogosInPDF($pdf, $companyInfo)
     {
-        $logoPath = __DIR__ . '/../../images/logos/';
         $logoHeight = 10; // Altura aumentada para mejor proporción
         $pageWidth = $pdf->getPageWidth();
         $margin = 10; // Margen desde los bordes
@@ -906,8 +906,8 @@ class PDFReportController extends Controller
 
         // Logo izquierdo - alineado con el margen izquierdo
         if (!empty($companyInfo['logo_izquierdo_reportes'])) {
-            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
-            if (file_exists($leftLogoPath)) {
+            $leftLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_izquierdo_reportes']);
+            if ($leftLogoPath) {
                 // Ancho triplicado (era ~10, ahora 20)
                 $leftLogoWidth = 20;
                 try {
@@ -921,8 +921,8 @@ class PDFReportController extends Controller
 
         // Logo derecho - alineado con el margen derecho
         if (!empty($companyInfo['logo_derecho_reportes'])) {
-            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
-            if (file_exists($rightLogoPath)) {
+            $rightLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_derecho_reportes']);
+            if ($rightLogoPath) {
                 // Ancho triplicado (era ~10, ahora 30)
                 $rightLogoWidth = 30;
                 $rightX = $pageWidth - $margin - $rightLogoWidth;
@@ -937,8 +937,8 @@ class PDFReportController extends Controller
 
         // Logo principal (centro) - solo si no hay logos laterales
         if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
-            $mainLogoPath = $logoPath . $companyInfo['logo_empresa'];
-            if (file_exists($mainLogoPath)) {
+            $mainLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_empresa']);
+            if ($mainLogoPath) {
                 // Ancho triplicado (era ~13, ahora 40)
                 $mainLogoWidth = 40;
                 $centerX = ($pageWidth - $mainLogoWidth) / 2;

@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\TenantStorage;
 
 /**
  * Controlador para gestión de estructura organizacional
@@ -1252,7 +1253,6 @@ class OrganizationalTreePDF extends \TCPDF
     // Header personalizado
     public function Header()
     {
-        $logoPath = __DIR__ . '/../../images/logos/';
         $logoHeight = 12; // Reducido de 15 a 12
         $pageWidth = $this->getPageWidth();
         $margin = 10;
@@ -1260,8 +1260,8 @@ class OrganizationalTreePDF extends \TCPDF
 
         // Logo izquierdo
         if (!empty($this->companyData['logo_izquierdo_reportes'])) {
-            $leftLogoPath = $logoPath . $this->companyData['logo_izquierdo_reportes'];
-            if (file_exists($leftLogoPath)) {
+            $leftLogoPath = TenantStorage::getLogoFilesystemPath($this->companyData['logo_izquierdo_reportes']);
+            if ($leftLogoPath) {
                 $leftLogoWidth = 25; // Reducido de 35 a 25
                 try {
                     $this->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
@@ -1273,8 +1273,8 @@ class OrganizationalTreePDF extends \TCPDF
 
         // Logo derecho
         if (!empty($this->companyData['logo_derecho_reportes'])) {
-            $rightLogoPath = $logoPath . $this->companyData['logo_derecho_reportes'];
-            if (file_exists($rightLogoPath)) {
+            $rightLogoPath = TenantStorage::getLogoFilesystemPath($this->companyData['logo_derecho_reportes']);
+            if ($rightLogoPath) {
                 $rightLogoWidth = 25; // Reducido de 35 a 25
                 $rightX = $pageWidth - $margin - $rightLogoWidth;
                 try {
@@ -1289,8 +1289,8 @@ class OrganizationalTreePDF extends \TCPDF
         if (empty($this->companyData['logo_izquierdo_reportes']) &&
             empty($this->companyData['logo_derecho_reportes']) &&
             !empty($this->companyData['logo_empresa'])) {
-            $mainLogoPath = $logoPath . $this->companyData['logo_empresa'];
-            if (file_exists($mainLogoPath)) {
+            $mainLogoPath = TenantStorage::getLogoFilesystemPath($this->companyData['logo_empresa']);
+            if ($mainLogoPath) {
                 $mainLogoWidth = 35; // Reducido de 45 a 35
                 $centerX = ($pageWidth - $mainLogoWidth) / 2;
                 try {

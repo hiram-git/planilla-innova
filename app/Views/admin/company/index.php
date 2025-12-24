@@ -428,7 +428,7 @@ $styles = '
 
                                 <div class="preview-container mt-2" id="logo_empresa_preview" style="<?= empty($company['logo_empresa']) ? 'display: none;' : '' ?>">
                                     <div class="text-center">
-                                        <img src="<?= \App\Core\UrlHelper::asset('images/logos/' . $company['logo_empresa']) ?>" alt="Logo Empresa" class="logo-preview">
+                                        <img src="<?= \App\Core\TenantStorage::getPublicLogoUrl($company['logo_empresa']) ?>" alt="Logo Empresa" class="logo-preview">
                                         <br><button type="button" class="btn btn-sm btn-danger mt-1" onclick="removeLogo('logo_empresa')">Eliminar</button>
                                     </div>
                                 </div>
@@ -446,7 +446,7 @@ $styles = '
 
                                 <div class="preview-container mt-2" id="logo_izquierdo_reportes_preview" style="<?= empty($company['logo_izquierdo_reportes']) ? 'display: none;' : '' ?>">
                                     <div class="text-center">
-                                        <img src="<?= \App\Core\UrlHelper::asset('images/logos/' . $company['logo_izquierdo_reportes']) ?>" alt="Logo Izquierdo" class="logo-preview">
+                                        <img src="<?= \App\Core\TenantStorage::getPublicLogoUrl($company['logo_izquierdo_reportes']) ?>" alt="Logo Izquierdo" class="logo-preview">
                                         <br><button type="button" class="btn btn-sm btn-danger mt-1" onclick="removeLogo('logo_izquierdo_reportes')">Eliminar</button>
                                     </div>
                                 </div>
@@ -464,7 +464,7 @@ $styles = '
 
                                 <div class="preview-container mt-2" id="logo_derecho_reportes_preview" style="<?= empty($company['logo_derecho_reportes']) ? 'display: none;' : '' ?>">
                                     <div class="text-center">
-                                        <img src="<?= \App\Core\UrlHelper::asset('images/logos/' . $company['logo_derecho_reportes']) ?>" alt="Logo Derecho" class="logo-preview">
+                                        <img src="<?= \App\Core\TenantStorage::getPublicLogoUrl($company['logo_derecho_reportes']) ?>" alt="Logo Derecho" class="logo-preview">
                                         <br><button type="button" class="btn btn-sm btn-danger mt-1" onclick="removeLogo('logo_derecho_reportes')">Eliminar</button>
                                     </div>
                                 </div>

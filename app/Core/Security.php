@@ -106,9 +106,18 @@ class Security
             'details' => $details
         ];
 
-        $logDir = TenantStorage::getLogDirectory();
-        TenantStorage::ensureDirectory($logDir);
-        $logFile = $logDir . 'security.log';
+        try {
+            $logDir = TenantStorage::getLogDirectory();
+            TenantStorage::ensureDirectory($logDir);
+            $logFile = $logDir . 'security.log';
+        } catch (\Throwable $e) {
+            error_log("Security log fallback: " . $e->getMessage());
+            $legacyDir = __DIR__ . '/../../storage/logs/';
+            if (!is_dir($legacyDir)) {
+                @mkdir($legacyDir, 0777, true);
+            }
+            $logFile = $legacyDir . 'security.log';
+        }
         file_put_contents($logFile, json_encode($logEntry) . "\n", FILE_APPEND | LOCK_EX);
     }
 

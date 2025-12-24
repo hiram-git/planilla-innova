@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\TenantStorage;
 use App\Models\Payroll;
 use App\Models\Employee;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -1102,12 +1103,10 @@ class ExcelReportController extends Controller
      */
     protected function insertLogosInExcel($sheet, $row, $companyInfo)
     {
-        $logoPath = __DIR__ . '/../../images/logos/';
-
         // Logo izquierdo - alineado con la primera columna
         if (!empty($companyInfo['logo_izquierdo_reportes'])) {
-            $leftLogoPath = $logoPath . $companyInfo['logo_izquierdo_reportes'];
-            if (file_exists($leftLogoPath)) {
+            $leftLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_izquierdo_reportes']);
+            if ($leftLogoPath) {
                 try {
                     // Crear objeto Drawing para logo izquierdo
                     $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
@@ -1124,15 +1123,13 @@ class ExcelReportController extends Controller
                 } catch (\Exception $e) {
                     error_log("ExcelReportController: Error insertando logo izquierdo: " . $e->getMessage());
                 }
-            } else {
-                error_log("ExcelReportController: Logo izquierdo no encontrado: " . $leftLogoPath);
             }
         }
 
         // Logo derecho - alineado con las últimas columnas
         if (!empty($companyInfo['logo_derecho_reportes'])) {
-            $rightLogoPath = $logoPath . $companyInfo['logo_derecho_reportes'];
-            if (file_exists($rightLogoPath)) {
+            $rightLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_derecho_reportes']);
+            if ($rightLogoPath) {
                 try {
                     // Crear objeto Drawing para logo derecho
                     $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
@@ -1149,8 +1146,6 @@ class ExcelReportController extends Controller
                 } catch (\Exception $e) {
                     error_log("ExcelReportController: Error insertando logo derecho: " . $e->getMessage());
                 }
-            } else {
-                error_log("ExcelReportController: Logo derecho no encontrado: " . $rightLogoPath);
             }
         }
 
