@@ -13,7 +13,7 @@ $jsConfig = JavaScriptHelper::renderConfigScript();
 $scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
 
 $styles = '
-<link rel="stylesheet" href="' . url('plugins/dropzone/min/dropzone.min.css', false) . '">';
+<link rel="stylesheet" href="' . url('plugins/dropzone/min/dropzone.min.css', false) . '">
 <style>
 .upload-area {
     border: 2px dashed #007bff;

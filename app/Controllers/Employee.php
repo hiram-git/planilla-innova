@@ -383,9 +383,9 @@ class Employee extends Controller
                 'numero_contrato' => !empty($data['edit_numero_contrato']) ? $data['edit_numero_contrato'] : null
             ];
 
-            // Log para debug
-            error_log("[Employee::update] Llamando a db->update() en tabla 'employees' para ID {$id}");
-            error_log("[Employee::update] Datos a actualizar: " . print_r($updateData, true));
+            // 🔍 DEBUG: Logs comentados para evitar headers HTTP demasiado grandes en producción
+            // error_log("[Employee::update] Llamando a db->update() en tabla 'employees' para ID {$id}");
+            // error_log("[Employee::update] Datos a actualizar: " . print_r($updateData, true));
 
             $employee->update($id, $updateData);
 
@@ -609,7 +609,7 @@ class Employee extends Controller
             }
             
             if (!empty($searchValue)) {
-                $whereConditions[] = "(employees.firstname LIKE ? OR employees.lastname LIKE ? OR employees.document_id LIKE ? OR employees.employee_id LIKE ? OR posiciones.codigo LIKE ? OR cargos.descripcion LIKE ?)";
+                $whereConditions[] = "(employees.firstname LIKE ? OR employees.lastname LIKE ? OR employees.document_id LIKE ? OR employees.employee_id LIKE ? OR posiciones.codigo LIKE ? OR cargos.nombre LIKE ?)";
                 $searchParam = "%{$searchValue}%";
                 $params = array_merge($params, array_fill(0, 6, $searchParam));
             }
@@ -774,7 +774,7 @@ class Employee extends Controller
             }
 
             if (!empty($searchValue)) {
-                $whereConditions[] = "(employees.firstname LIKE ? OR employees.lastname LIKE ? OR employees.document_id LIKE ? OR employees.employee_id LIKE ? OR posiciones.codigo LIKE ? OR cargos.descripcion LIKE ?)";
+                $whereConditions[] = "(employees.firstname LIKE ? OR employees.lastname LIKE ? OR employees.document_id LIKE ? OR employees.employee_id LIKE ? OR posiciones.codigo LIKE ? OR cargos.nombre LIKE ?)";
                 $searchParam = "%{$searchValue}%";
                 $params = array_merge($params, array_fill(0, 6, $searchParam));
             }
@@ -864,7 +864,7 @@ class Employee extends Controller
         $sql = "SELECT employees.*, 
                        employees.id AS id,
                        posiciones.codigo AS position_name,
-                       cargos.descripcion AS cargo_name,
+                         cargos.nombre AS cargo_name,
                        schedules.time_in, 
                        schedules.time_out
                 FROM employees 
@@ -1084,7 +1084,7 @@ class Employee extends Controller
         $sql = "SELECT employees.*,
                        employees.id AS id,
                        posiciones.codigo AS position_name,
-                       cargos.descripcion AS cargo_name,
+                         cargos.nombre AS cargo_name,
                        et.termination_date,
                        et.reason as termination_reason
                 FROM employees
