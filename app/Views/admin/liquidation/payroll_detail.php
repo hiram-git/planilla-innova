@@ -11,7 +11,7 @@ if (!empty($details)) {
     ];
 }
 
-$accumulatedConceptCodes = ['LIQ005', 'LIQ007'];
+$accumulatedConceptCodes = ['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'];
 $liquidationAccumulations = $liquidationAccumulations ?? [];
 
 // Scripts específicos de esta página - se cargarán después de jQuery

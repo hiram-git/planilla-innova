@@ -142,7 +142,7 @@ $pageTitle = "Vista Previa de Liquidación - " . htmlspecialchars($termination['
                     <h5><i class="fas fa-calculator mr-2"></i>DETALLE DE LIQUIDACIÓN</h5>
 
                     <?php
-                    $accumulatedConceptCodes = ['LIQ005', 'LIQ007'];
+                    $accumulatedConceptCodes = ['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'];
                     $liquidationAccumulations = $liquidationAccumulations ?? [];
                     ?>
 

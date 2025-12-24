@@ -430,7 +430,7 @@ class LiquidationController extends Controller
                 (int)$termination['employee_table_id'],
                 $termination['termination_date']
             );
-            foreach (['LIQ005', 'LIQ007'] as $conceptCode) {
+            foreach (['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'] as $conceptCode) {
                 $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
             }
 
@@ -1161,7 +1161,7 @@ class LiquidationController extends Controller
                 $employeeId = (int)$details[0]['employee_id'];
                 $endDate = $payroll['fecha_hasta'] ?? $payroll['fecha'] ?? date('Y-m-d');
                 $accumulatedMonths = $this->getLiquidationAccumulatedMonths($employeeId, $endDate);
-                foreach (['LIQ005', 'LIQ007'] as $conceptCode) {
+                foreach (['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'] as $conceptCode) {
                     $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
                 }
             }
@@ -1948,7 +1948,7 @@ class LiquidationController extends Controller
             $stmt->execute([$payroll_id]);
             $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $accumulatedConceptCodes = ['LIQ005', 'LIQ007'];
+            $accumulatedConceptCodes = ['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'];
             $liquidationAccumulations = [];
             if (!empty($details)) {
                 $employeeId = (int)$details[0]['employee_id'];
@@ -2227,6 +2227,27 @@ class LiquidationController extends Controller
             $pdf->SetFont('helvetica', '', 9);
             $asignaciones = array_filter($details, fn($d) => $d['tipo'] === 'A');
             foreach ($asignaciones as $asignacion) {
+                if (in_array($asignacion['concepto'], ['LIQ001', 'LIQ002'], true)) {
+                    $accumulatedData = $liquidationAccumulations[$asignacion['concepto']] ?? null;
+
+                    $pdf->SetFillColor(245, 245, 245);
+                    $pdf->SetFont('helvetica', 'B', 8);
+                    $pdf->Cell($colCodigo + $colDescripcion, 5, 'Mes', 1, 0, 'L', true);
+                    $pdf->Cell($colMonto, 5, 'Acumulado', 1, 1, 'R', true);
+
+                    $pdf->SetFont('helvetica', '', 8);
+                    if (!empty($accumulatedData['months'])) {
+                        foreach ($accumulatedData['months'] as $month) {
+                            $pdf->Cell($colCodigo + $colDescripcion, 5, $month['label'], 1, 0, 'L');
+                            $pdf->Cell($colMonto, 5, '$' . number_format($month['amount'], 2), 1, 1, 'R');
+                        }
+                    } else {
+                        $pdf->Cell($colCodigo + $colDescripcion + $colMonto, 5, 'Sin acumulados', 1, 1, 'C');
+                    }
+
+                    $pdf->SetFont('helvetica', '', 9);
+                }
+
                 $pdf->Cell($colCodigo, 6, $asignacion['concepto'], 1, 0, 'L');
                 $pdf->Cell($colDescripcion, 6, $asignacion['concepto_descripcion'], 1, 0, 'L');
                 $pdf->Cell($colMonto, 6, '$' . number_format($asignacion['monto'], 2), 1, 1, 'R');
