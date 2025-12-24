@@ -6,7 +6,6 @@
 --              con soporte para múltiples dispositivos y archivos texto
 -- =====================================================
 
-USE planilla_prod;
 
 -- =====================================================
 -- TABLA 1: attendance_devices (Dispositivos de Marcación)

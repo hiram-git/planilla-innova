@@ -6,7 +6,6 @@
 --              automáticas basadas en legislación panameña
 -- =====================================================
 
-USE planilla_prod;
 
 -- =====================================================
 -- TABLA: attendance_alerts (Alertas de Cumplimiento Legal)

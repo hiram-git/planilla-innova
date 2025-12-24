@@ -135,7 +135,10 @@ class WizardModel
                 )
                 VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?)";
 
-        $slug = $this->slugify($companyData['company_name'] ?? ('tenant_' . substr(md5(uniqid()), 0, 6)));
+        // Generar slug único con timestamp para permitir múltiples instalaciones de la misma empresa
+        $baseSlug = $this->slugify($companyData['company_name'] ?? 'tenant');
+        $timestamp = date('YmdHis'); // Formato: 20251224063845
+        $slug = $baseSlug . '-' . $timestamp;
 
         // Calcular fecha de expiración de licencia
         $licenseExpiresAt = null;
@@ -356,8 +359,9 @@ class WizardModel
 
         error_log("Found " . count($migrationFiles) . " migration files to execute");
 
-        // Create new importer instance for migrations
-        $importer = new \App\Core\SqlImporter($tenantPdo);
+        // Create new importer instance for migrations WITHOUT transactions
+        // (DDL statements like CREATE TRIGGER, ALTER TABLE cause implicit commits in MySQL)
+        $importer = new \App\Core\SqlImporter($tenantPdo, false);
 
         // Execute each migration file in order
         foreach ($migrationFiles as $file) {
@@ -592,6 +596,7 @@ class WizardModel
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // Fix: Enable buffered queries for migrations
         ]);
     }
 

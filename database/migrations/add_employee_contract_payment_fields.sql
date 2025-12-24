@@ -2,7 +2,6 @@
 -- Fecha: 2025-09-20
 -- Descripción: Agregar campos para gestión contratos, forma de pago y datos bancarios
 
-USE planilla_innova;
 
 -- Agregar campos para gestión de contratos
 ALTER TABLE employees
@@ -45,10 +44,7 @@ MODIFY COLUMN tipo_cuenta ENUM('AHORROS', 'CORRIENTE') NULL
 COMMENT 'Tipo de cuenta bancaria';
 
 -- Crear índices para mejor rendimiento
-CREATE INDEX idx_employees_tipo_contrato ON employees(tipo_contrato);
-CREATE INDEX idx_employees_forma_pago ON employees(forma_pago);
-CREATE INDEX idx_employees_banco ON employees(banco);
-CREATE INDEX idx_employees_fecha_vencimiento ON employees(fecha_vencimiento_contrato);
-
--- Verificar los cambios
-DESCRIBE employees;
+CREATE INDEX IF NOT EXISTS idx_employees_tipo_contrato ON employees(tipo_contrato);
+CREATE INDEX IF NOT EXISTS idx_employees_forma_pago ON employees(forma_pago);
+CREATE INDEX IF NOT EXISTS idx_employees_banco ON employees(banco);
+CREATE INDEX IF NOT EXISTS idx_employees_fecha_vencimiento ON employees(fecha_vencimiento_contrato);

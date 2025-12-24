@@ -405,16 +405,13 @@ class WizardController{
 
             error_log("======================================================");
 
-            // Respuesta al cliente con información detallada (solo en desarrollo)
-            $errorMessage = 'Error creando la empresa: ' . $e->getMessage();
-            if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true') {
-                $errorMessage .= ' | Archivo: ' . basename($e->getFile()) . ':' . $e->getLine();
-            }
+            // Traducir error técnico a mensaje amigable
+            $userMessage = $this->translateErrorToUserMessage($e);
 
             $this->jsonResponse([
                 'success' => false,
-                'message' => $errorMessage,
-                'error_type' => get_class($e),
+                'message' => $userMessage,
+                'error_type' => isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true' ? get_class($e) : null,
                 'debug' => isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true'
             ]);
         }
@@ -737,5 +734,74 @@ class WizardController{
         header('Content-Type: application/json');
         echo json_encode($data);
         exit;
+    }
+
+    /**
+     * Traducir errores técnicos a mensajes amigables y seguros
+     * Evita exponer detalles de la estructura de la base de datos
+     */
+    private function translateErrorToUserMessage(Exception $e) {
+        $errorMessage = $e->getMessage();
+
+        // Detectar error de slug duplicado (Duplicate entry 'xxx' for key 'tenants.slug')
+        // NOTA: Este error no debería ocurrir ya que el slug ahora incluye timestamp
+        if (preg_match("/Duplicate entry '(.+?)' for key '.*\.slug'/i", $errorMessage, $matches)) {
+            return "Ocurrió un error al generar el identificador de la empresa. Por favor, intente nuevamente.";
+        }
+
+        // Detectar error de licencia duplicada
+        if (preg_match("/Duplicate entry '(.+?)' for key '.*license/i", $errorMessage)) {
+            return "Esta licencia ya está registrada en el sistema. Por favor, contacte con soporte técnico.";
+        }
+
+        // Detectar error de RUC duplicado
+        if (preg_match("/Duplicate entry '(.+?)' for key '.*ruc/i", $errorMessage)) {
+            return "El RUC ingresado ya está registrado en el sistema.";
+        }
+
+        // Detectar error de email duplicado
+        if (preg_match("/Duplicate entry '(.+?)' for key '.*email/i", $errorMessage)) {
+            return "El email ingresado ya está registrado en el sistema.";
+        }
+
+        // Detectar error de username duplicado
+        if (preg_match("/Duplicate entry '(.+?)' for key '.*username/i", $errorMessage)) {
+            return "El nombre de usuario ya está en uso. Por favor, elija otro nombre de usuario.";
+        }
+
+        // Error genérico de clave duplicada (otros casos)
+        if (stripos($errorMessage, 'Duplicate entry') !== false) {
+            return "Los datos ingresados ya existen en el sistema. Por favor, verifique la información e intente nuevamente.";
+        }
+
+        // Error de conexión a base de datos
+        if (stripos($errorMessage, 'Connection refused') !== false ||
+            stripos($errorMessage, 'could not connect') !== false) {
+            return "No se pudo conectar con la base de datos. Por favor, intente nuevamente en unos momentos.";
+        }
+
+        // Error de permisos de base de datos
+        if (stripos($errorMessage, 'Access denied') !== false) {
+            return "Error de configuración del sistema. Por favor, contacte con el administrador.";
+        }
+
+        // Error al crear base de datos
+        if (stripos($errorMessage, 'database exists') !== false) {
+            return "Ya existe una configuración para esta empresa. Por favor, contacte con soporte técnico.";
+        }
+
+        // Error de validación de licencia
+        if (stripos($errorMessage, 'Error generando licencia') !== false) {
+            return "No se pudo generar la licencia del sistema. Verifique su conexión a internet e intente nuevamente.";
+        }
+
+        // Error genérico de SQL sin exponer detalles
+        if (stripos($errorMessage, 'SQLSTATE') !== false ||
+            stripos($errorMessage, 'SQL') !== false) {
+            return "Ocurrió un error al procesar su solicitud. Por favor, verifique los datos ingresados e intente nuevamente.";
+        }
+
+        // Error genérico para cualquier otro caso
+        return "Ocurrió un error al crear la empresa. Por favor, intente nuevamente o contacte con soporte técnico si el problema persiste.";
     }
 }

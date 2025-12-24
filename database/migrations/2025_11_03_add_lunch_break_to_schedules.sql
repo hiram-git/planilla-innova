@@ -5,7 +5,6 @@
 --              a la tabla schedules para gestionar el período de almuerzo
 -- =====================================================
 
-USE planilla_prod;
 
 -- Agregar campos de período de almuerzo a schedules
 ALTER TABLE schedules

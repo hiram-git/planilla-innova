@@ -5,7 +5,6 @@
 -- Descripción: Tablas para integración automática asistencias → conceptos planilla
 -- ========================================================================
 
-USE planilla_prod;
 
 -- ========================================================================
 -- 1. TABLA: attendance_concepts_mapping

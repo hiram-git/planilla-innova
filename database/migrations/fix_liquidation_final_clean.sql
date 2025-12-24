@@ -2,7 +2,6 @@
 -- MIGRACIÓN FINAL: Limpiar y Completar Conceptos de Liquidación
 -- =====================================================
 
-USE planilla_innova;
 
 -- Primero remover relaciones duplicadas y conflictivas
 DELETE FROM concepto_frecuencias WHERE concepto_id IN (

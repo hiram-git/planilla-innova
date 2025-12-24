@@ -1117,9 +1117,9 @@
                             });
 
                             this.loading = false;
-                            this.finProceso = true;
 
                             if (createResponse.data.success) {
+                                this.finProceso = true;
                                 this.resultadoCreacion = createResponse.data;
                                 this.loginUrl = window.BASE_URL +createResponse.data.login_url ||  window.BASE_URL +'/panel/login';
                                 this.mensajeResultado = `✅ Empresa creada exitosamente
@@ -1135,7 +1135,17 @@
                                     showConfirmButton: false
                                 });
                             } else {
-                                this.mensajeResultado = '❌ Error: ' + createResponse.data.message;
+                                // Error from create-company endpoint
+                                this.finProceso = false;
+                                this.step = 2; // Go back to form
+
+                                await Swal.fire({
+                                    title: 'Error al Crear Empresa',
+                                    text: createResponse.data.message || 'Ocurrió un error al crear la empresa. Por favor intente nuevamente.',
+                                    icon: 'error',
+                                    confirmButtonText: 'Entendido',
+                                    confirmButtonColor: '#FF5722'
+                                });
                             }
                         } else {
                             // Handle validation errors from register-company
@@ -1162,27 +1172,28 @@
                         }
                     } catch (error) {
                         this.loading = false;
-                        this.finProceso = true;
-                        
+                        this.finProceso = false; // Don't show success UI on error
+                        this.step = 2; // Go back to form step
+
                         if (error.response) {
                             const { status, data } = error.response;
-                            this.mensajeResultado = `❌ Error ${status}: ${data.message || 'Error desconocido al crear la empresa'}`;
-                            
+
                             let title = 'Error';
                             let text = data.message || 'Error desconocido';
-                            
+
                             switch (status) {
                                 case 400:
                                     title = 'Error de Validación';
                                     break;
                                 case 409:
                                     title = 'Conflicto';
+                                    text = data.message || 'Ya existe una empresa con estos datos.';
                                     break;
                                 case 500:
                                     title = 'Error del Servidor';
                                     break;
                             }
-                            
+
                             await Swal.fire({
                                 title: title,
                                 text: text,
@@ -1198,9 +1209,8 @@
                                 confirmButtonText: 'Entendido',
                                 confirmButtonColor: '#FF5722'
                             });
-                            this.mensajeResultado = '❌ No se pudo conectar al servidor';
                         }
-                        
+
                         console.error('Error creando empresa:', error);
                     }
                 },
