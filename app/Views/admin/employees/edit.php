@@ -256,7 +256,7 @@ $content .= '                    </select>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="edit_partida_id">Partida *</label>
+                                    <label for="edit_partida_id">Partida</label>
                                     <select class="form-control" id="edit_partida_id" name="edit_partida_id">
                                         <option value="">Seleccionar partida...</option>';
 
@@ -604,9 +604,9 @@ function initializeEmployeeEditFallback() {
             $("#edit-salary-tarifa-section").show();
             $("#edit-public-institution-fields").hide();
 
-            // Hacer obligatorios los campos de empresa privada (excepto funcion_id que es opcional)
-            $("#edit_cargo_id, #edit_partida_id, #edit_sueldo_individual").prop("required", true);
-            $("#edit_funcion_id").prop("required", false);  // Función es opcional
+            // Hacer obligatorios los campos de empresa privada (función y partida son opcionales)
+            $("#edit_cargo_id, #edit_sueldo_individual").prop("required", true);
+            $("#edit_funcion_id, #edit_partida_id").prop("required", false);  // Función y Partida son opcionales
             $("#edit_position").prop("required", false);
 
         } else {

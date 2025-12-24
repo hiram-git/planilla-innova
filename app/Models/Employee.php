@@ -90,10 +90,10 @@ class Employee extends Model
             // Institución pública: posición obligatoria
             $rules['position'] = 'required';
         } else {
-            // Empresa privada: cargo, función, partida y sueldo obligatorios
+            // Empresa privada: cargo y sueldo obligatorios (función y partida opcionales)
             $rules['cargo_id'] = 'required';
             //$rules['funcion_id'] = 'required';
-            $rules['partida_id'] = 'required';
+            //$rules['partida_id'] = 'required'; // Ahora opcional
             $rules['sueldo_individual'] = 'required|numeric|min:0';
         }
 
@@ -139,10 +139,10 @@ class Employee extends Model
             // Institución pública: posición obligatoria
             $rules['edit_position'] = 'required';
         } else {
-            // Empresa privada: cargo, función, partida y sueldo obligatorios
+            // Empresa privada: cargo y sueldo obligatorios (función y partida opcionales)
             $rules['edit_cargo_id'] = 'required';
             //$rules['edit_funcion_id'] = 'required';
-            $rules['edit_partida_id'] = 'required';
+            //$rules['edit_partida_id'] = 'required'; // Ahora opcional
             $rules['edit_sueldo_individual'] = 'required|numeric|min:0';
         }
 
