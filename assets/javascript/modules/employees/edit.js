@@ -34,9 +34,9 @@ $(document).ready(function() {
             $('#edit-salary-section').show();
             $('#edit-public-institution-fields').hide();
 
-            // Hacer obligatorios los campos de empresa privada
-            $('#edit_cargo_id, #edit_partida_id, #edit_sueldo_individual').prop('required', true);
-            $('#edit_position, #edit_funcion_id').prop('required', false);
+            // Hacer obligatorios los campos de empresa privada (función y partida son opcionales)
+            $('#edit_cargo_id, #edit_sueldo_individual').prop('required', true);
+            $('#edit_position, #edit_funcion_id, #edit_partida_id').prop('required', false);
 
         } else {
             // Institución pública: mostrar solo posición
