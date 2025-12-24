@@ -155,7 +155,7 @@ class TenantStorage
     {
         $mode = self::getStorageMode();
         if (!is_dir($path)) {
-            if (!mkdir($path, $mode, true) && !is_dir($path)) {
+            if (!@mkdir($path, $mode, true) && !is_dir($path)) {
                 throw new \RuntimeException("No se pudo crear el directorio: {$path}");
             }
         }
