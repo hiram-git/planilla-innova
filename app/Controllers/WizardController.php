@@ -338,9 +338,9 @@ class WizardController{
                 TenantStorage::initializeTenantStorage($companyId, $databaseName);
                 error_log("Storage aislado creado para tenant {$companyId}");
             } catch (Exception $e) {
-                error_log("ERROR creando storage aislado: " . $e->getMessage());
+                error_log("WARNING creando storage aislado: " . $e->getMessage());
                 error_log("Stack trace: " . $e->getTraceAsString());
-                throw $e;
+                // No bloquear la creaciÃ³n del tenant si falla el storage
             }
 
             // Confirmar transacción
