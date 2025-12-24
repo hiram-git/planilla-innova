@@ -7,7 +7,6 @@
 --              en el sistema de acumulados
 -- =====================================================
 
-USE planilla_innova29092025;
 
 -- Verificar la estructura actual antes del cambio
 SELECT

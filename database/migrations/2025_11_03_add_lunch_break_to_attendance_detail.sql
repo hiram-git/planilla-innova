@@ -5,7 +5,6 @@
 --              de almuerzo y sus horarios programados
 -- =====================================================
 
-USE planilla_prod;
 
 -- Agregar campos de marcaciones de almuerzo a attendance_detail
 ALTER TABLE attendance_detail

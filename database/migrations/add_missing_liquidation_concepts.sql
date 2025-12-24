@@ -6,7 +6,6 @@
 -- Fecha: 2025-09-23
 -- Versión: 3.3.3
 
-USE planilla_innova;
 
 -- 1. Prima de Antigüedad para Gastos de Representación
 INSERT INTO concepto (concepto, descripcion, formula, tipo_concepto, categoria_reporte)

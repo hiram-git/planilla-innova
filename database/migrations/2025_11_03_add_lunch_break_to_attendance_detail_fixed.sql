@@ -5,7 +5,6 @@
 --              de almuerzo y sus horarios programados
 -- =====================================================
 
-USE planilla_prod;
 
 -- Eliminar columnas si ya existen (rollback parcial)
 SET @drop_lunch_out = IF(

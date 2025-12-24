@@ -4,7 +4,6 @@
 -- Solo agregar foreign key e índices faltantes
 -- Fecha: 2025-09-23
 
-USE planilla_innova;
 
 -- 1. Crear foreign key para cancelled_by (si no existe)
 ALTER TABLE employee_terminations

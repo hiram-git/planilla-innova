@@ -6,7 +6,6 @@
 --              normalizadas antes de consolidarlas en attendance_detail
 -- =====================================================
 
-USE planilla_prod;
 
 -- =====================================================
 -- TABLA: attendance_records

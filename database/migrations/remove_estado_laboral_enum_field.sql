@@ -2,7 +2,6 @@
 -- Fecha: 2025-09-20
 -- Descripción: Eliminar campo estado_laboral ya que se usa situacion_id para manejar estados
 
-USE planilla_innova;
 
 -- Verificar datos antes de eliminar (para backup)
 SELECT

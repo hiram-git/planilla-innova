@@ -7,7 +7,6 @@
 -- LIMPIEZA CAMPO RESIDUAL EN PLANILLA_FIX
 -- =====================================================
 
-USE planilla_fix;
 
 -- Paso 1: Verificar estado actual de la tabla
 SELECT

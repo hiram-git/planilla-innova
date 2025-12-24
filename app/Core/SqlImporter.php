@@ -26,16 +26,21 @@ class SqlImporter
     private PDO $connection;
     private array $log = [];
     private bool $inTransaction = false;
+    private bool $useTransactions = true;
 
     /**
      * Constructor
      *
      * @param PDO $connection Conexión PDO activa
+     * @param bool $useTransactions Si debe usar transacciones (default: true)
      */
-    public function __construct(PDO $connection)
+    public function __construct(PDO $connection, bool $useTransactions = true)
     {
         $this->connection = $connection;
         $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        // Forzar buffered queries para evitar error "Cannot execute queries while other unbuffered queries are active"
+        $this->connection->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+        $this->useTransactions = $useTransactions;
     }
 
     /**
@@ -97,8 +102,11 @@ class SqlImporter
             throw new RuntimeException("No valid SQL statements found");
         }
 
-        $this->connection->beginTransaction();
-        $this->inTransaction = true;
+        // Solo iniciar transacción si está habilitada
+        if ($this->useTransactions) {
+            $this->connection->beginTransaction();
+            $this->inTransaction = true;
+        }
 
         try {
             $successCount = 0;
@@ -124,7 +132,30 @@ class SqlImporter
 
                 // Ejecutar statement
                 try {
-                    $this->connection->exec($stmt);
+                    // Detectar si es un statement que retorna resultados (SELECT, SHOW, DESCRIBE)
+                    // o usa variables de usuario SET @var = (SELECT ...)
+                    $returnsResults = preg_match('/^\s*(SELECT|SHOW|DESCRIBE|DESC|EXPLAIN)\s+/i', $stmt);
+                    $usesUserVariable = preg_match('/^\s*SET\s+@/i', $stmt);
+                    $isPreparedStmt = preg_match('/^\s*(PREPARE|EXECUTE|DEALLOCATE)\s+/i', $stmt);
+
+                    if ($returnsResults || $usesUserVariable || $isPreparedStmt) {
+                        // Para statements que retornan resultados o usan variables/prepared statements
+                        // usar query() y asegurar que todos los cursores se cierren
+                        $result = $this->connection->query($stmt);
+
+                        if ($result instanceof \PDOStatement) {
+                            // Consumir todos los resultados para liberar el buffer
+                            while ($result->nextRowset()) {
+                                // Consumir múltiples resultados si existen (prepared statements)
+                            }
+                            $result->closeCursor();
+                            unset($result);
+                        }
+                    } else {
+                        // Para DDL/DML sin resultados (CREATE, ALTER, DROP, INSERT, UPDATE, DELETE)
+                        // usar exec() que es más eficiente y no crea cursores
+                        $this->connection->exec($stmt);
+                    }
 
                     $this->log[$successCount]['status'] = 'success';
                     $this->log[$successCount]['execution_time'] = microtime(true) - $this->log[$successCount]['timestamp'];
@@ -147,7 +178,7 @@ class SqlImporter
 
             // Verificar si PDO todavía tiene una transacción activa
             // (statements DDL como ALTER TABLE hacen commit implícito en MySQL)
-            if ($this->connection->inTransaction()) {
+            if ($this->useTransactions && $this->connection->inTransaction()) {
                 $this->connection->commit();
             }
             $this->inTransaction = false;
@@ -155,9 +186,11 @@ class SqlImporter
             return true;
 
         } catch (Exception $e) {
-            if ($this->inTransaction) {
+            if ($this->useTransactions && $this->inTransaction) {
                 try {
-                    $this->connection->rollback();
+                    if ($this->connection->inTransaction()) {
+                        $this->connection->rollback();
+                    }
                 } catch (PDOException $rollbackException) {
                     // Si rollback falla (ej: no hay transacción activa), loguear pero continuar
                     error_log("Rollback warning: " . $rollbackException->getMessage());

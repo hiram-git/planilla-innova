@@ -2,7 +2,6 @@
 -- MIGRACIÓN: Corregir y Completar Conceptos de Liquidación
 -- =====================================================
 
-USE planilla_innova;
 
 -- Primero limpiar duplicados
 DELETE c1 FROM concepto c1

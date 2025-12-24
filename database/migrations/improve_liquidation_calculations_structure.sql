@@ -7,7 +7,6 @@
 -- Versión: 3.3.2
 
 -- Usar la base de datos correcta
-USE planilla_innova;
 
 -- 1. Agregar campo concept_id para relación con tabla concepto
 ALTER TABLE liquidation_calculations

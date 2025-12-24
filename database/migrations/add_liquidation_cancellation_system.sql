@@ -7,7 +7,6 @@
 -- Versión: 3.3.1
 
 -- Usar la base de datos correcta
-USE planilla_innova;
 
 -- 1. Agregar estado CANCELADA al ENUM de status
 ALTER TABLE employee_terminations
