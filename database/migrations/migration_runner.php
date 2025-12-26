@@ -14,6 +14,8 @@ class MigrationRunner
     private $dryRun = false;
     private $migrationsPath;
     private $executedMigrations = [];
+    private $databaseName;
+    private $connectionLabel = 'default';
 
     public function __construct($dryRun = false)
     {
@@ -26,16 +28,65 @@ class MigrationRunner
 
     private function connectDatabase()
     {
-        $host = 'localhost';
-        $dbname = 'planilla_innova';
-        $username = 'root';
-        $password = '';
+        $masterConfigPath = __DIR__ . '/../../config/master_database.php';
+        if (file_exists($masterConfigPath)) {
+            $masterConfig = require $masterConfigPath;
+            $pdo = $this->createPdo($masterConfig);
+            if ($pdo) {
+                $this->pdo = $pdo;
+                $this->databaseName = $masterConfig['database'] ?? 'tenant_master';
+                $this->connectionLabel = 'tenant_master';
+                $this->migrationsPath = __DIR__ . '/master';
+                return;
+            }
+        }
 
         try {
-            $this->pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
+            $config = require __DIR__ . '/../../config/database.php';
+            $connection = $config['connections']['mysql'] ?? [];
+            $dbConfig = [
+                'host' => $connection['host'] ?? 'localhost',
+                'port' => (int)($connection['port'] ?? 3306),
+                'database' => $connection['database'] ?? ($_ENV['DB_DATABASE'] ?? ($_ENV['DB_NAME'] ?? 'planilla_prod')),
+                'username' => $connection['username'] ?? 'root',
+                'password' => $connection['password'] ?? '',
+                'charset' => $connection['charset'] ?? 'utf8mb4',
+                'options' => $connection['options'] ?? [],
+            ];
+
+            $this->pdo = $this->createPdo($dbConfig);
+            if (!$this->pdo) {
+                throw new PDOException('Unable to connect using app database config.');
+            }
+
+            $this->databaseName = $dbConfig['database'] ?? 'planilla_prod';
+            if ($this->databaseName === 'planilla_prod') {
+                $this->connectionLabel = 'planilla_prod';
+                $this->migrationsPath = __DIR__;
+            } else {
+                $this->migrationsPath = __DIR__ . '/tenant';
+            }
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
             die("Error conectando BD: " . $e->getMessage() . "\n");
+        }
+    }
+
+    private function createPdo(array $config)
+    {
+        try {
+            $host = $config['host'] ?? 'localhost';
+            $port = (int)($config['port'] ?? 3306);
+            $database = $config['database'] ?? 'planilla_prod';
+            $charset = $config['charset'] ?? 'utf8mb4';
+            $username = $config['username'] ?? 'root';
+            $password = $config['password'] ?? '';
+            $options = $config['options'] ?? [];
+
+            $dsn = "mysql:host={$host};port={$port};dbname={$database};charset={$charset}";
+            return new PDO($dsn, $username, $password, $options);
+        } catch (PDOException $e) {
+            return null;
         }
     }
 
@@ -69,6 +120,9 @@ class MigrationRunner
     {
         echo "=== SISTEMA MIGRACIÓN PLANILLA INNOVA ===\n";
         echo "Modo: " . ($this->dryRun ? "DRY RUN (no ejecuta)" : "EJECUCIÓN REAL") . "\n";
+        if ($this->databaseName) {
+            echo "Base de datos: {$this->databaseName} ({$this->connectionLabel})\n";
+        }
         echo "Directorio: {$this->migrationsPath}\n\n";
 
         $migrations = $this->getMigrationFiles();
