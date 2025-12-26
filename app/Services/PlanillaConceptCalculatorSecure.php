@@ -128,6 +128,11 @@ class PlanillaConceptCalculatorSecure
             return $this->calcularCuotaPrestamoSeguro($empleado, $idAcreedor);
         }, 2);
 
+        // 💳 Alias CUOTAPRESTAMO (singular) - apunta a la misma función
+        $this->executor->addFunction('CUOTAPRESTAMO', function ($empleado, $idAcreedor) {
+            return $this->calcularCuotaPrestamoSeguro($empleado, $idAcreedor);
+        }, 2);
+
         // Función ACUMULADOS avanzada y segura
         // Acepta 4 parámetros: conceptos, ficha (ignorado), fechaDesde, fechaHasta
         // El parámetro ficha se ignora porque se usa EMPLOYEE_ID de variablesColaborador
@@ -699,10 +704,10 @@ class PlanillaConceptCalculatorSecure
      * Solo considera préstamos activos y cuotas en estado 'pendiente'.
      *
      * @param mixed $empleado Ficha del empleado (string) o ID (int)
-     * @param int $idAcreedor ID del acreedor/creditor
+     * @param mixed $idAcreedor ID numérico del acreedor (int) o código del acreedor (string, varchar creditor_id)
      * @return float Monto de la cuota pendiente o 0 si no hay cuotas pendientes
      */
-    protected function calcularCuotaPrestamoSeguro($empleado, int $idAcreedor): float
+    protected function calcularCuotaPrestamoSeguro($empleado, $idAcreedor): float
     {
         try {
             // Validar parámetros
@@ -710,8 +715,8 @@ class PlanillaConceptCalculatorSecure
                 throw new MathExecutorException("EMPLEADO debe ser numérico o string");
             }
 
-            if ($idAcreedor <= 0) {
-                throw new MathExecutorException("ID de acreedor debe ser positivo");
+            if (!is_numeric($idAcreedor) && !is_string($idAcreedor)) {
+                throw new MathExecutorException("ACREEDOR debe ser numérico (ID) o string (código)");
             }
 
             // Obtener el employee_id real
@@ -721,9 +726,17 @@ class PlanillaConceptCalculatorSecure
                 return 0;
             }
 
+            // Obtener el creditor_id real (puede ser INT o buscar por código string)
+            $creditorId = $this->obtenerCreditorId($idAcreedor);
+
+            if (!$creditorId) {
+                error_log("CUOTAPRESTAMO - No se encontró acreedor con identificador: $idAcreedor");
+                return 0;
+            }
+
             // Consultar próxima cuota pendiente
             // Solo de préstamos activos (status = 'activo')
-            // Solo cuotas pendientes (status = 'pendiente')
+            // Solo cuotas pendientes (status = 'pendiente') y generadas (status = 'generada')
             // Ordenadas por fecha de vencimiento (la más próxima primero)
             $sql = "SELECT li.amount
                     FROM loan_installments li
@@ -731,24 +744,54 @@ class PlanillaConceptCalculatorSecure
                     WHERE l.employee_id = ?
                     AND l.creditor_id = ?
                     AND l.status = 'activo'
-                    AND li.status = 'pendiente'
+                    AND (li.status in ('pendiente', 'generada'))
                     ORDER BY li.due_date ASC, li.installment_number ASC
                     LIMIT 1";
-
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employeeId, $idAcreedor]);
+            $stmt->execute([$employeeId, $creditorId]);
             $installment = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $monto = $installment ? (float)$installment['amount'] : 0;
 
-            // 🔍 DEBUG: Log comentado para evitar headers HTTP demasiado grandes en producción
-            // error_log("CUOTASPRESTAMOS - Employee: $employeeId | Acreedor: $idAcreedor | Cuota: $monto");
+            error_log("CUOTAPRESTAMO - Employee: $employeeId | Acreedor: $idAcreedor (ID: $creditorId) | Cuota: $monto");
 
             return $monto;
 
         } catch (PDOException $e) {
             error_log("Error calculando cuota de préstamo: " . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * Obtener ID numérico del acreedor a partir de ID o código
+     *
+     * @param mixed $idAcreedor ID numérico (int) o código (string, varchar creditor_id)
+     * @return int|null ID numérico del acreedor o null si no se encuentra
+     */
+    protected function obtenerCreditorId($idAcreedor): ?int
+    {
+        try {
+            // Si es numérico, asumimos que es el ID
+            if (is_numeric($idAcreedor) && (int)$idAcreedor > 0) {
+                return (int)$idAcreedor;
+            }
+
+            // Si es string, buscar por creditor_id (código varchar)
+            if (is_string($idAcreedor)) {
+                $sql = "SELECT id FROM creditors WHERE creditor_id = ? LIMIT 1";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$idAcreedor]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                return $result ? (int)$result['id'] : null;
+            }
+
+            return null;
+
+        } catch (PDOException $e) {
+            error_log("Error obteniendo creditor_id: " . $e->getMessage());
+            return null;
         }
     }
 

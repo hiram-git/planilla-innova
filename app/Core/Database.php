@@ -24,11 +24,15 @@ class Database
             $configPath = __DIR__ . '/../../config/database.php';
             if (!file_exists($configPath)) {
                 // Fallback adicional: usar variables de entorno directamente
+                // Soporta tanto DB_DATABASE como DB_NAME (para compatibilidad)
+                $database = $_ENV['DB_DATABASE'] ?? $_ENV['DB_NAME'] ?? 'planilla_prod';
+                $username = $_ENV['DB_USERNAME'] ?? $_ENV['DB_USER'] ?? 'root';
+
                 $config = [
                     'host' => $_ENV['DB_HOST'] ?? 'localhost',
                     'port' => $_ENV['DB_PORT'] ?? 3306,
-                    'database' => $_ENV['DB_NAME'] ?? 'planilla_prod',
-                    'username' => $_ENV['DB_USER'] ?? 'root',
+                    'database' => $database,
+                    'username' => $username,
                     'password' => $_ENV['DB_PASSWORD'] ?? '',
                     'charset' => 'utf8mb4'
                 ];

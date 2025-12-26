@@ -107,22 +107,29 @@ if (class_exists(\Dotenv\Dotenv::class)) {
     echo "  ✓ Config::load() ejecutado\n";
 }
 
-// Verificar variables críticas
+// Verificar variables críticas (soporte para ambos formatos)
 $envVars = [
-    'DB_HOST',
-    'DB_NAME',
-    'DB_USER',
-    'DB_PASSWORD'
+    ['DB_HOST', 'DB_HOST'],
+    ['DB_DATABASE', 'DB_NAME'],      // Soporta ambos nombres
+    ['DB_USERNAME', 'DB_USER'],      // Soporta ambos nombres
+    ['DB_PASSWORD', 'DB_PASSWORD'],
+    ['DB_PORT', 'DB_PORT']
 ];
 
-foreach ($envVars as $var) {
-    $value = $_ENV[$var] ?? getenv($var);
-    if ($value !== false && !empty($value)) {
-        $masked = ($var === 'DB_PASSWORD') ? str_repeat('*', strlen($value)) : $value;
-        echo "  ✓ {$var} = {$masked}\n";
+foreach ($envVars as $varPair) {
+    $primaryVar = $varPair[0];
+    $alternateVar = $varPair[1];
+
+    // Intentar obtener la variable primaria o la alternativa
+    $value = $_ENV[$primaryVar] ?? $_ENV[$alternateVar] ?? getenv($primaryVar) ?? getenv($alternateVar);
+
+    if ($value !== false && $value !== '') {
+        $masked = (strpos($primaryVar, 'PASSWORD') !== false) ? str_repeat('*', strlen($value)) : $value;
+        echo "  ✓ {$primaryVar} = {$masked}\n";
     } else {
-        $errors[] = "Variable de entorno '{$var}' no está definida";
-        echo "  ❌ {$var} NO definida\n";
+        // Solo marcar como error si NINGUNA de las dos variables existe
+        $errors[] = "Variable de entorno '{$primaryVar}' (o '{$alternateVar}') no está definida";
+        echo "  ❌ {$primaryVar} (o {$alternateVar}) NO definida\n";
     }
 }
 
