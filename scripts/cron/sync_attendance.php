@@ -133,9 +133,12 @@ foreach ($tenants as $tenantDb) {
 
         echo "🚀 Iniciando sincronización...\n\n";
 
-        // Iniciar sincronización
+        // Iniciar sincronización - MODO: Todo el día actual
         $syncService = new AttendanceSyncService($config['id']);
-        $stats = $syncService->syncSince(); // Sincronizar solo registros nuevos
+        $today = date('Y-m-d');
+        $stats = $syncService->syncByDateRange($today, $today); // Sincronizar TODO el día actual
+
+        echo "📅 Rango sincronizado: {$today} (día completo)\n";
 
         // Mostrar resultados
         echo "✅ Sincronización completada para {$tenantDb}:\n";
