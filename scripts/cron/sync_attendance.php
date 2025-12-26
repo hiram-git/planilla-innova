@@ -34,6 +34,39 @@ if (class_exists(\Dotenv\Dotenv::class)) {
     \App\Core\Config::load();
 }
 
+// Fallback adicional: Si las variables críticas no están en $_ENV, establecer defaults
+$requiredEnvVars = [
+    'DB_HOST' => 'localhost',
+    'DB_DATABASE' => 'planilla_prod',  // Tu .env usa DB_DATABASE
+    'DB_USERNAME' => 'root',            // Tu .env usa DB_USERNAME
+    'DB_PASSWORD' => '',
+    'DB_PORT' => '3306'
+];
+
+foreach ($requiredEnvVars as $key => $default) {
+    if (!isset($_ENV[$key]) || empty($_ENV[$key])) {
+        // Intentar obtener de getenv()
+        $value = getenv($key);
+        if ($value === false) {
+            // Si no existe, usar default
+            $_ENV[$key] = $default;
+            putenv("{$key}={$default}");
+        } else {
+            $_ENV[$key] = $value;
+        }
+    }
+}
+
+// Crear alias para compatibilidad con código que espera DB_NAME y DB_USER
+if (!isset($_ENV['DB_NAME']) && isset($_ENV['DB_DATABASE'])) {
+    $_ENV['DB_NAME'] = $_ENV['DB_DATABASE'];
+    putenv("DB_NAME={$_ENV['DB_DATABASE']}");
+}
+if (!isset($_ENV['DB_USER']) && isset($_ENV['DB_USERNAME'])) {
+    $_ENV['DB_USER'] = $_ENV['DB_USERNAME'];
+    putenv("DB_USER={$_ENV['DB_USERNAME']}");
+}
+
 // Inicializar sesión (requerido para algunos modelos)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
