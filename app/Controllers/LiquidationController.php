@@ -859,29 +859,37 @@ class LiquidationController extends Controller
     /**
      * Obtener acumulados por mes para liquidacion (ultimos 12 meses).
      */
-    private function getLiquidationAccumulatedMonths(int $employeeId, string $terminationDate, string $tipoAcumulado = 'SALARIO_BASE'): array
+    private function getLiquidationAccumulatedMonths(int $employeeId, string $terminationDate, $tipoAcumulado = 'SALARIO_BASE'): array
     {
         try {
             $fechaFin = new \DateTime($terminationDate);
             $fechaInicio = (clone $fechaFin)->modify('-11 months');
 
+            $tipos = is_array($tipoAcumulado) ? $tipoAcumulado : [$tipoAcumulado];
+            $tipos = array_values(array_filter(array_map(static function ($value) {
+                return trim((string)$value);
+            }, $tipos), static fn($value) => $value !== ''));
+            if (empty($tipos)) {
+                $tipos = ['SALARIO_BASE'];
+            }
+            $placeholders = implode(',', array_fill(0, count($tipos), '?'));
+
             $sql = "SELECT ape.ano, ape.mes, SUM(ape.monto) as total
                     FROM acumulados_por_empleado ape
                     INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE ape.employee_id = ?
-                    AND ape.tipo_acumulado = ?
+                    AND ape.tipo_acumulado IN ($placeholders)
                     AND pc.fecha_hasta >= ?
                     AND pc.fecha_desde <= ?
                     GROUP BY ape.ano, ape.mes
                     ORDER BY ape.ano, ape.mes";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([
-                $employeeId,
-                $tipoAcumulado,
-                $fechaInicio->format('Y-m-d'),
-                $fechaFin->format('Y-m-d')
-            ]);
+            $stmt->execute(array_merge(
+                [$employeeId],
+                $tipos,
+                [$fechaInicio->format('Y-m-d'), $fechaFin->format('Y-m-d')]
+            ));
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $byMonth = [];
@@ -931,6 +939,64 @@ class LiquidationController extends Controller
             'months' => $months,
             'total' => 0.0
         ];
+    }
+
+    private function getConceptAccumulatedTypes(array $conceptCodes): array
+    {
+        if (empty($conceptCodes)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($conceptCodes), '?'));
+        $sql = "SELECT concepto, formula
+                FROM concepto
+                WHERE concepto IN ($placeholders)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($conceptCodes);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $typesByConcept = [];
+        foreach ($rows as $row) {
+            $concepto = $row['concepto'] ?? '';
+            if ($concepto === '') {
+                continue;
+            }
+            $types = $this->extractAccumulatedTypesFromFormula($row['formula'] ?? '');
+            if (empty($types)) {
+                $types = ['SALARIO_BASE'];
+            }
+            $typesByConcept[$concepto] = $types;
+        }
+
+        return $typesByConcept;
+    }
+
+    private function extractAccumulatedTypesFromFormula(string $formula): array
+    {
+        if ($formula === '') {
+            return [];
+        }
+
+        $types = [];
+        $pattern = '/ACUMULADOS\\s*\\(\\s*(?:\"([^\"]+)\"|\\\'([^\\\']+)\\\'|([^,\\)]+))/i';
+        if (preg_match_all($pattern, $formula, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $raw = $match[1] ?? ($match[2] ?? ($match[3] ?? ''));
+                $raw = trim($raw, " \t\n\r\"'");
+                if ($raw === '') {
+                    continue;
+                }
+                foreach (explode(',', $raw) as $item) {
+                    $item = trim($item);
+                    if ($item !== '') {
+                        $types[] = $item;
+                    }
+                }
+            }
+        }
+
+        $types = array_values(array_unique($types));
+        return $types;
     }
 
     /**
@@ -1953,9 +2019,14 @@ class LiquidationController extends Controller
             if (!empty($details)) {
                 $employeeId = (int)$details[0]['employee_id'];
                 $endDate = $payroll['fecha_hasta'] ?? $payroll['fecha'] ?? date('Y-m-d');
-                $accumulatedMonths = $this->getLiquidationAccumulatedMonths($employeeId, $endDate);
+                $accumulatedTypesByConcept = $this->getConceptAccumulatedTypes($accumulatedConceptCodes);
                 foreach ($accumulatedConceptCodes as $conceptCode) {
-                    $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
+                    $types = $accumulatedTypesByConcept[$conceptCode] ?? ['SALARIO_BASE'];
+                    $liquidationAccumulations[$conceptCode] = $this->getLiquidationAccumulatedMonths(
+                        $employeeId,
+                        $endDate,
+                        $types
+                    );
                 }
             }
 
