@@ -2141,12 +2141,6 @@ class LiquidationController extends Controller
             $colDescripcion = $availableWidth * 0.58;
             $colMonto = $availableWidth * 0.25;
 
-            $accumulatedTotal = $liquidationAccumulations['LIQ005']['total']
-                ?? $liquidationAccumulations['LIQ007']['total']
-                ?? 0.0;
-            $xiiiAmount = $accumulatedTotal > 0 ? ($accumulatedTotal / 12) : 0.0;
-            $vacAmount = $accumulatedTotal > 0 ? ($accumulatedTotal / 11) : 0.0;
-
             $conceptDetails = [];
             foreach ($details as $detail) {
                 if (in_array($detail['concepto'], $accumulatedConceptCodes, true)) {
@@ -2158,6 +2152,13 @@ class LiquidationController extends Controller
             $vacCode = 'LIQ005';
             $xiiiDescription = $conceptDetails[$xiiiCode]['concepto_descripcion'] ?? 'XIII proporcional';
             $vacDescription = $conceptDetails[$vacCode]['concepto_descripcion'] ?? 'Vacaciones proporcionales';
+            $accumulatedTotal = $liquidationAccumulations[$vacCode]['total']
+                ?? $liquidationAccumulations[$xiiiCode]['total']
+                ?? 0.0;
+            $xiiiAmount = $conceptDetails[$xiiiCode]['monto']
+                ?? ($accumulatedTotal > 0 ? ($accumulatedTotal / 12) : 0.0);
+            $vacAmount = $conceptDetails[$vacCode]['monto']
+                ?? ($accumulatedTotal > 0 ? ($accumulatedTotal / 11) : 0.0);
 
             $compactCodeWidth = $availableWidth * 0.12;
             $compactDescWidth = $availableWidth * 0.28;
@@ -2216,10 +2217,8 @@ class LiquidationController extends Controller
             if ($hasAntData || $hasIndData) {
                 $antDescription = $conceptDetails[$antCode]['concepto_descripcion'] ?? 'Prima de antiguedad';
                 $indDescription = $conceptDetails[$indCode]['concepto_descripcion'] ?? 'Indemnizacion';
-                $antAmount = $conceptDetails[$antCode]['monto']
-                    ?? ($liquidationAccumulations[$antCode]['total'] ?? 0.0);
-                $indAmount = $conceptDetails[$indCode]['monto']
-                    ?? ($liquidationAccumulations[$indCode]['total'] ?? 0.0);
+                $antAmount = $conceptDetails[$antCode]['monto'] ?? 0.0;
+                $indAmount = $conceptDetails[$indCode]['monto'] ?? 0.0;
 
                 $pdf->SetFillColor(224, 224, 224);
                 $pdf->SetFont('helvetica', 'B', 9);
