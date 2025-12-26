@@ -624,14 +624,24 @@ class AttendanceSyncService
      */
     private function log($message)
     {
-        $logDir = __DIR__ . '/../../../storage/logs';
-        if (!is_dir($logDir)) {
-            mkdir($logDir, 0755, true);
+        $timestamp = date('Y-m-d H:i:s');
+        $logFile = null;
+
+        try {
+            $logDir = \App\Core\TenantStorage::getLogDirectory();
+            \App\Core\TenantStorage::ensureDirectory($logDir);
+            $logFile = rtrim($logDir, '/\\') . '/attendance_sync_' . date('Y-m-d') . '.log';
+        } catch (\Throwable $e) {
+            $logDir = __DIR__ . '/../../../storage/logs';
+            if (!is_dir($logDir)) {
+                @mkdir($logDir, 0755, true);
+            }
+            $logFile = $logDir . '/attendance_sync_' . date('Y-m-d') . '.log';
         }
 
-        $logFile = $logDir . '/attendance_sync_' . date('Y-m-d') . '.log';
-        $timestamp = date('Y-m-d H:i:s');
-        file_put_contents($logFile, "[{$timestamp}] {$message}" . PHP_EOL, FILE_APPEND);
+        if (!$logFile || @file_put_contents($logFile, "[{$timestamp}] {$message}" . PHP_EOL, FILE_APPEND) === false) {
+            error_log("AttendanceSyncService log fallback: {$message}");
+        }
     }
 
     /**
