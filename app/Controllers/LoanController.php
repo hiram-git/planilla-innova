@@ -11,6 +11,7 @@ use App\Models\Creditor;
 use DateInterval;
 use DateTime;
 use Exception;
+use PDO;
 
 class LoanController extends Controller
 {
@@ -18,6 +19,7 @@ class LoanController extends Controller
     private LoanInstallment $installmentModel;
     private Employee $employeeModel;
     private Creditor $creditorModel;
+    private $conceptModel;
 
     public function __construct()
     {
@@ -27,6 +29,7 @@ class LoanController extends Controller
         $this->installmentModel = new LoanInstallment();
         $this->employeeModel = new Employee();
         $this->creditorModel = new Creditor();
+        $this->conceptModel = new \App\Models\Concept();
     }
 
     public function index()
@@ -131,7 +134,19 @@ class LoanController extends Controller
                 $this->installmentModel->create($installment);
             }
 
-            $_SESSION['success'] = 'Préstamo creado y cuotas generadas correctamente.';
+            // Verificar y crear concepto automáticamente para el acreedor
+            $conceptResult = $this->ensureConceptForCreditor($data['creditor_id']);
+
+            $successMessage = 'Préstamo creado y cuotas generadas correctamente.';
+            if ($conceptResult === 'created') {
+                $successMessage .= ' Concepto de deducción creado automáticamente.';
+            } elseif ($conceptResult === 'exists') {
+                $successMessage .= ' Concepto de deducción ya existente.';
+            } elseif ($conceptResult === 'error') {
+                $successMessage .= ' (Advertencia: no se pudo verificar/crear el concepto)';
+            }
+
+            $_SESSION['success'] = $successMessage;
             $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
 
         } catch (Exception $e) {
@@ -147,6 +162,12 @@ class LoanController extends Controller
             $_SESSION['error'] = 'Préstamo no encontrado.';
             $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
         }
+
+        $db = $this->installmentModel->getDatabase();
+        $installments = $db->findAll(
+            "SELECT * FROM loan_installments WHERE loan_id = ? ORDER BY installment_number",
+            [(int)$id]
+        );
 
         $employees = $this->employeeModel->getAllEmployees();
         $employeesById = [];
@@ -166,6 +187,7 @@ class LoanController extends Controller
             'employeeName' => $employeesById[$loan['employee_id']] ?? 'Empleado',
             'creditorName' => $creditorsById[$loan['creditor_id']] ?? 'Acreedor',
             'loan_types' => $this->loanModel->getTiposPrestamo(),
+            'installments' => $installments,
             'csrf_token' => AuthMiddleware::generateCSRF()
         ]);
     }
@@ -322,5 +344,215 @@ class LoanController extends Controller
     protected function requireAuth()
     {
         \App\Middleware\AuthMiddleware::requireAuth();
+    }
+
+    /**
+     * Verificar que existe un concepto para el acreedor, si no existe crearlo
+     * Retorna: 'created', 'exists', o 'error'
+     */
+    private function ensureConceptForCreditor($creditorId)
+    {
+        try {
+            // Obtener información del acreedor
+            $creditor = $this->creditorModel->findById($creditorId);
+            if (!$creditor) {
+                error_log("Acreedor no encontrado con ID: $creditorId");
+                return 'error';
+            }
+
+            // Buscar si ya existe un concepto con la fórmula que referencie este acreedor
+            $existingConcept = $this->findConceptByCreditorId($creditorId);
+
+            if ($existingConcept) {
+                error_log("Concepto ya existe para acreedor $creditorId: ID {$existingConcept['id']}");
+                return 'exists';
+            }
+
+            // Crear el concepto automáticamente
+            $created = $this->createConceptForCreditor($creditorId, $creditor['description']);
+
+            return $created ? 'created' : 'error';
+
+        } catch (Exception $e) {
+            error_log("Error en ensureConceptForCreditor para acreedor $creditorId: " . $e->getMessage());
+            return 'error';
+        }
+    }
+
+    /**
+     * Buscar concepto existente que use la fórmula CUOTAPRESTAMO con este creditor
+     */
+    private function findConceptByCreditorId($creditorId)
+    {
+        try {
+            $db = $this->conceptModel->db;
+
+            // Obtener el creditor_id (código) del acreedor
+            $creditor = $this->creditorModel->findById($creditorId);
+            if (!$creditor || empty($creditor['creditor_id'])) {
+                return null;
+            }
+
+            $creditorCode = $creditor['creditor_id'];
+
+            // Buscar concepto cuya fórmula contenga "CUOTAPRESTAMO(FICHA, '{creditorCode}')" o "CUOTAPRESTAMO(FICHA, {creditorId})"
+            // Buscar por código (string) o ID numérico para compatibilidad
+            $sql = "SELECT * FROM concepto
+                    WHERE (formula LIKE ? OR formula LIKE ?)
+                    AND activo = 1
+                    LIMIT 1";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
+                "%CUOTAPRESTAMO(FICHA, '$creditorCode')%",
+                "%CUOTAPRESTAMO(FICHA, $creditorId)%"
+            ]);
+
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("Error buscando concepto por creditor_id: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Crear concepto automáticamente para el acreedor
+     * Usa la fórmula CUOTAPRESTAMO(FICHA, creditor_id)
+     */
+    private function createConceptForCreditor($creditorId, $creditorDescription)
+    {
+        try {
+            // Obtener el creditor_id (código) del acreedor
+            $creditor = $this->creditorModel->findById($creditorId);
+            if (!$creditor || empty($creditor['creditor_id'])) {
+                error_log("No se pudo obtener el código del acreedor ID: $creditorId");
+                return false;
+            }
+
+            $creditorCode = $creditor['creditor_id'];
+
+            // Generar código único para el concepto
+            $conceptCode = $this->generateConceptCode($creditorDescription);
+
+            // Crear descripción del concepto
+            $conceptDescription = 'DEDUCCIÓN ' . strtoupper($creditorDescription);
+
+            // Crear la fórmula con el código del acreedor (creditor_id)
+            // Usar comillas simples para el parámetro string
+            $formula = "CUOTAPRESTAMO(FICHA, '$creditorCode')";
+
+            // Datos del concepto
+            $conceptData = [
+                'concepto' => $conceptCode,
+                'descripcion' => $conceptDescription,
+                'tipo_concepto' => 'D', // Deducción
+                'formula' => $formula,
+                'valor_fijo' => null,
+                'monto_cero' => 1, // Permitir montos cero para deducciones
+                'monto_calculo' => 1, // Usar cálculo con fórmula
+                'imprime_detalles' => 1, // Imprimir en detalles de planilla
+                'activo' => 1 // Concepto activo
+            ];
+
+            // Crear el concepto
+            $conceptId = $this->conceptModel->create($conceptData);
+
+            if ($conceptId) {
+                // Crear relaciones por defecto para el concepto
+                $this->createDefaultConceptRelations($conceptId);
+
+                error_log("Concepto CUOTAPRESTAMO creado automáticamente para acreedor $creditorId (código: $creditorCode): Concepto ID $conceptId");
+                return true;
+            }
+
+            return false;
+
+        } catch (Exception $e) {
+            error_log("Error creando concepto para acreedor $creditorId: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Crear relaciones por defecto para conceptos de acreedores
+     * Basado en CreditorController::createDefaultConceptRelations()
+     */
+    private function createDefaultConceptRelations($conceptId)
+    {
+        try {
+            $db = $this->conceptModel->db;
+
+            // 1. Relaciones con TIPOS DE PLANILLA
+            // Por defecto, aplicar a tipos más comunes: Quincenal (1) y Mensual (2)
+            $defaultPayrollTypes = [1, 2]; // Quincenal y Planilla cada mes
+
+            foreach ($defaultPayrollTypes as $typeId) {
+                $stmt = $db->prepare("INSERT IGNORE INTO concepto_tipos_planilla (concepto_id, tipo_planilla_id) VALUES (?, ?)");
+                $stmt->execute([$conceptId, $typeId]);
+            }
+
+            // 2. Relaciones con FRECUENCIAS
+            // Por defecto, aplicar frecuencia "Se aplica en todas las planillas" (1)
+            $defaultFrequencies = [1]; // Se aplica en todas las planillas
+
+            foreach ($defaultFrequencies as $frequencyId) {
+                $stmt = $db->prepare("INSERT IGNORE INTO concepto_frecuencias (concepto_id, frecuencia_id) VALUES (?, ?)");
+                $stmt->execute([$conceptId, $frequencyId]);
+            }
+
+            // 3. Relaciones con SITUACIONES
+            // Por defecto, aplicar solo a empleados activos (1)
+            $defaultSituations = [1]; // Empleado activo
+
+            foreach ($defaultSituations as $situationId) {
+                $stmt = $db->prepare("INSERT IGNORE INTO concepto_situaciones (concepto_id, situacion_id) VALUES (?, ?)");
+                $stmt->execute([$conceptId, $situationId]);
+            }
+
+            error_log("Relaciones por defecto creadas para concepto $conceptId");
+            return true;
+
+        } catch (Exception $e) {
+            error_log("Error creando relaciones por defecto para concepto $conceptId: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Generar código único para el concepto
+     * Basado en CreditorController::generateConceptCode()
+     */
+    private function generateConceptCode($creditorDescription)
+    {
+        // Generar código basado en las primeras letras del nombre del acreedor
+        $words = explode(' ', strtoupper($creditorDescription));
+        $code = '';
+
+        foreach ($words as $word) {
+            if (strlen($word) > 0) {
+                $code .= substr($word, 0, 2);
+            }
+        }
+
+        // Limitar a 6 caracteres máximo
+        $code = substr($code, 0, 6);
+
+        // Verificar si el código ya existe y agregar número si es necesario
+        $originalCode = $code;
+        $counter = 1;
+
+        while ($this->conceptModel->isCodeDuplicate($code)) {
+            $code = $originalCode . sprintf('%02d', $counter);
+            $counter++;
+
+            // Evitar bucle infinito
+            if ($counter > 99) {
+                $code = 'ACR' . sprintf('%03d', rand(1, 999));
+                break;
+            }
+        }
+
+        return $code;
     }
 }

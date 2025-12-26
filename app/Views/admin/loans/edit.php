@@ -107,6 +107,46 @@
                     </select>
                     <small class="form-text text-muted">Solo se permite editar el tipo del prestamo.</small>
                 </div>
+
+                <div class="mt-4">
+                    <h5>Cuotas del prestamo</h5>
+                    <?php if (!empty($installments)): ?>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Numero</th>
+                                        <th>Vencimiento</th>
+                                        <th>Monto</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($installments as $installment): ?>
+                                        <?php
+                                            $statusValue = strtolower($installment['status'] ?? '');
+                                            $statusLabel = $statusValue ? ucfirst($statusValue) : 'Generada';
+                                            $statusClass = $statusValue === 'pagada'
+                                                ? 'badge badge-success'
+                                                : ($statusValue === 'anulado' || $statusValue === 'cancelada'
+                                                    ? 'badge badge-danger'
+                                                    : 'badge badge-warning');
+                                            $dueDate = $installment['due_date'] ?? '';
+                                        ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($installment['installment_number'] ?? '') ?></td>
+                                            <td><?= $dueDate ? htmlspecialchars(date('d/m/Y', strtotime($dueDate))) : '' ?></td>
+                                            <td><?= number_format((float)($installment['amount'] ?? 0), 2) ?></td>
+                                            <td><span class="<?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-light">Sin cuotas registradas.</div>
+                    <?php endif; ?>
+                </div>
             </div>
         </form>
 
