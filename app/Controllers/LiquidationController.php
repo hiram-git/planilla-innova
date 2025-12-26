@@ -425,13 +425,16 @@ class LiquidationController extends Controller
             $calculations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $totals = $this->calculateTotals($calculations);
+            $accumulatedConceptCodes = ['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'];
             $liquidationAccumulations = [];
-            $accumulatedMonths = $this->getLiquidationAccumulatedMonths(
-                (int)$termination['employee_table_id'],
-                $termination['termination_date']
-            );
-            foreach (['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'] as $conceptCode) {
-                $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
+            $accumulatedTypesByConcept = $this->getConceptAccumulatedTypes($accumulatedConceptCodes);
+            foreach ($accumulatedConceptCodes as $conceptCode) {
+                $types = $accumulatedTypesByConcept[$conceptCode] ?? ['SALARIO_BASE'];
+                $liquidationAccumulations[$conceptCode] = $this->getLiquidationAccumulatedMonths(
+                    (int)$termination['employee_table_id'],
+                    $termination['termination_date'],
+                    $types
+                );
             }
 
             $this->render('admin/liquidation/preview', [
@@ -1226,9 +1229,15 @@ class LiquidationController extends Controller
             if (!empty($details)) {
                 $employeeId = (int)$details[0]['employee_id'];
                 $endDate = $payroll['fecha_hasta'] ?? $payroll['fecha'] ?? date('Y-m-d');
-                $accumulatedMonths = $this->getLiquidationAccumulatedMonths($employeeId, $endDate);
-                foreach (['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'] as $conceptCode) {
-                    $liquidationAccumulations[$conceptCode] = $accumulatedMonths;
+                $accumulatedConceptCodes = ['LIQ001', 'LIQ002', 'LIQ005', 'LIQ007'];
+                $accumulatedTypesByConcept = $this->getConceptAccumulatedTypes($accumulatedConceptCodes);
+                foreach ($accumulatedConceptCodes as $conceptCode) {
+                    $types = $accumulatedTypesByConcept[$conceptCode] ?? ['SALARIO_BASE'];
+                    $liquidationAccumulations[$conceptCode] = $this->getLiquidationAccumulatedMonths(
+                        $employeeId,
+                        $endDate,
+                        $types
+                    );
                 }
             }
 

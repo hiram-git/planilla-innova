@@ -202,8 +202,8 @@ Usa el wizard para crear una empresa nueva y verificar que:
 ### 3. Verificar Logs
 Después de hacer login, verifica en los logs:
 ```bash
-# Windows
-tail -f C:/xampp82/php/logs/php_error_log
+# Windows (Laragon)
+tail -f C:/laragon60/tmp/php_errors.log
 
 # Buscar líneas como:
 "Tenant resolved by code 'INNO-TEST-0004-E0D3': prueba3 (DB: planilla_tenant_e0d35ff378 | License: INNO-TEST-0004-E0D3)"

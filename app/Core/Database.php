@@ -20,8 +20,22 @@ class Database
             $config = TenantResolver::getDatabaseConfig();
         } else {
             // Fallback a configuración por defecto
-            $app_config = require './config/database.php';
-            $config = $app_config['connections']['mysql'] ?? [];
+            // Usar ruta absoluta para compatibilidad con cron jobs
+            $configPath = __DIR__ . '/../../config/database.php';
+            if (!file_exists($configPath)) {
+                // Fallback adicional: usar variables de entorno directamente
+                $config = [
+                    'host' => $_ENV['DB_HOST'] ?? 'localhost',
+                    'port' => $_ENV['DB_PORT'] ?? 3306,
+                    'database' => $_ENV['DB_NAME'] ?? 'planilla_prod',
+                    'username' => $_ENV['DB_USER'] ?? 'root',
+                    'password' => $_ENV['DB_PASSWORD'] ?? '',
+                    'charset' => 'utf8mb4'
+                ];
+            } else {
+                $app_config = require $configPath;
+                $config = $app_config['connections']['mysql'] ?? [];
+            }
         }
 
         try {
