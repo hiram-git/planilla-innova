@@ -595,25 +595,29 @@ class Payroll extends Model
     {
         try {
             $this->db->beginTransaction();
-            
+
             // 1. Procesar acumulados usando el nuevo procesador optimizado
             require_once __DIR__ . '/PayrollAccumulationsProcessor.php';
             $accumulationsProcessor = new PayrollAccumulationsProcessor();
             $accumulationResults = $accumulationsProcessor->processPayrollAccumulations($payrollId);
             error_log("Acumulados procesados: " . json_encode($accumulationResults));
-            
-            // 2. Cambiar estado a CERRADA
+
+            // 2. Marcar cuotas de préstamos como pagadas
+            $installmentsPaid = $this->markLoanInstallmentsAsPaid($payrollId);
+            error_log("Cuotas de préstamos marcadas como pagadas: $installmentsPaid");
+
+            // 3. Cambiar estado a CERRADA
             $result = $this->update($payrollId, [
                 'estado' => 'CERRADA'
             ]);
-            
+
             if (!$result) {
                 throw new \Exception('Error al actualizar estado de planilla');
             }
-            
+
             $this->db->commit();
             return true;
-            
+
         } catch (\Exception $e) {
             $this->db->rollBack();
             error_log("Error en closePayroll: " . $e->getMessage());
@@ -1556,6 +1560,259 @@ class Payroll extends Model
         } catch (\Exception $e) {
             error_log("Error obteniendo salario de planilla_detalle: " . $e->getMessage());
             return 0.0;
+        }
+    }
+
+    /**
+     * 💳 Marcar cuotas de préstamos como pagadas al cerrar planilla
+     *
+     * Busca todas las cuotas de préstamos que fueron utilizadas en esta planilla
+     * (a través de conceptos que usan la función CUOTASPRESTAMOS) y las marca como pagadas.
+     *
+     * @param int $payrollId ID de la planilla que se está cerrando
+     * @return int Número de cuotas marcadas como pagadas
+     */
+    private function markLoanInstallmentsAsPaid($payrollId): int
+    {
+        try {
+            // Obtener información de la planilla
+            $payroll = $this->find($payrollId);
+            if (!$payroll) {
+                error_log("Planilla no encontrada: $payrollId");
+                return 0;
+            }
+
+            $fechaCierre = date('Y-m-d');
+
+            // Buscar todos los conceptos que usan CUOTASPRESTAMOS en su fórmula
+            // Estos conceptos deducen las cuotas de préstamos de los empleados
+            $sqlConceptos = "SELECT DISTINCT c.id as concepto_id, c.formula
+                            FROM concepto c
+                            WHERE c.formula LIKE '%CUOTASPRESTAMOS%'
+                            AND c.tipo_concepto = 'D'";
+
+            $stmtConceptos = $this->db->prepare($sqlConceptos);
+            $stmtConceptos->execute();
+            $conceptosConCuotas = $stmtConceptos->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($conceptosConCuotas)) {
+                error_log("No hay conceptos con CUOTASPRESTAMOS configurados");
+                return 0;
+            }
+
+            $conceptosIds = array_column($conceptosConCuotas, 'concepto_id');
+            $placeholders = implode(',', array_fill(0, count($conceptosIds), '?'));
+
+            // Buscar todos los detalles de planilla que usan estos conceptos
+            // Y que tienen monto > 0 (es decir, se descontó efectivamente una cuota)
+            $sqlDetalles = "SELECT DISTINCT
+                                pd.employee_id,
+                                pd.concepto_id,
+                                pd.monto,
+                                c.formula
+                            FROM planilla_detalle pd
+                            INNER JOIN concepto c ON c.id = pd.concepto_id
+                            WHERE pd.planilla_cabecera_id = ?
+                            AND pd.concepto_id IN ($placeholders)
+                            AND pd.monto > 0";
+
+            $params = array_merge([$payrollId], $conceptosIds);
+            $stmtDetalles = $this->db->prepare($sqlDetalles);
+            $stmtDetalles->execute($params);
+            $detalles = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($detalles)) {
+                error_log("No hay cuotas de préstamos en esta planilla");
+                return 0;
+            }
+
+            $cuotasMarcadas = 0;
+
+            // Por cada detalle, extraer el ID del acreedor de la fórmula y marcar la cuota
+            foreach ($detalles as $detalle) {
+                try {
+                    // Extraer ID de acreedor de la fórmula CUOTASPRESTAMOS(FICHA, ID_ACREEDOR)
+                    // Ejemplo: "CUOTASPRESTAMOS(FICHA, 5)" -> acreedor_id = 5
+                    if (preg_match('/CUOTASPRESTAMOS\s*\(\s*[^,]+\s*,\s*(\d+)\s*\)/i', $detalle['formula'], $matches)) {
+                        $acreedorId = (int)$matches[1];
+
+                        // Buscar la próxima cuota pendiente de este empleado con este acreedor
+                        $sqlCuota = "SELECT li.id, li.loan_id, li.amount
+                                    FROM loan_installments li
+                                    INNER JOIN loans l ON l.id = li.loan_id
+                                    WHERE l.employee_id = ?
+                                    AND l.creditor_id = ?
+                                    AND l.status = 'activo'
+                                    AND li.status = 'pendiente'
+                                    ORDER BY li.due_date ASC, li.installment_number ASC
+                                    LIMIT 1";
+
+                        $stmtCuota = $this->db->prepare($sqlCuota);
+                        $stmtCuota->execute([$detalle['employee_id'], $acreedorId]);
+                        $cuota = $stmtCuota->fetch(PDO::FETCH_ASSOC);
+
+                        if ($cuota) {
+                            // Marcar cuota como pagada
+                            $sqlUpdate = "UPDATE loan_installments
+                                         SET status = 'pagada',
+                                             planilla_id = ?,
+                                             paid_date = ?
+                                         WHERE id = ?";
+
+                            $stmtUpdate = $this->db->prepare($sqlUpdate);
+                            $stmtUpdate->execute([$payrollId, $fechaCierre, $cuota['id']]);
+
+                            $cuotasMarcadas++;
+
+                            error_log("Cuota {$cuota['id']} del préstamo {$cuota['loan_id']} marcada como pagada en planilla $payrollId");
+
+                            // Verificar si el préstamo se completó (todas las cuotas pagadas)
+                            $this->checkAndUpdateLoanCompletion($cuota['loan_id']);
+                        } else {
+                            error_log("No se encontró cuota pendiente para empleado {$detalle['employee_id']} y acreedor $acreedorId");
+                        }
+                    }
+                } catch (\Exception $e) {
+                    error_log("Error marcando cuota individual: " . $e->getMessage());
+                    // Continuar con las demás cuotas
+                }
+            }
+
+            return $cuotasMarcadas;
+
+        } catch (\Exception $e) {
+            error_log("Error en markLoanInstallmentsAsPaid: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * 💳 Revertir cuotas de préstamos a pendiente al reabrir planilla
+     *
+     * Encuentra todas las cuotas que fueron marcadas como pagadas en esta planilla
+     * y las revierte a estado pendiente.
+     *
+     * @param int $payrollId ID de la planilla que se está reabriendo
+     * @return int Número de cuotas revertidas a pendiente
+     */
+    public function revertLoanInstallmentsToPending($payrollId): int
+    {
+        try {
+            // Buscar todas las cuotas que fueron pagadas en esta planilla
+            $sql = "SELECT id, loan_id
+                    FROM loan_installments
+                    WHERE planilla_id = ?
+                    AND status = 'pagada'";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payrollId]);
+            $cuotas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($cuotas)) {
+                error_log("No hay cuotas pagadas en planilla $payrollId para revertir");
+                return 0;
+            }
+
+            $cuotasRevertidas = 0;
+
+            foreach ($cuotas as $cuota) {
+                try {
+                    // Revertir cuota a pendiente
+                    $sqlUpdate = "UPDATE loan_installments
+                                 SET status = 'pendiente',
+                                     planilla_id = NULL,
+                                     paid_date = NULL
+                                 WHERE id = ?";
+
+                    $stmtUpdate = $this->db->prepare($sqlUpdate);
+                    $stmtUpdate->execute([$cuota['id']]);
+
+                    $cuotasRevertidas++;
+
+                    error_log("Cuota {$cuota['id']} del préstamo {$cuota['loan_id']} revertida a pendiente");
+
+                    // Verificar si el préstamo debe volver a estado activo
+                    $this->checkAndReactivateLoan($cuota['loan_id']);
+
+                } catch (\Exception $e) {
+                    error_log("Error revirtiendo cuota individual: " . $e->getMessage());
+                    // Continuar con las demás cuotas
+                }
+            }
+
+            return $cuotasRevertidas;
+
+        } catch (\Exception $e) {
+            error_log("Error en revertLoanInstallmentsToPending: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * 💳 Verificar si un préstamo se completó (todas cuotas pagadas) y actualizar su estado
+     *
+     * @param int $loanId ID del préstamo a verificar
+     * @return void
+     */
+    private function checkAndUpdateLoanCompletion($loanId): void
+    {
+        try {
+            // Contar cuotas pendientes del préstamo
+            $sql = "SELECT COUNT(*) as pending_count
+                    FROM loan_installments
+                    WHERE loan_id = ?
+                    AND status = 'pendiente'";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$loanId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result && $result['pending_count'] == 0) {
+                // No hay cuotas pendientes, marcar préstamo como completado
+                $sqlUpdate = "UPDATE loans SET status = 'completado' WHERE id = ?";
+                $stmtUpdate = $this->db->prepare($sqlUpdate);
+                $stmtUpdate->execute([$loanId]);
+
+                error_log("Préstamo $loanId marcado como completado (todas las cuotas pagadas)");
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en checkAndUpdateLoanCompletion: " . $e->getMessage());
+            // No lanzar excepción para no interrumpir el flujo principal
+        }
+    }
+
+    /**
+     * 💳 Reactivar un préstamo si tiene cuotas pendientes
+     *
+     * @param int $loanId ID del préstamo a verificar
+     * @return void
+     */
+    private function checkAndReactivateLoan($loanId): void
+    {
+        try {
+            // Contar cuotas pendientes del préstamo
+            $sql = "SELECT COUNT(*) as pending_count
+                    FROM loan_installments
+                    WHERE loan_id = ?
+                    AND status = 'pendiente'";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$loanId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result && $result['pending_count'] > 0) {
+                // Hay cuotas pendientes, asegurar que el préstamo esté activo
+                $sqlUpdate = "UPDATE loans SET status = 'activo' WHERE id = ? AND status != 'anulado'";
+                $stmtUpdate = $this->db->prepare($sqlUpdate);
+                $stmtUpdate->execute([$loanId]);
+
+                error_log("Préstamo $loanId reactivado (tiene cuotas pendientes)");
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en checkAndReactivateLoan: " . $e->getMessage());
+            // No lanzar excepción para no interrumpir el flujo principal
         }
     }
 }

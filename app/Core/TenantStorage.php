@@ -52,6 +52,7 @@ class TenantStorage
             return $clean;
         }
 
+        // Si ya tiene el prefijo completo images/logos/, quitarlo para normalizar
         if (strpos($clean, 'images/logos/') === 0) {
             $clean = substr($clean, strlen('images/logos/'));
         }
@@ -59,22 +60,29 @@ class TenantStorage
         $baseDir = __DIR__ . '/../../images/logos/';
         $candidates = [];
 
+        // Si el path ya incluye tenants/, usarlo tal cual
         if (strpos($clean, 'tenants/') === 0) {
             $candidates[] = $clean;
+            // También intentar sin el prefijo tenants/ por compatibilidad
             $candidates[] = basename($clean);
         } else {
+            // Si no incluye tenants/, agregar el subdirectorio del tenant actual
             $tenantSubdir = self::getTenantSubdir();
             $candidates[] = $tenantSubdir . '/' . $clean;
             $candidates[] = $clean;
         }
 
+        // Verificar qué archivo existe en el filesystem
         foreach ($candidates as $candidate) {
             $candidatePath = $baseDir . $candidate;
             if (is_file($candidatePath)) {
+                // ✅ IMPORTANTE: Retornar URL completa con el path correcto
                 return UrlHelper::asset('images/logos/' . $candidate);
             }
         }
 
+        // Fallback: retornar el path limpio (aunque el archivo no exista)
+        // Si tenía tenants/ al inicio, preservarlo
         return UrlHelper::asset('images/logos/' . $clean);
     }
 

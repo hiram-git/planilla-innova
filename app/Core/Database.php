@@ -44,10 +44,10 @@ class Database
                 ]
             );
 
-            // Log tenant conectado (solo en desarrollo)
-            if (TenantResolver::hasTenant()) {
-                error_log("Connected to tenant database: " . TenantResolver::getCurrentTenant());
-            }
+            // 🔍 DEBUG: Log comentado para evitar headers HTTP demasiado grandes en producción
+            // if (TenantResolver::hasTenant()) {
+            //     error_log("Connected to tenant database: " . TenantResolver::getCurrentTenant());
+            // }
 
         } catch (PDOException $e) {
             error_log("Database connection failed: " . $e->getMessage());
@@ -106,19 +106,19 @@ class Database
 
         $sql = "INSERT INTO {$table} ({$fields}) VALUES ({$placeholders})";
 
-        // 🔍 DEBUG: Log SQL para detectar diferencias MySQL 8.0 vs MariaDB
-        if ($table === 'employee_payroll_salaries') {
-            error_log("[Database::insert] SQL: {$sql}");
-            error_log("[Database::insert] Data: " . json_encode($data));
-            error_log("[Database::insert] DB Version: " . $this->connection->getAttribute(PDO::ATTR_SERVER_VERSION));
-        }
+        // 🔍 DEBUG: Logs comentados para evitar headers HTTP demasiado grandes en producción
+        // if ($table === 'employee_payroll_salaries') {
+        //     error_log("[Database::insert] SQL: {$sql}");
+        //     error_log("[Database::insert] Data: " . json_encode($data));
+        //     error_log("[Database::insert] DB Version: " . $this->connection->getAttribute(PDO::ATTR_SERVER_VERSION));
+        // }
 
         $this->query($sql, $data);
         $lastId = $this->connection->lastInsertId();
 
-        if ($table === 'employee_payroll_salaries') {
-            error_log("[Database::insert] Last Insert ID: {$lastId}");
-        }
+        // if ($table === 'employee_payroll_salaries') {
+        //     error_log("[Database::insert] Last Insert ID: {$lastId}");
+        // }
 
         return $lastId;
     }
@@ -134,22 +134,22 @@ class Database
         $sql = "UPDATE {$table} SET {$fields} WHERE {$where}";
         $params = array_merge($data, $whereParams);
 
-        // 🔍 DEBUG: Log SQL para detectar diferencias MySQL 8.0 vs MariaDB
-        if ($table === 'employee_payroll_salaries') {
-            error_log("[Database::update] SQL: {$sql}");
-            error_log("[Database::update] Data: " . json_encode($data));
-            error_log("[Database::update] Where Params: " . json_encode($whereParams));
-            error_log("[Database::update] All Params: " . json_encode($params));
-            error_log("[Database::update] DB Version: " . $this->connection->getAttribute(PDO::ATTR_SERVER_VERSION));
-        }
+        // 🔍 DEBUG: Logs comentados para evitar headers HTTP demasiado grandes en producción
+        // if ($table === 'employee_payroll_salaries') {
+        //     error_log("[Database::update] SQL: {$sql}");
+        //     error_log("[Database::update] Data: " . json_encode($data));
+        //     error_log("[Database::update] Where Params: " . json_encode($whereParams));
+        //     error_log("[Database::update] All Params: " . json_encode($params));
+        //     error_log("[Database::update] DB Version: " . $this->connection->getAttribute(PDO::ATTR_SERVER_VERSION));
+        // }
 
         try {
             $stmt = $this->query($sql, $params);
             $rowCount = $stmt->rowCount();
 
-            if ($table === 'employee_payroll_salaries') {
-                error_log("[Database::update] Rows affected: {$rowCount}");
-            }
+            // if ($table === 'employee_payroll_salaries') {
+            //     error_log("[Database::update] Rows affected: {$rowCount}");
+            // }
 
             // Si no se actualizó ninguna fila, verificar si el registro existe
             if ($rowCount == 0) {
@@ -161,9 +161,9 @@ class Database
                     $checkStmt = $this->query($checkSql, $whereParams);
                     $exists = $checkStmt->fetchColumn() > 0;
 
-                    if ($table === 'employee_payroll_salaries') {
-                        error_log("[Database::update] Record exists: " . ($exists ? 'YES' : 'NO'));
-                    }
+                    // if ($table === 'employee_payroll_salaries') {
+                    //     error_log("[Database::update] Record exists: " . ($exists ? 'YES' : 'NO'));
+                    // }
 
                     // Si el registro existe, considerarlo exitoso (sin cambios)
                     if ($exists) {

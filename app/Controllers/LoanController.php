@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Middleware\AuthMiddleware;
 use App\Models\Loan;
 use App\Models\LoanInstallment;
 use App\Models\Employee;
@@ -32,6 +33,7 @@ class LoanController extends Controller
     {
         $loans = $this->loanModel->all();
         $employees = $this->employeeModel->getAllEmployees();
+        $loanTypes = $this->loanModel->getTiposPrestamo();
         $employeesById = [];
         foreach ($employees as $emp) {
             $employeesById[$emp['id']] = trim(($emp['firstname'] ?? '') . ' ' . ($emp['lastname'] ?? ''));
@@ -40,7 +42,9 @@ class LoanController extends Controller
         $this->render('admin/loans/index', [
             'title' => 'Préstamos',
             'loans' => $loans,
-            'employeesById' => $employeesById
+            'employeesById' => $employeesById,
+            'loanTypes' => $loanTypes,
+            'csrf_token' => AuthMiddleware::generateCSRF()
         ]);
     }
 
@@ -48,11 +52,13 @@ class LoanController extends Controller
     {
         $employees = $this->employeeModel->getAllEmployees();
         $creditors = $this->creditorModel->getOptions();
+        $loanTypes = $this->loanModel->getTiposPrestamo();
         $this->render('admin/loans/create', [
             'title' => 'Nuevo Préstamo',
             'employees' => $employees,
             'creditors' => $creditors,
-            'csrf_token' => \App\Middleware\AuthMiddleware::generateCSRF()
+            'loan_types' => $loanTypes,
+            'csrf_token' => AuthMiddleware::generateCSRF()
         ]);
     }
 
@@ -62,13 +68,21 @@ class LoanController extends Controller
             $this->redirect(\App\Core\UrlHelper::route('panel/loans/create'));
         }
 
-        \App\Middleware\AuthMiddleware::validateCSRF();
+        AuthMiddleware::validateCSRF();
 
         $creditorId = isset($_POST['creditor_id']) ? (int)$_POST['creditor_id'] : 0;
+        $loanType = trim($_POST['loan_type'] ?? '');
+        $loanTypes = $this->loanModel->getTiposPrestamo();
+        if (!array_key_exists($loanType, $loanTypes)) {
+            $matchedKey = array_search($loanType, $loanTypes, true);
+            if ($matchedKey !== false) {
+                $loanType = $matchedKey;
+            }
+        }
         $data = [
             'employee_id' => $_POST['employee_id'] ?? null,
             'creditor_id' => $creditorId ?: null,
-            'loan_type' => trim($_POST['loan_type'] ?? ''),
+            'loan_type' => $loanType,
             'frequency' => $_POST['frequency'] ?? 'mensual',
             'allow_december' => isset($_POST['allow_december']) ? 1 : 0,
             'total_amount' => (float)($_POST['total_amount'] ?? 0),
@@ -124,6 +138,114 @@ class LoanController extends Controller
             $_SESSION['error'] = 'Error al crear préstamo: ' . $e->getMessage();
             $this->redirect(\App\Core\UrlHelper::route('panel/loans/create'));
         }
+    }
+
+    public function edit($id)
+    {
+        $loan = $this->loanModel->find($id);
+        if (!$loan) {
+            $_SESSION['error'] = 'Préstamo no encontrado.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        }
+
+        $employees = $this->employeeModel->getAllEmployees();
+        $employeesById = [];
+        foreach ($employees as $emp) {
+            $employeesById[$emp['id']] = trim(($emp['firstname'] ?? '') . ' ' . ($emp['lastname'] ?? ''));
+        }
+
+        $creditors = $this->creditorModel->getOptions();
+        $creditorsById = [];
+        foreach ($creditors as $creditor) {
+            $creditorsById[$creditor['id']] = $creditor['description'] ?? 'Acreedor';
+        }
+
+        $this->render('admin/loans/edit', [
+            'title' => 'Editar Préstamo',
+            'loan' => $loan,
+            'employeeName' => $employeesById[$loan['employee_id']] ?? 'Empleado',
+            'creditorName' => $creditorsById[$loan['creditor_id']] ?? 'Acreedor',
+            'loan_types' => $this->loanModel->getTiposPrestamo(),
+            'csrf_token' => AuthMiddleware::generateCSRF()
+        ]);
+    }
+
+    public function update($id)
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        }
+
+        AuthMiddleware::validateCSRF();
+
+        $loan = $this->loanModel->find($id);
+        if (!$loan) {
+            $_SESSION['error'] = 'Préstamo no encontrado.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        }
+
+        $status = strtolower($loan['status'] ?? ($loan['estado'] ?? ''));
+        if ($status === 'anulado') {
+            $_SESSION['error'] = 'El préstamo está anulado y no puede editarse.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans/edit/' . $id));
+        }
+
+        $loanType = trim($_POST['loan_type'] ?? '');
+        if ($loanType === '') {
+            $_SESSION['error'] = 'Tipo de préstamo requerido.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans/edit/' . $id));
+        }
+
+        $loanTypes = $this->loanModel->getTiposPrestamo();
+        if (!array_key_exists($loanType, $loanTypes)) {
+            $matchedKey = array_search($loanType, $loanTypes, true);
+            if ($matchedKey !== false) {
+                $loanType = $matchedKey;
+            }
+        }
+
+        try {
+            $result = $this->loanModel->update($id, ['loan_type' => $loanType]);
+            if (!$result) {
+                throw new Exception('No se pudo actualizar el préstamo.');
+            }
+
+            $_SESSION['success'] = 'Préstamo actualizado correctamente.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Error al actualizar préstamo: ' . $e->getMessage();
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans/edit/' . $id));
+        }
+    }
+
+    public function cancel($id)
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        }
+
+        AuthMiddleware::validateCSRF();
+
+        $loan = $this->loanModel->find($id);
+        if (!$loan) {
+            $_SESSION['error'] = 'Préstamo no encontrado.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        }
+
+        $status = strtolower($loan['status'] ?? ($loan['estado'] ?? ''));
+        if ($status === 'anulado') {
+            $_SESSION['success'] = 'El préstamo ya estaba anulado.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        }
+
+        try {
+            $this->loanModel->cancelLoan((int)$id);
+            $_SESSION['success'] = 'Préstamo anulado correctamente.';
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Error al anular préstamo: ' . $e->getMessage();
+        }
+
+        $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
     }
 
     /**

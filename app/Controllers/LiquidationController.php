@@ -2209,6 +2209,69 @@ class LiquidationController extends Controller
             $pdf->Cell($compactAmountWidth, 6, '$' . number_format($vacAmount, 2), 1, 1, 'R');
             $pdf->Ln(3);
 
+            $antCode = 'LIQ001';
+            $indCode = 'LIQ002';
+            $hasAntData = isset($conceptDetails[$antCode]) || !empty($liquidationAccumulations[$antCode]);
+            $hasIndData = isset($conceptDetails[$indCode]) || !empty($liquidationAccumulations[$indCode]);
+            if ($hasAntData || $hasIndData) {
+                $antDescription = $conceptDetails[$antCode]['concepto_descripcion'] ?? 'Prima de antiguedad';
+                $indDescription = $conceptDetails[$indCode]['concepto_descripcion'] ?? 'Indemnizacion';
+                $antAmount = $conceptDetails[$antCode]['monto']
+                    ?? ($liquidationAccumulations[$antCode]['total'] ?? 0.0);
+                $indAmount = $conceptDetails[$indCode]['monto']
+                    ?? ($liquidationAccumulations[$indCode]['total'] ?? 0.0);
+
+                $pdf->SetFillColor(224, 224, 224);
+                $pdf->SetFont('helvetica', 'B', 9);
+                $pdf->Cell($compactCodeWidth, 6, 'Codigo', 1, 0, 'C', true);
+                $pdf->Cell($compactDescWidth, 6, 'Descripcion', 1, 0, 'C', true);
+                $pdf->Cell($compactAmountWidth, 6, 'Monto', 1, 0, 'C', true);
+                $pdf->Cell($compactCodeWidth, 6, 'Codigo', 1, 0, 'C', true);
+                $pdf->Cell($compactDescWidth, 6, 'Descripcion', 1, 0, 'C', true);
+                $pdf->Cell($compactAmountWidth, 6, 'Monto', 1, 1, 'C', true);
+
+                $antMonths = $liquidationAccumulations[$antCode]['months'] ?? [];
+                $indMonths = $liquidationAccumulations[$indCode]['months'] ?? [];
+                while (count($antMonths) < 12) {
+                    $antMonths[] = [
+                        'label' => '',
+                        'amount' => 0.0
+                    ];
+                }
+                while (count($indMonths) < 12) {
+                    $indMonths[] = [
+                        'label' => '',
+                        'amount' => 0.0
+                    ];
+                }
+
+                $pdf->SetFillColor(245, 245, 245);
+                $pdf->SetFont('helvetica', 'B', 8);
+                $pdf->Cell($monthLabelWidth, 5, 'Mes', 1, 0, 'L', true);
+                $pdf->Cell($monthAmountWidth, 5, 'Acumulado', 1, 0, 'R', true);
+                $pdf->Cell($monthLabelWidth, 5, 'Mes', 1, 0, 'L', true);
+                $pdf->Cell($monthAmountWidth, 5, 'Acumulado', 1, 1, 'R', true);
+
+                $pdf->SetFont('helvetica', '', 8);
+                for ($i = 0; $i < 12; $i++) {
+                    $leftMonth = $antMonths[$i];
+                    $rightMonth = $indMonths[$i];
+                    $pdf->Cell($monthLabelWidth, 5, $leftMonth['label'], 1, 0, 'L');
+                    $pdf->Cell($monthAmountWidth, 5, '$' . number_format($leftMonth['amount'], 2), 1, 0, 'R');
+                    $pdf->Cell($monthLabelWidth, 5, $rightMonth['label'], 1, 0, 'L');
+                    $pdf->Cell($monthAmountWidth, 5, '$' . number_format($rightMonth['amount'], 2), 1, 1, 'R');
+                }
+
+                $pdf->SetFont('helvetica', '', 9);
+                $pdf->Cell($compactCodeWidth, 6, $antCode, 1, 0, 'L');
+                $pdf->Cell($compactDescWidth, 6, $antDescription, 1, 0, 'L');
+                $pdf->Cell($compactAmountWidth, 6, '$' . number_format($antAmount, 2), 1, 0, 'R');
+                $pdf->Cell($compactCodeWidth, 6, $indCode, 1, 0, 'L');
+                $pdf->Cell($compactDescWidth, 6, $indDescription, 1, 0, 'L');
+                $pdf->Cell($compactAmountWidth, 6, '$' . number_format($indAmount, 2), 1, 1, 'R');
+                $pdf->Ln(3);
+            }
+
             // ===== ASIGNACIONES =====
             $pdf->SetFillColor(255, 140, 0); // Naranja intenso
             $pdf->SetTextColor(255, 255, 255); // Texto blanco
@@ -2227,27 +2290,6 @@ class LiquidationController extends Controller
             $pdf->SetFont('helvetica', '', 9);
             $asignaciones = array_filter($details, fn($d) => $d['tipo'] === 'A');
             foreach ($asignaciones as $asignacion) {
-                if (in_array($asignacion['concepto'], ['LIQ001', 'LIQ002'], true)) {
-                    $accumulatedData = $liquidationAccumulations[$asignacion['concepto']] ?? null;
-
-                    $pdf->SetFillColor(245, 245, 245);
-                    $pdf->SetFont('helvetica', 'B', 8);
-                    $pdf->Cell($colCodigo + $colDescripcion, 5, 'Mes', 1, 0, 'L', true);
-                    $pdf->Cell($colMonto, 5, 'Acumulado', 1, 1, 'R', true);
-
-                    $pdf->SetFont('helvetica', '', 8);
-                    if (!empty($accumulatedData['months'])) {
-                        foreach ($accumulatedData['months'] as $month) {
-                            $pdf->Cell($colCodigo + $colDescripcion, 5, $month['label'], 1, 0, 'L');
-                            $pdf->Cell($colMonto, 5, '$' . number_format($month['amount'], 2), 1, 1, 'R');
-                        }
-                    } else {
-                        $pdf->Cell($colCodigo + $colDescripcion + $colMonto, 5, 'Sin acumulados', 1, 1, 'C');
-                    }
-
-                    $pdf->SetFont('helvetica', '', 9);
-                }
-
                 $pdf->Cell($colCodigo, 6, $asignacion['concepto'], 1, 0, 'L');
                 $pdf->Cell($colDescripcion, 6, $asignacion['concepto_descripcion'], 1, 0, 'L');
                 $pdf->Cell($colMonto, 6, '$' . number_format($asignacion['monto'], 2), 1, 1, 'R');
