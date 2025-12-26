@@ -215,9 +215,17 @@ class MigrationRunner
 
             if (!$this->dryRun) {
                 // Ejecutar SQL
-                $this->pdo->exec($sql);
+                try {
+                    $this->pdo->exec($sql);
+                } catch (PDOException $e) {
+                    if ($this->shouldIgnoreMigrationError($e)) {
+                        echo "   ! Warning: " . $e->getMessage() . " (ignored)\n";
+                    } else {
+                        throw $e;
+                    }
+                }
 
-                // Registrar migración
+                // Registrar migracion
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO migrations_history (filename, version, checksum) VALUES (?, ?, ?)"
                 );
@@ -230,6 +238,17 @@ class MigrationRunner
             echo "   ❌ ERROR: " . $e->getMessage() . "\n";
             throw $e;
         }
+    }
+
+    private function shouldIgnoreMigrationError(PDOException $e): bool
+    {
+        $errorInfo = $e->errorInfo ?? [];
+        $code = $errorInfo[1] ?? null;
+        if ($code === 1061) {
+            return true;
+        }
+
+        return strpos($e->getMessage(), 'Duplicate key name') !== false;
     }
 
     public function status()
