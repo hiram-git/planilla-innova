@@ -121,6 +121,13 @@ class PlanillaConceptCalculatorSecure
             return $this->calcularMontoAcreedorSeguro($empleado, $id_deduction);
         }, 2);
 
+        // 💳 Función CUOTASPRESTAMOS - Obtener cuota pendiente de préstamo por acreedor
+        // Mismos parámetros que ACREEDOR: empleado (ficha o ID), id_acreedor
+        // Retorna el monto de la cuota pendiente del préstamo activo del empleado con ese acreedor
+        $this->executor->addFunction('CUOTASPRESTAMOS', function ($empleado, $idAcreedor) {
+            return $this->calcularCuotaPrestamoSeguro($empleado, $idAcreedor);
+        }, 2);
+
         // Función ACUMULADOS avanzada y segura
         // Acepta 4 parámetros: conceptos, ficha (ignorado), fechaDesde, fechaHasta
         // El parámetro ficha se ignora porque se usa EMPLOYEE_ID de variablesColaborador
@@ -673,8 +680,8 @@ class PlanillaConceptCalculatorSecure
                 $this->cacheAcreedores[$cacheKey] = $monto;
                 $this->montoAcreedor = $monto;
 
-                // Log del resultado de la transacción
-                error_log("ACREEDOR - Employee: $empleado | Creditor: $idDeduction | Monto: $monto");
+                // 🔍 DEBUG: Log comentado para evitar headers HTTP demasiado grandes en producción
+                // error_log("ACREEDOR - Employee: $empleado | Creditor: $idDeduction | Monto: $monto");
             }
 
             return $this->cacheAcreedores[$cacheKey];
@@ -682,6 +689,98 @@ class PlanillaConceptCalculatorSecure
         } catch (PDOException $e) {
             error_log("Error calculando monto acreedor: " . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * 💳 Calcular cuota de préstamo pendiente de forma segura
+     *
+     * Obtiene la próxima cuota pendiente de un préstamo activo del empleado con el acreedor especificado.
+     * Solo considera préstamos activos y cuotas en estado 'pendiente'.
+     *
+     * @param mixed $empleado Ficha del empleado (string) o ID (int)
+     * @param int $idAcreedor ID del acreedor/creditor
+     * @return float Monto de la cuota pendiente o 0 si no hay cuotas pendientes
+     */
+    protected function calcularCuotaPrestamoSeguro($empleado, int $idAcreedor): float
+    {
+        try {
+            // Validar parámetros
+            if (!is_numeric($empleado) && !is_string($empleado)) {
+                throw new MathExecutorException("EMPLEADO debe ser numérico o string");
+            }
+
+            if ($idAcreedor <= 0) {
+                throw new MathExecutorException("ID de acreedor debe ser positivo");
+            }
+
+            // Obtener el employee_id real
+            $employeeId = $this->obtenerEmployeeId($empleado);
+
+            if (!$employeeId) {
+                return 0;
+            }
+
+            // Consultar próxima cuota pendiente
+            // Solo de préstamos activos (status = 'activo')
+            // Solo cuotas pendientes (status = 'pendiente')
+            // Ordenadas por fecha de vencimiento (la más próxima primero)
+            $sql = "SELECT li.amount
+                    FROM loan_installments li
+                    INNER JOIN loans l ON l.id = li.loan_id
+                    WHERE l.employee_id = ?
+                    AND l.creditor_id = ?
+                    AND l.status = 'activo'
+                    AND li.status = 'pendiente'
+                    ORDER BY li.due_date ASC, li.installment_number ASC
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $idAcreedor]);
+            $installment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $monto = $installment ? (float)$installment['amount'] : 0;
+
+            // 🔍 DEBUG: Log comentado para evitar headers HTTP demasiado grandes en producción
+            // error_log("CUOTASPRESTAMOS - Employee: $employeeId | Acreedor: $idAcreedor | Cuota: $monto");
+
+            return $monto;
+
+        } catch (PDOException $e) {
+            error_log("Error calculando cuota de préstamo: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Obtener employee_id a partir de ficha o ID
+     *
+     * @param mixed $empleado Ficha (string) o ID (int)
+     * @return int|null ID del empleado o null si no se encuentra
+     */
+    protected function obtenerEmployeeId($empleado): ?int
+    {
+        try {
+            // Si es numérico, asumimos que es el ID
+            if (is_numeric($empleado) && (int)$empleado > 0) {
+                return (int)$empleado;
+            }
+
+            // Si es string, buscar por employee_id (ficha)
+            if (is_string($empleado)) {
+                $sql = "SELECT id FROM employees WHERE employee_id = ? LIMIT 1";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$empleado]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                return $result ? (int)$result['id'] : null;
+            }
+
+            return null;
+
+        } catch (PDOException $e) {
+            error_log("Error obteniendo employee_id: " . $e->getMessage());
+            return null;
         }
     }
 

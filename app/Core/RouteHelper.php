@@ -344,6 +344,14 @@ class RouteHelper
                 ['title' => 'Préstamos', 'url' => 'panel/loans'],
                 ['title' => 'Nuevo', 'url' => null]
             ]
+        ],
+        'panel/loans/edit' => [
+            'title' => 'Editar Préstamo',
+            'breadcrumbs' => [
+                ['title' => 'Inicio', 'url' => 'panel/dashboard'],
+                ['title' => 'Préstamos', 'url' => 'panel/loans'],
+                ['title' => 'Editar', 'url' => null]
+            ]
         ]
     ];
 
@@ -513,6 +521,9 @@ class RouteHelper
             // Préstamos
             'panel/loans' => ['admin', 'manager'],
             'panel/loans/create' => ['admin', 'manager'],
+            'panel/loans/edit' => ['admin', 'manager'],
+            'panel/loans/update' => ['admin', 'manager'],
+            'panel/loans/cancel' => ['admin', 'manager'],
             // Administración de Tipos de Acumulados (solo admin)
             'panel/tipos-acumulados' => ['admin'],
             'panel/tipos-acumulados/create' => ['admin'],

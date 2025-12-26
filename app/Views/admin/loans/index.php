@@ -25,24 +25,54 @@
                         <th>Cuotas</th>
                         <th>Fecha Inicio</th>
                         <th>Creado</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (!empty($loans)): ?>
                         <?php foreach ($loans as $loan): ?>
+                            <?php
+                                $loanTypeKey = $loan['loan_type'] ?? '';
+                                $loanTypeLabel = $loanTypes[$loanTypeKey] ?? $loanTypeKey;
+                                $statusValue = strtolower($loan['status'] ?? ($loan['estado'] ?? ''));
+                                $isCancelled = $statusValue === 'anulado';
+                                $statusLabel = $statusValue ? ucfirst($statusValue) : 'Activo';
+                                $statusClass = $isCancelled ? 'badge badge-danger' : 'badge badge-success';
+                            ?>
                             <tr>
                                 <td><?= $loan['id'] ?></td>
                                 <td><?= htmlspecialchars($employeesById[$loan['employee_id']] ?? 'Empleado') ?></td>
-                                <td><?= htmlspecialchars($loan['loan_type']) ?></td>
+                                <td><?= htmlspecialchars($loanTypeLabel) ?></td>
                                 <td><?= htmlspecialchars($loan['frequency']) ?></td>
                                 <td><?= number_format($loan['total_amount'], 2) ?></td>
                                 <td><?= $loan['installments_count'] ?></td>
                                 <td><?= htmlspecialchars($loan['start_date']) ?></td>
                                 <td><?= htmlspecialchars($loan['created_at']) ?></td>
+                                <td><span class="<?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span></td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="<?= \App\Core\UrlHelper::route('panel/loans/edit/' . $loan['id']) ?>"
+                                           class="btn btn-warning btn-sm" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <?php if (!$isCancelled): ?>
+                                            <form method="POST"
+                                                  action="<?= \App\Core\UrlHelper::route('panel/loans/cancel/' . $loan['id']) ?>"
+                                                  style="display: inline;"
+                                                  onsubmit="return confirm('¿Desea anular este préstamo?');">
+                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm" title="Anular">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="8" class="text-center">Sin préstamos registrados.</td></tr>
+                        <tr><td colspan="10" class="text-center">Sin préstamos registrados.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

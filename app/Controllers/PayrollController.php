@@ -2149,8 +2149,12 @@ class PayrollController extends Controller
             try {
                 // 1. Primero hacer rollback de acumulados (sin transacción envolvente)
                 $acumuladosAfectados = $this->rollbackAccumulatedData($id);
-                
-                // 2. Transacción corta solo para el update principal
+
+                // 2. Revertir cuotas de préstamos a pendiente
+                $cuotasRevertidas = $this->payrollModel->revertLoanInstallmentsToPending($id);
+                error_log("Cuotas de préstamos revertidas a pendiente: $cuotasRevertidas");
+
+                // 3. Transacción corta solo para el update principal
                 $this->db->beginTransaction();
                 
                 // Cambiar estado de la planilla a 'PROCESADA'
@@ -2184,10 +2188,12 @@ class PayrollController extends Controller
                 // Configurar mensaje de éxito
                 $mensaje = "Planilla abierta exitosamente. Estado cambió a PROCESADA";
                 if ($acumuladosAfectados > 0) {
-                    $mensaje .= " y se realizó rollback de {$acumuladosAfectados} registros de acumulados.";
-                } else {
-                    $mensaje .= ".";
+                    $mensaje .= " y se realizó rollback de {$acumuladosAfectados} registros de acumulados";
                 }
+                if ($cuotasRevertidas > 0) {
+                    $mensaje .= ($acumuladosAfectados > 0 ? " y " : " y se revirtieron ") . "{$cuotasRevertidas} cuotas de préstamos a pendiente";
+                }
+                $mensaje .= ".";
 
                 // Detectar si es petición AJAX
                 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
