@@ -139,8 +139,18 @@ class TenantStorage
             $key = (string)$_SESSION['tenant_id'];
         }
 
-        if (!$key && $tenantDb) {
-            $key = $tenantDb;
+        if (!$key) {
+            if (!$tenantDb && !TenantResolver::hasTenant()) {
+                $tenantDb = TenantResolver::getDatabaseName();
+            }
+
+            if ($tenantDb) {
+                if (!TenantResolver::hasTenant() && $tenantDb === 'planilla_prod') {
+                    $key = 'prod';
+                } else {
+                    $key = $tenantDb;
+                }
+            }
         }
 
         if (!$key && isset($_SESSION['tenant_db'])) {
