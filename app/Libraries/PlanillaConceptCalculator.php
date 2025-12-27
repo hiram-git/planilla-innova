@@ -333,7 +333,7 @@ class PlanillaConceptCalculator
         
         if (!isset($this->cacheAcreedores[$cacheKey])) {
             try {
-                $sql = "SELECT amount FROM deductions WHERE employee_id = ? AND creditor_id = ? AND activo = 1";
+                $sql = "SELECT amount FROM deductions WHERE employee_id = ? AND creditor_id = ?";
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute([$employeeId, $id_acreedor]);
                 $deduction = $stmt->fetch(PDO::FETCH_ASSOC);

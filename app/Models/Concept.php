@@ -272,13 +272,36 @@ class Concept extends Model
             }
 
             $calculator = new PlanillaConceptCalculator();
-            
+
             // Si se proporciona un empleado, usar sus datos para validar
             if ($employeeId) {
                 $calculator->setVariablesColaborador($employeeId);
             } else {
-                // Usar variables por defecto para validación
-                $calculator->setVariablesColaborador(1); // ID del primer empleado
+                // Intentar usar el primer empleado disponible, si no hay empleados, usar valores por defecto
+                try {
+                    $stmt = $this->db->query("SELECT id FROM employees WHERE estado_laboral = 'ACTIVO' LIMIT 1");
+                    $firstEmployee = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($firstEmployee) {
+                        $calculator->setVariablesColaborador($firstEmployee['id']);
+                    } else {
+                        // No hay empleados, establecer variables por defecto manualmente
+                        $calculator->setVariable('SALARIO', 1000);
+                        $calculator->setVariable('SUELDO', 1000);
+                        $calculator->setVariable('FICHA', '00001');
+                        $calculator->setVariable('EMPLEADO', 1);
+                        $calculator->setVariable('HORAS', 40);
+                        $calculator->setVariable('ANTIGUEDAD', 1);
+                    }
+                } catch (\Exception $e) {
+                    // Si falla, usar valores por defecto
+                    $calculator->setVariable('SALARIO', 1000);
+                    $calculator->setVariable('SUELDO', 1000);
+                    $calculator->setVariable('FICHA', '00001');
+                    $calculator->setVariable('EMPLEADO', 1);
+                    $calculator->setVariable('HORAS', 40);
+                    $calculator->setVariable('ANTIGUEDAD', 1);
+                }
             }
 
             // Intentar evaluar la fórmula directamente
