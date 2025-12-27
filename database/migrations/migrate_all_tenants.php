@@ -44,7 +44,45 @@ class MultiTenantMigrationRunner
         $this->dryRun = $dryRun;
         $this->targetTenant = $targetTenant;
         $this->migrationsPath = __DIR__ . '/tenant';
+        $this->loadEnvironment();
         $this->connectMaster();
+    }
+
+    /**
+     * Cargar variables de entorno desde .env
+     */
+    private function loadEnvironment()
+    {
+        $envFile = __DIR__ . '/../../.env';
+
+        if (!file_exists($envFile)) {
+            echo "⚠️  Archivo .env no encontrado, usando valores por defecto\n";
+            return;
+        }
+
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        foreach ($lines as $line) {
+            // Ignorar comentarios
+            if (strpos(trim($line), '#') === 0) {
+                continue;
+            }
+
+            // Parsear línea KEY=VALUE
+            if (strpos($line, '=') !== false) {
+                list($key, $value) = explode('=', $line, 2);
+                $key = trim($key);
+                $value = trim($value);
+
+                // Remover comillas si existen
+                $value = trim($value, '"\'');
+
+                // Establecer en $_ENV si no existe
+                if (!isset($_ENV[$key])) {
+                    $_ENV[$key] = $value;
+                }
+            }
+        }
     }
 
     /**
@@ -143,8 +181,8 @@ class MultiTenantMigrationRunner
     }
 
     /**
-     * Desencriptar password del tenant
-     * TODO: Implementar desencriptación real según tu método de encriptación
+     * Desencriptar password del tenant usando el mismo método que WizardModel
+     * Utiliza AES-256-CBC con APP_KEY como clave
      */
     private function decryptPassword($encryptedPassword)
     {
@@ -153,10 +191,14 @@ class MultiTenantMigrationRunner
             return '';
         }
 
-        // TODO: Implementar desencriptación real
-        // Por ahora asumimos que está en texto plano o base64
-        $decoded = @base64_decode($encryptedPassword, true);
-        return $decoded !== false ? $decoded : $encryptedPassword;
+        // Usar el mismo método de desencriptación que WizardModel
+        $appKey = $_ENV['APP_KEY'] ?? 'changeme-app-key';
+        $key = hash('sha256', $appKey, true);
+        $iv = substr(hash('sha256', $appKey . '_iv'), 0, 16);
+
+        $decrypted = openssl_decrypt($encryptedPassword, 'AES-256-CBC', $key, 0, $iv);
+
+        return $decrypted !== false ? $decrypted : '';
     }
 
     /**

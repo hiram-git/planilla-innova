@@ -248,18 +248,22 @@ VALUES ('innova', 'tenant_innova', 'localhost', 3306, 'root', '', 'ACTIVE');
 
 ### Contraseñas Encriptadas
 
-El script soporta passwords encriptados en `db_pass_enc`:
+El script utiliza el **mismo método de encriptación/desencriptación** que `WizardModel`:
 
 ```php
-// TODO: Implementar método de desencriptación según tu sistema
+// Desencriptación AES-256-CBC usando APP_KEY
 private function decryptPassword($encryptedPassword)
 {
-    // Actualmente soporta:
-    // - NULL/vacío → password vacío
-    // - Base64 → decodifica automáticamente
-    // - Texto plano → usa directamente
+    // Utiliza openssl_decrypt con AES-256-CBC
+    // Clave derivada de $_ENV['APP_KEY']
+    // Compatible 100% con WizardModel::decrypt()
 }
 ```
+
+**Requisitos**:
+- ✅ Variable `APP_KEY` en archivo `.env`
+- ✅ Passwords encriptados con `WizardModel::encrypt()`
+- ✅ Compatibilidad total con sistema de autenticación
 
 ### Permisos de Usuario
 
