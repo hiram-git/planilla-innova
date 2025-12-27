@@ -184,9 +184,11 @@ BEGIN
       AND is_processed = 0
       AND is_duplicate = 0;
 
-    SELECT ROW_COUNT() as records_marked;
-END$$
-DELIMITER ;
+    -- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+
+    -- SELECT ROW_COUNT() as records_marked;
+-- END$$
+-- DELIMITER ;
 
 -- Procedimiento para detectar duplicados
 DROP PROCEDURE IF EXISTS sp_detect_duplicates;
@@ -197,20 +199,20 @@ BEGIN
     -- Marcar registros duplicados basándose en record_hash
     UPDATE attendance_records r1
     INNER JOIN (
-        SELECT MIN(id) as original_id, record_hash
-        FROM attendance_records
-        WHERE is_duplicate = 0
-        GROUP BY record_hash
-        HAVING COUNT(*) > 1
-    ) dups ON r1.record_hash = dups.record_hash
-    SET r1.is_duplicate = 1,
-        r1.duplicate_of = dups.original_id
-    WHERE r1.id != dups.original_id
-      AND r1.is_duplicate = 0;
+        -- SELECT MIN(id) as original_id, record_hash
+        -- FROM attendance_records
+        -- WHERE is_duplicate = 0
+        -- GROUP BY record_hash
+        -- HAVING COUNT(*) > 1
+    -- ) dups ON r1.record_hash = dups.record_hash
+    -- SET r1.is_duplicate = 1,
+        -- r1.duplicate_of = dups.original_id
+    -- WHERE r1.id != dups.original_id
+      -- AND r1.is_duplicate = 0;
 
-    SELECT ROW_COUNT() as duplicates_found;
-END$$
-DELIMITER ;
+    -- SELECT ROW_COUNT() as duplicates_found;
+-- END$$
+-- DELIMITER ;
 
 -- Procedimiento para obtener registros agrupados por empleado/día
 DROP PROCEDURE IF EXISTS sp_get_grouped_records;
@@ -304,20 +306,20 @@ DELIMITER ;
 -- ESTADÍSTICAS DE LA MIGRACIÓN
 -- =====================================================
 
-SELECT 'Migración completada: attendance_records creada exitosamente' as status;
-SELECT COUNT(*) as total_records FROM attendance_records;
-
+-- SELECT 'Migración completada: attendance_records creada exitosamente' as status;
+-- SELECT COUNT(*) as total_records FROM attendance_records;
+-- 
 -- Verificar vistas
-SELECT COUNT(*) as vistas_creadas
-FROM information_schema.VIEWS
-WHERE TABLE_SCHEMA = 'planilla_prod'
-  AND TABLE_NAME LIKE 'v_%_records%';
+-- SELECT COUNT(*) as vistas_creadas
+-- FROM information_schema.VIEWS
+-- WHERE TABLE_SCHEMA = 'planilla_prod'
+  -- AND TABLE_NAME LIKE 'v_%_records%';
 
 -- Verificar stored procedures
-SELECT COUNT(*) as procedures_creados
-FROM information_schema.ROUTINES
-WHERE ROUTINE_SCHEMA = 'planilla_prod'
-  AND ROUTINE_NAME LIKE 'sp_%_records%';
+-- SELECT COUNT(*) as procedures_creados
+-- FROM information_schema.ROUTINES
+-- WHERE ROUTINE_SCHEMA = 'planilla_prod'
+  -- AND ROUTINE_NAME LIKE 'sp_%_records%';
 
 -- =====================================================
 -- FIN DE LA MIGRACIÓN

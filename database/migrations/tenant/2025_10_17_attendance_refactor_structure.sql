@@ -228,10 +228,13 @@ ON DUPLICATE KEY UPDATE
 -- ESTADÍSTICAS DE LA MIGRACIÓN
 -- =====================================================
 
-SELECT 'Migración completada' as status;
-SELECT COUNT(*) as total_devices FROM attendance_devices;
-SELECT 'Tablas creadas: attendance_devices, attendance_header, attendance_detail, attendance_file_imports' as info;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
 
+-- SELECT 'Migración completada' as status;
+-- SELECT COUNT(*) as total_devices FROM attendance_devices;
+-- SELECT 'Tablas creadas: attendance_devices, attendance_header, attendance_detail, attendance_file_imports' as info;
+-- 
 -- =====================================================
 -- FIN DE LA MIGRACIÓN
 -- =====================================================
+-- 

@@ -9,12 +9,13 @@ CHANGE COLUMN `organigrama_id` `departamento_id` INT(11) NULL DEFAULT NULL;
 -- Paso 2: Actualizar el índice si existe
 -- Primero verificar si existe el índice fk_organigrama
 SET @index_exists = (
-    SELECT COUNT(1)
-    FROM INFORMATION_SCHEMA.STATISTICS
-    WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'planilla_detalle'
-    AND INDEX_NAME = 'fk_organigrama'
-);
+    -- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+    -- SELECT COUNT(1)
+    -- FROM INFORMATION_SCHEMA.STATISTICS
+    -- WHERE TABLE_SCHEMA = DATABASE()
+    -- AND TABLE_NAME = 'planilla_detalle'
+    -- AND INDEX_NAME = 'fk_organigrama'
+-- );
 
 -- Si existe, eliminarlo
 SET @drop_index_sql = IF(

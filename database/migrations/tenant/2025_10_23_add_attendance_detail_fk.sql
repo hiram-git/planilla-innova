@@ -5,10 +5,11 @@
 -- =====================================================
 
 -- 1. Verificar registros huérfanos
-SELECT COUNT(*) as registros_huerfanos
-FROM attendance_calculations ac
-LEFT JOIN attendance_detail ad ON ac.attendance_detail_id = ad.id
-WHERE ad.id IS NULL;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT COUNT(*) as registros_huerfanos
+-- FROM attendance_calculations ac
+-- LEFT JOIN attendance_detail ad ON ac.attendance_detail_id = ad.id
+-- WHERE ad.id IS NULL;
 
 -- 2. Eliminar registros huérfanos si existen
 DELETE ac FROM attendance_calculations ac

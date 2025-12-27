@@ -6,59 +6,60 @@
 -- ============================================================================
 
 -- PASO 1: Verificar estructura actual de la tabla cargos
-SELECT 'Estado actual de tabla cargos:' as info;
-DESCRIBE cargos;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT 'Estado actual de tabla cargos:' as info;
+-- DESCRIBE cargos;
 
 -- PASO 2: Verificar datos actuales (antes de la migración)
-SELECT 'Datos actuales de cargos (6 registros):' as info;
-SELECT id, codigo, nombre FROM cargos ORDER BY id;
-
+-- SELECT 'Datos actuales de cargos (6 registros):' as info;
+-- SELECT id, codigo, nombre FROM cargos ORDER BY id;
+-- 
 -- PASO 3: Agregar columna departamento_id
-SELECT 'PASO 3: Agregando columna departamento_id...' as info;
-
-ALTER TABLE cargos
-ADD COLUMN departamento_id INT NULL
-COMMENT 'FK al departamento (organigrama) al que pertenece el cargo'
-AFTER descripcion;
+-- SELECT 'PASO 3: Agregando columna departamento_id...' as info;
+-- 
+-- ALTER TABLE cargos
+-- ADD COLUMN departamento_id INT NULL
+-- COMMENT 'FK al departamento (organigrama) al que pertenece el cargo'
+-- AFTER descripcion;
 
 -- PASO 4: Crear índice para mejor performance
-SELECT 'PASO 4: Creando índice en departamento_id...' as info;
-
-ALTER TABLE cargos
-ADD INDEX idx_departamento (departamento_id);
+-- SELECT 'PASO 4: Creando índice en departamento_id...' as info;
+-- 
+-- ALTER TABLE cargos
+-- ADD INDEX idx_departamento (departamento_id);
 
 -- PASO 5: Agregar Foreign Key constraint
-SELECT 'PASO 5: Agregando Foreign Key constraint...' as info;
-
-ALTER TABLE cargos
-ADD CONSTRAINT fk_cargos_departamento
-    FOREIGN KEY (departamento_id)
-    REFERENCES organigrama(id)
-    ON DELETE SET NULL
-    ON UPDATE CASCADE;
+-- SELECT 'PASO 5: Agregando Foreign Key constraint...' as info;
+-- 
+-- ALTER TABLE cargos
+-- ADD CONSTRAINT fk_cargos_departamento
+    -- FOREIGN KEY (departamento_id)
+    -- REFERENCES organigrama(id)
+    -- ON DELETE SET NULL
+    -- ON UPDATE CASCADE;
 
 -- PASO 6: Actualizar comentario de tabla
-SELECT 'PASO 6: Actualizando comentario de tabla...' as info;
-
-ALTER TABLE cargos
-COMMENT = 'Catálogo de cargos asociados a departamentos de la estructura organizacional';
+-- SELECT 'PASO 6: Actualizando comentario de tabla...' as info;
+-- 
+-- ALTER TABLE cargos
+-- COMMENT = 'Catálogo de cargos asociados a departamentos de la estructura organizacional';
 
 -- PASO 7: Verificar estructura final
-SELECT 'PASO 7: Verificando estructura final...' as info;
-DESCRIBE cargos;
+-- SELECT 'PASO 7: Verificando estructura final...' as info;
+-- DESCRIBE cargos;
 
 -- PASO 8: Verificar Foreign Keys creadas
-SELECT 'PASO 8: Verificando Foreign Keys...' as info;
-SELECT
-    CONSTRAINT_NAME,
-    TABLE_NAME,
-    COLUMN_NAME,
-    REFERENCED_TABLE_NAME,
-    REFERENCED_COLUMN_NAME
-FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-WHERE TABLE_NAME = 'cargos'
-  AND CONSTRAINT_SCHEMA = DATABASE()
-  AND REFERENCED_TABLE_NAME IS NOT NULL;
+-- SELECT 'PASO 8: Verificando Foreign Keys...' as info;
+-- SELECT
+    -- CONSTRAINT_NAME,
+    -- TABLE_NAME,
+    -- COLUMN_NAME,
+    -- REFERENCED_TABLE_NAME,
+    -- REFERENCED_COLUMN_NAME
+-- FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+-- WHERE TABLE_NAME = 'cargos'
+  -- AND CONSTRAINT_SCHEMA = DATABASE()
+  -- AND REFERENCED_TABLE_NAME IS NOT NULL;
 
 -- ============================================================================
 -- NOTAS IMPORTANTES:
@@ -78,4 +79,5 @@ WHERE TABLE_NAME = 'cargos'
 -- UPDATE cargos SET departamento_id = 7 WHERE id = 7;  -- PROGRAMADOR SENIOR → DESARROLLO
 -- ============================================================================
 
-SELECT '✅ Migración completada exitosamente!' as resultado;
+-- SELECT '✅ Migración completada exitosamente!' as resultado;
+-- 

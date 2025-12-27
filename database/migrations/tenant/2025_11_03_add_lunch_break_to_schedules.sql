@@ -29,5 +29,6 @@ CREATE INDEX idx_lunch_schedule ON schedules(salida_almuerzo, entrada_almuerzo);
 -- =====================================================
 -- Verificación
 -- =====================================================
-SELECT 'Migración completada: Campos de almuerzo agregados a schedules' as status;
-DESCRIBE schedules;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT 'Migración completada: Campos de almuerzo agregados a schedules' as status;
+-- DESCRIBE schedules;

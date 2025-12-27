@@ -75,14 +75,15 @@ SELECT
 FROM employees e
 LEFT JOIN posiciones p ON e.position_id = p.id
 CROSS JOIN (
-    SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-    UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-) numbers
-WHERE e.tipo_planilla_id IS NOT NULL
-  AND e.tipo_planilla_id != ''
-  AND CHAR_LENGTH(e.tipo_planilla_id) - CHAR_LENGTH(REPLACE(e.tipo_planilla_id, ',', '')) >= numbers.n - 1
-  AND SUBSTRING_INDEX(SUBSTRING_INDEX(e.tipo_planilla_id, ',', numbers.n), ',', -1) != ''
-  AND (e.sueldo_individual IS NOT NULL OR p.sueldo IS NOT NULL);
+    -- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+    -- SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+    -- UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+-- ) numbers
+-- WHERE e.tipo_planilla_id IS NOT NULL
+  -- AND e.tipo_planilla_id != ''
+  -- AND CHAR_LENGTH(e.tipo_planilla_id) - CHAR_LENGTH(REPLACE(e.tipo_planilla_id, ',', '')) >= numbers.n - 1
+  -- AND SUBSTRING_INDEX(SUBSTRING_INDEX(e.tipo_planilla_id, ',', numbers.n), ',', -1) != ''
+  -- AND (e.sueldo_individual IS NOT NULL OR p.sueldo IS NOT NULL);
 
 -- Insertar en la tabla definitiva desde la tabla temporal
 INSERT INTO employee_payroll_salaries

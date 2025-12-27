@@ -375,12 +375,15 @@ INSERT INTO attendance_alerts (
 -- ESTADÍSTICAS DE LA MIGRACIÓN
 -- =====================================================
 
-SELECT 'Migración de Sistema de Alertas completada' as status;
-SELECT COUNT(*) as total_alerts FROM attendance_alerts;
-SELECT 'Vistas creadas: v_active_alerts, v_critical_alerts, v_employee_alert_stats, v_alerts_by_type' as info;
-SELECT 'Triggers creados: trg_alert_acknowledged, trg_alert_resolved' as info;
-SELECT 'Stored Procedures: sp_get_employee_active_alerts, sp_cleanup_old_resolved_alerts, sp_daily_alerts_summary' as info;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
 
+-- SELECT 'Migración de Sistema de Alertas completada' as status;
+-- SELECT COUNT(*) as total_alerts FROM attendance_alerts;
+-- SELECT 'Vistas creadas: v_active_alerts, v_critical_alerts, v_employee_alert_stats, v_alerts_by_type' as info;
+-- SELECT 'Triggers creados: trg_alert_acknowledged, trg_alert_resolved' as info;
+-- SELECT 'Stored Procedures: sp_get_employee_active_alerts, sp_cleanup_old_resolved_alerts, sp_daily_alerts_summary' as info;
+-- 
 -- =====================================================
 -- FIN DE LA MIGRACIÓN
 -- =====================================================
+-- 

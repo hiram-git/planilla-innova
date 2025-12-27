@@ -170,6 +170,7 @@ class MultiTenantMigrationRunner
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // Fix: evitar error "Cannot execute queries while there are pending result sets"
                 ]
             );
 

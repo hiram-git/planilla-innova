@@ -13,18 +13,19 @@ MODIFY COLUMN `tarifa_hora` DECIMAL(10,4) NULL DEFAULT 0.0000
 COMMENT 'Tarifa por hora del empleado para este tipo de planilla (4 decimales de precisión)';
 
 -- Verify changes
-SELECT 'Migration completed successfully' AS status;
-
-SELECT
-    'employees' AS tabla,
-    COLUMN_NAME,
-    COLUMN_TYPE,
-    COLUMN_DEFAULT,
-    COLUMN_COMMENT
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'employees'
-  AND COLUMN_NAME = 'tarifa_hora';
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT 'Migration completed successfully' AS status;
+-- 
+-- SELECT
+    -- 'employees' AS tabla,
+    -- COLUMN_NAME,
+    -- COLUMN_TYPE,
+    -- COLUMN_DEFAULT,
+    -- COLUMN_COMMENT
+-- FROM INFORMATION_SCHEMA.COLUMNS
+-- WHERE TABLE_SCHEMA = DATABASE()
+  -- AND TABLE_NAME = 'employees'
+  -- AND COLUMN_NAME = 'tarifa_hora';
 
 SELECT
     'employee_payroll_salaries' AS tabla,

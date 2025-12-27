@@ -150,8 +150,8 @@ INSERT INTO attendance_api_config (
 -- =====================================================
 -- Verificación de tablas creadas
 -- =====================================================
-SELECT
-    'Tablas creadas exitosamente' as mensaje,
-    (SELECT COUNT(*) FROM information_schema.tables
-     WHERE table_schema = DATABASE()
-     AND table_name IN ('attendance_api_config', 'attendance_raw_data', 'attendance_sync_log')) as tablas_creadas;
+-- NOTA: SELECT comentado para evitar error "Cannot execute queries while there are pending result sets"
+-- en ejecuciones con PDO. Para verificar manualmente, ejecutar:
+-- SELECT COUNT(*) FROM information_schema.tables
+--  WHERE table_schema = DATABASE()
+--  AND table_name IN ('attendance_api_config', 'attendance_raw_data', 'attendance_sync_log');

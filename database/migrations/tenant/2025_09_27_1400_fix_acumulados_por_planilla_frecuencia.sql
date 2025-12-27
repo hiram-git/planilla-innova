@@ -26,9 +26,10 @@ END;
 
 -- PASO 4: Verificar que no hay datos NULL (todos los registros deben tener frecuencia_id)
 -- Esta consulta debe retornar 0
-SELECT COUNT(*) as registros_sin_frecuencia_id
-FROM acumulados_por_planilla
-WHERE frecuencia_id IS NULL;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT COUNT(*) as registros_sin_frecuencia_id
+-- FROM acumulados_por_planilla
+-- WHERE frecuencia_id IS NULL;
 
 -- PASO 5: Hacer la nueva columna NOT NULL después de migrar datos
 ALTER TABLE acumulados_por_planilla
