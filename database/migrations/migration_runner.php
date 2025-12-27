@@ -109,10 +109,36 @@ class MigrationRunner
     private function loadExecutedMigrations()
     {
         try {
-            $stmt = $this->pdo->query("SELECT filename FROM migrations_history");
+            // Solo cargar migraciones exitosas (no las fallidas ni rolled_back)
+            $stmt = $this->pdo->query("
+                SELECT filename
+                FROM migrations_history
+                WHERE status = 'success' OR status = 'skipped'
+            ");
             $this->executedMigrations = $stmt->fetchAll(PDO::FETCH_COLUMN);
         } catch (PDOException $e) {
-            $this->executedMigrations = [];
+            // Si no existe la columna status (tabla antigua), usar query simple
+            try {
+                $stmt = $this->pdo->query("SELECT filename FROM migrations_history");
+                $this->executedMigrations = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            } catch (PDOException $e2) {
+                $this->executedMigrations = [];
+            }
+        }
+    }
+
+    /**
+     * Obtener el siguiente número de batch
+     */
+    private function getNextBatch()
+    {
+        try {
+            $stmt = $this->pdo->query("SELECT MAX(batch) as max_batch FROM migrations_history");
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return ($result['max_batch'] ?? 0) + 1;
+        } catch (PDOException $e) {
+            // Si no existe la columna batch (tabla antigua), retornar 1
+            return 1;
         }
     }
 
@@ -209,6 +235,13 @@ class MigrationRunner
             echo "   Versión: {$migration['version']}\n";
         }
 
+        $startTime = microtime(true);
+        $status = 'success';
+        $errorMessage = null;
+        $batch = $this->getNextBatch();
+        $migrationType = $this->getMigrationType();
+        $executedBy = $this->getExecutedBy();
+
         try {
             $sql = file_get_contents($migration['path']);
             $checksum = md5($sql);
@@ -219,25 +252,135 @@ class MigrationRunner
                     $this->pdo->exec($sql);
                 } catch (PDOException $e) {
                     if ($this->shouldIgnoreMigrationError($e)) {
-                        echo "   ! Warning: " . $e->getMessage() . " (ignored)\n";
+                        echo "   ⚠️  Warning: " . $e->getMessage() . " (skipped)\n";
+                        $status = 'skipped';
+                        $errorMessage = $e->getMessage();
                     } else {
                         throw $e;
                     }
                 }
 
-                // Registrar migracion
-                $stmt = $this->pdo->prepare(
-                    "INSERT INTO migrations_history (filename, version, checksum) VALUES (?, ?, ?)"
+                $executionTime = (int)((microtime(true) - $startTime) * 1000);
+
+                // Registrar migración con todos los detalles
+                $this->recordMigration(
+                    $migration['filename'],
+                    $migration['version'],
+                    $checksum,
+                    $batch,
+                    $executionTime,
+                    $status,
+                    $errorMessage,
+                    $executedBy,
+                    $migrationType
                 );
-                $stmt->execute([$migration['filename'], $migration['version'], $checksum]);
             }
 
-            echo "   ✅ Completada exitosamente\n\n";
+            if ($status === 'success') {
+                echo "   ✅ Completada exitosamente";
+            } else {
+                echo "   ⏭️  Omitida (ya existente)";
+            }
+
+            if (!$this->dryRun) {
+                $executionTime = (int)((microtime(true) - $startTime) * 1000);
+                echo " ({$executionTime}ms)";
+            }
+
+            echo "\n\n";
 
         } catch (PDOException $e) {
-            echo "   ❌ ERROR: " . $e->getMessage() . "\n";
-            throw $e;
+            $executionTime = (int)((microtime(true) - $startTime) * 1000);
+            $errorMessage = $e->getMessage();
+
+            echo "   ❌ ERROR: {$errorMessage}\n";
+
+            // Registrar migración fallida (NO detiene el proceso)
+            if (!$this->dryRun) {
+                try {
+                    $this->recordMigration(
+                        $migration['filename'],
+                        $migration['version'],
+                        md5(file_get_contents($migration['path'])),
+                        $batch,
+                        $executionTime,
+                        'failed',
+                        $errorMessage,
+                        $executedBy,
+                        $migrationType
+                    );
+                } catch (PDOException $recordError) {
+                    echo "   ⚠️  No se pudo registrar el error: {$recordError->getMessage()}\n";
+                }
+            }
+
+            // NO lanzar excepción - continuar con siguiente migración
+            echo "   ⏭️  Continuando con siguiente migración...\n\n";
         }
+    }
+
+    /**
+     * Registrar migración en la tabla migrations_history
+     */
+    private function recordMigration($filename, $version, $checksum, $batch, $executionTime, $status, $errorMessage, $executedBy, $migrationType)
+    {
+        try {
+            // Intentar con campos nuevos (tabla mejorada)
+            $stmt = $this->pdo->prepare("
+                INSERT INTO migrations_history
+                (filename, version, checksum, batch, execution_time_ms, status, error_message, executed_by, migration_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $filename,
+                $version,
+                $checksum,
+                $batch,
+                $executionTime,
+                $status,
+                $errorMessage,
+                $executedBy,
+                $migrationType
+            ]);
+        } catch (PDOException $e) {
+            // Fallback: tabla antigua sin campos nuevos
+            $stmt = $this->pdo->prepare("
+                INSERT INTO migrations_history (filename, version, checksum)
+                VALUES (?, ?, ?)
+            ");
+            $stmt->execute([$filename, $version, $checksum]);
+        }
+    }
+
+    /**
+     * Determinar el tipo de migración según el path
+     */
+    private function getMigrationType()
+    {
+        if (strpos($this->migrationsPath, '/master') !== false) {
+            return 'master';
+        } elseif (strpos($this->migrationsPath, '/tenant') !== false) {
+            return 'tenant';
+        } elseif (strpos($this->migrationsPath, '/seed') !== false) {
+            return 'seed';
+        }
+        return 'default';
+    }
+
+    /**
+     * Obtener usuario que ejecuta la migración
+     */
+    private function getExecutedBy()
+    {
+        // Obtener usuario del sistema operativo
+        $user = getenv('USER') ?: getenv('USERNAME') ?: 'unknown';
+
+        // Si está en servidor web, agregar prefijo
+        if (php_sapi_name() !== 'cli') {
+            $user = 'www-data:' . $user;
+        }
+
+        return substr($user, 0, 100);
     }
 
     private function shouldIgnoreMigrationError(PDOException $e): bool
@@ -253,19 +396,164 @@ class MigrationRunner
 
     public function status()
     {
-        echo "=== STATUS MIGRACIONES ===\n\n";
+        echo "╔════════════════════════════════════════════════════════════════╗\n";
+        echo "║            STATUS MIGRACIONES - PLANILLA INNOVA                ║\n";
+        echo "╚════════════════════════════════════════════════════════════════╝\n\n";
+
+        echo "Base de datos: {$this->databaseName} ({$this->connectionLabel})\n";
+        echo "Directorio: {$this->migrationsPath}\n\n";
 
         $migrations = $this->getMigrationFiles();
+        $executedDetails = $this->getExecutedMigrationsDetails();
+
+        // Estadísticas
+        $total = count($migrations);
+        $executed = count($this->executedMigrations);
+        $pending = $total - $executed;
+
+        echo "📊 ESTADÍSTICAS:\n";
+        echo "   Total: {$total} | Ejecutadas: ✅ {$executed} | Pendientes: ⏳ {$pending}\n\n";
+
+        // Tabla de migraciones
+        echo "📋 DETALLE DE MIGRACIONES:\n";
+        echo str_repeat("─", 140) . "\n";
+        printf("%-50s %-20s %-12s %-10s %-15s %s\n",
+            "ARCHIVO",
+            "FECHA",
+            "STATUS",
+            "BATCH",
+            "TIEMPO (ms)",
+            "EJECUTADO POR"
+        );
+        echo str_repeat("─", 140) . "\n";
 
         foreach ($migrations as $migration) {
-            $status = in_array($migration['filename'], $this->executedMigrations) ?
-                      "✅ Ejecutada" : "⏳ Pendiente";
+            $filename = $migration['filename'];
 
-            echo sprintf("%-50s %s %s\n",
-                $migration['filename'],
-                $migration['date'],
-                $status
-            );
+            if (isset($executedDetails[$filename])) {
+                $detail = $executedDetails[$filename];
+                $statusIcon = $this->getStatusIcon($detail['status']);
+                $batch = $detail['batch'] ?? '-';
+                $execTime = $detail['execution_time_ms'] ?? '-';
+                $executedBy = $detail['executed_by'] ?? '-';
+
+                printf("%-50s %-20s %-12s %-10s %-15s %s\n",
+                    substr($filename, 0, 50),
+                    $migration['date'],
+                    $statusIcon,
+                    $batch,
+                    $execTime,
+                    substr($executedBy, 0, 20)
+                );
+
+                // Mostrar error si existe
+                if ($detail['status'] === 'failed' && !empty($detail['error_message'])) {
+                    echo "   ❌ Error: " . substr($detail['error_message'], 0, 100) . "\n";
+                }
+            } else {
+                printf("%-50s %-20s %-12s %-10s %-15s %s\n",
+                    substr($filename, 0, 50),
+                    $migration['date'],
+                    "⏳ Pendiente",
+                    "-",
+                    "-",
+                    "-"
+                );
+            }
+        }
+
+        echo str_repeat("─", 140) . "\n\n";
+
+        // Mostrar migraciones fallidas si existen
+        $this->showFailedMigrations($executedDetails);
+    }
+
+    /**
+     * Obtener detalles de migraciones ejecutadas
+     */
+    private function getExecutedMigrationsDetails()
+    {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT filename, batch, execution_time_ms, status, error_message, executed_by, executed_at
+                FROM migrations_history
+                ORDER BY id ASC
+            ");
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $details = [];
+            foreach ($results as $row) {
+                $details[$row['filename']] = $row;
+            }
+            return $details;
+
+        } catch (PDOException $e) {
+            // Fallback: tabla antigua sin campos nuevos
+            try {
+                $stmt = $this->pdo->query("
+                    SELECT filename, executed_at
+                    FROM migrations_history
+                    ORDER BY id ASC
+                ");
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $details = [];
+                foreach ($results as $row) {
+                    $details[$row['filename']] = [
+                        'filename' => $row['filename'],
+                        'executed_at' => $row['executed_at'],
+                        'status' => 'success',
+                        'batch' => null,
+                        'execution_time_ms' => null,
+                        'error_message' => null,
+                        'executed_by' => null
+                    ];
+                }
+                return $details;
+
+            } catch (PDOException $e2) {
+                return [];
+            }
+        }
+    }
+
+    /**
+     * Obtener icono de status
+     */
+    private function getStatusIcon($status)
+    {
+        $icons = [
+            'success' => '✅ Exitosa',
+            'failed' => '❌ Fallida',
+            'skipped' => '⏭️  Omitida',
+            'rolled_back' => '↩️  Rollback'
+        ];
+        return $icons[$status] ?? '❓ Desconocido';
+    }
+
+    /**
+     * Mostrar migraciones fallidas
+     */
+    private function showFailedMigrations($executedDetails)
+    {
+        $failed = array_filter($executedDetails, function($detail) {
+            return $detail['status'] === 'failed';
+        });
+
+        if (!empty($failed)) {
+            echo "⚠️  MIGRACIONES FALLIDAS:\n\n";
+
+            foreach ($failed as $filename => $detail) {
+                echo "   ❌ {$filename}\n";
+                echo "      Fecha: {$detail['executed_at']}\n";
+                echo "      Batch: {$detail['batch']}\n";
+                if (!empty($detail['error_message'])) {
+                    echo "      Error: {$detail['error_message']}\n";
+                }
+                echo "\n";
+            }
+
+            echo "💡 Para re-ejecutar migraciones fallidas, corrige el error y ejecuta nuevamente el runner.\n\n";
         }
     }
 }
