@@ -1507,11 +1507,11 @@ class Admin extends Controller
 
                         COUNT(*) as total_absences,
 
-                        SUM(CASE WHEN aal.status = 'UNJUSTIFIED' THEN 1 ELSE 0 END) as unjustified,
+                        SUM(CASE WHEN aal.justified = 0 THEN 1 ELSE 0 END) as unjustified,
 
-                        SUM(CASE WHEN aal.status = 'JUSTIFIED' THEN 1 ELSE 0 END) as justified,
+                        SUM(CASE WHEN aal.justified = 1 THEN 1 ELSE 0 END) as justified,
 
-                        SUM(CASE WHEN aal.status = 'PENDING' THEN 1 ELSE 0 END) as pending
+                        SUM(CASE WHEN aal.justified IS NULL THEN 1 ELSE 0 END) as pending
 
                     FROM attendance_absence_log aal
 

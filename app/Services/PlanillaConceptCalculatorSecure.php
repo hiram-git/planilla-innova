@@ -700,8 +700,9 @@ class PlanillaConceptCalculatorSecure
     /**
      * 💳 Calcular cuota de préstamo pendiente de forma segura
      *
-     * Obtiene la próxima cuota pendiente de un préstamo activo del empleado con el acreedor especificado.
-     * Solo considera préstamos activos y cuotas en estado 'pendiente'.
+     * Obtiene la cuota de préstamo que corresponde al período de la planilla actual.
+     * Busca cuotas cuya fecha de vencimiento esté dentro del rango de fechas de la planilla.
+     * Solo considera préstamos activos y cuotas en estado 'pendiente' o 'generada'.
      *
      * @param mixed $empleado Ficha del empleado (string) o ID (int)
      * @param mixed $idAcreedor ID numérico del acreedor (int) o código del acreedor (string, varchar creditor_id)
@@ -734,26 +735,56 @@ class PlanillaConceptCalculatorSecure
                 return 0;
             }
 
-            // Consultar próxima cuota pendiente
-            // Solo de préstamos activos (status = 'activo')
-            // Solo cuotas pendientes (status = 'pendiente') y generadas (status = 'generada')
-            // Ordenadas por fecha de vencimiento (la más próxima primero)
-            $sql = "SELECT li.amount
-                    FROM loan_installments li
-                    INNER JOIN loans l ON l.id = li.loan_id
-                    WHERE l.employee_id = ?
-                    AND l.creditor_id = ?
-                    AND l.status = 'activo'
-                    AND (li.status in ('pendiente', 'generada'))
-                    ORDER BY li.due_date ASC, li.installment_number ASC
-                    LIMIT 1";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employeeId, $creditorId]);
+            // Obtener fechas de la planilla actual
+            $fechaDesde = $this->fechasActuales['fecha_desde'] ?? null;
+            $fechaHasta = $this->fechasActuales['fecha_hasta'] ?? null;
+
+            // Si no hay fechas establecidas, buscar la próxima cuota pendiente (comportamiento legacy)
+            if (!$fechaDesde || !$fechaHasta) {
+                error_log("CUOTAPRESTAMO - ADVERTENCIA: No hay fechas de planilla establecidas. Usando comportamiento legacy (próxima cuota pendiente).");
+
+                $sql = "SELECT li.amount
+                        FROM loan_installments li
+                        INNER JOIN loans l ON l.id = li.loan_id
+                        WHERE l.employee_id = ?
+                        AND l.creditor_id = ?
+                        AND l.status = 'activo'
+                        AND li.status IN ('pendiente', 'generada')
+                        ORDER BY li.due_date ASC, li.installment_number ASC
+                        LIMIT 1";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$employeeId, $creditorId]);
+            } else {
+                // Buscar cuota cuya fecha de vencimiento esté dentro del período de la planilla
+                // O la primera cuota pendiente si no hay ninguna en el rango
+                $sql = "SELECT li.amount, li.due_date, li.installment_number
+                        FROM loan_installments li
+                        INNER JOIN loans l ON l.id = li.loan_id
+                        WHERE l.employee_id = ?
+                        AND l.creditor_id = ?
+                        AND l.status = 'activo'
+                        AND li.status IN ('pendiente', 'generada')
+                        AND li.due_date >= ?
+                        AND li.due_date <= ?
+                        ORDER BY li.due_date ASC, li.installment_number ASC
+                        LIMIT 1";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$employeeId, $creditorId, $fechaDesde, $fechaHasta]);
+            }
+
             $installment = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $monto = $installment ? (float)$installment['amount'] : 0;
 
-            error_log("CUOTAPRESTAMO - Employee: $employeeId | Acreedor: $idAcreedor (ID: $creditorId) | Cuota: $monto");
+            // Log detallado
+            if ($fechaDesde && $fechaHasta) {
+                $dueDate = $installment ? $installment['due_date'] : 'N/A';
+                $installmentNum = $installment ? $installment['installment_number'] : 'N/A';
+                error_log("CUOTAPRESTAMO - Employee: $employeeId | Acreedor: $idAcreedor (ID: $creditorId) | " .
+                          "Período: $fechaDesde a $fechaHasta | Cuota #$installmentNum | Vence: $dueDate | Monto: $monto");
+            } else {
+                error_log("CUOTAPRESTAMO - Employee: $employeeId | Acreedor: $idAcreedor (ID: $creditorId) | Cuota: $monto (legacy mode)");
+            }
 
             return $monto;
 
