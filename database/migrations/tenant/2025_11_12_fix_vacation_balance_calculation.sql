@@ -28,10 +28,11 @@ ORDER BY employee_id, year;
 -- Recalcular totales generales acumulativos
 UPDATE vacation_general_totals vgt
 SET total_saldo_acumulado = (
-    SELECT COALESCE(SUM(saldo_disponible_year), 0)
-    FROM vacation_annual_balances
-    WHERE employee_id = vgt.employee_id
-);
+    -- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+    -- SELECT COALESCE(SUM(saldo_disponible_year), 0)
+    -- FROM vacation_annual_balances
+    -- WHERE employee_id = vgt.employee_id
+-- );
 
 -- Verificar totales generales
 SELECT

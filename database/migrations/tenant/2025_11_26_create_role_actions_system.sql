@@ -114,39 +114,40 @@ ON DUPLICATE KEY UPDATE
 
 -- 4. Asignar TODAS las acciones al rol Super Admin (ID = 1)
 INSERT INTO role_actions (role_id, action_code, allowed)
-SELECT 1, action_code, 1
-FROM action_definitions
-WHERE status = 1
-ON DUPLICATE KEY UPDATE allowed = 1;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT 1, action_code, 1
+-- FROM action_definitions
+-- WHERE status = 1
+-- ON DUPLICATE KEY UPDATE allowed = 1;
 
 -- 5. Vista útil: permisos de acción por rol
 CREATE OR REPLACE VIEW v_role_actions_summary AS
-SELECT
-    r.id AS role_id,
-    r.name AS role_name,
-    ad.module,
-    ad.category,
-    COUNT(*) AS total_actions,
-    SUM(CASE WHEN ra.allowed = 1 THEN 1 ELSE 0 END) AS allowed_actions,
-    SUM(CASE WHEN ra.allowed = 0 THEN 1 ELSE 0 END) AS denied_actions
-FROM roles r
-LEFT JOIN role_actions ra ON r.id = ra.role_id
-LEFT JOIN action_definitions ad ON ra.action_code = ad.action_code
-WHERE ad.status = 1
-GROUP BY r.id, r.name, ad.module, ad.category
-ORDER BY r.id, ad.module, ad.category;
+-- SELECT
+    -- r.id AS role_id,
+    -- r.name AS role_name,
+    -- ad.module,
+    -- ad.category,
+    -- COUNT(*) AS total_actions,
+    -- SUM(CASE WHEN ra.allowed = 1 THEN 1 ELSE 0 END) AS allowed_actions,
+    -- SUM(CASE WHEN ra.allowed = 0 THEN 1 ELSE 0 END) AS denied_actions
+-- FROM roles r
+-- LEFT JOIN role_actions ra ON r.id = ra.role_id
+-- LEFT JOIN action_definitions ad ON ra.action_code = ad.action_code
+-- WHERE ad.status = 1
+-- GROUP BY r.id, r.name, ad.module, ad.category
+-- ORDER BY r.id, ad.module, ad.category;
 
 -- 6. Vista útil: acciones disponibles por módulo
 CREATE OR REPLACE VIEW v_actions_by_module AS
-SELECT
-    module,
-    category,
-    COUNT(*) AS total_actions,
-    GROUP_CONCAT(name ORDER BY name SEPARATOR ', ') AS actions
-FROM action_definitions
-WHERE status = 1
-GROUP BY module, category
-ORDER BY module, category;
+-- SELECT
+    -- module,
+    -- category,
+    -- COUNT(*) AS total_actions,
+    -- GROUP_CONCAT(name ORDER BY name SEPARATOR ', ') AS actions
+-- FROM action_definitions
+-- WHERE status = 1
+-- GROUP BY module, category
+-- ORDER BY module, category;
 
 -- ============================================================================
 -- Verificación

@@ -102,6 +102,8 @@ END//
 DELIMITER ;
 
 -- Verificación
-SELECT COUNT(*) as total_pending FROM v_overtime_pending_approval;
-SELECT COUNT(*) as total_approved FROM attendance_calculations WHERE overtime_status = 'APPROVED';
-SELECT COUNT(*) as total_not_applicable FROM attendance_calculations WHERE overtime_status = 'NOT_APPLICABLE';
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT COUNT(*) as total_pending FROM v_overtime_pending_approval;
+-- SELECT COUNT(*) as total_approved FROM attendance_calculations WHERE overtime_status = 'APPROVED';
+-- SELECT COUNT(*) as total_not_applicable FROM attendance_calculations WHERE overtime_status = 'NOT_APPLICABLE';
+-- 

@@ -14,10 +14,11 @@ DROP INDEX unique_attendance_calc;
 
 -- 3. LIMPIAR registros huérfanos (que no tienen correspondencia en attendance_detail)
 -- Primero verificamos cuántos hay
-SELECT COUNT(*) as registros_huerfanos
-FROM attendance_calculations ac
-LEFT JOIN attendance_detail ad ON ac.attendance_id = ad.id
-WHERE ad.id IS NULL;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT COUNT(*) as registros_huerfanos
+-- FROM attendance_calculations ac
+-- LEFT JOIN attendance_detail ad ON ac.attendance_id = ad.id
+-- WHERE ad.id IS NULL;
 
 -- Eliminar registros huérfanos
 DELETE ac FROM attendance_calculations ac

@@ -75,8 +75,9 @@ INSERT INTO concepto_situaciones (concepto_id, situacion_id) VALUES
 (@concepto_id, 1);  -- Situación 1 (ejemplo: Activo)
 
 -- Mensaje de confirmación
-SELECT CONCAT('Concepto creado exitosamente con ID: ', @concepto_id,
-              '. IMPORTANTE: Verifica y ajusta el ID del acreedor en la fórmula') AS mensaje;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT CONCAT('Concepto creado exitosamente con ID: ', @concepto_id,
+              -- '. IMPORTANTE: Verifica y ajusta el ID del acreedor en la fórmula') AS mensaje;
 
 -- ============================================================================
 -- INSTRUCCIONES PARA PERSONALIZAR:

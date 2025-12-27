@@ -196,9 +196,11 @@ DELIMITER ;
 -- =====================================================
 -- Verificación
 -- =====================================================
-SELECT 'Migración completada: Campos de almuerzo agregados a attendance_detail' as status;
-DESCRIBE attendance_detail;
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT 'Migración completada: Campos de almuerzo agregados a attendance_detail' as status;
+-- DESCRIBE attendance_detail;
 
-SELECT 'Vista v_attendance_detail_with_lunch creada' as status;
-SELECT 'Procedimiento sp_validate_attendance_completeness creado' as status;
-SELECT 'Trigger trg_calculate_lunch_duration creado' as status;
+-- SELECT 'Vista v_attendance_detail_with_lunch creada' as status;
+-- SELECT 'Procedimiento sp_validate_attendance_completeness creado' as status;
+-- SELECT 'Trigger trg_calculate_lunch_duration creado' as status;
+-- 

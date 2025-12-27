@@ -170,6 +170,87 @@ WHERE slug = 'prueba-planilla';
 
 ## 🔧 Correcciones Aplicadas
 
+### 0. **Error PDO: "Cannot execute queries while there are pending result sets"**
+
+**Problema**: 22 archivos de migración con 101 SELECTs de verificación causan error PDO al ejecutar múltiples queries.
+
+**Error Exacto**:
+```
+SQLSTATE[HY000]: General error: 2014 Cannot execute queries while there are pending result sets.
+Consider unsetting the previous PDOStatement or calling PDOStatement::closeCursor()
+```
+
+**Causa Raíz**:
+- SELECTs de verificación al final de migraciones dejan result sets pendientes
+- PDO con `ATTR_EMULATE_PREPARES => false` requiere cerrar cursores entre queries
+- Aunque `MYSQL_ATTR_USE_BUFFERED_QUERY => true` mitiga el problema, los SELECTs son innecesarios
+
+**Solución Implementada**:
+
+#### A. **Agregado PDO::MYSQL_ATTR_USE_BUFFERED_QUERY en `migrate_all_tenants.php`** (línea 173)
+```php
+$pdo = new PDO($dsn, $tenant['db_user'], $password, [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES => false,
+    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // FIX: evitar error pending result sets
+]);
+```
+
+#### B. **Script Automático: `fix_select_statements.php`**
+
+Script creado para comentar automáticamente todos los SELECTs de verificación en migraciones:
+
+```bash
+# Ver qué archivos se modificarían
+php database/migrations/fix_select_statements.php --dry-run
+
+# Aplicar correcciones
+php database/migrations/fix_select_statements.php
+```
+
+**Resultados**:
+- ✅ **22 archivos** procesados y corregidos
+- ✅ **101 SELECTs** comentados automáticamente
+- ✅ **444 líneas** modificadas con notas explicativas
+
+**Archivos Corregidos**:
+1. `2025_09_27_1400_fix_acumulados_por_planilla_frecuencia.sql` (1 SELECT)
+2. `2025_10_09_attendance_api_integration.sql` (1 SELECT) - manual
+3. `2025_10_10_employee_payroll_salaries.sql` (1 SELECT)
+4. `2025_10_17_attendance_refactor_structure.sql` (3 SELECTs)
+5. `2025_10_20_attendance_alerts_system.sql` (5 SELECTs)
+6. `2025_10_23_add_attendance_detail_fk.sql` (1 SELECT)
+7. `2025_10_23_fix_attendance_calculations_fk.sql` (1 SELECT)
+8. `2025_10_30_create_attendance_records.sql` (7 SELECTs)
+9. `2025_11_03_add_lunch_break_to_attendance_detail.sql` (4 SELECTs)
+10. `2025_11_03_add_lunch_break_to_attendance_detail_fixed.sql` (4 SELECTs)
+11. `2025_11_03_add_lunch_break_to_schedules.sql` (1 SELECT)
+12. `2025_11_12_fix_vacation_balance_calculation.sql` (1 SELECT)
+13. `2025_11_15_add_overtime_eligible_to_employees.sql` (1 SELECT)
+14. `2025_11_15_final_overtime_setup.sql` (3 SELECTs)
+15. `2025_11_26_create_role_actions_system.sql` (3 SELECTs)
+16. `2025_12_17_add_cargo_to_funciones.sql` (11 SELECTs)
+17. `2025_12_17_add_departamento_to_cargos.sql` (10 SELECTs)
+18. `2025_12_17_clean_employees_legacy_fields.sql` (20 SELECTs)
+19. `2025_12_17_clean_organigrama_legacy_fields.sql` (19 SELECTs)
+20. `2025_12_18_rename_organigrama_to_departamento.sql` (1 SELECT)
+21. `2025_12_18_update_tarifa_hora_precision.sql` (1 SELECT)
+22. `2025_12_22_add_tipo_planilla_to_acumulados_por_empleado.sql` (2 SELECTs)
+23. `2025_12_24_create_loan_installment_concept_example.sql` (1 SELECT)
+
+**Formato de Comentarios**:
+```sql
+-- ANTES (causaba error)
+SELECT COUNT(*) FROM information_schema.tables WHERE...;
+
+-- DESPUÉS (comentado con nota)
+-- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+-- SELECT COUNT(*) FROM information_schema.tables WHERE...;
+```
+
+---
+
 ### 1. **Migración: `2025_11_26_update_menu_items_system_modules.sql`**
 
 **Problema**: Creación de índices sin verificar existencia

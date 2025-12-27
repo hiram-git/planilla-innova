@@ -60,8 +60,9 @@ CASOS DE USO:
 UPDATE employees
 SET permite_horas_extras = 0
 WHERE position_id IN (
-    SELECT id FROM posiciones WHERE nombre LIKE '%Gerente%' OR nombre LIKE '%Director%'
-);
+    -- NOTA: SELECT comentado para evitar error PDO "pending result sets"
+    -- SELECT id FROM posiciones WHERE nombre LIKE '%Gerente%' OR nombre LIKE '%Director%'
+-- );
 */
 
 -- ========================================
