@@ -267,10 +267,30 @@ UPDATE menu_items SET
     display_order = 25
 WHERE id = 25;
 
--- 5. Agregar índices para optimizar consultas
-ALTER TABLE menu_items
-ADD INDEX idx_status (status),
-ADD INDEX idx_display_order (display_order);
+-- 5. Agregar índices para optimizar consultas (verificando si no existen)
+SET @sql_idx_status = IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+     AND TABLE_NAME = 'menu_items'
+     AND INDEX_NAME = 'idx_status') = 0,
+    'ALTER TABLE menu_items ADD INDEX idx_status (status)',
+    'SELECT ''Index idx_status already exists'' AS msg'
+);
+PREPARE stmt FROM @sql_idx_status;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql_idx_display_order = IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+     AND TABLE_NAME = 'menu_items'
+     AND INDEX_NAME = 'idx_display_order') = 0,
+    'ALTER TABLE menu_items ADD INDEX idx_display_order (display_order)',
+    'SELECT ''Index idx_display_order already exists'' AS msg'
+);
+PREPARE stmt FROM @sql_idx_display_order;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
 -- Verificación final
