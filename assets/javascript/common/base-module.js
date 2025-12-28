@@ -26,9 +26,27 @@ class BaseModule {
 
     /**
      * Obtener valor de configuración
+     * Soporta notación de punto para objetos anidados (ej: 'urls.employeesData')
      */
     getConfig(key, defaultValue = null) {
-        return this.config[key] || defaultValue;
+        // Si la clave contiene un punto, navegamos por el objeto anidado
+        if (key.includes('.')) {
+            const keys = key.split('.');
+            let value = this.config;
+
+            for (const k of keys) {
+                if (value && typeof value === 'object' && k in value) {
+                    value = value[k];
+                } else {
+                    return defaultValue;
+                }
+            }
+
+            return value !== undefined ? value : defaultValue;
+        }
+
+        // Acceso directo para claves simples
+        return this.config[key] !== undefined ? this.config[key] : defaultValue;
     }
 
     /**

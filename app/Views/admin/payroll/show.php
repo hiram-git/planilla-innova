@@ -338,11 +338,11 @@ $styles = '<link rel="stylesheet" href="' . url('plugins/datatables-bs4/css/data
 $scripts = '
 <script src="' . url('plugins/datatables/jquery.dataTables.min.js', false) . '"></script>
 <script src="' . url('plugins/datatables-bs4/js/dataTables.bootstrap4.min.js', false) . '"></script>
-<script src="' . url('assets/javascript/modules/payroll/index.js?v=' . time(), false) . '"></script>
-<script>
-$(document).ready(function() {
-    // Configuración de la vista
-    const PAYROLL_CONFIG = {
+<script type="module">
+    import { PayrollShowModule } from "' . url('assets/javascript/modules/payroll/show.js?v=' . time(), false) . '";
+
+    // Configuración del módulo
+    window.PAYROLL_CONFIG = {
         id: ' . $payroll['id'] . ',
         description: "' . addslashes($payroll['descripcion']) . '",
         estado: "' . $payroll['estado'] . '",
@@ -350,130 +350,23 @@ $(document).ready(function() {
             employeesData: "' . \App\Core\Config::get('app.url') . '/panel/payrolls/' . $payroll['id'] . '/employees-data",
             regenerateEmployee: "' . \App\Core\Config::get('app.url') . '/panel/payrolls/' . $payroll['id'] . '/regenerate-employee"
         },
+        csrf_token: "' . \App\Core\Security::generateToken() . '",
         csrfToken: "' . \App\Core\Security::generateToken() . '"
     };
 
-    // COMPATIBILIDAD: Crear window.PAYROLL_CONFIG para el módulo
-    window.PAYROLL_CONFIG = PAYROLL_CONFIG;
-
-    // Configuración de DataTable en español
-    const spanishConfig = {
-        "emptyTable": "No hay datos disponibles en la tabla",
-        "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
-        "infoEmpty": "Mostrando 0 a 0 de 0 entradas",
-        "infoFiltered": "(filtrado de _MAX_ entradas totales)",
-        "lengthMenu": "Mostrar _MENU_ entradas",
-        "loadingRecords": "Cargando...",
-        "processing": "Procesando...",
-        "search": "Buscar:",
-        "zeroRecords": "No se encontraron registros coincidentes",
-        "paginate": {
-            "first": "Primero",
-            "last": "Último",
-            "next": "Siguiente", 
-            "previous": "Anterior"
-        }
-    };
-
-    // Inicializar DataTable de empleados
-    window.employeesDataTable = $("#employeesTable").DataTable({
-        "processing": true,
-        "serverSide": true,
-        "language": spanishConfig,
-        "ajax": {
-            "url": PAYROLL_CONFIG.urls.employeesData,
-            "dataSrc": function(json) {
-                console.log("DataTable AJAX response:", json);
-                if (json.error) {
-                    console.error("Server error:", json.error);
-                }
-                return json.data;
-            },
-            "error": function(xhr, error, code) {
-                console.error("DataTable AJAX error:", {xhr, error, code});
-            }
-        },
-        "columns": [
-            { 
-                "title": "Empleado", 
-                "data": null,
-                "render": function(data, type, row) {
-                    return row[0] || row.employee_name || "N/A";
-                }
-            },
-            {
-                "title": "Cargo",
-                "data": null,
-                "render": function(data, type, row) {
-                    return row[1] || row.cargo_name || "Sin cargo";
-                }
-            },
-            { 
-                "title": "Total Ingresos", 
-                "data": null,
-                "render": function(data, type, row) {
-                    return row[2] || row.total_ingresos || "$0.00";
-                }
-            },
-            { 
-                "title": "Total Deducciones", 
-                "data": null,
-                "render": function(data, type, row) {
-                    return row[3] || row.total_deducciones || "$0.00";
-                }
-            },
-            { 
-                "title": "Salario Neto", 
-                "data": null,
-                "render": function(data, type, row) {
-                    return row[4] || row.salario_neto || "$0.00";
-                }
-            },
-            { 
-                "title": "Acciones", 
-                "data": null,
-                "orderable": false,
-                "render": function(data, type, row) {
-                    return row[5] || row.actions || "";
-                }
-            }
-        ],
-        "pageLength": 25,
-        "order": [[0, "asc"]],
-        "responsive": true,
-        "autoWidth": false
+    // Inicializar el módulo cuando el DOM esté listo
+    document.addEventListener("DOMContentLoaded", function() {
+        const payrollShowModule = new PayrollShowModule();
+        payrollShowModule.init();
     });
-
-    // Función para regenerar empleado
-    window.regenerateEmployee = function(employeeId) {
-        if (!confirm("¿Está seguro que desea regenerar este empleado? Esto eliminará sus datos actuales y los recalculará.")) {
-            return;
+</script>
+<script>
+    // Función global para actualizar la tabla desde el botón de la UI
+    function refreshEmployeesTable() {
+        if (window.employeesDataTable) {
+            window.employeesDataTable.ajax.reload();
         }
-
-        $.ajax({
-            url: PAYROLL_CONFIG.urls.regenerateEmployee,
-            type: "POST",
-            data: {
-                employee_id: employeeId,
-                csrf_token: PAYROLL_CONFIG.csrfToken
-            },
-            dataType: "json",
-            success: function(response) {
-                if (response.success) {
-                    alert("Empleado regenerado exitosamente");
-                    window.employeesDataTable.ajax.reload();
-                } else {
-                    alert("Error: " + (response.message || "Error desconocido"));
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("Error regenerating employee:", {xhr, status, error});
-                alert("Error regenerando empleado");
-            }
-        });
-    };
-
-});
+    }
 </script>';
 ?>
 

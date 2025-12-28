@@ -462,11 +462,22 @@ function addConceptToEmployee(detailId, conceptId, $cell) {
 }
 
 function removeConceptFromEmployee(detailId, conceptId, $cell) {
-    if (!confirm("¿Está seguro de quitar este concepto del empleado?")) {
-        return;
-    }
-    
-    showLoadingInCell($cell);
+    Swal.fire({
+        title: '¿Quitar concepto?',
+        html: '¿Está seguro de <strong>quitar este concepto</strong> del empleado?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, quitar',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        showLoadingInCell($cell);
     
     $.ajax({
         url: "/panel/payrolls/remove-employee-concept",
@@ -498,6 +509,7 @@ function removeConceptFromEmployee(detailId, conceptId, $cell) {
             hideLoadingInCell($cell);
         }
     });
+    }); // Cerrar Swal.then()
 }
 
 function restoreCalculatedValue(detailId, conceptId, $cell) {
@@ -646,21 +658,34 @@ function saveAllChanges() {
 }
 
 function recalculateAllEmployees() {
-    if (!confirm("¿Está seguro de recalcular todos los empleados? Esto puede tomar unos momentos.")) {
-        return;
-    }
-    
     const $rows = $("#payroll-edit-table tbody tr");
-    let completed = 0;
     const total = $rows.length;
-    
-    $rows.each(function(index) {
-        const $row = $(this);
-        const detailId = $row.data("detail-id");
-        
-        setTimeout(() => {
-            recalculateEmployee(detailId, $row);
-        }, index * 500); // Espaciar las llamadas para evitar sobrecarga
+
+    Swal.fire({
+        title: '¿Recalcular todos los empleados?',
+        html: `Esto <strong>recalculará ${total} empleados</strong> y puede tomar unos momentos.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, recalcular',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        let completed = 0;
+
+        $rows.each(function(index) {
+            const $row = $(this);
+            const detailId = $row.data("detail-id");
+
+            setTimeout(() => {
+                recalculateEmployee(detailId, $row);
+            }, index * 500); // Espaciar las llamadas para evitar sobrecarga
+        });
     });
 }
 </script>';

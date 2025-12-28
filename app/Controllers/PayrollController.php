@@ -1982,8 +1982,8 @@ class PayrollController extends Controller
 
         // Regenerar empleado
         $actions .= '<button type="button"
-                            class="btn btn-warning btn-sm"
-                            onclick="regenerateEmployee(' . $employeeId . ')"
+                            class="btn btn-warning btn-sm btn-regenerate-employee"
+                            data-employee-id="' . $employeeId . '"
                             title="Regenerar empleado">
                         <i class="fas fa-sync-alt"></i>
                     </button>';
