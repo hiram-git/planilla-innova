@@ -2,10 +2,18 @@
 
 ## 📋 Estado Actual del Sistema
 **Fecha**: 29 de Diciembre, 2025
-**Versión**: 3.5.16 - Expedientes Empleados + Migraciones Multi-Tenant Robustas
-**Versión Anterior**: 3.5.15 - UNIDAD Dinámica en Fórmulas
+**Versión**: 3.5.17 - Bug Fixes + UX Improvements
+**Versión Anterior**: 3.5.16 - Expedientes Empleados + Migraciones Multi-Tenant Robustas
 
-### 🆕 Hitos Recientes (v3.5.16 Expedientes Empleados + Migraciones Multi-Tenant Robustas)
+### 🆕 Hitos Recientes (v3.5.17 Bug Fixes + UX Improvements)
+- **DataTables Persistencia**: stateSave: true en concepts view + Enter key modal eliminación
+- **Préstamos Sistema Fixes**: Status ENUM migración 12 bases + creditor_id assignment + cuotas tracking
+- **Organigrama Estructura**: Migración idempotente nivel→nivel_jerarquico + eliminación columnas legacy
+- **Main Database Migrations**: Script independiente planilla_prod desde .env + SQL parser robusto
+- **Conceptos Préstamos**: Acumulado "Por concepto" (ID 22) asignado automáticamente
+- **Total**: 5 archivos | 1 script (500+ líneas) | 1 migración SQL | 5 bugs corregidos | 12 bases migradas
+
+### 🆕 Hitos Anteriores (v3.5.16 Expedientes Empleados + Migraciones Multi-Tenant Robustas)
 - **Sistema Expedientes Empleados**: 2 tablas nuevas (employee_file_types, employee_file_subtypes)
 - **Catálogo Completo**: 13 tipos + 68 subtipos (Estudios, Capacitación, Permisos, Licencias, etc.)
 - **Menú**: Item ID 26 "Employee Files" agregado a menu_items

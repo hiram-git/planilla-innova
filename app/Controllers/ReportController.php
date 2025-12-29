@@ -335,26 +335,26 @@ class ReportController extends Controller
                 $pdf->SetX($leftX);
                 $pdf->SetFont('helvetica', 'B', 8);
                 $pdf->SetFillColor(224, 224, 224); // Gris claro (mismo que liquidaciones)
-                $colCodigo = 25;
-                $colDescripcion = $colWidth - $colCodigo - 30;
+                $colUnidad = 20;
+                $colDescripcion = $colWidth - $colUnidad - 30;
                 $colMonto = 30;
 
-                $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
                 $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+                $pdf->Cell($colUnidad, 5, 'Unidad', 1, 0, 'C', true);
                 $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
 
                 $pdf->SetFont('helvetica', '', 8);
                 foreach ($employeeData['ingresos'] as $ingreso) {
                     $pdf->SetX($leftX);
-                    $pdf->Cell($colCodigo, 5, $ingreso['codigo'], 1, 0, 'C');
-                    $pdf->Cell($colDescripcion, 5, substr($ingreso['descripcion'], 0, 40), 1, 0, 'L');
+                    $pdf->Cell($colDescripcion, 5, substr($ingreso['descripcion'], 0, 45), 1, 0, 'L');
+                    $pdf->Cell($colUnidad, 5, $ingreso['unidad'] ?? '', 1, 0, 'C');
                     $pdf->Cell($colMonto, 5, '$' . number_format($ingreso['monto'], 2), 1, 1, 'R');
                 }
 
                 $pdf->SetX($leftX);
                 $pdf->SetFont('helvetica', 'B', 9);
                 $pdf->SetFillColor(255, 180, 120); // Naranja claro (mismo que liquidaciones)
-                $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
+                $pdf->Cell($colDescripcion + $colUnidad, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
                 $pdf->Cell($colMonto, 6, '$' . number_format($employeeData['total_ingresos'], 2), 1, 1, 'R', true);
             }
 
@@ -373,26 +373,26 @@ class ReportController extends Controller
                 $pdf->SetX($rightX);
                 $pdf->SetFont('helvetica', 'B', 8);
                 $pdf->SetFillColor(224, 224, 224); // Gris claro
-                $colCodigo = 25;
-                $colDescripcion = $colWidth - $colCodigo - 30;
+                $colUnidad = 20;
+                $colDescripcion = $colWidth - $colUnidad - 30;
                 $colMonto = 30;
 
-                $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
                 $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+                $pdf->Cell($colUnidad, 5, 'Unidad', 1, 0, 'C', true);
                 $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
 
                 $pdf->SetFont('helvetica', '', 8);
                 foreach ($employeeData['deducciones'] as $deduccion) {
                     $pdf->SetX($rightX);
-                    $pdf->Cell($colCodigo, 5, $deduccion['codigo'], 1, 0, 'C');
-                    $pdf->Cell($colDescripcion, 5, substr($deduccion['descripcion'], 0, 40), 1, 0, 'L');
+                    $pdf->Cell($colDescripcion, 5, substr($deduccion['descripcion'], 0, 45), 1, 0, 'L');
+                    $pdf->Cell($colUnidad, 5, $deduccion['unidad'] ?? '', 1, 0, 'C');
                     $pdf->Cell($colMonto, 5, '$' . number_format($deduccion['monto'], 2), 1, 1, 'R');
                 }
 
                 $pdf->SetX($rightX);
                 $pdf->SetFont('helvetica', 'B', 9);
                 $pdf->SetFillColor(255, 180, 120); // Naranja claro (mismo que total ingresos)
-                $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
+                $pdf->Cell($colDescripcion + $colUnidad, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
                 $pdf->Cell($colMonto, 6, '$' . number_format($employeeData['total_deducciones'], 2), 1, 1, 'R', true);
             }
 
@@ -554,26 +554,26 @@ class ReportController extends Controller
             $pdf->SetX($leftX);
             $pdf->SetFont('helvetica', 'B', 8);
             $pdf->SetFillColor(224, 224, 224); // Gris claro
-            $colCodigo = 25;
-            $colDescripcion = $colWidth - $colCodigo - 30;
+            $colUnidad = 20;
+            $colDescripcion = $colWidth - $colUnidad - 30;
             $colMonto = 30;
 
-            $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
             $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+            $pdf->Cell($colUnidad, 5, 'Unidad', 1, 0, 'C', true);
             $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
 
             $pdf->SetFont('helvetica', '', 8);
             foreach ($data['ingresos'] as $ingreso) {
                 $pdf->SetX($leftX);
-                $pdf->Cell($colCodigo, 5, $ingreso['codigo'], 1, 0, 'C');
-                $pdf->Cell($colDescripcion, 5, substr($ingreso['descripcion'], 0, 40), 1, 0, 'L');
+                $pdf->Cell($colDescripcion, 5, substr($ingreso['descripcion'], 0, 45), 1, 0, 'L');
+                $pdf->Cell($colUnidad, 5, $ingreso['unidad'] ?? '', 1, 0, 'C');
                 $pdf->Cell($colMonto, 5, '$' . number_format($ingreso['monto'], 2), 1, 1, 'R');
             }
 
             $pdf->SetX($leftX);
             $pdf->SetFont('helvetica', 'B', 9);
             $pdf->SetFillColor(255, 180, 120); // Naranja claro
-            $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
+            $pdf->Cell($colDescripcion + $colUnidad, 6, 'TOTAL INGRESOS:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 6, '$' . number_format($data['total_ingresos'], 2), 1, 1, 'R', true);
         }
 
@@ -593,26 +593,26 @@ class ReportController extends Controller
             $pdf->SetX($rightX);
             $pdf->SetFont('helvetica', 'B', 8);
             $pdf->SetFillColor(224, 224, 224); // Gris claro
-            $colCodigo = 25;
-            $colDescripcion = $colWidth - $colCodigo - 30;
+            $colUnidad = 20;
+            $colDescripcion = $colWidth - $colUnidad - 30;
             $colMonto = 30;
 
-            $pdf->Cell($colCodigo, 5, 'Código', 1, 0, 'C', true);
             $pdf->Cell($colDescripcion, 5, 'Descripción', 1, 0, 'C', true);
+            $pdf->Cell($colUnidad, 5, 'Unidad', 1, 0, 'C', true);
             $pdf->Cell($colMonto, 5, 'Monto', 1, 1, 'C', true);
 
             $pdf->SetFont('helvetica', '', 8);
             foreach ($data['deducciones'] as $deduccion) {
                 $pdf->SetX($rightX);
-                $pdf->Cell($colCodigo, 5, $deduccion['codigo'], 1, 0, 'C');
-                $pdf->Cell($colDescripcion, 5, substr($deduccion['descripcion'], 0, 40), 1, 0, 'L');
+                $pdf->Cell($colDescripcion, 5, substr($deduccion['descripcion'], 0, 45), 1, 0, 'L');
+                $pdf->Cell($colUnidad, 5, $deduccion['unidad'] ?? '', 1, 0, 'C');
                 $pdf->Cell($colMonto, 5, '$' . number_format($deduccion['monto'], 2), 1, 1, 'R');
             }
 
             $pdf->SetX($rightX);
             $pdf->SetFont('helvetica', 'B', 9);
             $pdf->SetFillColor(255, 180, 120); // Naranja claro (mismo que total ingresos)
-            $pdf->Cell($colCodigo + $colDescripcion, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
+            $pdf->Cell($colDescripcion + $colUnidad, 6, 'TOTAL DEDUCCIONES:', 1, 0, 'R', true);
             $pdf->Cell($colMonto, 6, '$' . number_format($data['total_deducciones'], 2), 1, 1, 'R', true);
         }
 
@@ -1080,7 +1080,7 @@ class ReportController extends Controller
             $stmt = $connection->prepare($sql);
             $stmt->execute([$payrollId, $employeeId]);
             $concepts = $stmt->fetchAll();
-            
+
             // Organizar conceptos por tipo
             $ingresos = [];
             $deducciones = [];
@@ -1088,13 +1088,14 @@ class ReportController extends Controller
             $totalIngresos = 0;
             $totalDeducciones = 0;
             $totalPatronales = 0;
-            
+
             foreach ($concepts as $concept) {
                 $monto = $concept['monto'] ?? 0;
                 $conceptData = [
                     'codigo' => $concept['concepto'],
                     'descripcion' => $concept['descripcion'],
-                    'monto' => $monto
+                    'monto' => $monto,
+                    'unidad' => $concept['unidad'] ?? ''  // Unidad desde planilla_detalle (ya está en pd.*)
                 ];
                 
                 if ($concept['tipo_concepto'] == 'A') {

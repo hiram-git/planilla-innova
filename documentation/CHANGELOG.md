@@ -8,6 +8,37 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.17]** - 2025-12-29 - *Bug Fixes + UX Improvements*
+**Tipo**: MANTENIMIENTO + UX - DataTables State Persistence + Loan System Fixes
+**Fase**: Core System Maintenance (100%)
+**Criticidad**: Alta
+
+**Componentes Principales**:
+- âœ… **DataTables Persistencia Estado** (concepts/index.php):
+  - stateSave: true para recordar página/filtros
+  - Soporte Enter key en modal eliminación
+- âœ… **Préstamos - Fix Status ENUM**:
+  - Migración 3 pasos: 12 bases tenant actualizadas
+  - ENUM('generada','pagada','cancelada','anulado') → ENUM('pendiente','pagada','anulada')
+- âœ… **Conceptos Préstamos Mejorados** (LoanController.php):
+  - Acumulado "Por concepto" (ID 22) asignado automáticamente
+  - creditor_id asignación automática para nuevos conceptos
+- âœ… **Organigrama Fix Estructura** (migración SQL):
+  - Renombrar nivel → nivel_jerarquico
+  - Eliminar columnas legacy cargo_id/funcion_id + FK
+  - Migración idempotente con verificaciones condicionales
+- âœ… **Main Database Migration Runner**:
+  - Script independiente para planilla_prod desde .env
+  - SQL parser robusto + dry-run mode + migrations_history
+
+**ðŸ"ˆ Estadísticas**:
+- 5 archivos modificados | 1 script nuevo (500+ líneas) | 1 migración SQL | 5 bugs corregidos
+- 12 bases tenant migradas | 1 concepto reparado | Deployment: 15-20 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.17.md)**
+
+---
+
 ### **[v3.5.16]** - 2025-12-29 - *Expedientes Empleados + Migraciones Multi-Tenant Robustas*
 **Tipo**: FEATURE + INFRASTRUCTURE - Employee Files System + Migration Runner Enhancement
 **Fase**: Core System Infrastructure (100%)
@@ -818,6 +849,6 @@ Al crear una nueva versiÃ³n:
 ---
 
 Última Actualización: 29 de Diciembre, 2025
-Sistema: Planillas MVC v3.5.16
+Sistema: Planillas MVC v3.5.17
 Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100%
 

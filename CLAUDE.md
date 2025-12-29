@@ -1,9 +1,9 @@
 ﻿# 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📍 **Estado Actual - V3.5.16 Expedientes Empleados + Migraciones Multi-Tenant**
+## 📍 **Estado Actual - V3.5.17 Bug Fixes + UX Improvements**
 - **Fecha**: 29 de Diciembre, 2025
 - **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY 45% + EMPLOYEE IMPORT 100% + PERMISOS GRANULARES 100% + EXPEDIENTES EMPLEADOS 100% + MIGRACIONES MULTI-TENANT 100%**
-- **Versión**: 3.5.16 - Sistema expedientes empleados + Runner migraciones multi-tenant robusto
+- **Versión**: 3.5.17 - Bug fixes críticos + UX improvements + Main DB migration runner
 - **Changelog**: [Ver historial completo →](documentation/CHANGELOG.md)
 
 ## 🎯 **Sistema**
@@ -28,6 +28,13 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Multitenancy**: Wizard empresas + BD automática + License UI (45% completado)
 
 ## 🆕 **Últimas Versiones (Ver changelog para detalles)**
+
+### V3.5.17 - Bug Fixes + UX Improvements (29-Dic-2025)
+- DataTables persistencia estado: stateSave + Enter key modal eliminación
+- Préstamos fixes: ENUM status migración 12 bases + creditor_id + cuotas tracking
+- Organigrama: migración idempotente nivel→nivel_jerarquico + limpieza columnas legacy
+- Main DB migration runner: script independiente planilla_prod desde .env + SQL parser robusto
+- [Ver detalles →](documentation/changelog/v3.5.17.md)
 
 ### V3.5.16 - Expedientes Empleados + Migraciones Multi-Tenant (29-Dic-2025)
 - Sistema completo expedientes: employee_file_types + employee_file_subtypes (81 registros)
@@ -245,6 +252,7 @@ Cuando el usuario solicite cualquier tipo de análisis (usando palabras como "an
   - **ROADMAP.md**: Hoja de ruta y planificación
   - **CHANGELOG.md**: Índice principal de versiones con enlaces
   - **changelog/**: Directorio de changelogs individuales por versión
+    - **v3.5.17.md**: Bug Fixes + UX Improvements (29-Dic-2025)
     - **v3.5.16.md**: Expedientes Empleados + Migraciones Multi-Tenant (29-Dic-2025)
     - **v3.5.15.md**: UNIDAD Dinámica en Fórmulas (28-Dic-2025)
     - **v3.5.14.md**: Campo UNIDAD en Planilla Detalle (28-Dic-2025)
@@ -270,5 +278,5 @@ A partir de la versión 3.4.1, cada versión tiene su propio archivo en `documen
 ---
 
 **Última Actualización**: 29 de Diciembre, 2025
-**Sistema**: Planillas MVC v3.5.16
+**Sistema**: Planillas MVC v3.5.17
 **Progreso Global**: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100%
