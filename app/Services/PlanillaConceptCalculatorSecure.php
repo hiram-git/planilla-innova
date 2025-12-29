@@ -66,7 +66,8 @@ class PlanillaConceptCalculatorSecure
                 'INICIO_PERIODO_XIII',  // Fechas períodos XIII mes trimestral
                 'FIN_PERIODO_XIII',
                 'PERIODO_XIII_ESTADO',  // Estado del período XIII: 'SIN_LIQUIDACION', 'ERROR', 'PENDIENTE', 'LIQUIDADO'
-                'FECHA_LIQUIDACION'  // Fecha de liquidación en formato string
+                'FECHA_LIQUIDACION',  // Fecha de liquidación en formato string
+                'UNIDAD'  // Unidad base de cálculo (días, horas, %, monto)
             ];
 
             if (!in_array($nombre, $variablesEspecialesString) && !is_numeric($valor)) {
@@ -336,13 +337,14 @@ class PlanillaConceptCalculatorSecure
     protected function cargarConceptos(): void
     {
         try {
-            $sql = "SELECT id, concepto, descripcion, formula FROM concepto";
+            $sql = "SELECT id, concepto, descripcion, formula, unidad FROM concepto";
             $stmt = $this->db->query($sql);
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $data = [
                     'id' => $row['id'],
                     'concepto' => $row['concepto'],
-                    'formula' => $row['formula'] ?: '0'
+                    'formula' => $row['formula'] ?: '0',
+                    'unidad' => $row['unidad'] ?? ''
                 ];
 
                 // Usar descripción como clave principal, concepto como alternativa
@@ -615,11 +617,30 @@ class PlanillaConceptCalculatorSecure
             $conceptoData = $this->conceptos[$concepto];
             $formula = $conceptoData['formula'];
 
+            // Establecer variable UNIDAD inicial desde los datos del concepto
+            // La fórmula puede sobrescribir este valor con asignaciones
+            if (isset($conceptoData['unidad'])) {
+                $this->executor->setVar('UNIDAD', $conceptoData['unidad']);
+            }
+
             return $this->evaluarFormula($formula);
 
         } catch (\Exception $e) {
             error_log("Error evaluando fórmula para concepto '$concepto': " . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * Obtener valor actual de la variable UNIDAD
+     * (Útil para capturar el valor calculado dinámicamente en fórmulas)
+     */
+    public function obtenerUnidadCalculada(): mixed
+    {
+        try {
+            return $this->executor->getVar('UNIDAD');
+        } catch (\Exception $e) {
+            return null;
         }
     }
 
@@ -642,6 +663,11 @@ class PlanillaConceptCalculatorSecure
         try {
             $conceptoData = $this->conceptos[$nombre];
             $formula = $conceptoData['formula'];
+
+            // Establecer variable UNIDAD desde los datos del concepto
+            if (isset($conceptoData['unidad'])) {
+                $this->executor->setVar('UNIDAD', $conceptoData['unidad']);
+            }
 
             if (is_numeric($formula)) {
                 $result = (float)$formula;

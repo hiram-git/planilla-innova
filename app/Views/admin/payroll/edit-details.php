@@ -112,13 +112,18 @@ $title = 'Editar Detalles: ' . htmlspecialchars($payroll['descripcion']);
                                                 <input type="checkbox" id="select-all-employees-main"> Empleado
                                             </th>
                                             <?php foreach ($concepts as $concept): ?>
-                                                <th style="min-width: 120px; text-align: center;" 
+                                                <th style="min-width: 120px; text-align: center;"
                                                     class="concept-header concept-<?= $concept['tipo'] ?>"
-                                                    title="<?= htmlspecialchars($concept['descripcion']) ?>">
+                                                    title="<?= htmlspecialchars($concept['descripcion']) ?> <?= !empty($concept['unidad']) ? '(' . htmlspecialchars($concept['unidad']) . ')' : '' ?>">
                                                     <small class="d-block text-<?= $concept['tipo'] === 'INGRESO' ? 'success' : 'danger' ?>">
                                                         <?= htmlspecialchars($concept['tipo']) ?>
                                                     </small>
                                                     <?= htmlspecialchars(mb_strimwidth($concept['descripcion'], 0, 15, '...')) ?>
+                                                    <?php if (!empty($concept['unidad'])): ?>
+                                                        <small class="d-block text-muted" style="font-size: 0.7rem;">
+                                                            (<?= htmlspecialchars($concept['unidad']) ?>)
+                                                        </small>
+                                                    <?php endif; ?>
                                                 </th>
                                             <?php endforeach; ?>
                                             <th style="min-width: 100px;">Totales</th>
@@ -462,11 +467,22 @@ function addConceptToEmployee(detailId, conceptId, $cell) {
 }
 
 function removeConceptFromEmployee(detailId, conceptId, $cell) {
-    if (!confirm("¿Está seguro de quitar este concepto del empleado?")) {
-        return;
-    }
-    
-    showLoadingInCell($cell);
+    Swal.fire({
+        title: '¿Quitar concepto?',
+        html: '¿Está seguro de <strong>quitar este concepto</strong> del empleado?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, quitar',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        showLoadingInCell($cell);
     
     $.ajax({
         url: "/panel/payrolls/remove-employee-concept",
@@ -498,6 +514,7 @@ function removeConceptFromEmployee(detailId, conceptId, $cell) {
             hideLoadingInCell($cell);
         }
     });
+    }); // Cerrar Swal.then()
 }
 
 function restoreCalculatedValue(detailId, conceptId, $cell) {
@@ -646,21 +663,34 @@ function saveAllChanges() {
 }
 
 function recalculateAllEmployees() {
-    if (!confirm("¿Está seguro de recalcular todos los empleados? Esto puede tomar unos momentos.")) {
-        return;
-    }
-    
     const $rows = $("#payroll-edit-table tbody tr");
-    let completed = 0;
     const total = $rows.length;
-    
-    $rows.each(function(index) {
-        const $row = $(this);
-        const detailId = $row.data("detail-id");
-        
-        setTimeout(() => {
-            recalculateEmployee(detailId, $row);
-        }, index * 500); // Espaciar las llamadas para evitar sobrecarga
+
+    Swal.fire({
+        title: '¿Recalcular todos los empleados?',
+        html: `Esto <strong>recalculará ${total} empleados</strong> y puede tomar unos momentos.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, recalcular',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        let completed = 0;
+
+        $rows.each(function(index) {
+            const $row = $(this);
+            const detailId = $row.data("detail-id");
+
+            setTimeout(() => {
+                recalculateEmployee(detailId, $row);
+            }, index * 500); // Espaciar las llamadas para evitar sobrecarga
+        });
     });
 }
 </script>';

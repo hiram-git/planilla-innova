@@ -94,43 +94,43 @@ export class PayrollShowModule extends BaseModule {
                     }
                 },
                 "columns": [
-                    { 
-                        "title": "Empleado", 
+                    {
+                        "title": "Empleado",
                         "data": null,
                         "render": function(data, type, row) {
                             return row[0] || row.employee_name || 'N/A';
                         }
                     },
-                    { 
-                        "title": "Posición", 
+                    {
+                        "title": "Posición",
                         "data": null,
                         "render": function(data, type, row) {
                             return row[1] || row.position_name || 'Sin posición';
                         }
                     },
-                    { 
-                        "title": "Total Ingresos", 
+                    {
+                        "title": "Total Ingresos",
                         "data": null,
                         "render": function(data, type, row) {
                             return row[2] || row.total_ingresos || '$0.00';
                         }
                     },
-                    { 
-                        "title": "Total Deducciones", 
+                    {
+                        "title": "Total Deducciones",
                         "data": null,
                         "render": function(data, type, row) {
                             return row[3] || row.total_deducciones || '$0.00';
                         }
                     },
-                    { 
-                        "title": "Salario Neto", 
+                    {
+                        "title": "Salario Neto",
                         "data": null,
                         "render": function(data, type, row) {
                             return row[4] || row.salario_neto || '$0.00';
                         }
                     },
-                    { 
-                        "title": "Acciones", 
+                    {
+                        "title": "Acciones",
                         "data": null,
                         "orderable": false,
                         "render": function(data, type, row) {
@@ -143,6 +143,9 @@ export class PayrollShowModule extends BaseModule {
                 "responsive": true,
                 "autoWidth": false
             });
+
+            // Exponer DataTable globalmente para compatibilidad con refreshEmployeesTable()
+            window.employeesDataTable = this.state.employeesDataTable;
 
             this.log('DataTable initialized successfully');
 
@@ -164,21 +167,39 @@ export class PayrollShowModule extends BaseModule {
      */
     handleRegenerateEmployee(e) {
         e.preventDefault();
-        
+
         const employeeId = $(e.currentTarget).data('employee-id');
         const payrollId = this.state.currentPayrollId;
-        
+
         if (!employeeId || !payrollId) {
             this.showError('Datos faltantes para regenerar empleado');
             return;
         }
 
-        if (!confirm('¿Está seguro que desea regenerar este empleado? Esto eliminará sus datos actuales y los recalculará.')) {
-            return;
-        }
+        // Usar SweetAlert2 para confirmación
+        Swal.fire({
+            title: '¿Regenerar empleado?',
+            html: 'Esto <strong>eliminará los datos actuales</strong> del empleado en esta planilla y los <strong>recalculará desde cero</strong>.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, regenerar',
+            cancelButtonText: 'Cancelar',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.executeRegenerateEmployee(payrollId, employeeId);
+            }
+        });
+    }
 
+    /**
+     * Ejecutar regeneración del empleado
+     */
+    executeRegenerateEmployee(payrollId, employeeId) {
         const regenerateUrl = this.getConfig('urls.regenerateEmployee');
-        
+
         this.makeAjaxRequest(regenerateUrl, 'POST', {
             payroll_id: payrollId,
             employee_id: employeeId,
@@ -207,6 +228,32 @@ export class PayrollShowModule extends BaseModule {
     }
 
     /**
+     * Sobrescribir showSuccess para usar SweetAlert2
+     */
+    showSuccess(message) {
+        Swal.fire({
+            icon: 'success',
+            title: '¡Éxito!',
+            text: message,
+            confirmButtonColor: '#28a745',
+            timer: 2000,
+            timerProgressBar: true
+        });
+    }
+
+    /**
+     * Sobrescribir showError para usar SweetAlert2
+     */
+    showError(message) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            confirmButtonColor: '#d33'
+        });
+    }
+
+    /**
      * Limpiar recursos al destruir el módulo
      */
     destroy() {
@@ -214,7 +261,7 @@ export class PayrollShowModule extends BaseModule {
             this.state.employeesDataTable.destroy();
             this.state.employeesDataTable = null;
         }
-        
+
         super.destroy();
     }
 }

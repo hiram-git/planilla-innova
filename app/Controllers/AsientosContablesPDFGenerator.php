@@ -115,7 +115,7 @@ class AsientosContablesPDFGenerator extends PDFReportController
                             ? "COALESCE(pos.sueldo, 0) as salary, pos.codigo as puesto_actual, f.nombre as funcion_name"
                             : "COALESCE(e.sueldo_individual, 0) as salary, c2.nombre as puesto_actual, f.nombre as funcion_name") . ",
                         pd.monto AS concepto_monto,
-                        pd.referencia_valor as reference_value,
+                        pd.unidad as reference_value,
                         c.concepto AS concepto_codigo,
                         c.descripcion AS concepto_descripcion,
                         c.tipo_concepto,

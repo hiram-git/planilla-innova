@@ -40,7 +40,8 @@ class Role extends Model
         22 => ['name' => 'Liquidaciones', 'url' => 'liquidation', 'icon' => 'fas fa-door-open', 'description' => 'Cálculo de prestaciones por retiro'],
         23 => ['name' => 'Vacaciones', 'url' => 'vacation', 'icon' => 'fas fa-umbrella-beach', 'description' => 'Control y saldo de vacaciones'],
         24 => ['name' => 'Calendario', 'url' => 'business-calendar', 'icon' => 'fas fa-calendar-day', 'description' => 'Días hábiles y feriados'],
-        25 => ['name' => 'Reportes', 'url' => 'reports', 'icon' => 'fas fa-chart-bar', 'description' => 'Informes y estadísticas']
+        25 => ['name' => 'Reportes', 'url' => 'reports', 'icon' => 'fas fa-chart-bar', 'description' => 'Informes y estadísticas'],
+        26 => ['name' => 'Employee Files', 'url' => 'employee-files', 'icon' => 'fas fa-folder-open', 'description' => 'Employee file records']
     ];
 
     public function getAllActive()

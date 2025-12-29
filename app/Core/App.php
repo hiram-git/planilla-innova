@@ -53,6 +53,7 @@ class App
                     'login' => ['controller' => 'Admin', 'method' => 'login'],
                     'logout' => ['controller' => 'Admin', 'method' => 'logout'],
                     'employees' => ['controller' => 'Employee', 'method' => null],
+                    'employee-files' => ['controller' => 'EmployeeFileController', 'method' => null],
                     'positions' => ['controller' => 'Position', 'method' => null],
                     'cargos' => ['controller' => 'Cargo', 'method' => null],
                     'partidas' => ['controller' => 'Partida', 'method' => null],
