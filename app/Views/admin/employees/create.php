@@ -254,7 +254,7 @@ $content .= '                    </select>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="partida_id">Partida *</label>
+                                    <label for="partida_id">Partida</label>
                                     <select class="form-control" id="partida_id" name="partida_id">
                                         <option value="">Seleccionar partida...</option>';
 
