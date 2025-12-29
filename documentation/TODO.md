@@ -1,8 +1,30 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-12-29 (v3.5.16)
+Actualizado: 2025-12-29 (v3.5.17)
 
-## ✅ Completado Recientemente (v3.5.16 - 29-Dic-2025)
+## ✅ Completado Recientemente (v3.5.17 - 29-Dic-2025)
+
+### Bug Fixes + UX Improvements
+- [x] Agregar stateSave: true en DataTables de concepts/index.php para persistir estado
+- [x] Implementar soporte Enter key en modal eliminación conceptos
+- [x] Asignar acumulado "Por concepto" (ID 22) automáticamente a conceptos de préstamos
+- [x] Fix status ENUM préstamos: migración 3 pasos en 12 bases tenant
+- [x] Fix cuotas préstamos no se marcan como pagadas (creditor_id requerido)
+- [x] Reparar concepto 62 con creditor_id = 1 en pinn49411848
+- [x] Marcar cuota ID 89 como pagada manualmente
+- [x] Verificar conceptos sin creditor_id en todas las bases tenant (0 encontrados)
+- [x] Crear migrate_main_database.php para ejecutar migraciones en planilla_prod
+- [x] Script lee configuración desde .env (DB_DATABASE, DB_HOST, etc.)
+- [x] SQL parser robusto + dry-run mode + migrations_history tracking
+- [x] Fix error "jerarquía del departamento" en producción (estructura organigrama legacy)
+- [x] Crear migración 2025_12_29_fix_organigrama_column_names.sql idempotente
+- [x] Renombrar nivel → nivel_jerarquico con verificaciones condicionales
+- [x] Eliminar columnas/FK legacy (cargo_id, funcion_id, fk_organigrama_cargo, fk_organigrama_funcion)
+- [x] Actualizar CHANGELOG.md con índice v3.5.17
+- [x] Crear documentation/changelog/v3.5.17.md con detalles completos
+- [x] Actualizar TODO.md con tareas completadas v3.5.17
+
+### Previous (v3.5.16 - 29-Dic-2025)
 
 ### Sistema Expedientes Empleados + Migraciones Multi-Tenant Robustas
 - [x] Crear migración employee_files_catalogs.sql con tablas types/subtypes
