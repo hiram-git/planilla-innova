@@ -6,6 +6,7 @@ use App\Core\Controller;
 use App\Core\Security;
 use App\Core\TenantStorage;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\PermissionMiddleware;
 use App\Helpers\PermissionHelper;
 
 class Employee extends Controller
@@ -117,6 +118,35 @@ class Employee extends Controller
         ];
 
         $this->view('admin/employees/show', $data);
+    }
+
+    public function expedientes($id)
+    {
+        PermissionMiddleware::requirePermission('panel/employee-files', 'read');
+
+        $employee = $this->model('Employee');
+        $employeeData = $employee->getEmployeeWithFullDetails($id);
+
+        if (!$employeeData) {
+            $_SESSION['error_message'] = 'Empleado no encontrado';
+            $this->redirect(\App\Core\UrlHelper::employee());
+            return;
+        }
+
+        $fileModel = $this->model('EmployeeFile');
+        $files = $fileModel->getByEmployee((int)$id);
+        $stats = $this->buildEmployeeFileStats($files);
+
+        $data = [
+            'title' => 'Expedientes del Empleado',
+            'page_title' => 'Expedientes',
+            'employee' => $employeeData,
+            'files' => $files,
+            'stats' => $stats,
+            'csrf_token' => AuthMiddleware::generateCSRF()
+        ];
+
+        $this->view('admin/employees/expedientes', $data);
     }
 
     public function store()
@@ -649,6 +679,13 @@ class Employee extends Controller
                                         <i class="fas fa-calendar-alt"></i>
                                      </a> ';
                 }
+
+                // Botón Expedientes
+                if (PermissionHelper::canRead('employee-files')) {
+                    $actionsHtml .= '<a href="' . \App\Core\UrlHelper::employee($emp['id'] . '/expedientes') . '" class="btn btn-secondary btn-sm" title="Expedientes">
+                                        <i class="fas fa-folder-open"></i>
+                                     </a> ';
+                }
                 
                 // Botón Editar
                 if (PermissionHelper::canWrite('employees')) {
@@ -817,6 +854,13 @@ class Employee extends Controller
                 if (PermissionHelper::canRead('employees')) {
                     $actionsHtml .= '<a href="' . \App\Core\UrlHelper::employee($emp['id']) . '" class="btn btn-info btn-sm" title="Ver">
                         <i class="fas fa-eye"></i>
+                    </a>';
+                }
+
+                // Botón Expedientes
+                if (PermissionHelper::canRead('employee-files')) {
+                    $actionsHtml .= '<a href="' . \App\Core\UrlHelper::employee($emp['id'] . '/expedientes') . '" class="btn btn-secondary btn-sm" title="Expedientes">
+                        <i class="fas fa-folder-open"></i>
                     </a>';
                 }
 
@@ -1125,5 +1169,65 @@ class Employee extends Controller
 
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return intval($result['count']);
+    }
+
+    private function getEmployeeFileTypesWithSubtypes()
+    {
+        try {
+            $sql = "SELECT t.id AS type_id,
+                           t.name AS type_name,
+                           st.id AS subtype_id,
+                           st.name AS subtype_name
+                    FROM employee_file_types t
+                    LEFT JOIN employee_file_subtypes st
+                        ON st.type_id = t.id AND st.status = 1
+                    WHERE t.status = 1
+                    ORDER BY t.id ASC, st.name ASC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $types = [];
+            foreach ($rows as $row) {
+                $typeId = (int)$row['type_id'];
+                if (!isset($types[$typeId])) {
+                    $types[$typeId] = [
+                        'id' => $typeId,
+                        'name' => $row['type_name'],
+                        'subtypes' => []
+                    ];
+                }
+
+                if (!empty($row['subtype_id'])) {
+                    $types[$typeId]['subtypes'][] = [
+                        'id' => (int)$row['subtype_id'],
+                        'name' => $row['subtype_name']
+                    ];
+                }
+            }
+
+            return array_values($types);
+        } catch (\Exception $e) {
+            error_log("Error loading employee file types: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function buildEmployeeFileStats(array $files): array
+    {
+        $types = [];
+        $attachments = 0;
+
+        foreach ($files as $file) {
+            $types[$file['type_id']] = true;
+            $attachments += (int)($file['attachments_count'] ?? 0);
+        }
+
+        return [
+            'total_files' => count($files),
+            'total_types' => count($types),
+            'total_attachments' => $attachments
+        ];
     }
 }

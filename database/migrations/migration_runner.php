@@ -226,6 +226,117 @@ class MigrationRunner
         });
     }
 
+    /**
+     * Dividir contenido SQL en statements individuales
+     * Maneja correctamente string literals y comentarios
+     */
+    private function splitSqlStatements($sql)
+    {
+        $statements = [];
+        $buffer = '';
+        $inString = false;
+        $stringChar = '';
+        $inComment = false;
+        $commentType = '';
+
+        $lines = explode("\n", $sql);
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+
+            // Ignorar líneas vacías
+            if (empty($trimmed)) {
+                continue;
+            }
+
+            // Ignorar comentarios de línea completa
+            if (substr($trimmed, 0, 2) === '--' || substr($trimmed, 0, 1) === '#') {
+                continue;
+            }
+
+            // Procesar línea caracter por caracter
+            $len = strlen($line);
+            for ($i = 0; $i < $len; $i++) {
+                $char = $line[$i];
+                $nextChar = ($i + 1 < $len) ? $line[$i + 1] : '';
+
+                // Detectar inicio/fin de string literals
+                if (!$inComment && ($char === '"' || $char === "'")) {
+                    if (!$inString) {
+                        $inString = true;
+                        $stringChar = $char;
+                    } elseif ($char === $stringChar && ($i === 0 || $line[$i - 1] !== '\\')) {
+                        $inString = false;
+                        $stringChar = '';
+                    }
+                }
+
+                // Detectar inicio de comentario
+                if (!$inString && !$inComment) {
+                    if ($char === '-' && $nextChar === '-') {
+                        $inComment = true;
+                        $commentType = 'line';
+                        $i++; // Skip next char
+                        continue;
+                    }
+                    if ($char === '/' && $nextChar === '*') {
+                        $inComment = true;
+                        $commentType = 'block';
+                        $i++; // Skip next char
+                        continue;
+                    }
+                }
+
+                // Detectar fin de comentario
+                if ($inComment) {
+                    if ($commentType === 'block' && $char === '*' && $nextChar === '/') {
+                        $inComment = false;
+                        $commentType = '';
+                        $i++; // Skip next char
+                        continue;
+                    }
+                    if ($commentType === 'line') {
+                        // Comentario de línea termina al final de la línea
+                        break;
+                    }
+                    continue; // No agregar caracteres de comentarios
+                }
+
+                // Detectar fin de statement (;)
+                if (!$inString && !$inComment && $char === ';') {
+                    $buffer .= $char;
+                    $statement = trim($buffer);
+                    if (!empty($statement)) {
+                        $statements[] = $statement;
+                    }
+                    $buffer = '';
+                    continue;
+                }
+
+                $buffer .= $char;
+            }
+
+            // Agregar newline si no estamos en comentario
+            if (!$inComment) {
+                $buffer .= "\n";
+            }
+
+            // Reset comentario de línea al final de la línea
+            if ($inComment && $commentType === 'line') {
+                $inComment = false;
+                $commentType = '';
+            }
+        }
+
+        // Agregar último statement si existe
+        $lastStatement = trim($buffer);
+        if (!empty($lastStatement) && $lastStatement !== ';') {
+            $statements[] = $lastStatement;
+        }
+
+        return $statements;
+    }
+
     private function executeMigration($migration)
     {
         echo "🔄 Ejecutando: {$migration['filename']}\n";
@@ -247,17 +358,36 @@ class MigrationRunner
             $checksum = md5($sql);
 
             if (!$this->dryRun) {
-                // Ejecutar SQL
+                // Ejecutar SQL - dividir en statements individuales
                 try {
-                    $this->pdo->exec($sql);
-                } catch (PDOException $e) {
-                    if ($this->shouldIgnoreMigrationError($e)) {
-                        echo "   ⚠️  Warning: " . $e->getMessage() . " (skipped)\n";
-                        $status = 'skipped';
-                        $errorMessage = $e->getMessage();
-                    } else {
-                        throw $e;
+                    $statements = $this->splitSqlStatements($sql);
+
+                    // Ejecutar cada statement por separado usando query() para evitar buffer issues
+                    foreach ($statements as $index => $statement) {
+                        $trimmedStatement = trim($statement);
+                        if (!empty($trimmedStatement)) {
+                            try {
+                                // Usar query() en lugar de exec() para evitar errores de buffering
+                                $result = $this->pdo->query($trimmedStatement);
+                                if ($result) {
+                                    $result->closeCursor(); // Liberar resultado inmediatamente
+                                }
+                            } catch (PDOException $e) {
+                                if ($this->shouldIgnoreMigrationError($e)) {
+                                    echo "   ⚠️  Warning en statement #" . ($index + 1) . ": " . $e->getMessage() . " (skipped)\n";
+                                    $status = 'skipped';
+                                    $errorMessage = $e->getMessage();
+                                } else {
+                                    throw new PDOException(
+                                        "Error en statement #" . ($index + 1) . ": " . $e->getMessage(),
+                                        (int)$e->getCode()
+                                    );
+                                }
+                            }
+                        }
                     }
+                } catch (PDOException $e) {
+                    throw $e;
                 }
 
                 $executionTime = (int)((microtime(true) - $startTime) * 1000);

@@ -262,6 +262,117 @@ class MultiTenantMigrationRunner
     }
 
     /**
+     * Dividir contenido SQL en statements individuales
+     * Maneja correctamente string literals y comentarios
+     */
+    private function splitSqlStatements($sql)
+    {
+        $statements = [];
+        $buffer = '';
+        $inString = false;
+        $stringChar = '';
+        $inComment = false;
+        $commentType = '';
+
+        $lines = explode("\n", $sql);
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+
+            // Ignorar líneas vacías
+            if (empty($trimmed)) {
+                continue;
+            }
+
+            // Ignorar comentarios de línea completa
+            if (substr($trimmed, 0, 2) === '--' || substr($trimmed, 0, 1) === '#') {
+                continue;
+            }
+
+            // Procesar línea caracter por caracter
+            $len = strlen($line);
+            for ($i = 0; $i < $len; $i++) {
+                $char = $line[$i];
+                $nextChar = ($i + 1 < $len) ? $line[$i + 1] : '';
+
+                // Detectar inicio/fin de string literals
+                if (!$inComment && ($char === '"' || $char === "'")) {
+                    if (!$inString) {
+                        $inString = true;
+                        $stringChar = $char;
+                    } elseif ($char === $stringChar && ($i === 0 || $line[$i - 1] !== '\\')) {
+                        $inString = false;
+                        $stringChar = '';
+                    }
+                }
+
+                // Detectar inicio de comentario
+                if (!$inString && !$inComment) {
+                    if ($char === '-' && $nextChar === '-') {
+                        $inComment = true;
+                        $commentType = 'line';
+                        $i++; // Skip next char
+                        continue;
+                    }
+                    if ($char === '/' && $nextChar === '*') {
+                        $inComment = true;
+                        $commentType = 'block';
+                        $i++; // Skip next char
+                        continue;
+                    }
+                }
+
+                // Detectar fin de comentario
+                if ($inComment) {
+                    if ($commentType === 'block' && $char === '*' && $nextChar === '/') {
+                        $inComment = false;
+                        $commentType = '';
+                        $i++; // Skip next char
+                        continue;
+                    }
+                    if ($commentType === 'line') {
+                        // Comentario de línea termina al final de la línea
+                        break;
+                    }
+                    continue; // No agregar caracteres de comentarios
+                }
+
+                // Detectar fin de statement (;)
+                if (!$inString && !$inComment && $char === ';') {
+                    $buffer .= $char;
+                    $statement = trim($buffer);
+                    if (!empty($statement)) {
+                        $statements[] = $statement;
+                    }
+                    $buffer = '';
+                    continue;
+                }
+
+                $buffer .= $char;
+            }
+
+            // Agregar newline si no estamos en comentario
+            if (!$inComment) {
+                $buffer .= "\n";
+            }
+
+            // Reset comentario de línea al final de la línea
+            if ($inComment && $commentType === 'line') {
+                $inComment = false;
+                $commentType = '';
+            }
+        }
+
+        // Agregar último statement si existe
+        $lastStatement = trim($buffer);
+        if (!empty($lastStatement) && $lastStatement !== ';') {
+            $statements[] = $lastStatement;
+        }
+
+        return $statements;
+    }
+
+    /**
      * Ejecutar migración en un tenant
      */
     private function executeMigration($pdo, $migration, $tenantSlug)
@@ -274,7 +385,28 @@ class MultiTenantMigrationRunner
             $sql = file_get_contents($migration['path']);
 
             if (!$this->dryRun) {
-                $pdo->exec($sql);
+                // Dividir SQL en statements individuales
+                $statements = $this->splitSqlStatements($sql);
+
+                // Ejecutar cada statement por separado usando prepared statements para evitar buffer issues
+                foreach ($statements as $index => $statement) {
+                    $trimmedStatement = trim($statement);
+                    if (!empty($trimmedStatement)) {
+                        try {
+                            // Usar query() en lugar de exec() para evitar errores de buffering
+                            // query() libera automáticamente el buffer después de ejecutar
+                            $result = $pdo->query($trimmedStatement);
+                            if ($result) {
+                                $result->closeCursor(); // Liberar resultado inmediatamente
+                            }
+                        } catch (PDOException $e) {
+                            throw new PDOException(
+                                "Error en statement #" . ($index + 1) . ": " . $e->getMessage(),
+                                (int)$e->getCode()
+                            );
+                        }
+                    }
+                }
             }
 
             $executionTime = (int)((microtime(true) - $startTime) * 1000);
