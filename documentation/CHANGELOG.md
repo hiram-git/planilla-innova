@@ -8,96 +8,102 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
-### **[v3.5.16]** - 2025-12-08 - *Calendario Panamá Feriados Automáticos*
-**Tipo**: FEATURE - Calendario Empresarial
-**Fase**: FASE 4 - Calendario Empresarial Panamá (100% COMPLETADO)
-**Criticidad**: Media
+### **[v3.5.16]** - 2025-12-29 - *Expedientes Empleados + Migraciones Multi-Tenant Robustas*
+**Tipo**: FEATURE + INFRASTRUCTURE - Employee Files System + Migration Runner Enhancement
+**Fase**: Core System Infrastructure (100%)
+**Criticidad**: Alta
 
 **Componentes Principales**:
-- âœ… **Método getPanamaHolidays($year)** (120 líneas):
-  - Retorna array completo 13 feriados nacionales Panamá para año específico
-  - **10 Feriados Obligatorios (is_paid_holiday=1)**: Año Nuevo, Mártires, Carnaval (lunes/martes), Viernes Santo, Trabajo, Separación Colombia, Independencia España, Madre, Navidad
-  - **3 Feriados NO Obligatorios (is_paid_holiday=0)**: Símbolos Patrios, Consolidación Colón, Grito Los Santos
-  - Cálculo automático feriados móviles basados en Pascua
-- âœ… **Método calculateEasterDate($year)** (7 líneas):
-  - Cálculo fecha Pascua usando easter_date() nativo PHP
-  - Base para feriados móviles (Carnaval -48/-47 días, Viernes Santo -2 días)
-- âœ… **initializeYear() Refactorizado** (+48 líneas):
-  - Inserción automática 13 feriados después de generar días laborables
-  - Usa addSpecialDay() con ON DUPLICATE KEY UPDATE (actualiza si existe)
-  - Logging detallado por feriado (inserted/updated)
-  - Estadísticas extendidas: holidays_inserted, holidays_updated
-- âœ… **Diferenciación is_paid_holiday**:
-  - Campo distingue obligatorios (1) vs no obligatorios (0)
-  - Integración con módulo asistencias (feriados pagados)
-- âœ… **0 Configuración Manual**:
-  - Usuario solo ejecuta "Inicializar Año" → calendario completo con feriados
-  - Consistencia total entre empresas (mismos feriados Panamá)
+- âœ… **Sistema Expedientes Empleados**:
+  - 2 tablas nuevas: `employee_file_types` (13 registros), `employee_file_subtypes` (68 registros)
+  - Catálogo completo: Estudios (13), Capacitación (5), Permisos (10), Licencias (13), otros (27)
+  - Menu item ID 26 "Employee Files" agregado
+  - INSERT...ON DUPLICATE KEY UPDATE para idempotencia
+- âœ… **Mejoras Runner Migraciones Multi-Tenant**:
+  - Método `splitSqlStatements()` (60 líneas): parser robusto SQL
+  - Cambio exec() → query() para correcta liberación resultados
+  - Manejo errores mejorado: try-catch por statement individual
+  - Elimina error PDO "Cannot execute queries while pending result sets"
+- âœ… **SQL Simplificado**: UNION ALL → VALUES simples en inserts
 
 **ðŸ"ˆ Estadísticas**:
-- 1 archivo modificado (BusinessCalendar.php) | +175 líneas código
-- 2 métodos nuevos | 1 método refactorizado | 13 feriados/año | 0 cambios BD
-- Deployment: 2 minutos
+- 1 migración | 3 archivos | +195 líneas | 2 tablas nuevas | 81 registros | 1 método parser
+- Deployment: 10 minutos
 
 **[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.16.md)**
 
 ---
 
-### **[v3.5.15]** - 2025-12-08 - *Wizard Migraciones + Seed Data Automáticos*
-**Tipo**: FEATURE - Multitenancy Infrastructure
-**Fase**: FASE 6 - Multitenancy (Subfase 6.1 mejorada al 80%)
-**Criticidad**: Alta
+### **[v3.5.15]** - 2025-12-28 - *UNIDAD Dinámica en Fórmulas*
+**Tipo**: FEATURE - Formula Engine Enhancement
+**Fase**: Motor Fórmulas - Asignación Dinámica Variables
+**Criticidad**: Media
 
 **Componentes Principales**:
-- âœ… **importTenantSchema() Refactorizado** (WizardModel.php):
-  - **PASO 1**: Schema base (structure + procedures + triggers)
-  - **PASO 2**: Seed data (127 registros en 4 tablas) - **NUEVO**
-  - **PASO 3**: TODAS las migraciones en orden cronológico - **NUEVO**
-  - Merge automático estadísticas (base + seed + migraciones)
-- âœ… **importSeedData()** (48 líneas) - **NUEVO**:
-  - Ejecuta seed_concepto_relations.sql (8KB, 127 registros)
-  - Tablas: conceptos_acumulados (36), concepto_frecuencias (31), concepto_situaciones (33), concepto_tipos_planilla (27)
-  - Logging detallado + continúa si falla (no bloquea proceso)
-- âœ… **importMigrations()** (77 líneas) - **NUEVO**:
-  - Escanea /database/migrations/ automáticamente
-  - Ejecuta cada .sql usando SqlImporter
-  - Logging individual (✅ success, ⚠️ warnings, ❌ errors)
-  - Continúa ejecutando siguientes migraciones si una falla
-- âœ… **getMigrationFiles()** (33 líneas) + **extractMigrationDate()** (13 líneas):
-  - Obtiene .sql files + ordena cronológicamente por prefijo fecha
-  - Soporta formatos: YYYY_MM_DD_*.sql y YYYYMMDD_*.sql
-- âœ… **seed_concepto_relations.sql** (8KB) - **NUEVO**:
-  - Generado con mysqldump desde BD producción
-  - 127 INSERT statements con LOCK TABLES + FK management
-
-**Beneficios**:
-- ✅ Nuevas empresas tienen BD 100% actualizada automáticamente
-- ✅ Relaciones conceptos precargadas (127 registros en 4 tablas)
-- ✅ 0 intervención manual post-creación
-- ✅ Portabilidad total - solo agregar .sql a migrations/
-- ✅ Usuario puede usar sistema inmediatamente
+- âœ… **Nueva Sintaxis Fórmulas**:
+  - Asignación dinámica UNIDAD basada en condiciones
+  - Sintaxis: `UNIDAD = expresión_condicional` + `resultado_monto`
+  - Ejemplo: `UNIDAD = SI(MARCA_ASISTENCIA, HORAS_REGULARES(), 15)`
+- âœ… **Implementación**:
+  - Método `obtenerUnidadCalculada()` en PlanillaConceptCalculatorSecure.php (líneas 634-645)
+  - Integración PayrollController.php (líneas 1574-1583)
+  - Captura automática después de evaluar fórmula
+  - Almacenamiento en `planilla_detalle.unidad`
+- âœ… **Casos de Uso**: Conceptos con cálculo condicional, integración asistencias
 
 **ðŸ"ˆ Estadísticas**:
-- 2 archivos (WizardModel.php +280 líneas | seed_concepto_relations.sql 8KB)
-- 4 métodos nuevos (1 refactorizado + 3 nuevos) | 127 registros seed | 50+ migraciones auto-ejecutadas
+- 2 archivos | +45 líneas | 1 método nuevo | 0 cambios BD
 - Deployment: 5 minutos
 
 **[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.15.md)**
 
 ---
 
-### **[v3.5.14]** - 2025-12-04 - *Fix JavaScript Module Loading*
-**Tipo**: BUGFIX - Critical
-**Fase**: Frontend JavaScript Architecture
+### **[v3.5.14]** - 2025-12-28 - *Campo UNIDAD en Planilla Detalle*
+**Tipo**: FEATURE + MIGRATION - Database Field + Formula Integration
+**Fase**: Payroll System - Unit Tracking Enhancement
+**Criticidad**: Media
+
+**Componentes Principales**:
+- âœ… **Migración BD**: `planilla_detalle.referencia_valor` → `unidad` (VARCHAR 50)
+- âœ… **Actualización PHP** (7 archivos):
+  - PayrollController, ExcelReportController, AsientosContablesPDFGenerator
+  - PlanillaContableExcelGenerator, AttendanceConceptMapper, PayrollDetail
+- âœ… **Motor Fórmulas**: Variable UNIDAD agregada a whitelist (PlanillaConceptCalculatorSecure.php)
+- âœ… **Vistas Actualizadas**:
+  - edit-details.php: Headers conceptos muestran unidad
+  - show_detail.php: Columna "Unidad" con badges coloreados
+
+**ðŸ"ˆ Estadísticas**:
+- 1 migración SQL | 7 archivos PHP | ~180 líneas modificadas | 1 variable nueva
+- Deployment: 15-20 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.14.md)**
+
+---
+
+### **[v3.5.13]** - 2025-12-02 - *Sistema Permisos Granulares + Liquidaciones Dinámicas*
+**Tipo**: FEATURE + REFACTOR - Permission System + Liquidation Portability
+**Fase**: Security + Liquidation Module
 **Criticidad**: Alta
 
 **Componentes Principales**:
-- âœ… **RefactorizaciÃ³n PayrollModule** (index.js):
-  - Lazy initialization pattern: mover acceso APP_CONFIG a mÃ©todo init()
-  - URLs inicializadas como strings vacÃ­os en objeto, pobladas en init()
-  - VerificaciÃ³n `typeof APP_CONFIG !== 'undefined'` antes de cada acceso
-  - Fallback dinÃ¡mico si APP_CONFIG no disponible
-  - Logging para debugging
+- âœ… **Sistema Permisos Granular en Sidebar** (sidebar.php +95 líneas):
+  - Método canAccessRoute() con verificación permisos lectura
+  - Pre-verificación secciones (7 variables)
+  - 23 módulos filtrados por permisos
+- âœ… **Fix FK Constraint role_permissions** (Role.php +55 líneas):
+  - 8 módulos insertados (IDs 18-25)
+  - Método getValidMenuIds() + validación automática
+- âœ… **Liquidaciones Dinámicas** (LiquidationController.php +95 líneas):
+  - Método getLiquidationFrequencyId() con lookup dinámico
+  - 8 queries refactorizadas eliminando hardcoded IDs
+
+**ðŸ"ˆ Estadísticas**:
+- 3 archivos | +245 líneas código | 2 métodos nuevos | 8 hardcodes eliminados | 8 registros BD insertados
+- Deployment: 10-15 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.13.md)**
 - âœ… **CorrecciÃ³n Orden Scripts** (index.php):
   - Eliminado uso de `$scriptFiles` array
   - Scripts construidos manualmente en orden correcto con `$scripts`
@@ -811,7 +817,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 08 de Diciembre, 2025
+Última Actualización: 29 de Diciembre, 2025
 Sistema: Planillas MVC v3.5.16
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | JavaScript Arch 100%
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100%
 

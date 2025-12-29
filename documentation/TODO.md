@@ -1,20 +1,48 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-12-04 (v3.5.14)
+Actualizado: 2025-12-29 (v3.5.16)
 
-## ✅ Completado Recientemente (v3.5.14 - 04-Dic-2025)
+## ✅ Completado Recientemente (v3.5.16 - 29-Dic-2025)
 
-### Fix JavaScript Module Loading (Critical)
-- [x] Refactorizar PayrollModule para lazy initialization de URLs
-- [x] Mover acceso APP_CONFIG desde definición objeto a método init()
-- [x] Agregar verificaciones typeof !== 'undefined' para APP_CONFIG
-- [x] Implementar fallback dinámico si APP_CONFIG no disponible
-- [x] Corregir orden de carga scripts en index.php (usar $scripts único)
-- [x] Copiar tenant-storage-manager.js a ubicación correcta (/js/)
-- [x] Testing completo en navegador (consola limpia, funcionalidad operativa)
-- [x] Actualizar CHANGELOG.md con índice v3.5.14
-- [x] Crear documentation/changelog/v3.5.14.md con análisis completo
-- [x] Actualizar CLAUDE.md con resumen compacto del fix
+### Sistema Expedientes Empleados + Migraciones Multi-Tenant Robustas
+- [x] Crear migración employee_files_catalogs.sql con tablas types/subtypes
+- [x] Insertar 13 tipos de expedientes (Estudios, Capacitación, Permisos, etc.)
+- [x] Insertar 68 subtipos categorizados con FK a types
+- [x] Agregar menu item ID 26 "Employee Files" a menu_items
+- [x] Implementar idempotencia con INSERT...ON DUPLICATE KEY UPDATE
+- [x] Fix error PDO "Cannot execute queries while pending result sets"
+- [x] Implementar método splitSqlStatements() (60 líneas) en migration runners
+- [x] Cambiar exec() → query() para correcta liberación de resultados
+- [x] Agregar try-catch por statement individual con logging detallado
+- [x] Simplificar SQL migration: UNION ALL → VALUES simples
+- [x] Actualizar migrate_all_tenants.php y migration_runner.php
+- [x] Testing exitoso migración en todos los tenants (0 errores PDO)
+- [x] Actualizar CLAUDE.md con v3.5.14, v3.5.15, v3.5.16
+- [x] Actualizar CHANGELOG.md con índices v3.5.14-16
+- [x] Actualizar TODO.md con tareas completadas
+
+### Previous (v3.5.15 - 28-Dic-2025)
+
+### UNIDAD Dinámica en Fórmulas
+- [x] Implementar sintaxis asignación dinámica UNIDAD en fórmulas
+- [x] Crear método obtenerUnidadCalculada() en PlanillaConceptCalculatorSecure
+- [x] Integrar captura automática UNIDAD en PayrollController (líneas 1574-1583)
+- [x] Documentar sintaxis: UNIDAD = expresión_condicional + resultado_monto
+- [x] Ejemplo real: UNIDAD = SI(MARCA_ASISTENCIA, HORAS_REGULARES(), 15)
+- [x] Testing con fórmulas complejas condicionales
+- [x] Crear FORMULA_UNIDAD_DINAMICA.md con casos de uso
+
+### Previous (v3.5.14 - 28-Dic-2025)
+
+### Campo UNIDAD en Planilla Detalle
+- [x] Crear migración rename referencia_valor → unidad en planilla_detalle
+- [x] Actualizar 7 archivos PHP (PayrollController, ExcelReportController, etc.)
+- [x] Agregar variable UNIDAD a whitelist PlanillaConceptCalculatorSecure
+- [x] Cargar campo unidad desde tabla conceptos en evaluación fórmulas
+- [x] Actualizar vista edit-details.php (headers conceptos muestran unidad)
+- [x] Actualizar vista show_detail.php (columna Unidad con badges)
+- [x] Ejecutar migración exitosamente en todos los tenants
+- [x] Crear IMPLEMENTACION_CAMPO_UNIDAD.md (385 líneas) con documentación completa
 
 ### Previous (v3.5.13 - 02-Dic-2025)
 

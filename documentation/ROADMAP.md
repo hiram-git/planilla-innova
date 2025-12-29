@@ -1,33 +1,39 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 08 de Diciembre, 2025
-**Versión**: 3.5.16 - Calendario Panamá Feriados Automáticos
-**Versión Anterior**: 3.5.15 - Wizard Migraciones + Seed Data Automáticos
+**Fecha**: 29 de Diciembre, 2025
+**Versión**: 3.5.16 - Expedientes Empleados + Migraciones Multi-Tenant Robustas
+**Versión Anterior**: 3.5.15 - UNIDAD Dinámica en Fórmulas
 
-### 🆕 Hitos Recientes (v3.5.16 Calendario Panamá Feriados Automáticos)
-- **Inserción Automática Feriados**: initializeYear() ahora inserta automáticamente 13 feriados nacionales de Panamá
-- **Feriados Obligatorios**: 10 feriados pagados (Año Nuevo, Mártires, Carnaval, Viernes Santo, Trabajo, Independencias, Madre, Navidad)
-- **Feriados NO Obligatorios**: 3 feriados regionales/sector privado (Símbolos Patrios, Consolidación Colón, Grito Los Santos)
-- **Cálculo Feriados Móviles**: Carnaval y Viernes Santo calculados automáticamente según Pascua (easter_date())
-- **Diferenciación is_paid_holiday**: Campo distingue obligatorios (1) vs no obligatorios (0) para integración asistencias
-- **Actualización Inteligente**: Detecta si feriado ya existe (update) o es nuevo (insert)
-- **0 Configuración Manual**: Usuario solo ejecuta "Inicializar Año" y obtiene calendario completo con feriados
-- **Total**: BusinessCalendar.php +175 líneas | 2 métodos nuevos | 1 método refactorizado | 13 feriados/año
+### 🆕 Hitos Recientes (v3.5.16 Expedientes Empleados + Migraciones Multi-Tenant Robustas)
+- **Sistema Expedientes Empleados**: 2 tablas nuevas (employee_file_types, employee_file_subtypes)
+- **Catálogo Completo**: 13 tipos + 68 subtipos (Estudios, Capacitación, Permisos, Licencias, etc.)
+- **Menú**: Item ID 26 "Employee Files" agregado a menu_items
+- **Idempotencia**: INSERT...ON DUPLICATE KEY UPDATE para seguridad re-ejecuciones
+- **Fix PDO Critical**: Eliminado error "Cannot execute queries while pending result sets"
+- **splitSqlStatements()**: Parser robusto SQL (60 líneas) respeta delimitadores, strings, comentarios
+- **exec() → query()**: Cambio para correcta liberación resultados + compatible SELECT/INSERT/CREATE/triggers
+- **Try-Catch Individual**: Error handling por statement con logging detallado
+- **SQL Simplificado**: UNION ALL → VALUES simples en inserts para compatibilidad parser
+- **Total**: 1 migración | 3 archivos | +195 líneas | 2 tablas | 81 registros | 1 método parser
 
-### 🆕 Hitos Anteriores (v3.5.15 Wizard Migraciones + Seed Data Automáticos)
-- **Ejecución Automática Migraciones**: Wizard ejecuta TODAS las migraciones de /database/migrations/ al crear tenant
-- **Seed Data Precargado**: 127 registros en 4 tablas (conceptos_acumulados, concepto_frecuencias, concepto_situaciones, concepto_tipos_planilla)
-- **Orden Cronológico**: getMigrationFiles() + extractMigrationDate() ordenan migraciones por fecha
-- **Resiliente**: Continúa instalación si migración individual falla (no bloquea proceso)
-- **3 Pasos**: Schema base → Seed data → Migraciones (logging detallado cada paso)
-- **Total**: WizardModel.php +280 líneas | seed_concepto_relations.sql 8KB | 4 métodos nuevos
+### 🆕 Hitos Anteriores (v3.5.15 UNIDAD Dinámica en Fórmulas - 28-Dic-2025)
+- **Asignación Dinámica**: Nueva sintaxis UNIDAD en fórmulas basada en condiciones
+- **Sintaxis**: `UNIDAD = expresión_condicional` + `resultado_monto`
+- **Ejemplo**: `UNIDAD = SI(MARCA_ASISTENCIA, HORAS_REGULARES(), 15)`
+- **Método obtenerUnidadCalculada()**: Captura valor UNIDAD después evaluar fórmula (PlanillaConceptCalculatorSecure.php líneas 634-645)
+- **Integración PayrollController**: Captura automática + prioridad valor asignado > default (líneas 1574-1583)
+- **Almacenamiento**: Guarda en `planilla_detalle.unidad` para auditoría
+- **Casos Uso**: Conceptos condicionales, integración asistencias, fórmulas complejas
+- **Total**: 2 archivos | +45 líneas | 1 método nuevo | 0 cambios BD
 
-### 🆕 Hitos Anteriores (v3.5.14 Fix JavaScript Module Loading)
-- **Lazy Initialization Pattern**: Refactorización PayrollModule para acceder APP_CONFIG en init() en lugar de definición objeto
-- **Fix Script Loading Order**: Eliminado $scriptFiles, construcción manual $scripts con orden correcto (DataTables → APP_CONFIG → payroll config → módulos)
-- **Fix TenantStorageManager**: Archivo copiado a ubicación correcta servida por el proyecto (/js/)
-- **Errores Críticos Resueltos**: APP_CONFIG is not defined + TenantStorageManager is not defined
+### 🆕 Hitos Anteriores (v3.5.14 Campo UNIDAD en Planilla Detalle - 28-Dic-2025)
+- **Migración BD**: `planilla_detalle.referencia_valor` → `unidad` (VARCHAR 50)
+- **Actualización PHP**: 7 archivos (PayrollController, ExcelReportController, AsientosContablesPDFGenerator, etc.)
+- **Motor Fórmulas**: Variable UNIDAD agregada a whitelist + carga desde tabla conceptos
+- **Vistas**: edit-details.php headers muestran unidad + show_detail.php columna Unidad con badges
+- **Valores Típicos**: Días (15, 30), Horas (8, 40, 160), Porcentaje (10, 15, 25)
+- **Total**: 1 migración SQL | 7 archivos PHP | ~180 líneas | 1 variable nueva
 
 ### 🆕 Hitos Anteriores (v3.5.12 Acumulados Excel Export + Bug Fixes)
 - **Exportación Excel Acumulados**: Método exportExcel() con PhpSpreadsheet + 12 columnas profesionales

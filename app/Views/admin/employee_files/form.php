@@ -146,7 +146,8 @@ $scriptFiles = [
     '/assets/javascript/modules/employee_files/index.js'
 ];
 
-$scripts = JavaScriptHelper::renderConfigScript() . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
+$jsConfig = JavaScriptHelper::renderConfigScript();
+$scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
 $styles = '';
 
 include __DIR__ . '/../../layouts/admin.php';
