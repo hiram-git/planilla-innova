@@ -34,9 +34,9 @@ $(document).ready(function() {
             $('#salary-tarifa-section').show();
             $('#public-institution-fields').hide();
 
-            // Hacer obligatorios los campos de empresa privada (excepto funcion_id que es opcional)
-            $('#cargo_id, #partida_id, #sueldo_individual').prop('required', true);
-            $('#funcion_id').prop('required', false);
+            // Hacer obligatorios los campos de empresa privada (excepto funcion_id y partida_id que son opcionales)
+            $('#cargo_id, #sueldo_individual').prop('required', true);
+            $('#funcion_id, #partida_id').prop('required', false);
             $('#position').prop('required', false);
 
         } else {
@@ -48,8 +48,8 @@ $(document).ready(function() {
 
             // Hacer obligatorio solo el campo de posición
             $('#position').prop('required', true);
-            $('#cargo_id, #partida_id, #sueldo_individual').prop('required', false);
-            $('#funcion_id').prop('required', false);
+            $('#cargo_id, #sueldo_individual').prop('required', false);
+            $('#funcion_id, #partida_id').prop('required', false);
         }
     }
     
