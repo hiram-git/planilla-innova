@@ -709,11 +709,12 @@ class PayrollDetail extends Model
             
             if ($detailInfo) {
                 // Obtener conceptos aplicados - parece que se almacenan directamente en planilla_detalle
-                $conceptsSql = "SELECT 
+                $conceptsSql = "SELECT
                                     pd.id,
                                     pd.concepto_id,
                                     pd.monto,
                                     pd.tipo,
+                                    pd.unidad,
                                     c.descripcion,
                                     c.tipo_concepto as concepto_tipo,
                                     c.formula

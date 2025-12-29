@@ -1571,8 +1571,18 @@ class PayrollController extends Controller
                         $amount = 0;
                     }
 
-                    // Calcular valor de referencia según la unidad del concepto
-                    $referenciaValor = $this->calculateReferenceValue($concept, $employee);
+                    // Calcular valor de unidad: intentar obtenerlo de la fórmula primero
+                    // Si la fórmula asignó UNIDAD, usar ese valor; si no, calcular por defecto
+                    $unidadCalculada = $calculadora->obtenerUnidadCalculada();
+                    $unidadConcepto = $concept['unidad'] ?? null;
+
+                    if ($unidadCalculada !== null && $unidadCalculada !== '' && $unidadCalculada !== $unidadConcepto) {
+                        // La fórmula asignó un valor dinámico a UNIDAD
+                        $referenciaValor = $unidadCalculada;
+                    } else {
+                        // Usar cálculo por defecto basado en el tipo de unidad del concepto
+                        $referenciaValor = $this->calculateReferenceValue($concept, $employee);
+                    }
 
                     // Insertar en planilla_detalle si hay monto o si el concepto permite monto cero
                     if ($amount > 0 || ($concept['monto_cero'] == 1 )) {
@@ -1587,7 +1597,7 @@ class PayrollController extends Controller
                                 lastname,
                                 position_id,
                                 schedule_id,
-                                referencia_valor,
+                                unidad,
                                 fecha_transaccion
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                         ";

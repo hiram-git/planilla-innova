@@ -122,6 +122,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                         <thead>
                             <tr>
                                 <th>Concepto</th>
+                                <th class="text-center" style="width: 100px;">Unidad</th>
                                 <th class="text-right">Monto</th>
                             </tr>
                         </thead>
@@ -135,6 +136,13 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                                                 <br><small class="text-muted"><?= htmlspecialchars($income['observaciones']) ?></small>
                                             <?php endif; ?>
                                         </td>
+                                        <td class="text-center">
+                                            <?php if (!empty($income['unidad'])): ?>
+                                                <span class="badge badge-info"><?= htmlspecialchars($income['unidad']) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="text-right">
                                             <span class="text-success font-weight-bold"><?= currency_symbol() ?><?= number_format($income['monto'], 2) ?></span>
                                         </td>
@@ -142,7 +150,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="2" class="text-center text-muted">
+                                    <td colspan="3" class="text-center text-muted">
                                         <i class="fas fa-info-circle"></i> No hay ingresos registrados
                                     </td>
                                 </tr>
@@ -150,7 +158,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                         </tbody>
                         <tfoot>
                             <tr class="font-weight-bold bg-light">
-                                <td>TOTAL INGRESOS</td>
+                                <td colspan="2">TOTAL INGRESOS</td>
                                 <td class="text-right text-success"><?= currency_symbol() ?><?= number_format($totalIncomes, 2) ?></td>
                             </tr>
                         </tfoot>
@@ -173,6 +181,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                         <thead>
                             <tr>
                                 <th>Concepto</th>
+                                <th class="text-center" style="width: 100px;">Unidad</th>
                                 <th class="text-right">Monto</th>
                             </tr>
                         </thead>
@@ -186,6 +195,13 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                                                 <br><small class="text-muted"><?= htmlspecialchars($deduction['observaciones']) ?></small>
                                             <?php endif; ?>
                                         </td>
+                                        <td class="text-center">
+                                            <?php if (!empty($deduction['unidad'])): ?>
+                                                <span class="badge badge-warning"><?= htmlspecialchars($deduction['unidad']) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="text-right">
                                             <span class="text-danger font-weight-bold"><?= currency_symbol() ?><?= number_format($deduction['monto'], 2) ?></span>
                                         </td>
@@ -193,7 +209,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="2" class="text-center text-muted">
+                                    <td colspan="3" class="text-center text-muted">
                                         <i class="fas fa-info-circle"></i> No hay deducciones registradas
                                     </td>
                                 </tr>
@@ -201,7 +217,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                         </tbody>
                         <tfoot>
                             <tr class="font-weight-bold bg-light">
-                                <td>TOTAL DEDUCCIONES</td>
+                                <td colspan="2">TOTAL DEDUCCIONES</td>
                                 <td class="text-right text-danger"><?= currency_symbol() ?><?= number_format($totalDeductions, 2) ?></td>
                             </tr>
                         </tfoot>

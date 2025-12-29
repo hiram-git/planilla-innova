@@ -112,13 +112,18 @@ $title = 'Editar Detalles: ' . htmlspecialchars($payroll['descripcion']);
                                                 <input type="checkbox" id="select-all-employees-main"> Empleado
                                             </th>
                                             <?php foreach ($concepts as $concept): ?>
-                                                <th style="min-width: 120px; text-align: center;" 
+                                                <th style="min-width: 120px; text-align: center;"
                                                     class="concept-header concept-<?= $concept['tipo'] ?>"
-                                                    title="<?= htmlspecialchars($concept['descripcion']) ?>">
+                                                    title="<?= htmlspecialchars($concept['descripcion']) ?> <?= !empty($concept['unidad']) ? '(' . htmlspecialchars($concept['unidad']) . ')' : '' ?>">
                                                     <small class="d-block text-<?= $concept['tipo'] === 'INGRESO' ? 'success' : 'danger' ?>">
                                                         <?= htmlspecialchars($concept['tipo']) ?>
                                                     </small>
                                                     <?= htmlspecialchars(mb_strimwidth($concept['descripcion'], 0, 15, '...')) ?>
+                                                    <?php if (!empty($concept['unidad'])): ?>
+                                                        <small class="d-block text-muted" style="font-size: 0.7rem;">
+                                                            (<?= htmlspecialchars($concept['unidad']) ?>)
+                                                        </small>
+                                                    <?php endif; ?>
                                                 </th>
                                             <?php endforeach; ?>
                                             <th style="min-width: 100px;">Totales</th>

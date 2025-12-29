@@ -147,11 +147,11 @@ class AttendanceConceptMapper
         foreach ($this->mappingsCache['HORAS_TRABAJADAS'] as $mapping) {
             $monto = $this->calculateAmount($horasTrabajadas, $tarifaHora, $mapping, $salarioMensual);
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $horasTrabajadas : null,
+                    'unidad' => $mapping['usar_unidad'] ? $horasTrabajadas : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Horas trabajadas: $horasTrabajadas"
                 ];
@@ -181,11 +181,11 @@ class AttendanceConceptMapper
         foreach ($this->mappingsCache['HORAS_EXTRAS_25'] as $mapping) {
             $monto = $this->calculateAmount($horasExtras25, $tarifaHora, $mapping);
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $horasExtras25 : null,
+                    'unidad' => $mapping['usar_unidad'] ? $horasExtras25 : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Horas extras 25%: $horasExtras25"
                 ];
@@ -215,11 +215,11 @@ class AttendanceConceptMapper
         foreach ($this->mappingsCache['HORAS_EXTRAS_50'] as $mapping) {
             $monto = $this->calculateAmount($horasExtras50, $tarifaHora, $mapping);
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $horasExtras50 : null,
+                    'unidad' => $mapping['usar_unidad'] ? $horasExtras50 : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Horas extras 50%: $horasExtras50"
                 ];
@@ -249,11 +249,11 @@ class AttendanceConceptMapper
         foreach ($this->mappingsCache['HORAS_NOCTURNAS'] as $mapping) {
             $monto = $this->calculateAmount($horasNocturnas, $tarifaHora, $mapping);
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $horasNocturnas : null,
+                    'unidad' => $mapping['usar_unidad'] ? $horasNocturnas : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Horas nocturnas: $horasNocturnas"
                 ];
@@ -283,11 +283,11 @@ class AttendanceConceptMapper
         foreach ($this->mappingsCache['HORAS_FERIADOS'] as $mapping) {
             $monto = $this->calculateAmount($horasFeriados, $tarifaHora, $mapping);
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $horasFeriados : null,
+                    'unidad' => $mapping['usar_unidad'] ? $horasFeriados : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Horas feriados: $horasFeriados"
                 ];
@@ -317,11 +317,11 @@ class AttendanceConceptMapper
         foreach ($this->mappingsCache['HORAS_DOMINICALES'] as $mapping) {
             $monto = $this->calculateAmount($horasDominicales, $tarifaHora, $mapping);
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $horasDominicales : null,
+                    'unidad' => $mapping['usar_unidad'] ? $horasDominicales : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Horas dominicales: $horasDominicales"
                 ];
@@ -353,11 +353,11 @@ class AttendanceConceptMapper
             $horasTardanza = $minutosTardanza / 60;
             $monto = $this->calculateAmount($horasTardanza, $tarifaHora, $mapping);
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $minutosTardanza : null,
+                    'unidad' => $mapping['usar_unidad'] ? $minutosTardanza : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Minutos tardanza: $minutosTardanza"
                 ];
@@ -389,11 +389,11 @@ class AttendanceConceptMapper
             $salarioDiario = $salarioMensual / 30;
             $monto = $ausenciasInjustificadas * $salarioDiario;
 
-            if ($monto > 0 || $mapping['usar_referencia_valor']) {
+            if ($monto > 0 || $mapping['usar_unidad']) {
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => $mapping['usar_referencia_valor'] ? $ausenciasInjustificadas : null,
+                    'unidad' => $mapping['usar_unidad'] ? $ausenciasInjustificadas : null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Ausencias injustificadas: $ausenciasInjustificadas días"
                 ];
@@ -429,7 +429,7 @@ class AttendanceConceptMapper
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => null,
+                    'unidad' => null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Bono puntualidad - Score: $punctualityScore%"
                 ];
@@ -467,7 +467,7 @@ class AttendanceConceptMapper
                 $concepts[] = [
                     'concepto_id' => $mapping['concepto_id'],
                     'monto' => $monto,
-                    'referencia_valor' => null,
+                    'unidad' => null,
                     'tipo' => $mapping['tipo_concepto'],
                     'notas' => "Asistencia perfecta - Días: $diasPerfectos"
                 ];
