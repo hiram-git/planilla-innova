@@ -626,6 +626,104 @@ class Payroll extends Model
     }
 
     /**
+     * 💳 Reabrir planilla cerrada (cambiar estado de CERRADA a PROCESADA)
+     *
+     * Revierte las cuotas de préstamos marcadas como pagadas al estado pendiente
+     * y elimina los acumulados procesados durante el cierre.
+     *
+     * @param int $payrollId ID de la planilla a reabrir
+     * @param int|null $userId ID del usuario que reabre (opcional)
+     * @param string|null $motivo Motivo de la reapertura (opcional)
+     * @return bool True si se reabrió exitosamente, false en caso contrario
+     * @throws \Exception Si hay error en la reapertura
+     */
+    public function reopenPayroll($payrollId, $userId = null, $motivo = null)
+    {
+        try {
+            $this->db->beginTransaction();
+
+            // Verificar que la planilla esté en estado CERRADA
+            $payroll = $this->find($payrollId);
+            if (!$payroll) {
+                throw new \Exception('Planilla no encontrada');
+            }
+
+            if ($payroll['estado'] !== 'CERRADA') {
+                throw new \Exception('Solo se pueden reabrir planillas en estado CERRADA');
+            }
+
+            // 1. Revertir cuotas de préstamos a pendiente
+            $installmentsReverted = $this->revertLoanInstallmentsToPending($payrollId);
+            error_log("Cuotas de préstamos revertidas a pendiente: $installmentsReverted");
+
+            // 2. Eliminar acumulados procesados durante el cierre
+            // (Los acumulados se regenerarán cuando se vuelva a cerrar la planilla)
+            $this->deletePayrollAccumulations($payrollId);
+            error_log("Acumulados eliminados para planilla $payrollId");
+
+            // 3. Actualizar estado a PROCESADA con información de reapertura
+            $updateData = [
+                'estado' => 'PROCESADA',
+                'fecha_reapertura' => date('Y-m-d H:i:s')
+            ];
+
+            if ($userId) {
+                $updateData['usuario_reapertura'] = $userId;
+            }
+
+            if ($motivo) {
+                $updateData['motivo_reapertura'] = $motivo;
+            }
+
+            $result = $this->update($payrollId, $updateData);
+
+            if (!$result) {
+                throw new \Exception('Error al actualizar estado de planilla');
+            }
+
+            $this->db->commit();
+            return true;
+
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            error_log("Error en reopenPayroll: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * 💳 Eliminar acumulados procesados al reabrir planilla
+     *
+     * @param int $payrollId ID de la planilla
+     * @return void
+     */
+    private function deletePayrollAccumulations($payrollId): void
+    {
+        try {
+            // Eliminar consolidados de la planilla
+            $sqlConsolidados = "DELETE FROM planillas_acumulados_consolidados WHERE planilla_id = ?";
+            $stmtConsolidados = $this->db->prepare($sqlConsolidados);
+            $stmtConsolidados->execute([$payrollId]);
+            $deletedConsolidados = $stmtConsolidados->rowCount();
+
+            // Eliminar acumulados por planilla
+            $sqlAcumulados = "DELETE FROM acumulados_por_planilla WHERE planilla_id = ?";
+            $stmtAcumulados = $this->db->prepare($sqlAcumulados);
+            $stmtAcumulados->execute([$payrollId]);
+            $deletedAcumulados = $stmtAcumulados->rowCount();
+
+            // NOTA: Los históricos de empleados NO se eliminan automáticamente
+            // Habría que restar los montos, pero eso puede ser complejo
+            // Por ahora, simplemente eliminamos consolidados y acumulados por planilla
+            error_log("Eliminados $deletedConsolidados consolidados y $deletedAcumulados acumulados para planilla $payrollId");
+
+        } catch (\Exception $e) {
+            error_log("Error eliminando acumulados: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Anular planilla
      */
     public function cancelPayroll($payrollId)
@@ -1584,41 +1682,24 @@ class Payroll extends Model
 
             $fechaCierre = date('Y-m-d');
 
-            // Buscar todos los conceptos que usan CUOTASPRESTAMOS en su fórmula
-            // Estos conceptos deducen las cuotas de préstamos de los empleados
-            $sqlConceptos = "SELECT DISTINCT c.id as concepto_id, c.formula
-                            FROM concepto c
-                            WHERE c.formula LIKE '%CUOTASPRESTAMOS%'
-                            AND c.tipo_concepto = 'D'";
-
-            $stmtConceptos = $this->db->prepare($sqlConceptos);
-            $stmtConceptos->execute();
-            $conceptosConCuotas = $stmtConceptos->fetchAll(PDO::FETCH_ASSOC);
-
-            if (empty($conceptosConCuotas)) {
-                error_log("No hay conceptos con CUOTASPRESTAMOS configurados");
-                return 0;
-            }
-
-            $conceptosIds = array_column($conceptosConCuotas, 'concepto_id');
-            $placeholders = implode(',', array_fill(0, count($conceptosIds), '?'));
-
-            // Buscar todos los detalles de planilla que usan estos conceptos
+            // 💳 MÉTODO OPTIMIZADO: Buscar detalles con creditor_id directo
+            // Buscar todos los detalles de planilla que tienen concepto con creditor_id
             // Y que tienen monto > 0 (es decir, se descontó efectivamente una cuota)
             $sqlDetalles = "SELECT DISTINCT
                                 pd.employee_id,
                                 pd.concepto_id,
                                 pd.monto,
+                                c.creditor_id,
                                 c.formula
                             FROM planilla_detalle pd
                             INNER JOIN concepto c ON c.id = pd.concepto_id
                             WHERE pd.planilla_cabecera_id = ?
-                            AND pd.concepto_id IN ($placeholders)
+                            AND c.creditor_id IS NOT NULL
+                            AND c.tipo_concepto = 'D'
                             AND pd.monto > 0";
 
-            $params = array_merge([$payrollId], $conceptosIds);
             $stmtDetalles = $this->db->prepare($sqlDetalles);
-            $stmtDetalles->execute($params);
+            $stmtDetalles->execute([$payrollId]);
             $detalles = $stmtDetalles->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($detalles)) {
@@ -1628,49 +1709,45 @@ class Payroll extends Model
 
             $cuotasMarcadas = 0;
 
-            // Por cada detalle, extraer el ID del acreedor de la fórmula y marcar la cuota
+            // Por cada detalle, usar creditor_id directamente para marcar la cuota
             foreach ($detalles as $detalle) {
                 try {
-                    // Extraer ID de acreedor de la fórmula CUOTASPRESTAMOS(FICHA, ID_ACREEDOR)
-                    // Ejemplo: "CUOTASPRESTAMOS(FICHA, 5)" -> acreedor_id = 5
-                    if (preg_match('/CUOTASPRESTAMOS\s*\(\s*[^,]+\s*,\s*(\d+)\s*\)/i', $detalle['formula'], $matches)) {
-                        $acreedorId = (int)$matches[1];
+                    $acreedorId = (int)$detalle['creditor_id'];
 
-                        // Buscar la próxima cuota pendiente de este empleado con este acreedor
-                        $sqlCuota = "SELECT li.id, li.loan_id, li.amount
-                                    FROM loan_installments li
-                                    INNER JOIN loans l ON l.id = li.loan_id
-                                    WHERE l.employee_id = ?
-                                    AND l.creditor_id = ?
-                                    AND l.status = 'activo'
-                                    AND li.status = 'pendiente'
-                                    ORDER BY li.due_date ASC, li.installment_number ASC
-                                    LIMIT 1";
+                    // 💳 Buscar la próxima cuota pendiente de este empleado con este acreedor
+                    $sqlCuota = "SELECT li.id, li.loan_id, li.amount
+                                FROM loan_installments li
+                                INNER JOIN loans l ON l.id = li.loan_id
+                                WHERE l.employee_id = ?
+                                AND l.creditor_id = ?
+                                AND l.status = 'activo'
+                                AND li.status = 'pendiente'
+                                ORDER BY li.due_date ASC, li.installment_number ASC
+                                LIMIT 1";
 
-                        $stmtCuota = $this->db->prepare($sqlCuota);
-                        $stmtCuota->execute([$detalle['employee_id'], $acreedorId]);
-                        $cuota = $stmtCuota->fetch(PDO::FETCH_ASSOC);
+                    $stmtCuota = $this->db->prepare($sqlCuota);
+                    $stmtCuota->execute([$detalle['employee_id'], $acreedorId]);
+                    $cuota = $stmtCuota->fetch(PDO::FETCH_ASSOC);
 
-                        if ($cuota) {
-                            // Marcar cuota como pagada
-                            $sqlUpdate = "UPDATE loan_installments
-                                         SET status = 'pagada',
-                                             planilla_id = ?,
-                                             paid_date = ?
-                                         WHERE id = ?";
+                    if ($cuota) {
+                        // Marcar cuota como pagada
+                        $sqlUpdate = "UPDATE loan_installments
+                                     SET status = 'pagada',
+                                         planilla_id = ?,
+                                         paid_date = ?
+                                     WHERE id = ?";
 
-                            $stmtUpdate = $this->db->prepare($sqlUpdate);
-                            $stmtUpdate->execute([$payrollId, $fechaCierre, $cuota['id']]);
+                        $stmtUpdate = $this->db->prepare($sqlUpdate);
+                        $stmtUpdate->execute([$payrollId, $fechaCierre, $cuota['id']]);
 
-                            $cuotasMarcadas++;
+                        $cuotasMarcadas++;
 
-                            error_log("Cuota {$cuota['id']} del préstamo {$cuota['loan_id']} marcada como pagada en planilla $payrollId");
+                        error_log("💳 Cuota {$cuota['id']} del préstamo {$cuota['loan_id']} marcada como pagada en planilla $payrollId (creditor_id: $acreedorId)");
 
-                            // Verificar si el préstamo se completó (todas las cuotas pagadas)
-                            $this->checkAndUpdateLoanCompletion($cuota['loan_id']);
-                        } else {
-                            error_log("No se encontró cuota pendiente para empleado {$detalle['employee_id']} y acreedor $acreedorId");
-                        }
+                        // Verificar si el préstamo se completó (todas las cuotas pagadas)
+                        $this->checkAndUpdateLoanCompletion($cuota['loan_id']);
+                    } else {
+                        error_log("No se encontró cuota pendiente para empleado {$detalle['employee_id']} y acreedor $acreedorId");
                     }
                 } catch (\Exception $e) {
                     error_log("Error marcando cuota individual: " . $e->getMessage());
@@ -1761,7 +1838,7 @@ class Payroll extends Model
             $sql = "SELECT COUNT(*) as pending_count
                     FROM loan_installments
                     WHERE loan_id = ?
-                    AND status = 'pendiente'";
+                    AND status in ('pendiente', 'generada')";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$loanId]);
@@ -1795,7 +1872,7 @@ class Payroll extends Model
             $sql = "SELECT COUNT(*) as pending_count
                     FROM loan_installments
                     WHERE loan_id = ?
-                    AND status = 'pendiente'";
+                    AND status in ('pendiente', 'generada')";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$loanId]);

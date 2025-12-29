@@ -377,6 +377,7 @@ $title = 'Conceptos de Nómina';
         responsive: true,
         pageLength: 25,
         order: [[0, 'asc']],
+        stateSave: true,
         language: {
             "decimal": "",
             "emptyTable": "No hay datos disponibles en la tabla",
@@ -480,6 +481,14 @@ $title = 'Conceptos de Nómina';
 
         $('#confirmDelete').off('click').on('click', function() {
             deleteConcept(conceptId);
+        });
+
+        // Agregar evento keypress para Enter
+        $('#deleteModal').off('keypress.delete').on('keypress.delete', function(e) {
+            if (e.which === 13) { // Enter key
+                e.preventDefault();
+                deleteConcept(conceptId);
+            }
         });
     });
 
