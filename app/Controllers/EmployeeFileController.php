@@ -378,7 +378,7 @@ class EmployeeFileController extends Controller
         exit();
     }
 
-    private function requireAuth()
+    protected function requireAuth()
     {
         AuthMiddleware::requireAuth();
     }
@@ -462,6 +462,67 @@ class EmployeeFileController extends Controller
 
     private function getDynamicFieldsConfig(): array
     {
+        $paidLicenseCommon = [
+            ['name' => 'start_date', 'label' => 'Fecha inicio', 'type' => 'date', 'required' => true],
+            ['name' => 'end_date', 'label' => 'Fecha fin', 'type' => 'date', 'required' => true],
+            ['name' => 'total_days', 'label' => 'Total de dias concedidos', 'type' => 'number', 'step' => '1', 'required' => true],
+            [
+                'name' => 'paid_license',
+                'label' => 'Goza de remuneracion',
+                'type' => 'select',
+                'options' => ['Si' => 'Si', 'No' => 'No'],
+                'default' => 'Si',
+                'required' => true
+            ],
+            ['name' => 'license_reason_detail', 'label' => 'Motivo', 'type' => 'textarea'],
+            ['name' => 'authorized_by', 'label' => 'Autorizado por', 'type' => 'text'],
+            ['name' => 'resolution_number', 'label' => 'Resolucion', 'type' => 'text'],
+            ['name' => 'resolution_file', 'label' => 'Documento de respaldo', 'type' => 'file', 'accept' => '.pdf,image/*']
+        ];
+
+        $unpaidLicenseCommon = [
+            ['name' => 'start_date', 'label' => 'Fecha inicio', 'type' => 'date', 'required' => true],
+            ['name' => 'end_date', 'label' => 'Fecha fin', 'type' => 'date', 'required' => true],
+            ['name' => 'total_days', 'label' => 'Total de dias', 'type' => 'number', 'step' => '1', 'required' => true],
+            [
+                'name' => 'paid_license',
+                'label' => 'Goza de remuneracion',
+                'type' => 'text',
+                'default' => 'No',
+                'readonly' => true
+            ],
+            ['name' => 'license_reason_detail', 'label' => 'Motivo', 'type' => 'textarea'],
+            ['name' => 'approved_by', 'label' => 'Aprobado por', 'type' => 'text'],
+            ['name' => 'approval_document', 'label' => 'Documento de aprobacion', 'type' => 'file', 'accept' => '.pdf,image/*']
+        ];
+
+        $specialLicenseCommon = [
+            ['name' => 'start_date', 'label' => 'Fecha inicio', 'type' => 'date', 'required' => true],
+            ['name' => 'end_date', 'label' => 'Fecha fin (si aplica)', 'type' => 'date'],
+            [
+                'name' => 'total_days',
+                'label' => 'Total de dias (o hasta recuperacion)',
+                'type' => 'text',
+                'placeholder' => 'Hasta recuperacion',
+                'required' => true
+            ],
+            ['name' => 'diagnosis', 'label' => 'Diagnostico o justificacion medica', 'type' => 'textarea', 'required' => true],
+            ['name' => 'medical_center', 'label' => 'Centro medico', 'type' => 'text'],
+            ['name' => 'doctor_name', 'label' => 'Medico tratante', 'type' => 'text'],
+            [
+                'name' => 'medical_file',
+                'label' => 'Dictamen medico o certificado',
+                'type' => 'file',
+                'accept' => '.pdf,image/*',
+                'required' => true
+            ]
+        ];
+
+        $specialProfessionalFields = [
+            ['name' => 'professional_report', 'label' => 'Informe de accidente o enfermedad profesional', 'type' => 'textarea'],
+            ['name' => 'issuing_entity', 'label' => 'Entidad que emite', 'type' => 'text']
+        ];
+
         return [
             'Estudios Academicos' => [
                 ['name' => 'institution', 'label' => 'Institución', 'type' => 'text', 'required' => true],
@@ -533,35 +594,136 @@ class EmployeeFileController extends Controller
                 ['name' => 'reference_contact', 'label' => 'Referencia/Contacto', 'type' => 'text']
             ],
             'Licencias con Sueldo' => [
-                ['name' => 'license_reason_detail', 'label' => 'Motivo', 'type' => 'textarea'],
-                ['name' => 'start_date', 'label' => 'Fecha inicio', 'type' => 'date'],
-                ['name' => 'end_date', 'label' => 'Fecha fin', 'type' => 'date'],
-                ['name' => 'authorized_by', 'label' => 'Autorizado por', 'type' => 'text'],
-                ['name' => 'resolution_number', 'label' => 'Resolución', 'type' => 'text'],
-                ['name' => 'resolution_file', 'label' => 'Documento de respaldo', 'type' => 'file', 'accept' => '.pdf,image/*']
+                'common' => $paidLicenseCommon,
+                'subtypes' => [
+                    'Representaci?n de la Instituci?n, Estado o Pa?s' => [
+                        ['name' => 'representation_entity', 'label' => 'Institucion o evento representado', 'type' => 'text'],
+                        ['name' => 'representation_place', 'label' => 'Lugar', 'type' => 'text'],
+                        ['name' => 'representation_activity', 'label' => 'Descripcion de la actividad', 'type' => 'textarea']
+                    ],
+                    'Estudios' => [
+                        ['name' => 'study_program', 'label' => 'Programa o cursos', 'type' => 'text'],
+                        ['name' => 'study_institution', 'label' => 'Institucion educativa', 'type' => 'text'],
+                        [
+                            'name' => 'study_schedule',
+                            'label' => 'Horario',
+                            'type' => 'select',
+                            'options' => ['Manana' => 'Manana', 'Tarde' => 'Tarde', 'Noche' => 'Noche'],
+                            'placeholder' => 'Seleccione...'
+                        ]
+                    ],
+                    'Representaci?n de la asociaci?n de servidor' => [
+                        ['name' => 'association_name', 'label' => 'Nombre de la asociacion', 'type' => 'text'],
+                        ['name' => 'association_role', 'label' => 'Cargo que representa', 'type' => 'text'],
+                        ['name' => 'association_activity', 'label' => 'Actividad gremial', 'type' => 'textarea']
+                    ],
+                    'Capacitaci?n' => [
+                        ['name' => 'training_name', 'label' => 'Nombre del curso o evento', 'type' => 'text'],
+                        ['name' => 'training_organizer', 'label' => 'Entidad organizadora', 'type' => 'text'],
+                        ['name' => 'training_hours', 'label' => 'Duracion en horas', 'type' => 'number', 'step' => '0.5']
+                    ],
+                    'RAZONES EXTRAORDINARIAS' => [
+                        ['name' => 'extraordinary_reason', 'label' => 'Descripcion de la razon extraordinaria', 'type' => 'textarea']
+                    ]
+                ]
             ],
             'Licencias sin Sueldo' => [
-                ['name' => 'license_reason_detail', 'label' => 'Motivo', 'type' => 'textarea'],
-                ['name' => 'start_date', 'label' => 'Fecha inicio', 'type' => 'date'],
-                ['name' => 'end_date', 'label' => 'Fecha fin', 'type' => 'date'],
-                ['name' => 'approved_by', 'label' => 'Aprobado por', 'type' => 'text'],
-                ['name' => 'approval_document', 'label' => 'Documento de aprobación', 'type' => 'file', 'accept' => '.pdf,image/*']
+                'common' => $unpaidLicenseCommon,
+                'subtypes' => [
+                    'Asumir cargo de elecci?n popular' => [
+                        ['name' => 'public_position', 'label' => 'Cargo publico', 'type' => 'text'],
+                        ['name' => 'public_entity', 'label' => 'Entidad', 'type' => 'text'],
+                        ['name' => 'public_term', 'label' => 'Periodo del cargo', 'type' => 'text']
+                    ],
+                    'Asuntos Personales' => [
+                        ['name' => 'personal_reason', 'label' => 'Motivo detallado', 'type' => 'textarea']
+                    ],
+                    'Asumir cargo de libre nobramiento y remoci?n' => [
+                        ['name' => 'appointment_position', 'label' => 'Cargo', 'type' => 'text'],
+                        ['name' => 'appointment_institution', 'label' => 'Institucion', 'type' => 'text'],
+                        [
+                            'name' => 'appointment_file',
+                            'label' => 'Copia del nombramiento',
+                            'type' => 'file',
+                            'accept' => '.pdf,image/*',
+                            'required' => true
+                        ]
+                    ],
+                    'Estudiar' => [
+                        ['name' => 'study_program', 'label' => 'Programa de estudios', 'type' => 'text'],
+                        ['name' => 'study_institution', 'label' => 'Institucion', 'type' => 'text'],
+                        ['name' => 'study_duration', 'label' => 'Duracion del programa', 'type' => 'text']
+                    ]
+                ]
             ],
             'Licencias Especiales' => [
-                ['name' => 'diagnosis', 'label' => 'Diagnóstico', 'type' => 'textarea'],
-                ['name' => 'start_date', 'label' => 'Fecha inicio', 'type' => 'date'],
-                ['name' => 'end_date', 'label' => 'Fecha fin', 'type' => 'date'],
-                ['name' => 'medical_center', 'label' => 'Centro médico', 'type' => 'text'],
-                ['name' => 'doctor_name', 'label' => 'Médico tratante', 'type' => 'text'],
-                ['name' => 'medical_file', 'label' => 'Soporte médico', 'type' => 'file', 'accept' => '.pdf,image/*']
-            ]
+                'common' => $specialLicenseCommon,
+                'subtypes' => [
+                    'Enfermedad Profesional' => $specialProfessionalFields,
+                    'Riesgos Profesionales' => $specialProfessionalFields,
+                    'Enfermedad/Incapacidad superior quince d?as' => [
+                        ['name' => 'rest_days', 'label' => 'Dias de reposo prescritos', 'type' => 'number', 'step' => '1']
+                    ],
+                    'Gravidez' => [
+                        ['name' => 'due_date', 'label' => 'Fecha probable de parto', 'type' => 'date'],
+                        ['name' => 'gestation_weeks', 'label' => 'Semanas de gestacion', 'type' => 'number', 'step' => '1'],
+                        [
+                            'name' => 'maternity_stage',
+                            'label' => 'Prenatal/Postnatal',
+                            'type' => 'select',
+                            'options' => ['Prenatal' => 'Prenatal', 'Postnatal' => 'Postnatal'],
+                            'placeholder' => 'Seleccione...'
+                        ]
+                    ]
+                ]
+            ],
         ];
+    }
+
+    private function getDynamicFieldsForRender(string $typeName, string $subtypeName = ''): array
+    {
+        $config = $this->getDynamicFieldsConfig();
+        if (empty($config[$typeName])) {
+            return [];
+        }
+
+        $typeConfig = $config[$typeName];
+        if (array_key_exists(0, $typeConfig)) {
+            return $typeConfig;
+        }
+
+        $fields = $typeConfig['common'] ?? [];
+        $subtypes = $typeConfig['subtypes'] ?? [];
+        if ($subtypeName && isset($subtypes[$subtypeName])) {
+            $fields = array_merge($fields, $subtypes[$subtypeName]);
+        }
+
+        return $fields;
+    }
+
+    private function getDynamicFieldsForType(string $typeName): array
+    {
+        $config = $this->getDynamicFieldsConfig();
+        if (empty($config[$typeName])) {
+            return [];
+        }
+
+        $typeConfig = $config[$typeName];
+        if (array_key_exists(0, $typeConfig)) {
+            return $typeConfig;
+        }
+
+        $fields = $typeConfig['common'] ?? [];
+        foreach (($typeConfig['subtypes'] ?? []) as $subtypeFields) {
+            $fields = array_merge($fields, $subtypeFields);
+        }
+
+        return $fields;
     }
 
     private function renderDynamicFields(string $typeName, array $values = [], string $subtypeName = ''): string
     {
-        $config = $this->getDynamicFieldsConfig();
-        $fields = $config[$typeName] ?? [];
+        $fields = $this->getDynamicFieldsForRender($typeName, $subtypeName);
 
         if (empty($fields)) {
             return '<div class="callout callout-info">No hay campos adicionales para este tipo de expediente.</div>';
@@ -581,27 +743,46 @@ class EmployeeFileController extends Controller
                         $fieldLabel = $field['label'] ?? $fieldName;
                         $fieldType = $field['type'] ?? 'text';
                         $required = !empty($field['required']) ? 'required' : '';
-                        $value = $values[$fieldName] ?? '';
+                        $readonly = !empty($field['readonly']) ? 'readonly' : '';
+                        $placeholder = $field['placeholder'] ?? '';
+                        $placeholderAttr = $placeholder !== '' ? 'placeholder="' . htmlspecialchars($placeholder) . '"' : '';
+                        $value = $values[$fieldName] ?? ($field['default'] ?? '');
                         $columnClass = $fieldType === 'textarea' ? 'col-md-12' : 'col-md-6';
                         ?>
                         <div class="<?= $columnClass ?>">
                             <div class="form-group">
                                 <label><?= htmlspecialchars($fieldLabel) ?></label>
                                 <?php if ($fieldType === 'textarea'): ?>
-                                    <textarea name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" rows="3" <?= $required ?>><?= htmlspecialchars($value) ?></textarea>
+                                    <textarea name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" rows="3" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>><?= htmlspecialchars($value) ?></textarea>
                                 <?php elseif ($fieldType === 'date'): ?>
-                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control date-picker" value="<?= htmlspecialchars($value) ?>" <?= $required ?>>
+                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control date-picker" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
                                 <?php elseif ($fieldType === 'datetime'): ?>
-                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control datetime-picker" value="<?= htmlspecialchars($value) ?>" <?= $required ?>>
+                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control datetime-picker" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
                                 <?php elseif ($fieldType === 'number'): ?>
-                                    <input type="number" step="<?= htmlspecialchars($field['step'] ?? '1') ?>" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" <?= $required ?>>
+                                    <input type="number" step="<?= htmlspecialchars($field['step'] ?? '1') ?>" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
+                                <?php elseif ($fieldType === 'select'): ?>
+                                    <?php $options = $field['options'] ?? []; ?>
+                                    <select name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" <?= $required ?>>
+                                        <?php if ($placeholder !== ''): ?>
+                                            <option value="" <?= $value === '' ? 'selected' : '' ?>><?= htmlspecialchars($placeholder) ?></option>
+                                        <?php endif; ?>
+                                        <?php foreach ($options as $optionValue => $optionLabel): ?>
+                                            <?php
+                                            if (is_int($optionValue)) {
+                                                $optionValue = $optionLabel;
+                                            }
+                                            $selected = ((string)$value !== '' && (string)$value === (string)$optionValue) ? 'selected' : '';
+                                            ?>
+                                            <option value="<?= htmlspecialchars((string)$optionValue) ?>" <?= $selected ?>><?= htmlspecialchars((string)$optionLabel) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 <?php elseif ($fieldType === 'file'): ?>
                                     <div class="custom-file">
-                                        <input type="file" name="<?= htmlspecialchars($fieldName) ?>" class="custom-file-input" accept="<?= htmlspecialchars($field['accept'] ?? '.pdf,image/*') ?>">
+                                        <input type="file" name="<?= htmlspecialchars($fieldName) ?>" class="custom-file-input" accept="<?= htmlspecialchars($field['accept'] ?? '.pdf,image/*') ?>" <?= $required ?>>
                                         <label class="custom-file-label">Seleccionar archivo</label>
                                     </div>
                                 <?php else: ?>
-                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" <?= $required ?>>
+                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -616,8 +797,7 @@ class EmployeeFileController extends Controller
 
     private function filterExtraFields(string $typeName, array $extraFields): array
     {
-        $config = $this->getDynamicFieldsConfig();
-        $fields = $config[$typeName] ?? [];
+        $fields = $this->getDynamicFieldsForType($typeName);
         $allowed = [];
 
         foreach ($fields as $field) {
@@ -662,8 +842,7 @@ class EmployeeFileController extends Controller
             }
         }
 
-        $config = $this->getDynamicFieldsConfig();
-        $fields = $config[$typeName] ?? [];
+        $fields = $this->getDynamicFieldsForType($typeName);
         foreach ($fields as $field) {
             if (($field['type'] ?? '') !== 'file') {
                 continue;

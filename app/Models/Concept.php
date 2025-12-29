@@ -23,6 +23,7 @@ class Concept extends Model
         'frecuencias',
         'situaciones',
         'formula',
+        'creditor_id', // 💳 Relación directa con acreedor para préstamos
         'valor_fijo',
         'imprime_detalles',
         'prorratea',

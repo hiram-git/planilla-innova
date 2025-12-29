@@ -301,7 +301,7 @@ class LoanController extends Controller
                 'installment_number' => $i,
                 'amount' => $amount,
                 'due_date' => $dueDate->format('Y-m-d'),
-                'status' => 'generada',
+                'status' => 'pendiente', // ✅ Estado correcto según migración
                 'created_at' => date('Y-m-d H:i:s')
             ];
 
@@ -380,14 +380,30 @@ class LoanController extends Controller
     }
 
     /**
-     * Buscar concepto existente que use la fórmula CUOTAPRESTAMO con este creditor
+     * 💳 Buscar concepto existente por creditor_id directo
+     * Busca primero por creditor_id, luego por fórmula (fallback legacy)
      */
     private function findConceptByCreditorId($creditorId)
     {
         try {
             $db = $this->conceptModel->db;
 
-            // Obtener el creditor_id (código) del acreedor
+            // ✅ MÉTODO 1: Búsqueda directa por creditor_id (más rápido y preciso)
+            $sql = "SELECT * FROM concepto
+                    WHERE creditor_id = ?
+                    AND activo = 1
+                    LIMIT 1";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$creditorId]);
+            $concept = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($concept) {
+                error_log("💳 Concepto encontrado por creditor_id: {$concept['id']}");
+                return $concept;
+            }
+
+            // ❌ MÉTODO 2: Fallback para conceptos legacy sin creditor_id
             $creditor = $this->creditorModel->findById($creditorId);
             if (!$creditor || empty($creditor['creditor_id'])) {
                 return null;
@@ -395,8 +411,6 @@ class LoanController extends Controller
 
             $creditorCode = $creditor['creditor_id'];
 
-            // Buscar concepto cuya fórmula contenga "CUOTAPRESTAMO(FICHA, '{creditorCode}')" o "CUOTAPRESTAMO(FICHA, {creditorId})"
-            // Buscar por código (string) o ID numérico para compatibilidad
             $sql = "SELECT * FROM concepto
                     WHERE (formula LIKE ? OR formula LIKE ?)
                     AND activo = 1
@@ -448,6 +462,7 @@ class LoanController extends Controller
                 'descripcion' => $conceptDescription,
                 'tipo_concepto' => 'D', // Deducción
                 'formula' => $formula,
+                'creditor_id' => $creditorId, // 💳 Relación directa con acreedor
                 'valor_fijo' => null,
                 'monto_cero' => 1, // Permitir montos cero para deducciones
                 'monto_calculo' => 1, // Usar cálculo con fórmula
@@ -508,6 +523,15 @@ class LoanController extends Controller
             foreach ($defaultSituations as $situationId) {
                 $stmt = $db->prepare("INSERT IGNORE INTO concepto_situaciones (concepto_id, situacion_id) VALUES (?, ?)");
                 $stmt->execute([$conceptId, $situationId]);
+            }
+
+            // 4. Relaciones con TIPOS DE ACUMULADO
+            // Por defecto, aplicar "Por concepto" (22)
+            $defaultAccumulatedTypes = [22]; // Por concepto
+
+            foreach ($defaultAccumulatedTypes as $accumulatedTypeId) {
+                $stmt = $db->prepare("INSERT IGNORE INTO concepto_acumulados (concepto_id, tipo_acumulado_id) VALUES (?, ?)");
+                $stmt->execute([$conceptId, $accumulatedTypeId]);
             }
 
             error_log("Relaciones por defecto creadas para concepto $conceptId");
