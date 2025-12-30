@@ -661,6 +661,30 @@ class AbsenceDetector
     }
 
     /**
+     * Elimina ausencia por empleado y fecha (para cuando se corrigen marcaciones)
+     *
+     * @param int $employeeId ID del empleado
+     * @param string $date Fecha en formato Y-m-d
+     * @return bool True si se eliminó o no existía, False si hubo error
+     */
+    public function deleteAbsenceByEmployeeAndDate(int $employeeId, string $date): bool
+    {
+        try {
+            $sql = "DELETE FROM attendance_absence_log WHERE employee_id = ? AND absence_date = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $date]);
+
+            // Retornar true incluso si no había registro (0 rows affected)
+            // porque el objetivo es que NO exista ausencia
+            return true;
+
+        } catch (Exception $e) {
+            error_log("Error eliminando ausencia por empleado/fecha: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Obtiene estadísticas de ausencias por tipo
      *
      * @param string $startDate

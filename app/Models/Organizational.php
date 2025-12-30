@@ -16,19 +16,53 @@ class Organizational extends Model
      */
     public function getOrganizationalHierarchy()
     {
+        // Detectar si la columna ya fue renombrada a departamento_id o sigue siendo organigrama_id
+        $columnName = $this->detectDepartamentoColumnName();
+
         $sql = "SELECT
                     o.*,
                     p.descripcion as parent_descripcion,
                     COUNT(DISTINCT c.id) as cargos_count
                 FROM organigrama o
                 LEFT JOIN organigrama p ON o.id_padre = p.id
-                LEFT JOIN cargos c ON o.id = c.departamento_id AND c.activo = 1
+                LEFT JOIN cargos c ON o.id = c.{$columnName} AND c.activo = 1
                 GROUP BY o.id, o.descripcion, o.id_padre, o.path, o.nivel_jerarquico, p.descripcion
                 ORDER BY o.path ASC";
 
         $items = $this->db->findAll($sql);
 
         return $this->buildHierarchyTree($items, 'id_padre');
+    }
+
+    /**
+     * Detectar el nombre correcto de la columna en cargos (organigrama_id vs departamento_id)
+     * Para compatibilidad durante migración progresiva
+     */
+    private function detectDepartamentoColumnName()
+    {
+        static $cachedColumnName = null;
+
+        if ($cachedColumnName !== null) {
+            return $cachedColumnName;
+        }
+
+        try {
+            $sql = "SHOW COLUMNS FROM cargos LIKE 'departamento_id'";
+            $result = $this->db->findAll($sql);
+
+            if (!empty($result)) {
+                $cachedColumnName = 'departamento_id';
+            } else {
+                $cachedColumnName = 'organigrama_id';
+            }
+
+            return $cachedColumnName;
+
+        } catch (\Exception $e) {
+            // En caso de error, asumir el nombre legacy
+            error_log("Error detectando nombre columna departamento: " . $e->getMessage());
+            return 'organigrama_id';
+        }
     }
 
     /**
