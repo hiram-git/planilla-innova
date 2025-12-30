@@ -119,9 +119,11 @@ class PeriodAttendanceSummary
 
         foreach ($calculations as $calc) {
             $summary['total_hours_worked'] += (float)$calc['total_hours'];
-            $summary['regular_hours'] += min((float)$calc['total_hours'], 8); // Máximo 8h regulares por día
-            $summary['overtime_hours_25'] += (float)($calc['overtime_hours_25'] ?? 0);
-            $summary['overtime_hours_50'] += (float)($calc['overtime_hours_50'] ?? 0);
+            // CORRECCIÓN: Usar el campo regular_hours del cálculo individual
+            // En feriados, este campo será 0 (las horas van en holiday_hours)
+            $summary['regular_hours'] += (float)($calc['regular_hours'] ?? 0);
+            $summary['overtime_hours_25'] += (float)($calc['overtime_25_hours'] ?? 0);
+            $summary['overtime_hours_50'] += (float)($calc['overtime_50_hours'] ?? 0);
             $summary['night_hours'] += (float)($calc['night_hours'] ?? 0);
             $summary['holiday_hours'] += (float)($calc['holiday_hours'] ?? 0);
             $summary['sunday_hours'] += (float)($calc['sunday_hours'] ?? 0);

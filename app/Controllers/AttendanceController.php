@@ -484,14 +484,14 @@ class AttendanceController extends Controller
             $result = $this->detailModel->update($id, $data);
 
             if ($result) {
+                // Obtener el detalle actualizado para procesos posteriores
+                $updatedDetail = $this->detailModel->getById($id);
+
                 // Recalcular automáticamente si tiene time_in y time_out
                 $calculationData = null;
                 // Recalcular si hay cambios en horas de entrada/salida o almuerzo
                 if (($data['time_in'] && $data['time_out']) || ($data['lunch_out'] || $data['lunch_in'])) {
                     try {
-                        // Obtener el detalle actualizado
-                        $updatedDetail = $this->detailModel->getById($id);
-
                         // Preparar datos para calculador
                         $attendanceData = [
                             'id' => $updatedDetail['id'],
@@ -512,6 +512,16 @@ class AttendanceController extends Controller
                             'tardiness_minutes' => $calculation['tardiness_minutes'],
                             'punctuality_score' => $calculation['punctuality_score']
                         ];
+
+                        // NUEVO: Eliminar ausencia si se agregó/corrigió marcación
+                        // Si ahora tiene entrada Y salida, ya NO es ausente
+                        if ($updatedDetail['time_in'] && $updatedDetail['time_out']) {
+                            $this->absenceDetector->deleteAbsenceByEmployeeAndDate(
+                                $updatedDetail['employee_id'],
+                                $updatedDetail['date']
+                            );
+                            error_log("Ausencia eliminada para empleado {$updatedDetail['employee_id']} - fecha {$updatedDetail['date']}");
+                        }
 
                     } catch (Exception $calcError) {
                         error_log("Error en recálculo automático: " . $calcError->getMessage());
