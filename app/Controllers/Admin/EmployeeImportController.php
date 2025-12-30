@@ -784,7 +784,7 @@ class EmployeeImportController extends Controller
             'cargo_id',
             'funcion_id',
             'partida_id',
-            'organigrama_id'
+            'departamento_id'
         ];
 
         foreach ($foreignKeys as $key) {

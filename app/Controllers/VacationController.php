@@ -1019,7 +1019,7 @@ class VacationController extends Controller
             // Preparar statement para insertar múltiples conceptos
             $sql = "INSERT INTO planilla_detalle
                     (planilla_cabecera_id, employee_id, concepto_id, monto, tipo,
-                     organigrama_id, organigrama_path, position_id, schedule_id,
+                     departamento_id, organigrama_path, position_id, schedule_id,
                      firstname, lastname, cargo_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($sql);
@@ -1054,7 +1054,7 @@ class VacationController extends Controller
                     $concepto_ss['id'],
                     $monto_ss,
                     'D', // Deducción
-                    $employee['organigrama_id'],
+                    $employee['departamento_id'],
                     $employee['organigrama_path'],
                     $employee['position_id'],
                     $employee['schedule_id'],
@@ -1078,7 +1078,7 @@ class VacationController extends Controller
                     $concepto_se['id'],
                     $monto_se,
                     'D', // Deducción
-                    $employee['organigrama_id'],
+                    $employee['departamento_id'],
                     $employee['organigrama_path'],
                     $employee['position_id'],
                     $employee['schedule_id'],

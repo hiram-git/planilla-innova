@@ -486,9 +486,9 @@ class WizardController{
             $errors['company_name'] = 'El nombre de la empresa debe tener al menos 3 caracteres';
         }
 
-        // Validar RUC (formato guatemalteco)
-        if (empty($data['ruc']) || !$this->validateGuatemalanRUC($data['ruc'])) {
-            $errors['ruc'] = 'El RUC debe tener un formato válido';
+        // Validar RUC (multi-país)
+        if (empty($data['ruc']) || !$this->validateTaxIdentifier($data['ruc'])) {
+            $errors['ruc'] = 'El RUC/NIT debe tener un formato válido';
         }
 
         // Validar datos administrador
@@ -519,33 +519,59 @@ class WizardController{
         ];
     }
 
-    private function validateGuatemalanRUC($ruc) {
-        // Validación RUC panameño
-        // Formatos aceptados:
-        // - Persona Natural: X-XXX-XXXX (8 dígitos con guiones)
-        // - Persona Jurídica: XXXXXX-X-XXXX (hasta 14 caracteres)
-        // - RUC simplificado: solo dígitos sin guiones (8-14 dígitos)
-
+    /**
+     * Validar identificador fiscal (RUC/NIT/DV) multi-país
+     * Soporta formatos de Panamá, Guatemala, Costa Rica, etc.
+     *
+     * @param string $taxId Identificador fiscal a validar
+     * @return bool True si el formato es válido
+     */
+    private function validateTaxIdentifier($taxId) {
         // Remover espacios
-        $ruc = trim($ruc);
+        $taxId = trim($taxId);
 
         // Validar que no esté vacío
-        if (empty($ruc)) {
+        if (empty($taxId)) {
             return false;
         }
 
-        // Aceptar RUC con guiones (formato estándar panameño)
-        if (preg_match('/^[0-9]{1,8}-[0-9]{1,5}-[0-9]{1,6}$/', $ruc)) {
+        // Longitud mínima aceptable
+        if (strlen($taxId) < 6) {
+            return false;
+        }
+
+        // Longitud máxima aceptable
+        if (strlen($taxId) > 50) {
+            return false;
+        }
+
+        // Patrón flexible para identificadores fiscales multi-país:
+        // - Solo dígitos: 8-14 caracteres (ejemplo: 12345678901)
+        // - Con guiones: dígitos separados por guiones (ejemplo: 155679790-2-2019, 8-123-4567)
+        // - Con letras al final: NIT/DV (ejemplo: 12345678A, 123456789DV)
+        // - Mixto: letras y números con guiones (ejemplo: PA-123-456789)
+
+        // Patrón 1: Solo números (8-14 dígitos)
+        if (preg_match('/^[0-9]{8,14}$/', $taxId)) {
             return true;
         }
 
-        // Aceptar RUC sin guiones (solo dígitos, 8-14 caracteres)
-        if (preg_match('/^[0-9]{8,14}$/', $ruc)) {
+        // Patrón 2: Números con guiones (formato flexible)
+        // Acepta cualquier combinación de dígitos separados por guiones
+        // Ejemplos: 8-123-4567, 155679790-2-2019, 1234-567-89
+        if (preg_match('/^[0-9]{1,10}(-[0-9]{1,10}){1,5}$/', $taxId)) {
             return true;
         }
 
-        // Aceptar formato NIT/DV (con letras al final)
-        if (preg_match('/^[0-9]{8,14}[A-Z]{0,2}$/', $ruc)) {
+        // Patrón 3: Números con letras al final (NIT/DV)
+        // Ejemplo: 12345678A, 123456789DV
+        if (preg_match('/^[0-9]{8,14}[A-Z]{0,3}$/i', $taxId)) {
+            return true;
+        }
+
+        // Patrón 4: Letras al inicio seguido de guiones y números (formato internacional)
+        // Ejemplo: PA-123-456789, GT-12345678
+        if (preg_match('/^[A-Z]{2,3}-[0-9]{1,10}(-[0-9]{1,10}){0,3}$/i', $taxId)) {
             return true;
         }
 

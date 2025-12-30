@@ -443,13 +443,15 @@ class ReportsGenerator
                         org.descripcion as departamento,
                         org.id as departamento_id,
                         sit.descripcion as situacion,
-                        pos.codigo as position_name
+                        pos.codigo as position_name,
+                        cargo.nombre as cargo_nombre
                     FROM attendance_detail ad
                     INNER JOIN attendance_header ah ON ad.header_id = ah.id
                     INNER JOIN employees e ON ad.employee_id = e.id
-                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN organigrama org ON e.departamento_id = org.id
                     LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                     LEFT JOIN posiciones pos ON e.position_id = pos.id
+                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     WHERE ad.status = 'ABSENT'
                     AND ah.attendance_date BETWEEN ? AND ?";
 
@@ -590,12 +592,14 @@ class ReportsGenerator
                         org.id as departamento_id,
                         sit.descripcion as situacion,
                         pos.codigo as position_name,
+                        cargo.nombre as cargo_nombre,
                         s.time_in as schedule_time_in
                     FROM attendance_calculations ac
                     INNER JOIN employees e ON ac.employee_id = e.id
-                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN organigrama org ON e.departamento_id = org.id
                     LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                     LEFT JOIN posiciones pos ON e.position_id = pos.id
+                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN schedules s ON e.schedule_id = s.id
                     WHERE ac.date BETWEEN ? AND ?
                     AND ac.is_late = 1
@@ -879,13 +883,15 @@ class ReportsGenerator
                         org.id as departamento_id,
                         sit.descripcion as situacion,
                         pos.codigo as position_name,
+                        cargo.nombre as cargo_nombre,
                         s.time_in as schedule_time_in,
                         s.time_out as schedule_time_out
                     FROM attendance_calculations ac
                     INNER JOIN employees e ON ac.employee_id = e.id
-                    LEFT JOIN organigrama org ON e.organigrama_id = org.id
+                    LEFT JOIN organigrama org ON e.departamento_id = org.id
                     LEFT JOIN situaciones sit ON e.situacion_id = sit.id
                     LEFT JOIN posiciones pos ON e.position_id = pos.id
+                    LEFT JOIN cargos cargo ON e.cargo_id = cargo.id
                     LEFT JOIN schedules s ON e.schedule_id = s.id
                     WHERE ac.date BETWEEN ? AND ?";
 
