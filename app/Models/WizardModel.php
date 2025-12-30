@@ -323,8 +323,11 @@ class WizardModel
     }
 
     /**
-     * Import all migration files from database/migrations/ directory
+     * Import all migration files from database/migrations/tenant/ directory
      * Files are executed in chronological order based on filename
+     *
+     * IMPORTANTE: Ejecuta SOLO migraciones TENANT (database/migrations/tenant/)
+     * Las migraciones de database/migrations/ son para la BD master (planilla_prod)
      *
      * @param PDO $tenantPdo Connection to tenant database
      * @param string $dbName Database name for logging
@@ -332,7 +335,8 @@ class WizardModel
      */
     private function importMigrations(PDO $tenantPdo, string $dbName): array
     {
-        $migrationsDir = __DIR__ . '/../../database/migrations';
+        // CORRECCIÓN: Usar database/migrations/tenant/ en lugar de database/migrations/
+        $migrationsDir = __DIR__ . '/../../database/migrations/tenant';
         $stats = [
             'total_statements' => 0,
             'successful' => 0,
@@ -345,7 +349,7 @@ class WizardModel
 
         // Check if migrations directory exists
         if (!is_dir($migrationsDir)) {
-            error_log("Migrations directory not found: {$migrationsDir}");
+            error_log("⚠️ Tenant migrations directory not found: {$migrationsDir}");
             return $stats;
         }
 
@@ -412,6 +416,7 @@ class WizardModel
 
     /**
      * Get all migration files from directory, sorted chronologically by filename
+     * Excluye archivos HOTFIX que están diseñados para ejecución manual
      *
      * @param string $directory Path to migrations directory
      * @return array Array of full file paths sorted chronologically
@@ -423,6 +428,17 @@ class WizardModel
         if ($files === false) {
             return [];
         }
+
+        // Filtrar archivos HOTFIX (son para ejecución manual, no automática)
+        $files = array_filter($files, function($file) {
+            $basename = basename($file);
+            // Excluir archivos que empiezan con HOTFIX_ o contienen _HOTFIX_
+            if (stripos($basename, 'HOTFIX') !== false) {
+                error_log("⏭️ Skipping HOTFIX file (manual execution only): {$basename}");
+                return false;
+            }
+            return true;
+        });
 
         // Sort files chronologically based on filename
         // Migration files follow format: YYYY_MM_DD_* or add_*
