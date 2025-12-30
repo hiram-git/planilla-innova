@@ -27,53 +27,7 @@ SET @emp_dep_exists = (
     AND COLUMN_NAME = 'departamento_id'
 );
 
--- Renombrar columna en employees si existe y departamento_id no existe
-SET @sql_emp = IF(@emp_org_exists > 0 AND @emp_dep_exists = 0,
-    'ALTER TABLE employees CHANGE COLUMN organigrama_id departamento_id INT(11) NULL COMMENT ''FK al departamento (organigrama) del empleado''',
-    'SELECT "Employees: Column already renamed or does not exist" AS notice'
-);
-
-PREPARE stmt FROM @sql_emp;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Eliminar índice antiguo en employees si existe
-SET @emp_old_index = (
-    SELECT COUNT(*)
-    FROM information_schema.STATISTICS
-    WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'employees'
-    AND INDEX_NAME = 'idx_employees_organigrama'
-);
-
-SET @sql_emp_idx_drop = IF(@emp_old_index > 0,
-    'DROP INDEX idx_employees_organigrama ON employees',
-    'SELECT "Employees: Old index does not exist" AS notice'
-);
-
-PREPARE stmt FROM @sql_emp_idx_drop;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Crear nuevo índice en employees si no existe
-SET @emp_new_index = (
-    SELECT COUNT(*)
-    FROM information_schema.STATISTICS
-    WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'employees'
-    AND INDEX_NAME = 'idx_departamento'
-);
-
-SET @sql_emp_idx_new = IF(@emp_new_index = 0,
-    'CREATE INDEX idx_departamento ON employees(departamento_id)',
-    'SELECT "Employees: New index already exists" AS notice'
-);
-
-PREPARE stmt FROM @sql_emp_idx_new;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Eliminar FK antigua en employees si existe
+-- PASO 1.1: Eliminar FK antigua en employees si existe (ANTES de tocar índices)
 SET @emp_old_fk = (
     SELECT COUNT(*)
     FROM information_schema.TABLE_CONSTRAINTS
@@ -92,7 +46,53 @@ PREPARE stmt FROM @sql_emp_fk_drop;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Crear nueva FK en employees si no existe
+-- PASO 1.2: Eliminar índice antiguo en employees si existe (AHORA sí se puede)
+SET @emp_old_index = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'employees'
+    AND INDEX_NAME = 'idx_employees_organigrama'
+);
+
+SET @sql_emp_idx_drop = IF(@emp_old_index > 0,
+    'DROP INDEX idx_employees_organigrama ON employees',
+    'SELECT "Employees: Old index does not exist" AS notice'
+);
+
+PREPARE stmt FROM @sql_emp_idx_drop;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- PASO 1.3: Renombrar columna en employees si existe y departamento_id no existe
+SET @sql_emp = IF(@emp_org_exists > 0 AND @emp_dep_exists = 0,
+    'ALTER TABLE employees CHANGE COLUMN organigrama_id departamento_id INT(11) NULL COMMENT ''FK al departamento (organigrama) del empleado''',
+    'SELECT "Employees: Column already renamed or does not exist" AS notice'
+);
+
+PREPARE stmt FROM @sql_emp;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- PASO 1.4: Crear nuevo índice en employees si no existe
+SET @emp_new_index = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'employees'
+    AND INDEX_NAME = 'idx_departamento'
+);
+
+SET @sql_emp_idx_new = IF(@emp_new_index = 0,
+    'CREATE INDEX idx_departamento ON employees(departamento_id)',
+    'SELECT "Employees: New index already exists" AS notice'
+);
+
+PREPARE stmt FROM @sql_emp_idx_new;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- PASO 1.5: Crear nueva FK en employees si no existe
 SET @emp_new_fk = (
     SELECT COUNT(*)
     FROM information_schema.TABLE_CONSTRAINTS
@@ -133,17 +133,7 @@ SET @cargo_dep_exists = (
     AND COLUMN_NAME = 'departamento_id'
 );
 
--- Renombrar columna en cargos si existe y departamento_id no existe
-SET @sql_cargo = IF(@cargo_org_exists > 0 AND @cargo_dep_exists = 0,
-    'ALTER TABLE cargos CHANGE COLUMN organigrama_id departamento_id INT(11) NULL COMMENT ''FK al departamento (organigrama)''',
-    'SELECT "Cargos: Column already renamed or does not exist" AS notice'
-);
-
-PREPARE stmt FROM @sql_cargo;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Eliminar FK antigua en cargos si existe
+-- PASO 2.1: Eliminar FK antigua en cargos si existe (ANTES de renombrar)
 SET @cargo_old_fk = (
     SELECT COUNT(*)
     FROM information_schema.TABLE_CONSTRAINTS
@@ -162,7 +152,17 @@ PREPARE stmt FROM @sql_cargo_fk_drop;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Crear nueva FK en cargos si no existe
+-- PASO 2.2: Renombrar columna en cargos si existe y departamento_id no existe
+SET @sql_cargo = IF(@cargo_org_exists > 0 AND @cargo_dep_exists = 0,
+    'ALTER TABLE cargos CHANGE COLUMN organigrama_id departamento_id INT(11) NULL COMMENT ''FK al departamento (organigrama)''',
+    'SELECT "Cargos: Column already renamed or does not exist" AS notice'
+);
+
+PREPARE stmt FROM @sql_cargo;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- PASO 2.3: Crear nueva FK en cargos si no existe
 SET @cargo_new_fk = (
     SELECT COUNT(*)
     FROM information_schema.TABLE_CONSTRAINTS
