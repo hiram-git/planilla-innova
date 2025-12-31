@@ -122,18 +122,18 @@ class EmployeeFileController extends Controller
             $this->redirect(\App\Core\UrlHelper::route('panel/employee-files/create/' . $employeeId));
         }
 
+        $documentDate = $input['document_date'] ?? date('Y-m-d');
         $data = [
             'employee_id' => $employeeId,
             'type_id' => $typeId,
             'subtype_id' => $subtypeId,
-            'document_date' => $input['document_date'] ?? date('Y-m-d'),
-            'document_number' => $input['document_number'] ?? null,
+            'document_date' => $documentDate,
             'observations' => $input['observations'] ?? null,
             'extra_fields' => !empty($extraFields) ? json_encode($extraFields, JSON_UNESCAPED_UNICODE) : null
         ];
 
         try {
-            $fileId = $this->employeeFileModel->create($data);
+            $fileId = $this->employeeFileModel->createWithCorrelative($data);
             $uploadErrors = $this->handleUploads($fileId, $employeeId, $type['name'] ?? '');
 
             if (!empty($uploadErrors)) {
@@ -219,17 +219,17 @@ class EmployeeFileController extends Controller
             $this->redirect(\App\Core\UrlHelper::route('panel/employee-files/edit/' . $id));
         }
 
+        $documentDate = $input['document_date'] ?? $file['document_date'];
         $updateData = [
             'type_id' => $typeId,
             'subtype_id' => $subtypeId,
-            'document_date' => $input['document_date'] ?? $file['document_date'],
-            'document_number' => $input['document_number'] ?? null,
+            'document_date' => $documentDate,
             'observations' => $input['observations'] ?? null,
             'extra_fields' => !empty($extraFields) ? json_encode($extraFields, JSON_UNESCAPED_UNICODE) : null
         ];
 
         try {
-            $this->employeeFileModel->update($id, $updateData);
+            $this->employeeFileModel->updateWithCorrelative($id, $updateData, $file);
 
             $removeIds = array_map('intval', $input['remove_attachments'] ?? []);
             $this->removeAttachments($removeIds, $id);
@@ -324,6 +324,27 @@ class EmployeeFileController extends Controller
         $this->json(['success' => true, 'data' => $subtypes]);
     }
 
+    public function nextDocumentNumber()
+    {
+        PermissionMiddleware::requirePermission('panel/employee-files', 'read');
+
+        $typeId = (int)($_GET['type_id'] ?? 0);
+        $subtypeId = (int)($_GET['subtype_id'] ?? 0);
+        $documentDate = (string)($_GET['document_date'] ?? '');
+
+        if ($typeId <= 0 || $subtypeId <= 0 || !$this->isValidDate($documentDate)) {
+            $this->json(['success' => false, 'document_number' => null]);
+        }
+
+        $documentNumber = $this->employeeFileModel->getNextDocumentNumberPreview(
+            $typeId,
+            $subtypeId,
+            $documentDate
+        );
+
+        $this->json(['success' => true, 'document_number' => $documentNumber]);
+    }
+
     public function form()
     {
         PermissionMiddleware::requirePermission('panel/employee-files', 'read');
@@ -374,6 +395,35 @@ class EmployeeFileController extends Controller
         header('Content-Type: ' . ($attachment['mime_type'] ?? 'application/octet-stream'));
         header('Content-Disposition: attachment; filename="' . $safeName . '"');
         header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit();
+    }
+
+    public function previewAttachment($id)
+    {
+        PermissionMiddleware::requirePermission('panel/employee-files', 'read');
+
+        $id = (int)$id;
+        $attachment = $this->attachmentModel->find($id);
+        if (!$attachment) {
+            http_response_code(404);
+            echo 'Archivo no encontrado';
+            exit();
+        }
+
+        $path = $this->getAttachmentFullPath($attachment['file_path']);
+        if (!is_file($path)) {
+            http_response_code(404);
+            echo 'Archivo no encontrado';
+            exit();
+        }
+
+        $safeName = $this->sanitizeFileName((string)($attachment['original_name'] ?? 'archivo'));
+        $mimeType = $attachment['mime_type'] ?? 'application/octet-stream';
+        header('Content-Type: ' . $mimeType);
+        header('Content-Disposition: inline; filename="' . $safeName . '"');
+        header('Content-Length: ' . filesize($path));
+        header('X-Content-Type-Options: nosniff');
         readfile($path);
         exit();
     }

@@ -65,7 +65,8 @@ ob_start();
                         <div class="col-md-8">
                             <div class="form-group">
                                 <label>Número de Memorando/Oficio</label>
-                                <input type="text" name="document_number" class="form-control" value="<?= htmlspecialchars($file['document_number'] ?? '') ?>">
+                                <input type="text" name="document_number" class="form-control" value="<?= htmlspecialchars($file['document_number'] ?? '') ?>" placeholder="Se genera automaticamente" readonly>
+                                <small class="form-text text-muted">Se genera automaticamente por tipo, subtipo y ano.</small>
                             </div>
                         </div>
                     </div>
@@ -108,6 +109,15 @@ ob_start();
                                                     <td><?= htmlspecialchars($attachment['original_name'] ?? '') ?></td>
                                                     <td><?= htmlspecialchars($attachment['label'] ?? 'Adjunto') ?></td>
                                                     <td>
+                                                        <button type="button"
+                                                                class="btn btn-secondary btn-sm btn-preview-attachment"
+                                                                data-preview-url="<?= \App\Core\UrlHelper::route('panel/employee-files/previewAttachment/' . $attachment['id']) ?>"
+                                                                data-download-url="<?= \App\Core\UrlHelper::route('panel/employee-files/downloadAttachment/' . $attachment['id']) ?>"
+                                                                data-mime="<?= htmlspecialchars($attachment['mime_type'] ?? '', ENT_QUOTES) ?>"
+                                                                data-name="<?= htmlspecialchars($attachment['original_name'] ?? 'Adjunto', ENT_QUOTES) ?>"
+                                                                title="Ver">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
                                                         <a href="<?= \App\Core\UrlHelper::route('panel/employee-files/downloadAttachment/' . $attachment['id']) ?>" class="btn btn-info btn-sm" title="Descargar">
                                                             <i class="fas fa-download"></i>
                                                         </a>
@@ -134,6 +144,30 @@ ob_start();
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="attachmentPreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="attachmentPreviewTitle">Adjunto</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info d-none" id="attachmentPreviewMessage"></div>
+                <img id="attachmentPreviewImage" class="img-fluid d-none" alt="Vista previa adjunto">
+                <iframe id="attachmentPreviewIframe" class="w-100 d-none" style="min-height: 70vh;" frameborder="0"></iframe>
+            </div>
+            <div class="modal-footer">
+                <a id="attachmentPreviewDownload" class="btn btn-info" target="_blank" rel="noopener">
+                    <i class="fas fa-download"></i> Descargar
+                </a>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
