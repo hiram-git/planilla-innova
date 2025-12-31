@@ -1572,16 +1572,15 @@ class PayrollController extends Controller
                     }
 
                     // Calcular valor de unidad: intentar obtenerlo de la fórmula primero
-                    // Si la fórmula asignó UNIDAD, usar ese valor; si no, calcular por defecto
+                    // Si la fórmula asignó UNIDAD, usar ese valor; si no, usar 1 por defecto
                     $unidadCalculada = $calculadora->obtenerUnidadCalculada();
-                    $unidadConcepto = $concept['unidad'] ?? null;
 
-                    if ($unidadCalculada !== null && $unidadCalculada !== '' && $unidadCalculada !== $unidadConcepto) {
+                    if ($unidadCalculada !== null && $unidadCalculada !== '') {
                         // La fórmula asignó un valor dinámico a UNIDAD
                         $referenciaValor = $unidadCalculada;
                     } else {
-                        // Usar cálculo por defecto basado en el tipo de unidad del concepto
-                        $referenciaValor = $this->calculateReferenceValue($concept, $employee);
+                        // No se asignó UNIDAD en la fórmula, usar 1 por defecto
+                        $referenciaValor = 1;
                     }
 
                     // Insertar en planilla_detalle si hay monto o si el concepto permite monto cero

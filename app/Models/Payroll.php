@@ -334,13 +334,25 @@ class Payroll extends Model
                     } else {
                     }
 
+                    // Calcular valor de unidad: intentar obtenerlo de la fórmula primero
+                    // Si la fórmula asignó UNIDAD, usar ese valor; si no, usar 1 por defecto
+                    $unidadCalculada = $calculadora->obtenerUnidadCalculada();
+
+                    if ($unidadCalculada !== null && $unidadCalculada !== '') {
+                        // La fórmula asignó un valor dinámico a UNIDAD
+                        $referenciaValor = $unidadCalculada;
+                    } else {
+                        // No se asignó UNIDAD en la fórmula, usar 1 por defecto
+                        $referenciaValor = 1;
+                    }
+
                     // Insertar en planilla_detalle si hay monto o si el concepto permite monto cero
                     if ($monto > 0 || ($concepto['monto_cero'] == 1 && $monto == 0)) {
                         $sql = "INSERT INTO planilla_detalle (
                             planilla_cabecera_id, employee_id, concepto_id, monto, tipo,
                             departamento_id, position_id, schedule_id, cargo_id, funcion_id, partida_id,
-                            firstname, lastname
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            firstname, lastname, unidad
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                         $stmt = $this->db->prepare($sql);
                         $result = $stmt->execute([
@@ -356,7 +368,8 @@ class Payroll extends Model
                             $employee['funcion_id'],
                             $employee['partida_id'],
                             $employee['firstname'],
-                            $employee['lastname']
+                            $employee['lastname'],
+                            $referenciaValor
                         ]);
 
                         if ($result) {
