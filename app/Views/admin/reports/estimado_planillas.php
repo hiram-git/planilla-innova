@@ -228,6 +228,8 @@ $content .= '
                             <h6><i class="fas fa-exclamation-circle"></i> Notas Importantes</h6>
                             <ul class="mb-0">
                                 <li>Este es un <strong>estimado proyectado</strong> basado en la última planilla procesada.</li>
+                                <li><strong>' . $data['frecuencia_texto'] . '</strong></li>
+                                <li>Se excluyen décimo tercer mes y otras frecuencias especiales.</li>
                                 <li>Se asume que los costos mensuales permanecen constantes durante todo el año.</li>
                                 <li>No se incluyen variaciones por incrementos salariales, nuevas contrataciones o bajas.</li>
                                 <li>Los montos pueden variar según cambios en conceptos, deducciones o políticas salariales.</li>
