@@ -209,19 +209,21 @@ class WizardController{
             error_log("✅ Transacción iniciada correctamente");
 
             // 1. GENERAR Y REGISTRAR LICENCIA EN SERVIDOR REMOTO (antes de crear BD)
+            // CORRECCIÓN: Usar datos de la EMPRESA que se está creando, NO del distribuidor
             error_log("▶️ PASO 1: Generando licencia");
-            error_log("📝 Datos licencia: RUC={$_SESSION['wizard_distributor_empresa_ruc']}, Company={$_SESSION['wizard_distributor_empresa_name']}");
+            error_log("📝 Datos licencia: RUC={$companyData['ruc']}, Company={$companyData['company_name']}");
+            error_log("📝 Distribuidor: {$_SESSION['wizard_distributor_name']} (RUC Dist: {$_SESSION['wizard_distributor_empresa_ruc']})");
             $licenseGenerator = new LicenseGenerator();
             $allowOffline = filter_var($_ENV['LICENSING_ALLOW_OFFLINE'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
             error_log("🔧 LICENSING_ALLOW_OFFLINE: " . ($allowOffline ? 'true' : 'false'));
 
             $licenseResult = $licenseGenerator->generateAndRegister([
-                'ruc' => $_SESSION['wizard_distributor_empresa_ruc'],
-                'company_name' => $_SESSION['wizard_distributor_empresa_name'],
-                'final_user' => $companyData['company_name'],
-                'buyer_name' => $companyData['distribuitor_name'] ,
-                'email' => $companyData['admin_email'],
-                'phone' => $companyData['distribuitor_phone'] ?? '',
+                'ruc' => $companyData['ruc'], // RUC de la EMPRESA, NO del distribuidor
+                'company_name' => $companyData['company_name'], // Nombre de la EMPRESA, NO del distribuidor
+                'final_user' => $companyData['company_name'], // Usuario final (la empresa que se está creando)
+                'buyer_name' => $_SESSION['wizard_distributor_name'], // Nombre del distribuidor que está comprando
+                'email' => $companyData['admin_email'], // Email del admin de la empresa
+                'phone' => $companyData['distribuitor_phone'] ?? $_SESSION['wizard_distributor_phone'] ?? '',
                 'country' => 'PA'
             ], $allowOffline);
 

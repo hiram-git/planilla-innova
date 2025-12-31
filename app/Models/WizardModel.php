@@ -508,14 +508,111 @@ class WizardModel
         return null;
     }
 
+    /**
+     * Configurar datos iniciales de empresa en BD tenant
+     * IMPORTANTE: Este método se ejecuta DESPUÉS de importar schema + migraciones
+     * para asegurar que la tabla companies existe
+     *
+     * ESTRATEGIA: El schema base inserta un registro dummy con ID=1.
+     * Este método SIEMPRE actualiza ese registro (ID=1) con los datos reales de la empresa.
+     *
+     * @param string $dbName Nombre de la base de datos tenant
+     * @param array $companyData Datos de la empresa (company_name, ruc, admin_email)
+     * @param int $companyId ID de la empresa en tabla master.tenants (no se usa, siempre ID=1 en tenant)
+     * @return void
+     */
     public function setupTenantCompanyData(string $dbName, array $companyData, int $companyId): void
     {
         $pdo = $this->connectTenant($dbName);
+
         try {
-            $stmt = $pdo->prepare("INSERT INTO companies (id, company_name, ruc, admin_email) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$companyId, $companyData['company_name'], $companyData['ruc'] ?? null, $companyData['admin_email']]);
+            // DEBUG: Mostrar datos que llegan al método
+            error_log("========== DEBUG setupTenantCompanyData ==========");
+            error_log("📦 Datos recibidos en companyData:");
+            error_log("   - company_name: " . ($companyData['company_name'] ?? 'NO SET'));
+            error_log("   - ruc: " . ($companyData['ruc'] ?? 'NO SET'));
+            error_log("   - admin_email: " . ($companyData['admin_email'] ?? 'NO SET'));
+            error_log("   - admin_firstname: " . ($companyData['admin_firstname'] ?? 'NO SET'));
+            error_log("   - admin_lastname: " . ($companyData['admin_lastname'] ?? 'NO SET'));
+            error_log("================================================");
+
+            // Verificar si la tabla companies existe
+            $tableCheck = $pdo->query("SHOW TABLES LIKE 'companies'");
+            if ($tableCheck->rowCount() === 0) {
+                error_log("⚠️ Tabla companies no existe en {$dbName}, saltando configuración");
+                return;
+            }
+
+            // ESTRATEGIA: Siempre trabajar con ID=1 (el único registro en la BD tenant)
+            // El schema base ya insertó un registro dummy, lo actualizamos con datos reales
+
+            // Verificar si existe algún registro en companies
+            $checkStmt = $pdo->query("SELECT COUNT(*) as total FROM companies");
+            $total = $checkStmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+            if ($total > 0) {
+                // ACTUALIZAR el registro existente (siempre ID=1 del schema base)
+                error_log("📝 Actualizando datos empresa (reemplazando datos dummy del schema) en {$dbName}");
+
+                // Preparar valores para UPDATE - SOLO nombre, ruc y email
+                $updateCompanyName = $companyData['company_name'];
+                $updateRuc = $companyData['ruc'] ?? '';
+                $updateEmail = $companyData['admin_email'] ?? '';
+
+                error_log("📝 Valores que se van a ACTUALIZAR:");
+                error_log("   - company_name: '{$updateCompanyName}'");
+                error_log("   - ruc: '{$updateRuc}'");
+                error_log("   - email: '{$updateEmail}'");
+
+                $stmt = $pdo->prepare("
+                    UPDATE companies
+                    SET company_name = ?,
+                        ruc = ?,
+                        email = ?
+                    WHERE id = 1
+                ");
+                $stmt->execute([
+                    $updateCompanyName,
+                    $updateRuc,
+                    $updateEmail
+                ]);
+
+                $rowsAffected = $stmt->rowCount();
+                error_log("✅ Registro empresa ID=1 actualizado exitosamente - Filas afectadas: {$rowsAffected}");
+
+                // Verificar que efectivamente se actualizó
+                $verifyStmt = $pdo->query("SELECT company_name, ruc, email FROM companies WHERE id = 1");
+                $verifyData = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+                error_log("🔍 Verificación datos después de UPDATE:");
+                error_log("   - company_name (BD): '{$verifyData['company_name']}'");
+                error_log("   - ruc (BD): '{$verifyData['ruc']}'");
+                error_log("   - email (BD): '{$verifyData['email']}'");
+
+            } else {
+                // INSERTAR si no existe ningún registro (fallback) - SOLO nombre, ruc y email
+                error_log("📝 Insertando nuevo registro empresa (ID=1) en {$dbName}");
+                $stmt = $pdo->prepare("
+                    INSERT INTO companies (id, company_name, ruc, email)
+                    VALUES (1, ?, ?, ?)
+                ");
+                $stmt->execute([
+                    $companyData['company_name'],
+                    $companyData['ruc'] ?? '',
+                    $companyData['admin_email'] ?? ''
+                ]);
+
+                error_log("✅ Registro empresa ID=1 creado exitosamente");
+            }
+
+            error_log("✅ Datos empresa configurados correctamente en tenant:");
+            error_log("   - Company Name: {$companyData['company_name']}");
+            error_log("   - RUC: " . ($companyData['ruc'] ?? 'N/A'));
+            error_log("   - Email: " . ($companyData['admin_email'] ?? 'N/A'));
+
         } catch (\Throwable $e) {
-            // Table may not exist yet; ignore in placeholder.
+            error_log("❌ Error configurando datos empresa en {$dbName}: " . $e->getMessage());
+            error_log("   Stack trace: " . $e->getTraceAsString());
+            // No lanzar excepción para no bloquear la creación del tenant
         }
     }
 

@@ -1081,7 +1081,7 @@
                     this.loadingMessage = 'Creando empresa y base de datos...<br><small>Este proceso puede tardar varios minutos</small>';
                     
                     try {
-                        console.log('Iniciando creación de empresa...', this.distributorInfo.phone);
+                        console.log('Iniciando creación de empresa...');
                         const formData = new FormData();
                         formData.append('company_name', this.empresa.nombre);
                         formData.append('company_ruc', this.empresa.ruc);
