@@ -25,7 +25,8 @@ class AnnualPayrollEstimateController extends ReportController
             $reportData = $this->getEstimateData($tipo_planilla_id);
 
             if (!$reportData) {
-                $_SESSION['error'] = 'No hay planillas procesadas para generar el estimado';
+                $_SESSION['error'] = 'No hay empleados activos para generar el estimado. Verifique que existan empleados con situación activa' .
+                    ($tipo_planilla_id ? ' y del tipo de planilla seleccionado' : '');
                 $this->redirect('/panel/reports');
                 return;
             }
@@ -55,7 +56,8 @@ class AnnualPayrollEstimateController extends ReportController
             $reportData = $this->getEstimateData($tipo_planilla_id);
 
             if (!$reportData) {
-                $_SESSION['error'] = 'No hay planillas procesadas para generar el estimado';
+                $_SESSION['error'] = 'No hay empleados activos para generar el estimado. Verifique que existan empleados con situación activa' .
+                    ($tipo_planilla_id ? ' y del tipo de planilla seleccionado' : '');
                 $this->redirect('/panel/reports/estimado-anual-planillas');
                 return;
             }
@@ -72,52 +74,70 @@ class AnnualPayrollEstimateController extends ReportController
 
     /**
      * Obtener datos comunes para el reporte (usado por index y exportPdf)
+     * Simula procesamiento completo de planilla evaluando fórmulas y conceptos
      */
     private function getEstimateData($tipo_planilla_id)
     {
         // Obtener tipos de planilla disponibles
-        $sql = "SELECT id, nombre FROM tipos_planilla ORDER BY nombre";
+        $sql = "SELECT id, nombre FROM tipos_planilla WHERE activo = 1 ORDER BY nombre";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         $tipos_planilla = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Cláusula WHERE base
-        $where_clause = "pc.estado = 'PROCESADA'";
-        $params = [];
+        // Obtener frecuencia quincenal por defecto (ID 2 o buscar por código)
+        $sqlFrecuencia = "SELECT id, nombre, codigo FROM frecuencias WHERE codigo = 'QUINCENAL' OR nombre LIKE '%quincenal%' LIMIT 1";
+        $stmtFrecuencia = $this->db->prepare($sqlFrecuencia);
+        $stmtFrecuencia->execute();
+        $frecuencia_quincenal = $stmtFrecuencia->fetch(\PDO::FETCH_ASSOC);
 
-        if ($tipo_planilla_id) {
-            $where_clause .= " AND pc.tipo_planilla_id = ?";
-            $params[] = $tipo_planilla_id;
+        if (!$frecuencia_quincenal) {
+            // Fallback: usar ID 2 si no encuentra por código/nombre
+            $frecuencia_quincenal = ['id' => 2, 'nombre' => 'Quincenal', 'codigo' => 'QUINCENAL'];
         }
 
-        // Obtener la última planilla procesada para usar como base
-        $sql = "SELECT
-                    pc.id,
-                    pc.descripcion,
-                    pc.fecha_desde,
-                    pc.fecha_hasta,
-                    tp.nombre as tipo_planilla_nombre,
-                    f.nombre as frecuencia_nombre,
-                    SUM(CASE WHEN c.tipo_concepto IN ('ASIGNACION', 'A') THEN pd.monto ELSE 0 END) as total_asignaciones,
-                    SUM(CASE WHEN c.tipo_concepto IN ('DEDUCCION', 'D') THEN pd.monto ELSE 0 END) as total_deducciones,
-                    COUNT(DISTINCT pd.employee_id) as total_empleados
-                FROM planilla_cabecera pc
-                INNER JOIN planilla_detalle pd ON pc.id = pd.planilla_cabecera_id
-                INNER JOIN concepto c ON pd.concepto_id = c.id
-                LEFT JOIN tipos_planilla tp ON pc.tipo_planilla_id = tp.id
-                LEFT JOIN frecuencias f ON pc.frecuencia_id = f.id
-                WHERE $where_clause
-                GROUP BY pc.id
-                ORDER BY pc.fecha_hasta DESC
-                LIMIT 1";
+        // Definir periodo de la quincena (ejemplo: 1-15 del mes actual)
+        $fechaActual = date('Y-m-15');
+        $periodoInicio = date('Y-m-01');
+        $periodoFin = date('Y-m-15');
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $ultima_planilla = $stmt->fetch(\PDO::FETCH_ASSOC);
+        // Simular procesamiento completo de planilla usando el método del modelo
+        $payrollModel = new \App\Models\Payroll();
+        $simulacion = $payrollModel->simulatePayrollProcessing(
+            $tipo_planilla_id ?: 1, // Si no hay tipo específico, usar 1 por defecto
+            $frecuencia_quincenal['id'],
+            $periodoInicio,
+            $periodoFin,
+            $fechaActual
+        );
 
-        if (!$ultima_planilla) {
+        if ($simulacion['total_empleados'] == 0) {
+            error_log("No hay empleados activos para generar estimado. Tipo planilla: " . ($tipo_planilla_id ?? 'Todos'));
             return null;
         }
+
+        // Obtener información del tipo de planilla para el reporte
+        $sqlTipoPlanilla = "SELECT nombre, codigo FROM tipos_planilla WHERE id = ?";
+        $stmtTipoPlanilla = $this->db->prepare($sqlTipoPlanilla);
+        $stmtTipoPlanilla->execute([$tipo_planilla_id ?: 1]);
+        $tipoPlanillaInfo = $stmtTipoPlanilla->fetch(\PDO::FETCH_ASSOC);
+
+        // Los totales vienen directamente de la simulación (ya incluyen fórmulas evaluadas)
+        $total_salarios_quincena = $simulacion['total_asignaciones'];
+        $total_deducciones_quincena = $simulacion['total_deducciones'];
+
+        $datos_base = [
+            'id' => 0, // No hay planilla procesada, es estimado
+            'descripcion' => 'Estimado basado en procesamiento simulado de conceptos',
+            'fecha_desde' => $periodoInicio,
+            'fecha_hasta' => $periodoFin,
+            'frecuencia_id' => $frecuencia_quincenal['id'],
+            'tipo_planilla_nombre' => $tipo_planilla_id ? ($tipoPlanillaInfo['nombre'] ?? 'N/A') : 'Todos los tipos',
+            'frecuencia_nombre' => $frecuencia_quincenal['nombre'],
+            'frecuencia_codigo' => $frecuencia_quincenal['codigo'],
+            'total_asignaciones' => $total_salarios_quincena,
+            'total_deducciones' => $total_deducciones_quincena,
+            'total_empleados' => $simulacion['total_empleados']
+        ];
 
         // Proyectar a 12 meses
         $meses = [
@@ -131,14 +151,12 @@ class AnnualPayrollEstimateController extends ReportController
         $total_anual_deducciones = 0;
         $total_anual_neto = 0;
 
+        // Multiplicador para frecuencia quincenal por defecto = 2 quincenas por mes
+        $multiplicador = 2;
+
         foreach ($meses as $num_mes => $nombre_mes) {
-            // Usar el costo de la última planilla como base
-            // NOTA: Esto asume frecuencia mensual para simplificar la proyección como se solicitó.
-            // Si la planilla es quincenal, se debería multiplicar por 2, semanal por 4.33, etc.
-            // Por consistencia con el código original, mantenemos la lógica directa de proyección.
-            
-            $asignaciones_mes = $ultima_planilla['total_asignaciones'];
-            $deducciones_mes = $ultima_planilla['total_deducciones'];
+            $asignaciones_mes = $datos_base['total_asignaciones'] * $multiplicador;
+            $deducciones_mes = $datos_base['total_deducciones'] * $multiplicador;
             $neto_mes = $asignaciones_mes - $deducciones_mes;
 
             $proyeccion_mensual[] = [
@@ -147,7 +165,7 @@ class AnnualPayrollEstimateController extends ReportController
                 'asignaciones' => $asignaciones_mes,
                 'deducciones' => $deducciones_mes,
                 'neto' => $neto_mes,
-                'empleados' => $ultima_planilla['total_empleados']
+                'empleados' => $datos_base['total_empleados']
             ];
 
             $total_anual_asignaciones += $asignaciones_mes;
@@ -158,6 +176,9 @@ class AnnualPayrollEstimateController extends ReportController
         // Información de la empresa y firmas
         $companyInfo = $this->getCompanyInfo();
         $signatures = $this->companyModel->getSignaturesForReports();
+
+        // Texto de frecuencia
+        $frecuencia_texto = 'Proyección quincenal: 2 planillas por mes. Estimado generado mediante simulación completa de procesamiento (conceptos, fórmulas, situación empleados y frecuencia).';
 
         return [
             'title' => 'Estimado Anual de Planillas',
@@ -171,11 +192,12 @@ class AnnualPayrollEstimateController extends ReportController
             'total_anual_asignaciones' => $total_anual_asignaciones,
             'total_anual_deducciones' => $total_anual_deducciones,
             'total_anual_neto' => $total_anual_neto,
-            'ultima_planilla' => $ultima_planilla,
+            'ultima_planilla' => $datos_base, // Usar datos_base en lugar de ultima_planilla
             'tipos_planilla' => $tipos_planilla,
             'tipo_planilla_id' => $tipo_planilla_id,
             'ano_estimado' => date('Y'),
             'fecha_estimado' => date('d/m/Y'),
+            'frecuencia_texto' => $frecuencia_texto,
             'companyInfo' => $companyInfo,
             'signatures' => $signatures
         ];
@@ -283,8 +305,12 @@ class AnnualPayrollEstimateController extends ReportController
 
         // 5. Estadísticas / Resumen
         $pdf->SetFont('helvetica', '', 9);
-        $pdf->Cell(0, 5, '* Proyección basada en costos actuales constantes de la planilla base.', 0, 1, 'L');
-        $pdf->Ln(15);
+
+        $pdf->Cell(0, 5, '* Proyección basada en simulación completa de procesamiento de planillas.', 0, 1, 'L');
+        $pdf->Cell(0, 5, '* Incluye evaluación de todas las fórmulas y conceptos según tipo de planilla.', 0, 1, 'L');
+        $pdf->Cell(0, 5, '* Frecuencia quincenal: 2 planillas por mes.', 0, 1, 'L');
+        $pdf->Cell(0, 5, '* Considera situación del empleado y validaciones de frecuencia.', 0, 1, 'L');
+        $pdf->Ln(10);
 
         // 6. Firmas
         // Reutilizamos toda la lógica de firmas del ReportController (o implementamos una similar)

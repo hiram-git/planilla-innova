@@ -998,9 +998,8 @@ class Payroll extends Model
                 if (!$validTipoPlanilla) {
                     return false;
                 }
-            } else {
-                    return false;
             }
+            // Si no hay restricciones de tipo planilla, el concepto aplica para todos los tipos
 
             // Verificar restricciones de SITUACIÓN using tabla relacional
             // SOLO si el parámetro $validateSituacion es true
@@ -1018,9 +1017,8 @@ class Payroll extends Model
                     if (!$validSituacion) {
                         return false;
                     }
-                } else {
-                        return false;
                 }
+                // Si no hay restricciones de situación, el concepto aplica para todas las situaciones
             }
             // Si $validateSituacion es false, se salta la validación de situación completamente
             
@@ -1028,7 +1026,7 @@ class Payroll extends Model
             $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_frecuencias WHERE concepto_id = ?");
             $stmt->execute([$conceptoId]);
             $frecuenciasCount = $stmt->fetch()['count'];
-            
+
             if ($frecuenciasCount > 0) {
                 // Hay restricciones de frecuencia, verificar si la planilla actual es válida
                 $frecuenciaPlanillaId = $payroll['frecuencia_id'] ?? null;
@@ -1036,7 +1034,7 @@ class Payroll extends Model
                     $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM concepto_frecuencias WHERE concepto_id = ? AND frecuencia_id = ?");
                     $stmt->execute([$conceptoId, $frecuenciaPlanillaId]);
                     $validFrecuencia = $stmt->fetch()['count'] > 0;
-                    
+
                     if (!$validFrecuencia) {
                         return false;
                     }
@@ -1044,10 +1042,8 @@ class Payroll extends Model
                     // Si la planilla no tiene frecuencia definida, el concepto no aplica
                     return false;
                 }
-            } else {
-                // No hay restricciones de frecuencia, el concepto aplica para cualquier frecuencia
-                    return false;
             }
+            // Si no hay restricciones de frecuencia, el concepto aplica para cualquier frecuencia
             
             return true;
             
@@ -1903,6 +1899,142 @@ class Payroll extends Model
         } catch (\Exception $e) {
             error_log("Error en checkAndReactivateLoan: " . $e->getMessage());
             // No lanzar excepción para no interrumpir el flujo principal
+        }
+    }
+
+    /**
+     * Simular procesamiento de planilla SIN guardar en BD
+     * Retorna array con detalles simulados agrupados por tipo (asignaciones/deducciones)
+     *
+     * @param int $tipoPlanillaId ID del tipo de planilla
+     * @param int $frecuenciaId ID de la frecuencia
+     * @param string $periodoInicio Fecha inicio del período
+     * @param string $periodoFin Fecha fin del período
+     * @param string $fecha Fecha de la planilla
+     * @return array Array con total_asignaciones, total_deducciones, total_empleados, detalles_por_empleado
+     */
+    public function simulatePayrollProcessing($tipoPlanillaId, $frecuenciaId, $periodoInicio, $periodoFin, $fecha)
+    {
+        try {
+            // Simular datos de planilla
+            $payroll = [
+                'tipo_planilla_id' => $tipoPlanillaId,
+                'frecuencia_id' => $frecuenciaId,
+                'fecha_desde' => $periodoInicio,
+                'fecha_hasta' => $periodoFin,
+                'fecha' => $fecha
+            ];
+
+            // Obtener empleados activos del tipo de planilla
+            $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.departamento_id,
+                           e.position_id, e.schedule_id, e.situacion_id, e.tipo_planilla_id,
+                           e.cargo_id, e.funcion_id, e.partida_id, e.fecha_ingreso
+                    FROM employees e
+                    WHERE FIND_IN_SET(?, e.tipo_planilla_id)
+                    AND e.situacion_id = 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$tipoPlanillaId]);
+            $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($employees)) {
+                return [
+                    'total_empleados' => 0,
+                    'total_asignaciones' => 0,
+                    'total_deducciones' => 0,
+                    'detalles_por_empleado' => []
+                ];
+            }
+
+            // Obtener conceptos
+            $sql = "SELECT id, concepto, descripcion, tipo_concepto as tipo,
+                           formula, valor_fijo, monto_calculo, monto_cero
+                    FROM concepto
+                    ORDER BY tipo_concepto, concepto";
+            $stmt = $this->db->query($sql);
+            $conceptos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Inicializar calculadora
+            if (!class_exists('\App\Services\PlanillaConceptCalculator')) {
+                require_once __DIR__ . '/../Services/PlanillaConceptCalculator.php';
+            }
+            $calculadora = new \App\Services\PlanillaConceptCalculator();
+            $calculadora->establecerFechasPlanilla($periodoInicio, $periodoFin, $fecha);
+
+            $totalAsignaciones = 0;
+            $totalDeducciones = 0;
+            $detallesPorEmpleado = [];
+
+            foreach ($employees as $employee) {
+                $employeeSituacion = $employee['situacion_id'] ?? 1;
+                $asignacionesEmpleado = 0;
+                $deduccionesEmpleado = 0;
+
+                foreach ($conceptos as $concepto) {
+                    // Validar condicionales
+                    if (!$this->validateConceptConditions($concepto, $payroll, $employeeSituacion, true)) {
+                        continue;
+                    }
+
+                    $monto = 0;
+
+                    // Establecer variables del empleado
+                    $calculadora->setVariablesColaborador($employee['id'], $tipoPlanillaId);
+
+                    // Calcular monto
+                    if (!empty($concepto['valor_fijo']) && $concepto['valor_fijo'] > 0) {
+                        $monto = floatval($concepto['valor_fijo']);
+                    } elseif ($concepto['monto_calculo'] == 1 && !empty($concepto['formula'])) {
+                        try {
+                            $monto = $calculadora->evaluarFormula($concepto['formula']);
+                            if ($monto < 0) $monto = 0;
+                        } catch (\Exception $e) {
+                            error_log("Error evaluando fórmula para concepto {$concepto['concepto']}: " . $e->getMessage());
+                            $monto = 0;
+                        }
+                    }
+
+                    // Acumular montos
+                    if ($monto > 0 || ($concepto['monto_cero'] == 1 && $monto == 0)) {
+                        if ($concepto['tipo'] === 'A') {
+                            $asignacionesEmpleado += $monto;
+                        } elseif ($concepto['tipo'] === 'D') {
+                            // Solo acumular deducciones del empleado (tipo D)
+                            // NO incluir aportes patronales (tipo P) en las deducciones
+                            $deduccionesEmpleado += $monto;
+                            // Log deducciones para debug
+                            error_log("SIMULACION - Tipo Planilla $tipoPlanillaId - Empleado {$employee['id']} - Concepto {$concepto['concepto']} ({$concepto['descripcion']}): DEDUCCION = $$monto");
+                        }
+                        // Tipo P (Patronal) se ignora en el estimado de salario neto del empleado
+                    }
+                }
+
+                $totalAsignaciones += $asignacionesEmpleado;
+                $totalDeducciones += $deduccionesEmpleado;
+
+                $detallesPorEmpleado[] = [
+                    'employee_id' => $employee['id'],
+                    'nombre' => $employee['firstname'] . ' ' . $employee['lastname'],
+                    'asignaciones' => $asignacionesEmpleado,
+                    'deducciones' => $deduccionesEmpleado,
+                    'neto' => $asignacionesEmpleado - $deduccionesEmpleado
+                ];
+            }
+
+            // Log resumen final
+            error_log("SIMULACION RESUMEN - Tipo Planilla $tipoPlanillaId - Empleados: " . count($employees) . " - Total Asignaciones: $$totalAsignaciones - Total Deducciones: $$totalDeducciones");
+
+            return [
+                'total_empleados' => count($employees),
+                'total_asignaciones' => $totalAsignaciones,
+                'total_deducciones' => $totalDeducciones,
+                'total_neto' => $totalAsignaciones - $totalDeducciones,
+                'detalles_por_empleado' => $detallesPorEmpleado
+            ];
+
+        } catch (\Exception $e) {
+            error_log("Error en simulatePayrollProcessing: " . $e->getMessage());
+            throw $e;
         }
     }
 }
