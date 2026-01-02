@@ -240,7 +240,8 @@ class Payroll extends Model
                         LEFT JOIN schedules s ON s.id = e.schedule_id
                         LEFT JOIN situaciones sit ON sit.id = e.situacion_id
                         LEFT JOIN tipos_planilla tp ON tp.id = e.tipo_planilla_id
-                        WHERE FIND_IN_SET(?, e.tipo_planilla_id)";
+                        WHERE FIND_IN_SET(?, e.tipo_planilla_id)
+                        AND (e.situacion_id = 1 OR sit.descripcion LIKE '%activ%' OR sit.descripcion LIKE '%ACTIV%' OR e.situacion_id IS NULL)";
 
                 $stmt = $this->db->prepare($sql);
                 // Usar el tipo de planilla del parámetro si se proporciona, sino el de la planilla original
@@ -277,6 +278,18 @@ class Payroll extends Model
 
             // Establecer fechas de la planilla para variables INIPERIODO/FINPERIODO
             $calculadora->establecerFechasPlanilla($periodo_inicio, $periodo_fin, $fecha);
+
+            // Obtener conceptos manuales activos para esta planilla
+            $manualConceptModel = new EmployeeManualConcept();
+            $manualConceptsByEmployee = $manualConceptModel->getActiveForPayroll(
+                $fecha,
+                $tipoId,
+                $payroll['frecuencia_id']
+            );
+
+            $appliedManualConceptIds = []; // Para marcar como aplicados al final
+            error_log("Conceptos manuales encontrados para " . count($manualConceptsByEmployee) . " empleados");
+
             $processedCount = 0;
             $employeeCount = 0;
 
@@ -378,7 +391,88 @@ class Payroll extends Model
                         }
                     }
                 }
-                
+
+                // ========================================
+                // PROCESAR CONCEPTOS MANUALES
+                // ========================================
+                if (isset($manualConceptsByEmployee[$employee['id']])) {
+                    $manualConcepts = $manualConceptsByEmployee[$employee['id']];
+                    error_log("Procesando " . count($manualConcepts) . " conceptos manuales para empleado {$employee['id']}");
+
+                    foreach ($manualConcepts as $manualConcept) {
+                        // Determinar el monto
+                        $monto = 0;
+
+                        if (!empty($manualConcept['monto_fijo']) && $manualConcept['monto_fijo'] > 0) {
+                            // Usar monto fijo si está especificado
+                            $monto = floatval($manualConcept['monto_fijo']);
+                        } elseif (!empty($manualConcept['formula'])) {
+                            // Si hay fórmula en el concepto, evaluarla
+                            try {
+                                // Establecer variables del colaborador
+                                $calculadora->setVariablesColaborador($employee['id'], $tipoId);
+
+                                // Evaluar la fórmula
+                                $monto = $calculadora->evaluarFormula($manualConcept['formula']);
+                                if ($monto < 0) $monto = 0;
+                            } catch (\Exception $e) {
+                                error_log("Error evaluando fórmula de concepto manual {$manualConcept['concepto_code']}: " . $e->getMessage());
+                                $monto = 0;
+                            }
+                        }
+
+                        // Determinar unidad
+                        $unidad = !empty($manualConcept['unidad']) ? $manualConcept['unidad'] : 1;
+
+                        // Si el concepto tiene fórmula y asignó UNIDAD dinámicamente, usar ese valor
+                        if (!empty($manualConcept['formula'])) {
+                            $unidadCalculada = $calculadora->obtenerUnidadCalculada();
+                            if ($unidadCalculada !== null && $unidadCalculada !== '') {
+                                $unidad = $unidadCalculada;
+                            }
+                        }
+
+                        // Insertar en planilla_detalle si hay monto
+                        if ($monto > 0) {
+                            $sql = "INSERT INTO planilla_detalle (
+                                planilla_cabecera_id, employee_id, concepto_id, monto, tipo,
+                                departamento_id, position_id, schedule_id, cargo_id, funcion_id, partida_id,
+                                firstname, lastname, unidad
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                            $stmt = $this->db->prepare($sql);
+                            $result = $stmt->execute([
+                                $payrollId,
+                                $employee['id'],
+                                $manualConcept['concepto_id'],
+                                round($monto, 4),
+                                $manualConcept['tipo_concepto'],
+                                $employee['departamento_id'],
+                                $employee['position_id'],
+                                $employee['schedule_id'],
+                                $employee['cargo_id'],
+                                $employee['funcion_id'],
+                                $employee['partida_id'],
+                                $employee['firstname'],
+                                $employee['lastname'],
+                                $unidad
+                            ]);
+
+                            if ($result) {
+                                $processedCount++;
+                                $employeeProcessedCount++;
+
+                                // Agregar a la lista de conceptos manuales a marcar como aplicados
+                                if ($manualConcept['aplica_una_vez'] == 1) {
+                                    $appliedManualConceptIds[] = $manualConcept['id'];
+                                }
+
+                                error_log("Concepto manual {$manualConcept['concepto_code']} aplicado a empleado {$employee['id']}: monto=$monto, unidad=$unidad");
+                            }
+                        }
+                    }
+                }
+
                 // Hacer commit parcial después de cada empleado para que el progress endpoint vea los cambios
                 // NOTA: En modo especial NO hacemos commits parciales para evitar problemas de transacciones
                 if ($employeeProcessedCount > 0 && !($usarSalarioPlanilla && !$validateSituacion)) {
@@ -394,6 +488,12 @@ class Payroll extends Model
             $sql = "UPDATE {$this->table} SET estado = 'PROCESADA' WHERE id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$payrollId]);
+
+            // Marcar conceptos manuales como aplicados (solo los que tienen aplica_una_vez = 1)
+            if (!empty($appliedManualConceptIds)) {
+                $manualConceptModel->markMultipleAsApplied($appliedManualConceptIds, $payrollId);
+                error_log("Marcados " . count($appliedManualConceptIds) . " conceptos manuales como aplicados");
+            }
 
             $this->db->commit();
 
@@ -998,8 +1098,11 @@ class Payroll extends Model
                 if (!$validTipoPlanilla) {
                     return false;
                 }
+            } else {
+                // NUEVO: Si NO hay restricciones de tipo planilla, el concepto NO se aplica (requiere filtros explícitos)
+                error_log("Concepto {$conceptoId} rechazado: sin filtros de tipo de planilla");
+                return false;
             }
-            // Si no hay restricciones de tipo planilla, el concepto aplica para todos los tipos
 
             // Verificar restricciones de SITUACIÓN using tabla relacional
             // SOLO si el parámetro $validateSituacion es true
@@ -1017,8 +1120,11 @@ class Payroll extends Model
                     if (!$validSituacion) {
                         return false;
                     }
+                } else {
+                    // NUEVO: Si NO hay restricciones de situación, el concepto NO se aplica (requiere filtros explícitos)
+                    error_log("Concepto {$conceptoId} rechazado: sin filtros de situación");
+                    return false;
                 }
-                // Si no hay restricciones de situación, el concepto aplica para todas las situaciones
             }
             // Si $validateSituacion es false, se salta la validación de situación completamente
             
@@ -1042,8 +1148,11 @@ class Payroll extends Model
                     // Si la planilla no tiene frecuencia definida, el concepto no aplica
                     return false;
                 }
+            } else {
+                // NUEVO: Si NO hay restricciones de frecuencia, el concepto NO se aplica (requiere filtros explícitos)
+                error_log("Concepto {$conceptoId} rechazado: sin filtros de frecuencia");
+                return false;
             }
-            // Si no hay restricciones de frecuencia, el concepto aplica para cualquier frecuencia
             
             return true;
             

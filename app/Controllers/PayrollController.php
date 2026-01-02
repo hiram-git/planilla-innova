@@ -621,7 +621,7 @@ class PayrollController extends Controller
 
             // Los conceptos ya están incluidos en $detail['conceptos']
             $concepts = $detail['conceptos'] ?? [];
-            
+
             // Separar conceptos por tipo para mejor presentación
             $incomes = [];
             $deductions = [];
@@ -629,7 +629,7 @@ class PayrollController extends Controller
             $totalIncomes = 0;
             $totalDeductions = 0;
             $totalPatronales = 0;
-            
+
             foreach ($concepts as $concept) {
                 // Mapear los tipos de concepto - parece que 'A' significa algo diferente
                 $tipoConcepto = $concept['concepto_tipo'];
@@ -1443,6 +1443,16 @@ class PayrollController extends Controller
                 throw new \Exception('Solo se pueden regenerar empleados en planillas procesadas. Estado actual: ' . $payroll['estado']);
             }
 
+            // Obtener tipo de planilla desde navbar (opcional)
+            $tipoPlanillaId = isset($_POST['tipo_planilla_id']) ? (int)$_POST['tipo_planilla_id'] : null;
+            if ($tipoPlanillaId) {
+                $tipoPlanillaModel = new \App\Models\TipoPlanilla();
+                $tipoPlanilla = $tipoPlanillaModel->find($tipoPlanillaId);
+                if (!$tipoPlanilla || !$tipoPlanilla['activo']) {
+                    throw new \Exception('El tipo de planilla seleccionado no es vÇ­lido');
+                }
+            }
+
             // Verificar que el empleado existe
             $employee = $this->employeeModel->find($employeeId);
             if (!$employee) {
@@ -1450,7 +1460,7 @@ class PayrollController extends Controller
             }
 
             // Ejecutar la regeneración
-            $result = $this->processEmployeeRegeneration($payrollId, $employeeId);
+            $result = $this->processEmployeeRegeneration($payrollId, $employeeId, $tipoPlanillaId);
 
             // Respuesta exitosa
             echo json_encode([
@@ -1474,6 +1484,7 @@ class PayrollController extends Controller
                 'debug_info' => [
                     'payroll_id' => $payrollId,
                     'employee_id' => $_POST['employee_id'] ?? 'not_provided',
+                    'tipo_planilla_id' => $_POST['tipo_planilla_id'] ?? 'not_provided',
                     'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown'
                 ]
             ]);
@@ -1484,7 +1495,7 @@ class PayrollController extends Controller
     /**
      * Procesar regeneración de empleado
      */
-    private function processEmployeeRegeneration($payrollId, $employeeId)
+    private function processEmployeeRegeneration($payrollId, $employeeId, $tipoPlanillaId = null)
     {
         try {
             $db = $this->payrollModel->db;
@@ -1526,6 +1537,11 @@ class PayrollController extends Controller
                 throw new \Exception('Información de planilla no encontrada');
             }
 
+            $payrollForValidation = $payroll;
+            if ($tipoPlanillaId) {
+                $payrollForValidation['tipo_planilla_id'] = $tipoPlanillaId;
+            }
+
             $conceptsApplied = 0;
             $totalIngresos = 0;
             $totalDeducciones = 0;
@@ -1545,7 +1561,7 @@ class PayrollController extends Controller
             // 6. Calcular y aplicar cada concepto con validaciones
             foreach ($concepts as $concept) {
                 // CRÍTICO: Validar condicionales del concepto (igual que en procesamiento normal)
-                if (!$this->payrollModel->validateConceptConditions($concept, $payroll, $employeeSituacion)) {
+                if (!$this->payrollModel->validateConceptConditions($concept, $payrollForValidation, $employeeSituacion)) {
                     // Concepto omitido - no cumple condiciones
                     continue; // Saltar este concepto - no aplica para este empleado/planilla
                 }
@@ -1554,7 +1570,7 @@ class PayrollController extends Controller
 
                     // Establecer variables del colaborador en la calculadora
                     // IMPORTANTE: Pasar tipo_planilla_id para obtener salario correcto de employee_payroll_salaries
-                    $calculadora->setVariablesColaborador($employeeId, $payroll['tipo_planilla_id']);
+                    $calculadora->setVariablesColaborador($employeeId, $tipoPlanillaId ?: $payroll['tipo_planilla_id']);
 
                     // Calcular monto según la configuración del concepto (igual que procesamiento normal)
                     if (!empty($concept['valor_fijo']) && $concept['valor_fijo'] > 0) {

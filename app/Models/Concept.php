@@ -220,6 +220,23 @@ class Concept extends Model
     }
 
     /**
+     * Obtener conceptos de tipo Asignación (A) y Deducción (D) para asignación manual
+     */
+    public function getManualAssignmentConcepts()
+    {
+        try {
+            $sql = "SELECT * FROM {$this->table}
+                    WHERE tipo_concepto IN ('A', 'D')
+                    ORDER BY tipo_concepto DESC, descripcion ASC";
+            $stmt = $this->db->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error obteniendo conceptos para asignación manual: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Obtener conceptos por tipo
      */
     public function getByType($type)
