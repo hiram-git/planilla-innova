@@ -71,6 +71,7 @@ class App
                     'roles' => ['controller' => 'RoleController', 'method' => null],
                     'creditors' => ['controller' => 'CreditorController', 'method' => null],
                     'deductions' => ['controller' => 'DeductionController', 'method' => null],
+                    'employee-manual-concepts' => ['controller' => 'EmployeeManualConceptController', 'method' => null],
                     'reports' => ['controller' => 'ReportController', 'method' => null],
                     'company' => ['controller' => 'CompanyController', 'method' => null],
                     'tipos-acumulados' => ['controller' => 'TipoAcumuladoController', 'method' => null],

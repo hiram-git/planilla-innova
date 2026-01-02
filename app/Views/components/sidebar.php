@@ -425,8 +425,8 @@ class SidebarComponent
                         // Gestión de Planillas
                         ($this->canAccessRoute('payrolls') ? '
                         <!-- Gestión de Planillas -->
-                        <li class="nav-item ' . ($this->isActive('panel/payrolls') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/payrolls') ? 'active' : '') . '">
+                        <li class="nav-item ' . ($this->isActive('panel/payrolls') || $this->isActive('panel/employee-manual-concepts') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/payrolls') || $this->isActive('panel/employee-manual-concepts') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-file-invoice-dollar"></i>
                                 <p>
                                     Gestión de Planillas
@@ -444,6 +444,12 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::payroll('create') . '" class="nav-link ' . ($this->isActive('panel/payrolls/create') ? 'active' : '') . '">
                                         <i class="fas fa-plus-circle nav-icon"></i>
                                         <p>Nueva Planilla</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/employee-manual-concepts') . '" class="nav-link ' . ($this->isActive('panel/employee-manual-concepts') ? 'active' : '') . '">
+                                        <i class="fas fa-user-edit nav-icon"></i>
+                                        <p>Conceptos Manuales</p>
                                     </a>
                                 </li>
                             </ul>

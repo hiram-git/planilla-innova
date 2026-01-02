@@ -402,15 +402,40 @@ document.addEventListener('DOMContentLoaded', function() {
             updateProgress(25, 'Eliminando conceptos existentes...', 'Preparando datos del empleado');
             
             const ajaxUrl = '" . \App\Core\UrlHelper::route('panel/payrolls') . "/' + payrollId + '/regenerate-employee';
+            let tipoPlanillaId = null;
+
+            try {
+                const selectedPayrollType = sessionStorage.getItem('selectedPayrollType');
+                if (selectedPayrollType) {
+                    tipoPlanillaId = JSON.parse(selectedPayrollType).id;
+                }
+            } catch (e) {
+            }
+
+            if (!tipoPlanillaId && typeof window.getSelectedPayrollType === 'function') {
+                try {
+                    const payrollTypeData = window.getSelectedPayrollType();
+                    if (payrollTypeData && payrollTypeData.id) {
+                        tipoPlanillaId = payrollTypeData.id;
+                    }
+                } catch (e) {
+                }
+            }
+
+            const ajaxData = {
+                employee_id: employeeId,
+                csrf_token: '" . ($_SESSION['csrf_token'] ?? '') . "'
+            };
+
+            if (tipoPlanillaId) {
+                ajaxData.tipo_planilla_id = tipoPlanillaId;
+            }
             
             // Realizar petición AJAX
             $.ajax({
                 url: ajaxUrl,
                 method: 'POST',
-                data: {
-                    employee_id: employeeId,
-                    csrf_token: '" . ($_SESSION['csrf_token'] ?? '') . "'
-                },
+                data: ajaxData,
                 timeout: 60000, // 60 segundos timeout
                 success: function(response) {
                     if (response.success) {

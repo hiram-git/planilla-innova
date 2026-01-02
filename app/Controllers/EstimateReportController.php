@@ -105,35 +105,37 @@ class EstimateReportController extends ReportController
                 $calculatorModel->setVariable('SUELDO_MENSUAL', (float)$employee['sueldo_individual']);
                 $calculatorModel->setVariable('SUELDO_DIARIO', (float)($employee['sueldo_individual'] / 30));
 
-                // Obtener conceptos de liquidación
-                $employee_tipo_planilla_ids = !empty($employee['tipo_planilla_id'])
-                    ? explode(',', $employee['tipo_planilla_id'])
-                    : [];
+                // Obtener TODOS los conceptos y luego validar con validateConceptConditions
+                $sql = "SELECT id, concepto, descripcion, tipo_concepto, formula, valor_fijo, monto_calculo, monto_cero
+                        FROM concepto
+                        ORDER BY tipo_concepto, concepto";
 
-                if (!empty($employee_tipo_planilla_ids)) {
-                    $placeholders = implode(',', array_fill(0, count($employee_tipo_planilla_ids), '?'));
-                    $sql = "SELECT DISTINCT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
-                            FROM concepto c
-                            INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                            INNER JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id
-                            WHERE cf.frecuencia_id = ?
-                            AND ctp.tipo_planilla_id IN ($placeholders)
-                            ORDER BY c.tipo_concepto, c.concepto";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute();
+                $allConcepts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-                    $stmt = $this->db->prepare($sql);
-                    $stmt->execute(array_merge([$liquidation_frequency_id], $employee_tipo_planilla_ids));
-                } else {
-                    $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
-                            FROM concepto c
-                            INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                            WHERE cf.frecuencia_id = ?
-                            ORDER BY c.tipo_concepto, c.concepto";
+                // Simular datos de planilla para validación
+                $employee_tipo_planilla_id = !empty($employee['tipo_planilla_id'])
+                    ? explode(',', $employee['tipo_planilla_id'])[0]
+                    : null;
 
-                    $stmt = $this->db->prepare($sql);
-                    $stmt->execute([$liquidation_frequency_id]);
+                $payrollSimulation = [
+                    'tipo_planilla_id' => $employee_tipo_planilla_id,
+                    'frecuencia_id' => $liquidation_frequency_id
+                ];
+
+                // Obtener modelo de Payroll para usar validateConceptConditions
+                $payrollModel = new \App\Models\Payroll();
+
+                // Filtrar conceptos usando validateConceptConditions
+                $concepts = [];
+                foreach ($allConcepts as $concept) {
+                    // Para estimado de liquidaciones, NO validar situación (son empleados activos simulando baja)
+                    // Pasar validateSituacion = false para omitir validación de situación
+                    if ($payrollModel->validateConceptConditions($concept, $payrollSimulation, 1, false)) {
+                        $concepts[] = $concept;
+                    }
                 }
-
-                $concepts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 $employee_calculations = [];
                 $total_asignaciones = 0;
@@ -299,35 +301,37 @@ class EstimateReportController extends ReportController
                 $calculatorModel->setVariable('SUELDO_MENSUAL', (float)$employee['sueldo_individual']);
                 $calculatorModel->setVariable('SUELDO_DIARIO', (float)($employee['sueldo_individual'] / 30));
 
-                // Obtener conceptos de liquidación
-                $employee_tipo_planilla_ids = !empty($employee['tipo_planilla_id'])
-                    ? explode(',', $employee['tipo_planilla_id'])
-                    : [];
+                // Obtener TODOS los conceptos y luego validar con validateConceptConditions
+                $sql = "SELECT id, concepto, descripcion, tipo_concepto, formula, valor_fijo, monto_calculo, monto_cero
+                        FROM concepto
+                        ORDER BY tipo_concepto, concepto";
 
-                if (!empty($employee_tipo_planilla_ids)) {
-                    $placeholders = implode(',', array_fill(0, count($employee_tipo_planilla_ids), '?'));
-                    $sql = "SELECT DISTINCT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
-                            FROM concepto c
-                            INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                            INNER JOIN concepto_tipos_planilla ctp ON c.id = ctp.concepto_id
-                            WHERE cf.frecuencia_id = ?
-                            AND ctp.tipo_planilla_id IN ($placeholders)
-                            ORDER BY c.tipo_concepto, c.concepto";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute();
+                $allConcepts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-                    $stmt = $this->db->prepare($sql);
-                    $stmt->execute(array_merge([$liquidation_frequency_id], $employee_tipo_planilla_ids));
-                } else {
-                    $sql = "SELECT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
-                            FROM concepto c
-                            INNER JOIN concepto_frecuencias cf ON c.id = cf.concepto_id
-                            WHERE cf.frecuencia_id = ?
-                            ORDER BY c.tipo_concepto, c.concepto";
+                // Simular datos de planilla para validación
+                $employee_tipo_planilla_id = !empty($employee['tipo_planilla_id'])
+                    ? explode(',', $employee['tipo_planilla_id'])[0]
+                    : null;
 
-                    $stmt = $this->db->prepare($sql);
-                    $stmt->execute([$liquidation_frequency_id]);
+                $payrollSimulation = [
+                    'tipo_planilla_id' => $employee_tipo_planilla_id,
+                    'frecuencia_id' => $liquidation_frequency_id
+                ];
+
+                // Obtener modelo de Payroll para usar validateConceptConditions
+                $payrollModel = new \App\Models\Payroll();
+
+                // Filtrar conceptos usando validateConceptConditions
+                $concepts = [];
+                foreach ($allConcepts as $concept) {
+                    // Para estimado de liquidaciones, NO validar situación (son empleados activos simulando baja)
+                    // Pasar validateSituacion = false para omitir validación de situación
+                    if ($payrollModel->validateConceptConditions($concept, $payrollSimulation, 1, false)) {
+                        $concepts[] = $concept;
+                    }
                 }
-
-                $concepts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 $employee_calculations = [];
                 $total_asignaciones = 0;
