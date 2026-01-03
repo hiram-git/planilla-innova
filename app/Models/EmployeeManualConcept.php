@@ -56,7 +56,7 @@ class EmployeeManualConcept extends Model
                     INNER JOIN concepto c ON emc.concepto_id = c.id
                     LEFT JOIN tipos_planilla tp ON emc.tipo_planilla_id = tp.id
                     LEFT JOIN frecuencias f ON emc.frecuencia_id = f.id
-                    LEFT JOIN users u ON emc.created_by = u.id
+                    LEFT JOIN admin u ON emc.created_by = u.id
                     WHERE 1=1";
 
             $params = [];
