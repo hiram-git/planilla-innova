@@ -77,6 +77,7 @@ use App\Core\TenantResolver;
 use App\Core\Database;
 use App\Models\AttendanceApiConfig;
 use App\Services\Attendance\AttendanceSyncService;
+use App\Services\Attendance\RecordsProcessor;
 
 // Banner
 echo "\n";
@@ -187,6 +188,31 @@ foreach ($tenants as $tenantDb) {
             $errors = $syncService->getErrors();
             echo "\n⚠️  Detalles de errores:\n";
             foreach ($errors as $error) {
+                echo "  - {$error}\n";
+            }
+        }
+
+        // ========================================================================
+        // PROCESAMIENTO DE MARCACIONES: attendance_records → attendance_detail
+        // ========================================================================
+        echo "\n🔄 Procesando marcaciones a attendance_detail...\n";
+
+        $processor = new RecordsProcessor();
+        $processStats = $processor->processDay($today);
+
+        echo "✅ Procesamiento completado:\n";
+        echo "  - Grupos procesados: {$processStats['groups_processed']}\n";
+        echo "  - Detalles creados: {$processStats['details_created']}\n";
+        echo "  - Detalles actualizados: {$processStats['details_updated']}\n";
+        echo "  - Detalles omitidos: {$processStats['details_skipped']}\n";
+        echo "  - Records marcados: {$processStats['records_marked']}\n";
+        echo "  - Errores de procesamiento: {$processStats['errors']}\n";
+
+        if ($processStats['errors'] > 0) {
+            $overallExit = 1;
+            $processErrors = $processStats['errors_detail'] ?? [];
+            echo "\n⚠️  Detalles de errores de procesamiento:\n";
+            foreach ($processErrors as $error) {
                 echo "  - {$error}\n";
             }
         }
