@@ -193,12 +193,12 @@ foreach ($tenants as $tenantDb) {
         }
 
         // ========================================================================
-        // PROCESAMIENTO DE MARCACIONES: attendance_records → attendance_detail
+        // PASO 2: PROCESAMIENTO DE MARCACIONES: attendance_records → attendance_detail
         // ========================================================================
         echo "\n🔄 Procesando marcaciones a attendance_detail...\n";
 
         $processor = new RecordsProcessor();
-        $processStats = $processor->processDay($today);
+        $processStats = $processor->processToDetails($today, $today);
 
         echo "✅ Procesamiento completado:\n";
         echo "  - Grupos procesados: {$processStats['groups_processed']}\n";
@@ -216,6 +216,8 @@ foreach ($tenants as $tenantDb) {
                 echo "  - {$error}\n";
             }
         }
+
+        echo "\n📝 NOTA: Cálculos de ausencias y tardanzas se ejecutarán al final del día\n";
 
     } catch (Exception $e) {
         $overallExit = 1;
