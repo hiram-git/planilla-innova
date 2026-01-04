@@ -14,11 +14,25 @@ class EstimateReportController extends ReportController
      * Estimado anual de liquidaciones
      * Calcula el monto estimado de liquidación para todos los empleados activos
      * sin que estén dados de baja
+     *
+     * IMPORTANTE: Este método funciona en modo DRY-RUN por defecto.
+     * NO modifica registros en BD, solo simula cálculos de liquidación.
+     *
+     * @param bool $dryRun Si es true (por defecto), solo simula sin afectar BD
      */
-    public function estimadoAnualLiquidaciones()
+    public function estimadoAnualLiquidaciones($dryRun = true)
     {
         try {
             $this->requireAuth();
+
+            // Validar parámetro dry_run desde GET si existe
+            if (isset($_GET['dry_run'])) {
+                $dryRun = filter_var($_GET['dry_run'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            // Log de modo de ejecución
+            $modeLog = $dryRun ? '[DRY-RUN MODE]' : '[LIVE MODE]';
+            error_log("{$modeLog} Iniciando estimado anual de liquidaciones - Usuario: " . ($_SESSION['user']['username'] ?? 'unknown'));
 
             // Obtener todos los empleados activos (no terminados)
             $sql = "SELECT
@@ -30,11 +44,10 @@ class EstimateReportController extends ReportController
                         e.fecha_ingreso,
                         e.sueldo_individual,
                         e.tipo_planilla_id,
-                        IFNULL(c.nombre, 'Sin Cargo') as position_name,
+                        IFNULL(o.descripcion, 'Sin Cargo') as position_name,
                         DATEDIFF(CURDATE(), e.fecha_ingreso) / 365 as years_worked
                     FROM employees e
-                    LEFT JOIN posiciones p ON e.position_id = p.id
-                    LEFT JOIN cargos c ON p.id_cargo = c.id
+                    LEFT JOIN organigrama o ON e.departamento_id = o.id
                     WHERE e.id NOT IN (
                         SELECT employee_id FROM employee_terminations WHERE status IN ('CALCULADA', 'PROCESADA')
                     )
@@ -94,11 +107,19 @@ class EstimateReportController extends ReportController
                 // Calcular total de días trabajados
                 $dias_trabajados = $fecha_ingreso->diff($fecha_simulada_terminacion)->days;
 
+                // Calcular período de 11 meses para liquidación (desde fecha ingreso hasta hoy)
+                $inicio_periodo_liquidacion = $fecha_ingreso->format('Y-m-d');
+                $fin_periodo_liquidacion = $today;
+
                 // Establecer solo variables numéricas necesarias para liquidación
                 $calculatorModel->setVariable('ANOS_TRABAJADOS', (float)$total_years);
                 $calculatorModel->setVariable('MESES_TRABAJADOS', (float)$total_months);
                 $calculatorModel->setVariable('DIAS_TRABAJADOS', (float)$dias_trabajados);
                 $calculatorModel->setVariable('DIAS_PREAVISO', 0); // Estimado sin preaviso
+
+                // Establecer fechas de período para ACUMULADOS()
+                $calculatorModel->setVariable('INIPERIODO', $inicio_periodo_liquidacion);
+                $calculatorModel->setVariable('FINPERIODO', $fin_periodo_liquidacion);
 
                 // Establecer salarios calculados para liquidaciones
                 $calculatorModel->setVariable('SUELDO_SEMANAL', (float)($employee['sueldo_individual'] / 4.33));
@@ -179,6 +200,9 @@ class EstimateReportController extends ReportController
                 $total_general_neto += $neto;
             }
 
+            // Log de finalización exitosa
+            error_log("{$modeLog} Estimado completado exitosamente - Empleados procesados: " . count($employees) . " - Total estimado: $" . number_format($total_general_neto, 2));
+
             // Preparar datos para la vista
             $companyInfo = $this->getCompanyInfo();
             $signatures = $this->companyModel->getSignaturesForReports();
@@ -198,7 +222,8 @@ class EstimateReportController extends ReportController
                 'total_employees' => count($employees),
                 'fecha_estimado' => date('d/m/Y'),
                 'companyInfo' => $companyInfo,
-                'signatures' => $signatures
+                'signatures' => $signatures,
+                'dry_run_mode' => $dryRun // Pasar flag a la vista
             ];
 
             $this->view('admin/reports/estimado_liquidaciones', $data);
@@ -214,11 +239,25 @@ class EstimateReportController extends ReportController
     /**
      * Generar PDF del estimado anual de liquidaciones
      * Similar al reporte de planilla pero para estimado de liquidaciones
+     *
+     * IMPORTANTE: Este método funciona en modo DRY-RUN por defecto.
+     * NO modifica registros en BD, solo genera PDF de simulación.
+     *
+     * @param bool $dryRun Si es true (por defecto), solo simula sin afectar BD
      */
-    public function estimadoAnualLiquidacionesPdf()
+    public function estimadoAnualLiquidacionesPdf($dryRun = true)
     {
         try {
             $this->requireAuth();
+
+            // Validar parámetro dry_run desde GET si existe
+            if (isset($_GET['dry_run'])) {
+                $dryRun = filter_var($_GET['dry_run'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            // Log de modo de ejecución
+            $modeLog = $dryRun ? '[DRY-RUN MODE]' : '[LIVE MODE]';
+            error_log("{$modeLog} Generando PDF de estimado anual de liquidaciones - Usuario: " . ($_SESSION['user']['username'] ?? 'unknown'));
 
             // Reutilizar la lógica de cálculo del estimado
             // Obtener todos los empleados activos (no terminados)
@@ -231,11 +270,10 @@ class EstimateReportController extends ReportController
                         e.fecha_ingreso,
                         e.sueldo_individual,
                         e.tipo_planilla_id,
-                        IFNULL(c.nombre, 'Sin Cargo') as position_name,
+                        IFNULL(o.descripcion, 'Sin Cargo') as position_name,
                         DATEDIFF(CURDATE(), e.fecha_ingreso) / 365 as years_worked
                     FROM employees e
-                    LEFT JOIN posiciones p ON e.position_id = p.id
-                    LEFT JOIN cargos c ON p.id_cargo = c.id
+                    LEFT JOIN organigrama o ON e.departamento_id = o.id
                     WHERE e.id NOT IN (
                         SELECT employee_id FROM employee_terminations WHERE status IN ('CALCULADA', 'PROCESADA')
                     )
@@ -290,11 +328,19 @@ class EstimateReportController extends ReportController
                 $total_months = $fecha_ingreso->diff($fecha_simulada_terminacion)->m;
                 $dias_trabajados = $fecha_ingreso->diff($fecha_simulada_terminacion)->days;
 
+                // Calcular período de 11 meses para liquidación (desde fecha ingreso hasta hoy)
+                $inicio_periodo_liquidacion = $fecha_ingreso->format('Y-m-d');
+                $fin_periodo_liquidacion = $today;
+
                 // Establecer solo variables numéricas necesarias para liquidación
                 $calculatorModel->setVariable('ANOS_TRABAJADOS', (float)$total_years);
                 $calculatorModel->setVariable('MESES_TRABAJADOS', (float)$total_months);
                 $calculatorModel->setVariable('DIAS_TRABAJADOS', (float)$dias_trabajados);
                 $calculatorModel->setVariable('DIAS_PREAVISO', 0);
+
+                // Establecer fechas de período para ACUMULADOS()
+                $calculatorModel->setVariable('INIPERIODO', $inicio_periodo_liquidacion);
+                $calculatorModel->setVariable('FINPERIODO', $fin_periodo_liquidacion);
 
                 // Establecer salarios calculados para liquidaciones
                 $calculatorModel->setVariable('SUELDO_SEMANAL', (float)($employee['sueldo_individual'] / 4.33));
@@ -377,6 +423,9 @@ class EstimateReportController extends ReportController
             // Obtener información de la empresa
             $companyInfo = $this->getCompanyInfo();
 
+            // Log de finalización exitosa
+            error_log("{$modeLog} PDF de estimado completado exitosamente - Empleados procesados: " . count($employees) . " - Total estimado: $" . number_format($total_general_neto, 2));
+
             // Preparar datos para el PDF
             $estimateData = [
                 'estimates' => $estimates,
@@ -384,7 +433,8 @@ class EstimateReportController extends ReportController
                 'total_general_deducciones' => $total_general_deducciones,
                 'total_general_neto' => $total_general_neto,
                 'total_employees' => count($employees),
-                'fecha_estimado' => date('d/m/Y')
+                'fecha_estimado' => date('d/m/Y'),
+                'dry_run_mode' => $dryRun // Pasar flag al PDF
             ];
 
             // Generar PDF usando PDFReportController
@@ -462,8 +512,9 @@ class EstimateReportController extends ReportController
         $pdf->SetFont('helvetica', 'B', 8);
         $pdf->SetFillColor(255, 193, 7); // Fondo amarillo/naranja para destacar que es estimado
 
-        // Anchos de columna para orientación horizontal
-        $colWidths = [60, 25, 25, 20, 30, 30, 30];
+        // Anchos de columna optimizados para orientación horizontal (Legal = 355mm)
+        // Total disponible: ~275mm (restando márgenes de 20mm)
+        $colWidths = [80, 30, 50, 18, 32, 32, 33];
 
         $pdf->Cell($colWidths[0], 6, 'Empleado', 1, 0, 'C', true);
         $pdf->Cell($colWidths[1], 6, 'Cédula', 1, 0, 'C', true);
@@ -479,8 +530,8 @@ class EstimateReportController extends ReportController
      */
     protected function addEstimadoTable($pdf, $estimates)
     {
-        // Anchos de columna
-        $colWidths = [60, 25, 25, 20, 30, 30, 30];
+        // Anchos de columna (deben coincidir con el header)
+        $colWidths = [80, 30, 50, 18, 32, 32, 33];
 
         // Datos de empleados
         $pdf->SetFont('helvetica', '', 7);
@@ -496,16 +547,16 @@ class EstimateReportController extends ReportController
             $employee = $estimate['employee'];
             $years_worked = number_format($employee['years_worked'], 1);
 
-            // Nombre completo (truncado si es muy largo)
+            // Nombre completo (truncado si es muy largo para 80mm)
             $nombreCompleto = $employee['lastname'] . ', ' . $employee['firstname'];
-            if (strlen($nombreCompleto) > 40) {
-                $nombreCompleto = substr($nombreCompleto, 0, 37) . '...';
+            if (strlen($nombreCompleto) > 50) {
+                $nombreCompleto = substr($nombreCompleto, 0, 47) . '...';
             }
 
-            // Cargo truncado
+            // Cargo truncado (para 50mm)
             $cargo = $employee['position_name'];
-            if (strlen($cargo) > 20) {
-                $cargo = substr($cargo, 0, 17) . '...';
+            if (strlen($cargo) > 30) {
+                $cargo = substr($cargo, 0, 27) . '...';
             }
 
             $pdf->Cell($colWidths[0], 6, $nombreCompleto, 1, 0, 'L');
