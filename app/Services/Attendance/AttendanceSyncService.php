@@ -175,6 +175,15 @@ class AttendanceSyncService
                 return $this->stats;
             }
 
+            // DEBUG: Ver primeras 3 marcaciones para entender el formato
+            $sampleDates = [];
+            foreach (array_slice($attendances, 0, 3) as $sample) {
+                $ts = $sample['timestamp'] ?? $sample['actual_timestamp'] ?? $sample['registered_timestamp'] ?? 'NO_TIMESTAMP';
+                $parsed = $ts !== 'NO_TIMESTAMP' ? date('Y-m-d H:i:s', strtotime($ts)) : 'ERROR';
+                $sampleDates[] = "Original: {$ts} | Parsed: {$parsed}";
+            }
+            error_log("SYNC DEBUG - Muestras de timestamps del API:\n" . implode("\n", $sampleDates));
+
             // Filtrar por rango de fechas
             $filteredCount = 0;
             $filteredAttendances = array_filter($attendances, function($record) use ($startDate, $endDate, &$filteredCount) {
