@@ -165,12 +165,13 @@ class AttendanceSyncService
         $this->startSyncLog('INCREMENTAL', $filters);
 
         try {
-            // Pasar filtros al API para obtener solo registros del rango
-            $attendances = $this->apiClient->getAttendances($filters);
+            // Nota: El API puede no soportar filtros de fecha directamente
+            // Obtenemos todos los registros y filtramos localmente
+            $attendances = $this->apiClient->getAttendances();
             $this->stats['fetched'] = is_array($attendances) ? count($attendances) : 0;
 
             if (empty($attendances)) {
-                $this->endSyncLog('SUCCESS', 'No hay marcaciones en el rango especificado');
+                $this->endSyncLog('SUCCESS', 'No hay marcaciones disponibles en el API');
                 return $this->stats;
             }
 
