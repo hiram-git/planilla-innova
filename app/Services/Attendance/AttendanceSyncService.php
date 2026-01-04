@@ -187,16 +187,23 @@ class AttendanceSyncService
             // Filtrar por rango de fechas
             $filteredCount = 0;
             $filteredAttendances = array_filter($attendances, function($record) use ($startDate, $endDate, &$filteredCount) {
-                if (!isset($record['timestamp'])) {
+                // Usar la misma lógica que extractRecordDate() para obtener el timestamp
+                $ts = $record['timestamp'] ?? ($record['actual_timestamp'] ?? ($record['registered_timestamp'] ?? null));
+
+                if (!$ts) {
                     return false;
                 }
 
-                $recordDate = date('Y-m-d', strtotime($record['timestamp']));
-                $match = $recordDate >= $startDate && $recordDate <= $endDate;
-                if ($match) {
-                    $filteredCount++;
+                try {
+                    $recordDate = date('Y-m-d', strtotime($ts));
+                    $match = $recordDate >= $startDate && $recordDate <= $endDate;
+                    if ($match) {
+                        $filteredCount++;
+                    }
+                    return $match;
+                } catch (\Exception $e) {
+                    return false;
                 }
-                return $match;
             });
 
             error_log("SYNC DEBUG: Total API: {$this->stats['fetched']}, Filtradas: {$filteredCount}, Rango: {$startDate} a {$endDate}");
