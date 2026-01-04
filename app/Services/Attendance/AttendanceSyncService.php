@@ -176,14 +176,21 @@ class AttendanceSyncService
             }
 
             // Filtrar por rango de fechas
-            $filteredAttendances = array_filter($attendances, function($record) use ($startDate, $endDate) {
+            $filteredCount = 0;
+            $filteredAttendances = array_filter($attendances, function($record) use ($startDate, $endDate, &$filteredCount) {
                 if (!isset($record['timestamp'])) {
                     return false;
                 }
 
                 $recordDate = date('Y-m-d', strtotime($record['timestamp']));
-                return $recordDate >= $startDate && $recordDate <= $endDate;
+                $match = $recordDate >= $startDate && $recordDate <= $endDate;
+                if ($match) {
+                    $filteredCount++;
+                }
+                return $match;
             });
+
+            error_log("SYNC DEBUG: Total API: {$this->stats['fetched']}, Filtradas: {$filteredCount}, Rango: {$startDate} a {$endDate}");
 
             // Procesar marcaciones filtradas
             foreach ($filteredAttendances as $attendance) {
@@ -194,11 +201,11 @@ class AttendanceSyncService
             $this->stats['min_date'] = $startDate;
             $this->stats['max_date'] = $endDate;
 
-            // Detectar ausencias automáticamente
-            $this->detectMissingAttendanceRecords();
+            // NOTA: La detección de ausencias se ejecuta en el cron de fin de día
+            // NO en la sincronización automática cada 15 minutos
 
             $status = $this->stats['errors'] > 0 ? 'PARTIAL' : 'SUCCESS';
-            $message = "Sincronización por rango completada: {$this->stats['inserted']} insertados, {$this->stats['updated']} actualizados. Ausencias: {$this->stats['absences_created']} creadas";
+            $message = "Sincronización por rango completada: {$this->stats['inserted']} insertados, {$this->stats['updated']} actualizados";
             $this->endSyncLog($status, $message);
 
             return $this->stats;
