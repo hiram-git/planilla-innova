@@ -222,7 +222,8 @@ class AccumulatedImportController extends Controller
                 $frecuenciaId = $validation['frecuencia_id'];
                 $tipoPlanillaId = $validation['tipo_planilla_id'] ?? null;
                 $tipoAcumulado = $validation['tipo_acumulado'] ?: strtoupper($data['concept_code']);
-                $planillaId = $data['planilla_id'] ?? 0;
+                // Acumulados importados siempre tienen planilla_id = 0 (no asociados a planilla)
+                $planillaId = !empty($data['planilla_id']) ? (int)$data['planilla_id'] : 0;
 
                 // Evitar duplicados
                 $existsStmt->execute([

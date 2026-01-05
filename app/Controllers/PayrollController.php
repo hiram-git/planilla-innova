@@ -751,21 +751,24 @@ class PayrollController extends Controller
                 }
 
                 // Usar la misma lógica que calcularAcumuladosSeguro() del motor de fórmulas
-                // JOIN con planilla_cabecera para obtener fechas (igual que línea 920-926 del calculador)
+                // LEFT JOIN para incluir acumulados importados (planilla_id = 0)
                 $sql = "SELECT
                             ape.mes,
                             SUM(ape.monto) as amount
                         FROM acumulados_por_empleado ape
-                        INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                        LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                         WHERE ape.employee_id = ?
                             AND (ape.concepto_id = ? or ape.tipo_acumulado = 'SALARIO_BASE')
-                            AND pc.fecha_hasta >= ?
-                            AND pc.fecha_desde <= ?
+                            AND (
+                                (ape.planilla_id = 0 AND DATE(CONCAT(ape.ano, '-', LPAD(ape.mes, 2, '0'), '-01')) BETWEEN ? AND ?)
+                                OR
+                                (ape.planilla_id != 0 AND pc.fecha_hasta >= ? AND pc.fecha_desde <= ?)
+                            )
                         GROUP BY ape.mes
                         ORDER BY ape.mes ASC";
 
                 $stmt = $this->db->prepare($sql);
-                $stmt->execute([$employeeId, $conceptoCompleto['id'], $iniPeriodo, $finPeriodo]);
+                $stmt->execute([$employeeId, $conceptoCompleto['id'], $iniPeriodo, $finPeriodo, $iniPeriodo, $finPeriodo]);
                 $monthlyData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 if (!empty($monthlyData)) {

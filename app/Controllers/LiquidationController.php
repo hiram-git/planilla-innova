@@ -199,7 +199,7 @@ class LiquidationController extends Controller
             $termination_date = $_POST['termination_date'] ?? null;
             $termination_type = $_POST['termination_type'] ?? null;
             $reason = $_POST['reason'] ?? '';
-            $notice_period_days = $_POST['notice_period_days'] ?? 30;
+            $notice_period_days = !empty($_POST['notice_period_days']) ? (int)$_POST['notice_period_days'] : 0;
 
             // Validaciones
             if (!$employee_id || !$termination_date || !$termination_type || empty(trim($reason))) {

@@ -912,22 +912,25 @@ class PlanillaConceptCalculatorSecure
             // Construir consulta segura con placeholders
             $placeholders = str_repeat('?,', count($conceptosArray) - 1) . '?';
 
-            // JOIN con planilla_cabecera para obtener fechas (acumulados_por_empleado no tiene campo fecha)
-            // Lógica de solapamiento: incluir planillas que se solapen con el período
-            // - La planilla termina EN o DESPUÉS del inicio del período (fecha_hasta >= fechaDesde)
-            // - Y la planilla inicia EN o ANTES del fin del período (fecha_desde <= fechaHasta)
+            // LEFT JOIN con planilla_cabecera para incluir acumulados importados (planilla_id = 0)
+            // Lógica dual:
+            // - Para planilla_id = 0 (importados): filtrar por año/mes construyendo fecha
+            // - Para planilla_id != 0: usar lógica de solapamiento con fechas de planilla_cabecera
             $sql = "SELECT SUM(ape.monto) as total
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
-                    INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE ape.employee_id = ?
                     AND ape.tipo_acumulado IN ($placeholders)
-                    AND pc.fecha_hasta >= ?
-                    AND pc.fecha_desde <= ?";
+                    AND (
+                        (ape.planilla_id = 0 AND DATE(CONCAT(ape.ano, '-', LPAD(ape.mes, 2, '0'), '-01')) BETWEEN ? AND ?)
+                        OR
+                        (ape.planilla_id != 0 AND pc.fecha_hasta >= ? AND pc.fecha_desde <= ?)
+                    )";
             error_log("SQL ACUMULADOS: $sql");
-            error_log("Parametros ACUMULADOS: " . implode(',', array_merge([$employeeId], $conceptosArray, [$fechaDesde, $fechaHasta])));
+            error_log("Parametros ACUMULADOS: " . implode(',', array_merge([$employeeId], $conceptosArray, [$fechaDesde, $fechaHasta, $fechaDesde, $fechaHasta])));
 
-            $params = array_merge([$employeeId], $conceptosArray, [$fechaDesde, $fechaHasta]);
+            $params = array_merge([$employeeId], $conceptosArray, [$fechaDesde, $fechaHasta, $fechaDesde, $fechaHasta]);
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
@@ -990,18 +993,21 @@ class PlanillaConceptCalculatorSecure
             $fechaHasta = $this->fechasActuales['fecha_hasta'] ?? "$añoActual-12-31";
 
             // Calcular total de ingresos del período
-            // JOIN con planilla_cabecera para obtener fechas (acumulados_por_empleado no tiene campo fecha)
+            // LEFT JOIN para incluir acumulados importados (planilla_id = 0)
             $sql = "SELECT SUM(ape.monto) as total_ingresos
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
-                    INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE ape.employee_id = ?
                     AND c.tipo_concepto = 'A'
-                    AND pc.fecha_desde >= ?
-                    AND pc.fecha_hasta <= ?";
+                    AND (
+                        (ape.planilla_id = 0 AND DATE(CONCAT(ape.ano, '-', LPAD(ape.mes, 2, '0'), '-01')) BETWEEN ? AND ?)
+                        OR
+                        (ape.planilla_id != 0 AND pc.fecha_desde >= ? AND pc.fecha_hasta <= ?)
+                    )";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employeeId, $fechaDesde, $fechaHasta]);
+            $stmt->execute([$employeeId, $fechaDesde, $fechaHasta, $fechaDesde, $fechaHasta]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $totalIngresos = (float)($result['total_ingresos'] ?? 0);
