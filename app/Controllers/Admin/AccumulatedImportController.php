@@ -110,6 +110,7 @@ class AccumulatedImportController extends Controller
             $examples = [
                 ['EMP001', 'SALARIO', 850.00, 1, date('Y'), 'quincenal', 0, 'MENSUAL', 'XIII_MES'],
                 ['EMP002', 'ISR', -50.25, 1, date('Y'), 2, '', 'MENSUAL', 'DEDUCCION'],
+                ['EMP003', '01', 1200.00, 2, date('Y'), 'mensual', 0, 'MENSUAL', 'CONCEPTO'],
             ];
 
             $row = 2;
@@ -385,12 +386,22 @@ class AccumulatedImportController extends Controller
         // Validar tipo acumulado (opcional)
         $tipoAcumulado = null;
         if (!empty($data['tipo_acumulado'])) {
-            if (isset($tiposAcumuladosByCode[$data['tipo_acumulado']])) {
+            $tipoAcumuladoUpper = strtoupper($data['tipo_acumulado']);
+
+            // Si es "CONCEPTO" o "POR CONCEPTO", usar el código del concepto
+            if ($tipoAcumuladoUpper === 'CONCEPTO' || $tipoAcumuladoUpper === 'POR CONCEPTO') {
+                $tipoAcumulado = $conceptCode; // Usar código del concepto (ej: "01")
+            }
+            // Si existe en el catálogo de tipos acumulados
+            elseif (isset($tiposAcumuladosByCode[$data['tipo_acumulado']])) {
                 $tipoAcumulado = $data['tipo_acumulado'];
-            } elseif ($conceptCode === $data['tipo_acumulado']) {
+            }
+            // Si es igual al código del concepto (permiso para usar directamente el código)
+            elseif ($conceptCode === $data['tipo_acumulado']) {
                 $tipoAcumulado = $data['tipo_acumulado'];
-            } else {
-                $errors[] = "Tipo acumulado '{$data['tipo_acumulado']}' no existe en catálogos (Columna H)";
+            }
+            else {
+                $errors[] = "Tipo acumulado '{$data['tipo_acumulado']}' no existe en catálogos (Columna I). Use 'CONCEPTO' para acumular por código del concepto.";
             }
         }
 
@@ -635,7 +646,13 @@ class AccumulatedImportController extends Controller
             'Campos obligatorios: Código empleado, Código concepto, Monto, Mes, Año, Frecuencia.',
             'Frecuencia acepta ID (1=quincenal, 2=mensual, etc.) o el código (quincenal, mensual, semanal, XIII, LIQUIDACION, VACACIONES).',
             'Planilla ID es opcional. Si no aplica, dejar vacío y se guardará como 0.',
-            'Tipo acumulado es opcional. Use códigos de tipos_acumulados o el código del concepto.',
+            '',
+            'TIPO ACUMULADO (Columna I - opcional):',
+            '- Use códigos de tipos_acumulados (ej: XIII_MES, DEDUCCION, SALARIO_BASE, etc.)',
+            '- Use "CONCEPTO" o "POR CONCEPTO" para acumular automáticamente por el código del concepto',
+            '  Ejemplo: Si concepto es "01", escribir "CONCEPTO" guardará "01" como tipo acumulado',
+            '- Puede escribir directamente el código del concepto si coincide',
+            '',
             'Tipo de concepto se calcula automáticamente desde el concepto.',
             'Mes debe estar entre 1 y 12. Año en formato YYYY.',
             'El sistema evita duplicados por empleado + concepto + mes + año + planilla + tipo acumulado.',
