@@ -667,7 +667,8 @@ class Payroll extends Model
                     LEFT JOIN posiciones pos ON pos.id = e.position_id
                     LEFT JOIN cargos c ON c.id = e.cargo_id
                     WHERE pd.planilla_cabecera_id = :payroll_id
-                    GROUP BY pd.employee_id, pd.firstname, pd.lastname, pd.position_id,
+                    GROUP BY pd.employee_id, pd.id, pd.firstname, pd.lastname, pd.position_id,
+                             pd.schedule_id, pd.cargo_id, pd.funcion_id, pd.partida_id, pd.departamento_id,
                              e.employee_id, p.description, p.rate, pos.codigo, c.nombre
                     ORDER BY pd.firstname, pd.lastname";
 

@@ -9,9 +9,11 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
 <div class="row mb-3">
     <div class="col-sm-12">
         <div class="float-right">
-            <button type="button" class="btn btn-warning" id="regenerateEmployeeBtn" data-payroll-id="<?= $payroll['id'] ?>" data-employee-id="<?= $detail['employee_id'] ?>">
-                <i class="fas fa-redo"></i> Regenerar Empleado
-            </button>
+            <?php if ($payroll['estado'] !== 'CERRADA'): ?>
+                <button type="button" class="btn btn-warning" id="regenerateEmployeeBtn" data-payroll-id="<?= $payroll['id'] ?>" data-employee-id="<?= $detail['employee_id'] ?>">
+                    <i class="fas fa-redo"></i> Regenerar Empleado
+                </button>
+            <?php endif; ?>
             <a href="<?= \App\Core\UrlHelper::route('panel/payrolls/' . $payroll['id']) ?>" class="btn btn-secondary ml-2">
                 <i class="fas fa-arrow-left"></i> Volver a la Planilla
             </a>
@@ -113,7 +115,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
         <div class="card">
             <div class="card-header bg-success">
                 <h3 class="card-title">
-                    <i class="fas fa-plus-circle"></i> Ingresos
+                    <i class="fas fa-plus-circle"></i> Asignaciones
                 </h3>
             </div>
             <div class="card-body">
@@ -147,6 +149,43 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                                             <span class="text-success font-weight-bold"><?= currency_symbol() ?><?= number_format($income['monto'], 2) ?></span>
                                         </td>
                                     </tr>
+                                    <?php
+                                    // Mostrar tabla de acumulados mes a mes para XIII Mes
+                                    $showAccumulated = in_array($income['concepto'], $accumulatedConceptCodes ?? []);
+                                    if ($showAccumulated):
+                                        $accumulatedData = $xiiiMesAccumulations[$income['concepto']] ?? null;
+                                    ?>
+                                        <tr class="bg-light">
+                                            <td colspan="3">
+                                                <table class="table table-sm table-bordered mb-0">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th width="40%">Mes</th>
+                                                            <th width="60%" class="text-right">Acumulado</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php if (!empty($accumulatedData['months'])): ?>
+                                                            <?php foreach ($accumulatedData['months'] as $month): ?>
+                                                                <tr>
+                                                                    <td><?= htmlspecialchars($month['label']) ?></td>
+                                                                    <td class="text-right"><?= currency_symbol() ?><?= number_format($month['amount'], 2) ?></td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                            <tr class="font-weight-bold">
+                                                                <td>Total acumulado</td>
+                                                                <td class="text-right"><?= currency_symbol() ?><?= number_format($accumulatedData['total'], 2) ?></td>
+                                                            </tr>
+                                                        <?php else: ?>
+                                                            <tr>
+                                                                <td colspan="2" class="text-center text-muted">Sin acumulados</td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </tbody>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
@@ -158,7 +197,7 @@ $title = 'Detalle de Empleado: ' . htmlspecialchars($detail['employee_name'] ?? 
                         </tbody>
                         <tfoot>
                             <tr class="font-weight-bold bg-light">
-                                <td colspan="2">TOTAL INGRESOS</td>
+                                <td colspan="2">TOTAL ASIGNACIONES</td>
                                 <td class="text-right text-success"><?= currency_symbol() ?><?= number_format($totalIncomes, 2) ?></td>
                             </tr>
                         </tfoot>

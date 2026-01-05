@@ -651,6 +651,29 @@ class PayrollController extends Controller
                 }
             }
 
+            // Verificar si es planilla de XIII Mes y obtener acumulados mes a mes
+            $xiiiMesAccumulations = [];
+            $accumulatedConceptCodes = [];
+
+            // Obtener nombre de la frecuencia para verificar si contiene "XIII" o "Decimo"
+            $sqlFrecuencia = "SELECT nombre FROM frecuencias WHERE id = ?";
+            $stmtFrecuencia = $this->db->prepare($sqlFrecuencia);
+            $stmtFrecuencia->execute([$payroll['frecuencia_id']]);
+            $frecuencia = $stmtFrecuencia->fetch(\PDO::FETCH_ASSOC);
+            $nombreFrecuencia = $frecuencia['nombre'] ?? '';
+
+            // Verificar si es XIII Mes: frecuencia_id = 8 O nombre contiene "XIII" o "Decimo"
+            $esXIIIMes = ($payroll['frecuencia_id'] == 8) ||
+                         (stripos($nombreFrecuencia, 'XIII') !== false) ||
+                         (stripos($nombreFrecuencia, 'Decimo') !== false) ||
+                         (stripos($nombreFrecuencia, 'Décimo') !== false);
+
+            if ($esXIIIMes) {
+                $xiiiMesAccumulations = $this->getXIIIMesAccumulations($payroll, $employeeId, $concepts);
+                // Obtener códigos de conceptos que tienen acumulados
+                $accumulatedConceptCodes = array_keys($xiiiMesAccumulations);
+            }
+
             $this->render('admin/payroll/show_detail', [
                 'payroll' => $payroll,
                 'detail' => $detail,
@@ -662,6 +685,8 @@ class PayrollController extends Controller
                 'totalDeductions' => $totalDeductions,
                 'totalPatronales' => $totalPatronales,
                 'netSalary' => $totalIncomes - $totalDeductions,
+                'xiiiMesAccumulations' => $xiiiMesAccumulations,
+                'accumulatedConceptCodes' => $accumulatedConceptCodes,
                 'page_title' => 'Detalle de Empleado - ' . ($detail['employee_name'] ?? 'N/A'),
                 'csrf_token' => Security::generateToken()
             ]);
@@ -670,6 +695,115 @@ class PayrollController extends Controller
             error_log("Error en PayrollController@showDetail: " . $e->getMessage());
             $this->redirect('/panel/payrolls/' . $payrollId . '?error=' . urlencode($e->getMessage()));
         }
+    }
+
+    /**
+     * Obtener acumulados mes a mes para XIII Mes
+     * Usa la misma lógica que ACUMULADOS() en el motor de fórmulas
+     */
+    private function getXIIIMesAccumulations($payroll, $employeeId, $concepts)
+    {
+        $accumulations = [];
+
+        try {
+            // Obtener las fechas del período desde la planilla
+            // Igual que lo hace establecerFechasPlanilla() en el calculador
+            $iniPeriodo = $payroll['fecha_desde'] ?? null;
+            $finPeriodo = $payroll['fecha_hasta'] ?? null;
+
+            // Si no hay fechas en la planilla, usar el año de la planilla como rango
+            if (!$iniPeriodo || !$finPeriodo) {
+                $payrollYear = date('Y', strtotime($payroll['fecha']));
+                $iniPeriodo = "{$payrollYear}-01-01";
+                $finPeriodo = "{$payrollYear}-12-31";
+            }
+
+            // Obtener información completa del concepto desde la BD para ver si usa ACUMULADOS()
+            foreach ($concepts as $concept) {
+                $conceptCode = $concept['concepto'];
+
+                // Obtener el concepto completo de la BD con su fórmula y tipo
+                $sqlConcepto = "SELECT id, concepto, descripcion, formula, tipo_concepto FROM concepto WHERE concepto = ?";
+                $stmtConcepto = $this->db->prepare($sqlConcepto);
+                $stmtConcepto->execute([$conceptCode]);
+                $conceptoCompleto = $stmtConcepto->fetch(\PDO::FETCH_ASSOC);
+
+                if (!$conceptoCompleto || empty($conceptoCompleto['formula'])) {
+                    continue;
+                }
+
+                // Verificar si la fórmula contiene ACUMULADOS()
+                if (stripos($conceptoCompleto['formula'], 'ACUMULADOS') === false) {
+                    continue;
+                }
+
+                // Solo conceptos de tipo INGRESO (asignaciones)
+                if (strtoupper($conceptoCompleto['tipo_concepto']) !== 'A') {
+                    continue;
+                }
+
+                // Solo conceptos cuya descripción contenga XIII, Décimo o Decimo
+                $descripcion = $conceptoCompleto['descripcion'] ?? '';
+                if (stripos($descripcion, 'XIII') === false &&
+                    stripos($descripcion, 'Décimo') === false &&
+                    stripos($descripcion, 'Decimo') === false) {
+                    continue;
+                }
+
+                // Usar la misma lógica que calcularAcumuladosSeguro() del motor de fórmulas
+                // JOIN con planilla_cabecera para obtener fechas (igual que línea 920-926 del calculador)
+                $sql = "SELECT
+                            ape.mes,
+                            SUM(ape.monto) as amount
+                        FROM acumulados_por_empleado ape
+                        INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                        WHERE ape.employee_id = ?
+                            AND (ape.concepto_id = ? or ape.tipo_acumulado = 'SALARIO_BASE')
+                            AND pc.fecha_hasta >= ?
+                            AND pc.fecha_desde <= ?
+                        GROUP BY ape.mes
+                        ORDER BY ape.mes ASC";
+
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$employeeId, $conceptoCompleto['id'], $iniPeriodo, $finPeriodo]);
+                $monthlyData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+                if (!empty($monthlyData)) {
+                    $months = [];
+                    $total = 0;
+
+                    // Nombres de meses en español
+                    $monthNames = [
+                        1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+                        5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+                        9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+                    ];
+
+                    foreach ($monthlyData as $data) {
+                        $monthNum = (int)$data['mes'];
+                        $amount = (float)$data['amount'];
+
+                        $months[] = [
+                            'label' => $monthNames[$monthNum] ?? "Mes {$monthNum}",
+                            'month' => $monthNum,
+                            'amount' => $amount
+                        ];
+
+                        $total += $amount;
+                    }
+
+                    $accumulations[$conceptCode] = [
+                        'months' => $months,
+                        'total' => $total
+                    ];
+                }
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo acumulados XIII Mes: " . $e->getMessage());
+        }
+
+        return $accumulations;
     }
 
     /**

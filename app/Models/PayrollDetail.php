@@ -715,6 +715,7 @@ class PayrollDetail extends Model
                                     pd.monto,
                                     pd.tipo,
                                     pd.unidad,
+                                    c.concepto,
                                     c.descripcion,
                                     c.tipo_concepto as concepto_tipo,
                                     c.formula
