@@ -4,6 +4,8 @@
  */
 $title = $data['title'] ?? 'Editar Acreedor';
 $creditor = $data['creditor'] ?? [];
+$conceptOptions = $data['concept_options'] ?? [];
+$selectedConceptId = $data['associated_concept_id'] ?? 0;
 ?>
 
 <div class="row">
@@ -104,6 +106,26 @@ $creditor = $data['creditor'] ?? [];
                                     <option value="2" <?= $currentEstado == 2 ? 'selected' : '' ?>>Pausado</option>
                                 </select>
                                 <small class="form-text text-muted">Estado actual del acreedor</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="concept_id">Concepto asociado</label>
+                                <select class="form-control" id="concept_id" name="concept_id">
+                                    <option value="0" <?= empty($selectedConceptId) ? 'selected' : '' ?>>Sin asociar</option>
+                                    <?php foreach ($conceptOptions as $concept): ?>
+                                        <?php
+                                            $conceptLabel = trim(($concept['concepto'] ?? '') . ' - ' . ($concept['descripcion'] ?? ''));
+                                        ?>
+                                        <option value="<?= (int)$concept['id'] ?>" <?= (int)$selectedConceptId === (int)$concept['id'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($conceptLabel) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="form-text text-muted">Solo se muestran conceptos sin acreedor o asociados a este acreedor.</small>
                             </div>
                         </div>
                     </div>

@@ -52,6 +52,10 @@
                                 <td><span class="<?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span></td>
                                 <td>
                                     <div class="btn-group" role="group">
+                                        <a href="<?= \App\Core\UrlHelper::route('panel/loans/' . $loan['id']) ?>"
+                                           class="btn btn-info btn-sm" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
                                         <a href="<?= \App\Core\UrlHelper::route('panel/loans/edit/' . $loan['id']) ?>"
                                            class="btn btn-warning btn-sm" title="Editar">
                                             <i class="fas fa-edit"></i>
