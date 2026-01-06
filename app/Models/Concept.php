@@ -269,6 +269,41 @@ class Concept extends Model
     }
 
     /**
+     * Obtener conceptos disponibles para asociar a un acreedor
+     */
+    public function getCreditorAssociationOptions($creditorId)
+    {
+        try {
+            $sql = "SELECT id, concepto, descripcion, tipo_concepto, creditor_id
+                    FROM {$this->table}
+                    WHERE (creditor_id IS NULL OR creditor_id = 0 OR creditor_id = ?)
+                    AND tipo_concepto = 'D'
+                    ORDER BY descripcion ASC";
+            return $this->db->findAll($sql, [$creditorId]);
+        } catch (PDOException $e) {
+            error_log("Error obteniendo conceptos para acreedor: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener concepto asociado a un acreedor
+     */
+    public function findByCreditorId($creditorId)
+    {
+        try {
+            $sql = "SELECT id, concepto, descripcion, tipo_concepto, creditor_id
+                    FROM {$this->table}
+                    WHERE creditor_id = ?
+                    LIMIT 1";
+            return $this->db->find($sql, [$creditorId]);
+        } catch (PDOException $e) {
+            error_log("Error obteniendo concepto por acreedor: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Validar fórmula de concepto con validaciones avanzadas
      */
     public function validateFormula($formula, $employeeId = null)

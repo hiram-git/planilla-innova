@@ -155,6 +155,46 @@ class LoanController extends Controller
         }
     }
 
+    /**
+     * Ver préstamo en modo readonly
+     */
+    public function show($id)
+    {
+        $loan = $this->loanModel->find($id);
+        if (!$loan) {
+            $_SESSION['error'] = 'Préstamo no encontrado.';
+            $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+        }
+
+        $db = $this->installmentModel->getDatabase();
+        $installments = $db->findAll(
+            "SELECT * FROM loan_installments WHERE loan_id = ? ORDER BY installment_number",
+            [(int)$id]
+        );
+
+        $employees = $this->employeeModel->getAllEmployees();
+        $employeesById = [];
+        foreach ($employees as $emp) {
+            $employeesById[$emp['id']] = trim(($emp['firstname'] ?? '') . ' ' . ($emp['lastname'] ?? ''));
+        }
+
+        $creditors = $this->creditorModel->getOptions();
+        $creditorsById = [];
+        foreach ($creditors as $creditor) {
+            $creditorsById[$creditor['id']] = $creditor['description'] ?? 'Acreedor';
+        }
+
+        $this->render('admin/loans/show', [
+            'title' => 'Ver Préstamo',
+            'loan' => $loan,
+            'employeeName' => $employeesById[$loan['employee_id']] ?? 'Empleado',
+            'creditorName' => $creditorsById[$loan['creditor_id']] ?? 'Acreedor',
+            'loan_types' => $this->loanModel->getTiposPrestamo(),
+            'installments' => $installments,
+            'csrf_token' => AuthMiddleware::generateCSRF()
+        ]);
+    }
+
     public function edit($id)
     {
         $loan = $this->loanModel->find($id);

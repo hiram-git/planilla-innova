@@ -166,10 +166,27 @@ class CreditorController extends Controller
                 return;
             }
 
+            $associatedConcept = $this->conceptModel->findByCreditorId((int)$id);
+            $conceptOptions = $this->conceptModel->getCreditorAssociationOptions((int)$id);
+            if ($associatedConcept) {
+                $alreadyIncluded = false;
+                foreach ($conceptOptions as $option) {
+                    if ((int)$option['id'] === (int)$associatedConcept['id']) {
+                        $alreadyIncluded = true;
+                        break;
+                    }
+                }
+                if (!$alreadyIncluded) {
+                    array_unshift($conceptOptions, $associatedConcept);
+                }
+            }
+
             $data = [
                 'title' => 'Editar Acreedor',
                 'creditor' => $creditor,
-                'tipos' => $this->creditorModel->getTiposAcreedor()
+                'tipos' => $this->creditorModel->getTiposAcreedor(),
+                'concept_options' => $conceptOptions,
+                'associated_concept_id' => $associatedConcept['id'] ?? 0
             ];
 
             $this->render('admin/creditors/edit', $data);
@@ -207,10 +224,37 @@ class CreditorController extends Controller
                 'observaciones' => $_POST['observaciones'] ?? ''
             ];
 
+            $conceptId = isset($_POST['concept_id']) ? (int)$_POST['concept_id'] : -1;
+            $conceptValidation = $this->validateConceptAssociation((int)$id, $conceptId);
+            if (!$conceptValidation['success']) {
+                $_SESSION['error'] = $conceptValidation['message'];
+                $this->redirect("/panel/creditors/{$id}/edit");
+                return;
+            }
+
             $result = $this->creditorModel->update($id, $creditorData);
 
             if ($result['success']) {
-                $_SESSION['success'] = 'Acreedor actualizado exitosamente';
+                $associationResult = $this->applyConceptAssociation((int)$id, $conceptId);
+                if (!$associationResult['success']) {
+                    $_SESSION['error'] = $associationResult['message'];
+                    $this->redirect("/panel/creditors/{$id}/edit");
+                    return;
+                }
+
+                // NUEVO: Actualizar creditor_id en conceptos que usan este acreedor
+                $conceptsUpdated = $this->updateCreditorIdInConcepts($id);
+
+                $message = 'Acreedor actualizado exitosamente';
+                if (!empty($associationResult['updated'])) {
+                    $message .= ' y concepto asociado actualizado';
+                }
+                $message .= '.';
+                if ($conceptsUpdated > 0) {
+                    $message .= " Se actualizaron {$conceptsUpdated} concepto(s) asociado(s).";
+                }
+                $_SESSION['success'] = $message;
+
                 $this->redirect('/panel/creditors');
             } else {
                 $_SESSION['error'] = $result['message'];
@@ -482,31 +526,140 @@ class CreditorController extends Controller
         // Generar código basado en las primeras letras del nombre del acreedor
         $words = explode(' ', strtoupper($creditorDescription));
         $code = '';
-        
+
         foreach ($words as $word) {
             if (strlen($word) > 0) {
                 $code .= substr($word, 0, 2);
             }
         }
-        
+
         // Limitar a 6 caracteres máximo
         $code = substr($code, 0, 6);
-        
+
         // Verificar si el código ya existe y agregar número si es necesario
         $originalCode = $code;
         $counter = 1;
-        
+
         while ($this->conceptModel->isCodeDuplicate($code)) {
             $code = $originalCode . sprintf('%02d', $counter);
             $counter++;
-            
+
             // Evitar bucle infinito
             if ($counter > 99) {
                 $code = 'ACR' . sprintf('%03d', rand(1, 999));
                 break;
             }
         }
-        
+
         return $code;
+    }
+
+    /**
+     * Validar asociacion de concepto con acreedor
+     */
+    private function validateConceptAssociation(int $creditorId, int $conceptId): array
+    {
+        if ($conceptId <= 0) {
+            return ['success' => true];
+        }
+
+        $concept = $this->conceptModel->find($conceptId);
+        if (!$concept) {
+            return ['success' => false, 'message' => 'Concepto no encontrado.'];
+        }
+
+        $currentCreditorId = (int)($concept['creditor_id'] ?? 0);
+        if ($currentCreditorId > 0 && $currentCreditorId !== $creditorId) {
+            return ['success' => false, 'message' => 'El concepto ya esta asociado a otro acreedor.'];
+        }
+
+        return ['success' => true];
+    }
+
+    /**
+     * Aplicar asociacion de concepto con acreedor
+     */
+    private function applyConceptAssociation(int $creditorId, int $conceptId): array
+    {
+        try {
+            $db = $this->conceptModel->db;
+
+            if ($conceptId > 0) {
+                $db->query(
+                    "UPDATE concepto SET creditor_id = NULL WHERE creditor_id = ? AND id != ?",
+                    [$creditorId, $conceptId]
+                );
+                $db->query(
+                    "UPDATE concepto SET creditor_id = ? WHERE id = ?",
+                    [$creditorId, $conceptId]
+                );
+
+                return ['success' => true, 'updated' => true];
+            }
+
+            if ($conceptId === 0) {
+                $stmt = $db->query(
+                    "UPDATE concepto SET creditor_id = NULL WHERE creditor_id = ?",
+                    [$creditorId]
+                );
+                return ['success' => true, 'updated' => $stmt->rowCount() > 0];
+            }
+
+            return ['success' => true, 'updated' => false];
+        } catch (\Exception $e) {
+            error_log("Error actualizando concepto asociado para acreedor {$creditorId}: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Error actualizando concepto asociado.'];
+        }
+    }
+
+    /**
+     * Actualizar creditor_id en conceptos que usan este acreedor
+     * Busca conceptos que tengan ACREEDOR(EMPLEADO, X) en su fórmula
+     *
+     * @param int $creditorId ID del acreedor
+     * @return int Número de conceptos actualizados
+     */
+    private function updateCreditorIdInConcepts($creditorId)
+    {
+        try {
+            $db = $this->creditorModel->db;
+
+            // Buscar conceptos que tengan ACREEDOR(EMPLEADO, $creditorId) o ACREEDOR(FICHA, $creditorId) en su fórmula
+            $sql = "SELECT id, concepto, descripcion, formula
+                    FROM concepto
+                    WHERE (formula LIKE '%ACREEDOR(EMPLEADO, " . $creditorId . ")%'
+                       OR formula LIKE '%ACREEDOR(FICHA, " . $creditorId . ")%')
+                    AND (creditor_id IS NULL OR creditor_id = 0 OR creditor_id = ?)";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$creditorId]);
+            $concepts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($concepts)) {
+                error_log("No se encontraron conceptos con fórmula ACREEDOR para creditor_id: $creditorId");
+                return 0;
+            }
+
+            $updated = 0;
+
+            // Actualizar creditor_id en cada concepto encontrado
+            $updateSql = "UPDATE concepto SET creditor_id = ? WHERE id = ?";
+            $updateStmt = $db->prepare($updateSql);
+
+            foreach ($concepts as $concept) {
+                $updateStmt->execute([$creditorId, $concept['id']]);
+
+                if ($updateStmt->rowCount() > 0) {
+                    $updated++;
+                    error_log("Concepto actualizado: ID {$concept['id']} ({$concept['concepto']}) - creditor_id: $creditorId");
+                }
+            }
+
+            return $updated;
+
+        } catch (\Exception $e) {
+            error_log("Error actualizando creditor_id en conceptos: " . $e->getMessage());
+            return 0;
+        }
     }
 }
