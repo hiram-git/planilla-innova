@@ -877,21 +877,28 @@ class LiquidationController extends Controller
             }
             $placeholders = implode(',', array_fill(0, count($tipos), '?'));
 
+            // LEFT JOIN para incluir acumulados importados (planilla_id = 0)
+            // Lógica dual: planilla_id = 0 usa ano/mes, planilla_id != 0 usa fechas de planilla_cabecera
             $sql = "SELECT ape.ano, ape.mes, SUM(ape.monto) as total
                     FROM acumulados_por_empleado ape
-                    INNER JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                     WHERE ape.employee_id = ?
                     AND ape.tipo_acumulado IN ($placeholders)
-                    AND pc.fecha_hasta >= ?
-                    AND pc.fecha_desde <= ?
+                    AND (
+                        (ape.planilla_id = 0 AND DATE(CONCAT(ape.ano, '-', LPAD(ape.mes, 2, '0'), '-01')) BETWEEN ? AND ?)
+                        OR
+                        (ape.planilla_id != 0 AND pc.fecha_hasta >= ? AND pc.fecha_desde <= ?)
+                    )
                     GROUP BY ape.ano, ape.mes
                     ORDER BY ape.ano, ape.mes";
 
             $stmt = $this->db->prepare($sql);
+            $fechaInicioStr = $fechaInicio->format('Y-m-d');
+            $fechaFinStr = $fechaFin->format('Y-m-d');
             $stmt->execute(array_merge(
                 [$employeeId],
                 $tipos,
-                [$fechaInicio->format('Y-m-d'), $fechaFin->format('Y-m-d')]
+                [$fechaInicioStr, $fechaFinStr, $fechaInicioStr, $fechaFinStr]
             ));
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
