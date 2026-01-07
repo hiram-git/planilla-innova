@@ -306,10 +306,10 @@ class PDFReportController extends Controller
         
         // Header de la empresa
         $this->addPDFHeader($pdf, $companyInfo, $payroll);
-        
+
         // Tabla de empleados
-        $this->addEmployeeTable($pdf, $employees);
-        
+        $this->addEmployeeTable($pdf, $employees, $payroll);
+
         // Firmas de responsables
         $this->addSignatures($pdf, $companyInfo);
         
@@ -364,15 +364,15 @@ class PDFReportController extends Controller
     /**
      * Agregar tabla de empleados
      */
-    protected function addEmployeeTable($pdf, $employees)
+    protected function addEmployeeTable($pdf, $employees, $payroll)
     {
         // Anchos de columna para orientación horizontal
         $colWidths = [70, 20, 20, 20, 30, 20, 20, 20, 20, 20];
-        
+
         // Datos de empleados
         $pdf->SetFont('helvetica', '', 7);
         $pdf->SetFillColor(255, 255, 255);
-        
+
         $totalGeneral = [
             'sueldo' => 0,
             'ingresos' => 0,
@@ -383,8 +383,34 @@ class PDFReportController extends Controller
             'otras_deducciones' => 0,
             'neto' => 0
         ];
-        
+
+        // Verificar si es planilla XIII Mes
+        $isXIIIMes = $this->isXIIIMesPlanilla($payroll);
+        $currencySymbol = '$';
+
+        // Obtener período para XIII Mes
+        $iniPeriodo = $payroll['fecha_desde'] ?? null;
+        $finPeriodo = $payroll['fecha_hasta'] ?? null;
+
+        if (!$iniPeriodo || !$finPeriodo) {
+            $payrollYear = date('Y', strtotime($payroll['fecha']));
+            $iniPeriodo = "{$payrollYear}-01-01";
+            $finPeriodo = "{$payrollYear}-12-31";
+        }
+
         foreach ($employees as $emp) {
+            // Si es XIII Mes, mostrar tabla de acumulados encima del empleado
+            if ($isXIIIMes) {
+                $accumulations = $this->getEmployeeXIIIMesAccumulations($emp['id'], $payroll['id'], $iniPeriodo, $finPeriodo);
+
+                if (!empty($accumulations)) {
+                    $currentY = $pdf->GetY();
+                    $anchoUtil = 280; // Ancho disponible para landscape
+                    $newY = $this->renderEmployeeAccumulationsInline($pdf, $emp, $accumulations, $currencySymbol, $currentY, $anchoUtil);
+                    $pdf->SetY($newY);
+                }
+            }
+
             // Nombre completo (truncado si es muy largo)
             $nombreCompleto = $emp['lastname'] . ', ' . $emp['firstname'];
             if (strlen($nombreCompleto) > 50) {
@@ -974,6 +1000,212 @@ class PDFReportController extends Controller
         if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
             $pdf->SetY( 20 ); // Espacio reducido para más altura en tabla
         }
+    }
+
+    /**
+     * Verificar si la planilla es de tipo XIII Mes
+     *
+     * @param array $payroll
+     * @return bool
+     */
+    private function isXIIIMesPlanilla($payroll)
+    {
+        try {
+            $reportModel = $this->model('Report');
+            $db = $reportModel->getDatabase();
+            $connection = $db->getConnection();
+
+            // Obtener nombre de la frecuencia
+            $sql = "SELECT nombre, codigo FROM frecuencias WHERE id = ?";
+            $stmt = $connection->prepare($sql);
+            $stmt->execute([$payroll['frecuencia_id']]);
+            $frecuencia = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$frecuencia) {
+                return false;
+            }
+
+            $nombreFrecuencia = $frecuencia['nombre'] ?? '';
+            $codigoFrecuencia = $frecuencia['codigo'] ?? '';
+
+            // Verificar si es XIII Mes: frecuencia_id = 8 O código/nombre contiene "XIII" o "Decimo"
+            return ($payroll['frecuencia_id'] == 8) ||
+                   (stripos($codigoFrecuencia, 'XIII') !== false) ||
+                   (stripos($nombreFrecuencia, 'XIII') !== false) ||
+                   (stripos($nombreFrecuencia, 'Decimo') !== false) ||
+                   (stripos($nombreFrecuencia, 'Décimo') !== false);
+
+        } catch (\Exception $e) {
+            error_log("Error verificando si es XIII Mes: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtener acumulados XIII Mes de un empleado basándose en la planilla actual
+     *
+     * @param int $employeeId
+     * @param int $payrollId
+     * @param string $iniPeriodo
+     * @param string $finPeriodo
+     * @return array
+     */
+    private function getEmployeeXIIIMesAccumulations($employeeId, $payrollId, $iniPeriodo, $finPeriodo)
+    {
+        $accumulations = [];
+
+        try {
+            $reportModel = $this->model('Report');
+            $db = $reportModel->getDatabase();
+            $connection = $db->getConnection();
+
+            // Obtener conceptos que están en la planilla_detalle para este empleado
+            // y que usan ACUMULADOS() en su fórmula (conceptos de tipo XIII)
+            $sqlConceptos = "SELECT DISTINCT c.id, c.concepto, c.descripcion, c.formula, c.tipo_concepto
+                             FROM concepto c
+                             INNER JOIN planilla_detalle pd ON pd.concepto_id = c.id
+                             WHERE pd.planilla_cabecera_id = ?
+                               AND pd.employee_id = ?
+                               AND c.tipo_concepto = 'A'
+                               AND c.formula LIKE '%ACUMULADOS%'";
+
+            $stmtConceptos = $connection->prepare($sqlConceptos);
+            $stmtConceptos->execute([$payrollId, $employeeId]);
+            $conceptos = $stmtConceptos->fetchAll(\PDO::FETCH_ASSOC);
+
+            foreach ($conceptos as $concepto) {
+                // Consultar acumulados mes a mes del empleado para este concepto
+                $sql = "SELECT
+                            ape.mes,
+                            SUM(ape.monto) as amount
+                        FROM acumulados_por_empleado ape
+                        LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                        WHERE ape.employee_id = ?
+                            AND (ape.concepto_id = ? OR ape.tipo_acumulado = 'SALARIO_BASE')
+                            AND (
+                                (ape.planilla_id = 0 AND DATE(CONCAT(ape.ano, '-', LPAD(ape.mes, 2, '0'), '-01')) BETWEEN ? AND ?)
+                                OR
+                                (ape.planilla_id != 0 AND pc.fecha_hasta >= ? AND pc.fecha_desde <= ?)
+                            )
+                        GROUP BY ape.mes
+                        ORDER BY ape.mes ASC";
+
+                $stmt = $connection->prepare($sql);
+                $stmt->execute([$employeeId, $concepto['id'], $iniPeriodo, $finPeriodo, $iniPeriodo, $finPeriodo]);
+                $monthlyData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+                if (!empty($monthlyData)) {
+                    $months = [];
+                    $total = 0;
+
+                    // Nombres de meses en español
+                    $monthNames = [
+                        1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+                        5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+                        9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+                    ];
+
+                    foreach ($monthlyData as $data) {
+                        $monthNum = (int)$data['mes'];
+                        $amount = (float)$data['amount'];
+
+                        $months[] = [
+                            'label' => $monthNames[$monthNum] ?? "Mes {$monthNum}",
+                            'month' => $monthNum,
+                            'amount' => $amount
+                        ];
+
+                        $total += $amount;
+                    }
+
+                    $accumulations[$concepto['concepto']] = [
+                        'descripcion' => $concepto['descripcion'],
+                        'months' => $months,
+                        'total' => $total
+                    ];
+                }
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error obteniendo acumulados XIII Mes para empleado {$employeeId}: " . $e->getMessage());
+        }
+
+        return $accumulations;
+    }
+
+    /**
+     * Renderizar tabla de acumulados inline para un empleado (encima de su fila de datos)
+     *
+     * @param TCPDF $pdf
+     * @param array $emp
+     * @param array $accumulations
+     * @param string $currencySymbol
+     * @param float $y
+     * @param float $anchoUtil
+     * @return float Nueva posición Y
+     */
+    private function renderEmployeeAccumulationsInline($pdf, $emp, $accumulations, $currencySymbol, $y, $anchoUtil)
+    {
+        $nombreCompleto = trim(($emp['firstname'] ?? '') . ' ' . ($emp['lastname'] ?? ''));
+
+        // Ancho compacto de la tabla (en lugar de usar todo el ancho disponible)
+        $tablaAncho = 130; // Ancho fijo compacto para la tabla (reducido a la mitad para columnas de meses)
+        $startX = 10; // Alineado a la izquierda
+
+        // Header compacto del empleado con acumulados
+        $pdf->SetFillColor(217, 226, 243); // Azul claro
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('helvetica', 'B', 5.5);
+        //$pdf->SetXY($startX, $y);
+        //$pdf->Cell($tablaAncho, 3, 'ACUMULADOS XIII - ' . strtoupper(substr($nombreCompleto, 0, 35)) . ' (' . ($emp['document_id'] ?? 'N/A') . ')', 1, 1, 'L', true);
+        //$y += 3;
+
+        // Tabla compacta de acumulados (solo un concepto por empleado típicamente)
+        foreach ($accumulations as $conceptCode => $data) {
+            $months = $data['months'] ?? [];
+            $numMonths = count($months);
+
+            if ($numMonths > 0) {
+                // Calcular anchos - más compactos
+                $labelWidth = 28; // Reducido
+                $totalWidth = 22; // Reducido
+                $availableWidth = $tablaAncho - $labelWidth - $totalWidth;
+                $colWidth = $availableWidth / $numMonths;
+
+                // Header de la tabla
+                $pdf->SetFillColor(197, 224, 180); // Verde claro
+                $pdf->SetFont('helvetica', 'B', 5);
+                $pdf->SetXY($startX, $y);
+
+                $pdf->Cell($labelWidth, 3, 'CONCEPTO', 1, 0, 'C', true);
+                foreach ($months as $month) {
+                    $pdf->Cell($colWidth, 3, strtoupper(substr($month['label'], 0, 3)), 1, 0, 'C', true);
+                }
+                $pdf->Cell($totalWidth, 3, 'TOTAL', 1, 1, 'C', true);
+                $y += 3;
+
+                // Fila de datos
+                $pdf->SetFillColor(255, 255, 255);
+                $pdf->SetFont('helvetica', '', 5);
+                $pdf->SetXY($startX, $y);
+
+                $pdf->Cell($labelWidth, 3, substr($data['descripcion'], 0, 18), 1, 0, 'L');
+                foreach ($months as $month) {
+                    $pdf->Cell($colWidth, 3, $currencySymbol . number_format($month['amount'], 2), 1, 0, 'R');
+                }
+                $pdf->SetFont('helvetica', 'B', 5);
+                $pdf->Cell($totalWidth, 3, $currencySymbol . number_format($data['total'], 2), 1, 1, 'R');
+                $y += 3;
+            }
+        }
+
+        //$y += 0.5; // Espacio mínimo antes de la fila del empleado
+
+        // Resetear estilos para la fila del empleado
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('helvetica', '', 6);
+
+        return $y;
     }
 
     /**

@@ -4029,7 +4029,7 @@ class ReportController extends Controller
         if (!empty($companyInfo['logo_izquierdo_reportes'])) {
             $leftLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_izquierdo_reportes']);
             if ($leftLogoPath) {
-                $leftLogoWidth = 30; // Mismo tamaño que el logo derecho
+                $leftLogoWidth = 18; // Reducido para evitar superposición
                 try {
                     $pdf->Image($leftLogoPath, $margin, $currentY, $leftLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
                 } catch (\Exception $e) {
@@ -4042,7 +4042,7 @@ class ReportController extends Controller
         if (!empty($companyInfo['logo_derecho_reportes'])) {
             $rightLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_derecho_reportes']);
             if ($rightLogoPath) {
-                $rightLogoWidth = 30;
+                $rightLogoWidth = 18; // Reducido para evitar superposición
                 $rightX = $pageWidth - $margin - $rightLogoWidth;
                 try {
                     $pdf->Image($rightLogoPath, $rightX, $currentY, $rightLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
@@ -4056,7 +4056,7 @@ class ReportController extends Controller
         if (empty($companyInfo['logo_izquierdo_reportes']) && empty($companyInfo['logo_derecho_reportes']) && !empty($companyInfo['logo_empresa'])) {
             $mainLogoPath = TenantStorage::getLogoFilesystemPath($companyInfo['logo_empresa']);
             if ($mainLogoPath) {
-                $mainLogoWidth = 40;
+                $mainLogoWidth = 25; // Reducido para evitar superposición
                 $centerX = ($pageWidth - $mainLogoWidth) / 2;
                 $pdf->Image($mainLogoPath, $centerX, $currentY, $mainLogoWidth, 0, '', '', '', false, 300, '', false, false, 0);
             }
@@ -4080,7 +4080,7 @@ class ReportController extends Controller
 
         // Reservar espacio después de los logos
         if (!empty($companyInfo['logo_izquierdo_reportes']) || !empty($companyInfo['logo_derecho_reportes']) || !empty($companyInfo['logo_empresa'])) {
-            $pdf->SetY(20);
+            $pdf->SetY(22); // Aumentado para dar más espacio
         }
     }
 }
