@@ -1957,7 +1957,7 @@ class Payroll extends Model
             $sql = "SELECT COUNT(*) as pending_count
                     FROM loan_installments
                     WHERE loan_id = ?
-                    AND status in ('pendiente', 'generada')";
+                    AND status = 'pendiente'";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$loanId]);
@@ -1969,7 +1969,7 @@ class Payroll extends Model
                 $stmtUpdate = $this->db->prepare($sqlUpdate);
                 $stmtUpdate->execute([$loanId]);
 
-                error_log("Préstamo $loanId marcado como completado (todas las cuotas pagadas)");
+                error_log("✅ Préstamo $loanId marcado como completado (todas las cuotas pagadas)");
             }
 
         } catch (\Exception $e) {
@@ -1991,7 +1991,7 @@ class Payroll extends Model
             $sql = "SELECT COUNT(*) as pending_count
                     FROM loan_installments
                     WHERE loan_id = ?
-                    AND status in ('pendiente', 'generada')";
+                    AND status = 'pendiente'";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$loanId]);
@@ -2003,7 +2003,7 @@ class Payroll extends Model
                 $stmtUpdate = $this->db->prepare($sqlUpdate);
                 $stmtUpdate->execute([$loanId]);
 
-                error_log("Préstamo $loanId reactivado (tiene cuotas pendientes)");
+                error_log("🔄 Préstamo $loanId reactivado (tiene cuotas pendientes)");
             }
 
         } catch (\Exception $e) {
