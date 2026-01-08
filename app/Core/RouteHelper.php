@@ -30,6 +30,14 @@ class RouteHelper
                 ['title' => 'Empleados', 'url' => 'panel/employees']
             ]
         ],
+        'panel/employee-documents' => [
+            'title' => 'Documentos laborales',
+            'breadcrumbs' => [
+                ['title' => 'Inicio', 'url' => 'panel/dashboard'],
+                ['title' => 'Empleados', 'url' => 'panel/employees'],
+                ['title' => 'Documentos laborales', 'url' => 'panel/employee-documents']
+            ]
+        ],
         'panel/positions' => [
             'title' => 'Posiciones',
             'breadcrumbs' => [
@@ -495,6 +503,7 @@ class RouteHelper
         $permissions = [
             'panel/dashboard' => ['admin', 'manager', 'operator'],
             'panel/employees' => ['admin', 'manager'],
+            'panel/employee-documents' => ['admin', 'manager'],
             'panel/positions' => ['admin'],
             'panel/cargos' => ['admin'],
             'panel/partidas' => ['admin'],

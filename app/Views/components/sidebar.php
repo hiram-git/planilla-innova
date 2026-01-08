@@ -129,6 +129,7 @@ class SidebarComponent
         // Pre-verificar acceso a secciones completas para determinar si mostrar headers
         $hasPersonalSection = $isSuperAdmin ||
             $this->canAccessRoute('employees') ||
+            $this->canAccessRoute('employee-documents') ||
             $this->canAccessRoute('positions') ||
             $this->canAccessRoute('cargos') ||
             $this->canAccessRoute('partidas') ||
@@ -195,8 +196,8 @@ class SidebarComponent
                         // Empleados
                         ($this->canAccessRoute('employees') ? '
                         <!-- Empleados -->
-                        <li class="nav-item ' . ($this->isActive('panel/employees') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/employees') ? 'active' : '') . '">
+                        <li class="nav-item ' . ($this->isActive('panel/employees') || $this->isActive('panel/employee-documents') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/employees') || $this->isActive('panel/employee-documents') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-users"></i>
                                 <p>
                                     Empleados
@@ -228,6 +229,13 @@ class SidebarComponent
                                         <p>Importar desde Excel</p>
                                     </a>
                                 </li>
+                                ' . ($this->canAccessRoute('employee-documents') ? '
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/employee-documents') . '" class="nav-link ' . ($this->isActive('panel/employee-documents') ? 'active' : '') . '">
+                                        <i class="fas fa-file-signature nav-icon"></i>
+                                        <p>Documentos laborales</p>
+                                    </a>
+                                </li>' : '') . '
                             </ul>
                         </li>' : '') . '
 
