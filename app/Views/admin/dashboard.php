@@ -466,11 +466,11 @@ $content .= '
             </div>
             <div class="card-footer">
                 <div class="row">
-                    <div class="col-6">
+                    <!--<div class="col-6">
                         <a href="' . \App\Core\UrlHelper::position() . '" class="btn btn-info btn-sm btn-block">
                             <i class="fas fa-sitemap"></i> Estructura
                         </a>
-                    </div>
+                    </div>-->
                     <div class="col-6">
                         <a href="' . \App\Core\UrlHelper::schedule() . '" class="btn btn-success btn-sm btn-block">
                             <i class="fas fa-clock"></i> Horarios
@@ -495,12 +495,12 @@ $content .= '
                             <small>Nuevo Empleado</small>
                         </a>
                     </div>
-                    <div class="col-6 mb-2">
+                    <!-- <div class="col-6 mb-2">
                         <a href="' . \App\Core\UrlHelper::position('create') . '" class="btn btn-info btn-sm btn-block">
                             <i class="fas fa-plus"></i><br>
                             <small>Nueva Posición</small>
                         </a>
-                    </div>
+                    </div>-->
                     <div class="col-6 mb-2">
                         <a href="' . \App\Core\UrlHelper::timeclock() . '" class="btn btn-warning btn-sm btn-block">
                             <i class="fas fa-stopwatch"></i><br>

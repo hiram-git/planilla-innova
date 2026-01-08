@@ -163,9 +163,9 @@ class NavbarComponent
                         <a href="' . \App\Core\UrlHelper::employee('create') . '" class="dropdown-item">
                             <i class="fas fa-user-plus mr-2"></i> Nuevo Empleado
                         </a>
-                        <a href="' . \App\Core\UrlHelper::position('create') . '" class="dropdown-item">
+                        <!--<a href="' . \App\Core\UrlHelper::position('create') . '" class="dropdown-item">
                             <i class="fas fa-briefcase mr-2"></i> Nueva Posición
-                        </a>
+                        </a>-->
                         <a href="' . \App\Core\UrlHelper::schedule('create') . '" class="dropdown-item">
                             <i class="fas fa-calendar-plus mr-2"></i> Nuevo Horario
                         </a>
