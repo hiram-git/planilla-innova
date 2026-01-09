@@ -611,6 +611,38 @@ class App
                             }
                         }
 
+                        // ✅ MANEJO ESPECIAL: employee-documents subroutes
+                        if ($url[1] === 'employee-documents') {
+                            $this->controller = new \App\Controllers\EmployeeDocumentController();
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            if ($httpMethod === 'GET') {
+                                if (!isset($url[2])) {
+                                    // GET /panel/employee-documents
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'datatables-ajax' && method_exists($this->controller, 'datatablesAjax')) {
+                                    // GET /panel/employee-documents/datatables-ajax
+                                    $this->method = 'datatablesAjax';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'generate' && method_exists($this->controller, 'generate')) {
+                                    // GET /panel/employee-documents/generate?employee_id=X&document_type=Y&format=Z
+                                    $this->method = 'generate';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            } elseif ($httpMethod === 'POST') {
+                                if ($url[2] === 'generate' && method_exists($this->controller, 'generate')) {
+                                    // POST /panel/employee-documents/generate
+                                    $this->method = 'generate';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                }
+                            }
+                        }
+
                         // ✅ MANEJO ESPECIAL: organizational subroutes
                         if ($url[1] === 'organizational') {
                             $this->controller = new \App\Controllers\OrganizationalController();

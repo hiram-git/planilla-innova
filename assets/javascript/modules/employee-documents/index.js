@@ -12,6 +12,7 @@ $(document).ready(function() {
         init() {
             this.initDataTable();
             this.initPayrollTypeListener();
+            this.initDocumentGeneration();
         },
 
         initDataTable() {
@@ -60,6 +61,34 @@ $(document).ready(function() {
                     documentsTable.ajax.reload();
                 }
             });
+        },
+
+        initDocumentGeneration() {
+            const self = this;
+
+            // Delegar eventos de clic en los botones de generación (porque DataTables recarga la tabla)
+            $('#employeeDocumentsTable').on('click', '.generate-document', function(e) {
+                e.preventDefault();
+
+                const $btn = $(this);
+                const employeeId = $btn.data('employee-id');
+                const documentType = $btn.data('type');
+                const format = $btn.data('format');
+
+                if (!employeeId || !documentType || !format) {
+                    alert('Error: Faltan parámetros para generar el documento');
+                    return;
+                }
+
+                self.generateDocument(employeeId, documentType, format);
+            });
+        },
+
+        generateDocument(employeeId, documentType, format) {
+            const url = `${this.urls.panel_url}/employee-documents/generate?employee_id=${employeeId}&document_type=${documentType}&format=${format}`;
+
+            // Abrir en una nueva ventana/pestaña para descarga
+            window.open(url, '_blank');
         }
     };
 
