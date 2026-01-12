@@ -44,7 +44,7 @@ CREATE TABLE `acumulados_por_empleado`  (
   INDEX `idx_tipo_acumulado`(`tipo_acumulado` ASC) USING BTREE,
   INDEX `idx_frecuencia_id`(`frecuencia` ASC) USING BTREE,
   CONSTRAINT `fk_acumulados_frecuencia` FOREIGN KEY (`frecuencia`) REFERENCES `frecuencias` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 2401 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Acumulados detallados por empleado/concepto/planilla para auditoría' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Acumulados detallados por empleado/concepto/planilla para auditoría' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for acumulados_por_planilla
@@ -80,7 +80,7 @@ CREATE TABLE `acumulados_por_planilla`  (
   INDEX `idx_consolidado_empleado_periodo`(`employee_id` ASC, `ano` ASC) USING BTREE,
   INDEX `idx_frecuencia_id`(`frecuencia_id` ASC) USING BTREE,
   CONSTRAINT `fk_acumulados_planilla_frecuencia` FOREIGN KEY (`frecuencia_id`) REFERENCES `frecuencias` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 870 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Acumulados consolidados por empleado/planilla para reportes optimizados' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Acumulados consolidados por empleado/planilla para reportes optimizados' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for admin
@@ -97,7 +97,7 @@ CREATE TABLE `admin`  (
   `role_id` int NOT NULL,
   `status` tinyint(1) NULL DEFAULT 1,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of admin
@@ -154,7 +154,7 @@ CREATE TABLE `attendance_absence_log`  (
   INDEX `idx_resolved`(`resolved` ASC) USING BTREE,
   INDEX `idx_detected_at`(`detected_at` ASC) USING BTREE,
   CONSTRAINT `attendance_absence_log_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Registro de ausencias detectadas con justificaciones' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Registro de ausencias detectadas con justificaciones' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for attendance_alerts
@@ -230,7 +230,7 @@ CREATE TABLE `attendance_api_config`  (
   INDEX `idx_provider`(`api_provider` ASC) USING BTREE,
   INDEX `idx_sync_enabled`(`sync_enabled` ASC) USING BTREE,
   INDEX `idx_last_sync`(`last_sync_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Configuración de conexión a API externa de asistencias' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Configuración de conexión a API externa de asistencias' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of attendance_api_config
@@ -299,7 +299,7 @@ CREATE TABLE `attendance_calculations`  (
   CONSTRAINT `attendance_calculations_ibfk_3` FOREIGN KEY (`schedule_id`) REFERENCES `schedules` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_attendance_calc_approved_by` FOREIGN KEY (`overtime_approved_by`) REFERENCES `admin` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_attendance_detail` FOREIGN KEY (`attendance_detail_id`) REFERENCES `attendance_detail` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 37 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Cálculos avanzados de asistencias con métricas detalladas' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Cálculos avanzados de asistencias con métricas detalladas' ROW_FORMAT = Dynamic;
 
 
 -- ----------------------------
@@ -387,7 +387,7 @@ CREATE TABLE `attendance_detail`  (
   CONSTRAINT `attendance_detail_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `attendance_detail_ibfk_3` FOREIGN KEY (`schedule_id`) REFERENCES `schedules` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `attendance_detail_ibfk_4` FOREIGN KEY (`device_id`) REFERENCES `attendance_devices` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 56 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for attendance_devices
@@ -419,7 +419,7 @@ CREATE TABLE `attendance_devices`  (
   INDEX `created_by`(`created_by` ASC) USING BTREE,
   INDEX `idx_device_active`(`is_active` ASC, `device_type` ASC) USING BTREE,
   CONSTRAINT `attendance_devices_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `admin` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of attendance_devices
@@ -496,7 +496,7 @@ CREATE TABLE `attendance_header`  (
   INDEX `processed_by`(`processed_by` ASC) USING BTREE,
   CONSTRAINT `attendance_header_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `attendance_devices` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `attendance_header_ibfk_2` FOREIGN KEY (`processed_by`) REFERENCES `admin` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for attendance_raw_data
@@ -520,7 +520,7 @@ CREATE TABLE `attendance_raw_data`  (
   INDEX `idx_processed`(`processed` ASC) USING BTREE,
   INDEX `idx_received_at`(`received_at` ASC) USING BTREE,
   INDEX `idx_sync_batch`(`sync_batch_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 184 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Backup de datos crudos desde API externa para auditoría' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Backup de datos crudos desde API externa para auditoría' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for attendance_records
@@ -569,7 +569,7 @@ CREATE TABLE `attendance_records`  (
   CONSTRAINT `fk_records_duplicate` FOREIGN KEY (`duplicate_of`) REFERENCES `attendance_records` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_records_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_records_raw_data` FOREIGN KEY (`raw_data_id`) REFERENCES `attendance_raw_data` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 47 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Marcaciones individuales normalizadas (capa intermedia)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Marcaciones individuales normalizadas (capa intermedia)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for attendance_sync_log
@@ -599,7 +599,7 @@ CREATE TABLE `attendance_sync_log`  (
   INDEX `idx_start_time`(`start_time` ASC) USING BTREE,
   INDEX `idx_api_provider`(`api_provider` ASC) USING BTREE,
   INDEX `idx_triggered_by`(`triggered_by` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Historial de sincronizaciones con API externa' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Historial de sincronizaciones con API externa' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for business_calendar
@@ -624,7 +624,7 @@ CREATE TABLE `business_calendar`  (
   INDEX `idx_year_month`(`year_value` ASC, `month_value` ASC) USING BTREE,
   INDEX `idx_day_type`(`day_type` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 367 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for calendar_sync_log
@@ -673,7 +673,7 @@ CREATE TABLE `cargos`  (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `unique_codigo`(`codigo` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of cargos
@@ -691,7 +691,7 @@ CREATE TABLE `cashadvance`  (
   `employee_id` varchar(15) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
   `amount` double NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of cashadvance
@@ -725,7 +725,7 @@ CREATE TABLE `companies`  (
   `logo_izquierdo_reportes` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'Ruta del logo izquierdo para reportes PDF/Excel',
   `logo_derecho_reportes` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'Ruta del logo derecho para reportes PDF/Excel',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Tabla de configuración empresarial con logos para reportes' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Tabla de configuración empresarial con logos para reportes' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of companies
@@ -758,7 +758,7 @@ CREATE TABLE `concepto`  (
   `categoria_reporte` enum('seguro_social','seguro_educativo','impuesto_renta','otras_deducciones','liquidacion','otro') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'otro',
   `orden_reporte` int NULL DEFAULT 0 COMMENT 'Orden de aparición en el reporte',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 62 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of concepto
@@ -811,7 +811,7 @@ CREATE TABLE `concepto_frecuencias`  (
   INDEX `frecuencia_id`(`frecuencia_id` ASC) USING BTREE,
   CONSTRAINT `concepto_frecuencias_ibfk_1` FOREIGN KEY (`concepto_id`) REFERENCES `concepto` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `concepto_frecuencias_ibfk_2` FOREIGN KEY (`frecuencia_id`) REFERENCES `frecuencias` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 225 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ------------------
 -- ----------------------------
@@ -828,7 +828,7 @@ CREATE TABLE `concepto_situaciones`  (
   INDEX `situacion_id`(`situacion_id` ASC) USING BTREE,
   CONSTRAINT `concepto_situaciones_ibfk_1` FOREIGN KEY (`concepto_id`) REFERENCES `concepto` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `concepto_situaciones_ibfk_2` FOREIGN KEY (`situacion_id`) REFERENCES `situaciones` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 232 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 
 -- ----------------------------
@@ -845,7 +845,7 @@ CREATE TABLE `concepto_tipos_planilla`  (
   INDEX `tipo_planilla_id`(`tipo_planilla_id` ASC) USING BTREE,
   CONSTRAINT `concepto_tipos_planilla_ibfk_1` FOREIGN KEY (`concepto_id`) REFERENCES `concepto` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `concepto_tipos_planilla_ibfk_2` FOREIGN KEY (`tipo_planilla_id`) REFERENCES `tipos_planilla` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 406 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 
 -- ----------------------------
@@ -865,7 +865,7 @@ CREATE TABLE `conceptos_acumulados`  (
   INDEX `tipo_acumulado_id`(`tipo_acumulado_id` ASC) USING BTREE,
   CONSTRAINT `conceptos_acumulados_ibfk_1` FOREIGN KEY (`concepto_id`) REFERENCES `concepto` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `conceptos_acumulados_ibfk_2` FOREIGN KEY (`tipo_acumulado_id`) REFERENCES `tipos_acumulados` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 166 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 
 -- ----------------------------
@@ -884,7 +884,7 @@ CREATE TABLE `creditors`  (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `employee_id` varchar(11) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of creditors
@@ -922,7 +922,7 @@ CREATE TABLE `deductions`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `fk_deductions_creditor`(`creditor_id` ASC) USING BTREE,
   CONSTRAINT `fk_deductions_creditor` FOREIGN KEY (`creditor_id`) REFERENCES `creditors` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of deductions
@@ -985,7 +985,7 @@ CREATE TABLE `employee_payroll_salaries`  (
   INDEX `idx_employee_tipo`(`employee_id` ASC, `tipo_planilla_id` ASC) USING BTREE,
   CONSTRAINT `employee_payroll_salaries_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `employee_payroll_salaries_ibfk_2` FOREIGN KEY (`tipo_planilla_id`) REFERENCES `tipos_planilla` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 41 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Salarios de empleados diferenciados por tipo de planilla' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Salarios de empleados diferenciados por tipo de planilla' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for employee_terminations
@@ -1024,7 +1024,7 @@ CREATE TABLE `employee_terminations`  (
   CONSTRAINT `fk_termination_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `admin` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_termination_cancelled_by` FOREIGN KEY (`cancelled_by`) REFERENCES `admin` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_termination_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Gestión de terminaciones y liquidaciones con sistema de cancelación y auditoría completa' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Gestión de terminaciones y liquidaciones con sistema de cancelación y auditoría completa' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for employees
@@ -1100,7 +1100,7 @@ CREATE TABLE `employees`  (
   CONSTRAINT `fk_employees_organigrama` FOREIGN KEY (`organigrama_id`) REFERENCES `organigrama` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_employees_partida` FOREIGN KEY (`partida_id`) REFERENCES `partidas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_employees_situacion` FOREIGN KEY (`situacion_id`) REFERENCES `situaciones` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 18 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci COMMENT = 'Tabla de empleados con relación al organigrama empresarial' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci COMMENT = 'Tabla de empleados con relación al organigrama empresarial' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for frecuencias
@@ -1116,7 +1116,7 @@ CREATE TABLE `frecuencias`  (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `codigo`(`codigo` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 12 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of frecuencias
@@ -1142,7 +1142,7 @@ CREATE TABLE `funciones`  (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `unique_codigo`(`codigo` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of funciones
@@ -1177,7 +1177,7 @@ CREATE TABLE `liquidation_calculations`  (
   INDEX `idx_liquidation_calc_termination_concept`(`termination_id` ASC, `concept_id` ASC) USING BTREE,
   CONSTRAINT `fk_liquidation_calc_concept_id` FOREIGN KEY (`concept_id`) REFERENCES `concepto` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_liquidation_termination` FOREIGN KEY (`termination_id`) REFERENCES `employee_terminations` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 549 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for liquidation_config
@@ -1194,7 +1194,7 @@ CREATE TABLE `liquidation_config`  (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `unique_parameter`(`parameter_name` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of liquidation_config
@@ -1225,7 +1225,7 @@ CREATE TABLE `liquidation_history`  (
   INDEX `fk_history_user`(`user_id` ASC) USING BTREE,
   CONSTRAINT `fk_history_termination` FOREIGN KEY (`termination_id`) REFERENCES `employee_terminations` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_history_user` FOREIGN KEY (`user_id`) REFERENCES `admin` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 70 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for menu_items
@@ -1236,7 +1236,7 @@ CREATE TABLE `menu_items`  (
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 18 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of menu_items
@@ -1276,7 +1276,7 @@ CREATE TABLE `organigrama`  (
   INDEX `idx_organigrama_path`(`path`(191) ASC) USING BTREE,
   INDEX `idx_organigrama_nivel`(`nivel` ASC) USING BTREE,
   CONSTRAINT `fk_organigrama_padre` FOREIGN KEY (`id_padre`) REFERENCES `organigrama` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Estructura organizacional de la empresa' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Estructura organizacional de la empresa' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of organigrama
@@ -1295,7 +1295,7 @@ CREATE TABLE `overtime`  (
   `rate` double NOT NULL,
   `date_overtime` date NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of overtime
@@ -1316,7 +1316,7 @@ CREATE TABLE `partidas`  (
   `partida` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `unique_codigo`(`codigo` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 26 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of partidas
@@ -1469,7 +1469,7 @@ CREATE TABLE `planilla_auditoria`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_planilla_fecha`(`planilla_id` ASC, `fecha_cambio` ASC) USING BTREE,
   CONSTRAINT `planilla_auditoria_ibfk_1` FOREIGN KEY (`planilla_id`) REFERENCES `planilla_cabecera` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 160 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for planilla_cabecera
@@ -1496,7 +1496,7 @@ CREATE TABLE `planilla_cabecera`  (
   INDEX `fk_planilla_tipo`(`tipo_planilla_id` ASC) USING BTREE,
   INDEX `fk_planilla_frecuencia`(`frecuencia_id` ASC) USING BTREE,
   CONSTRAINT `fk_planilla_tipo` FOREIGN KEY (`tipo_planilla_id`) REFERENCES `tipos_planilla` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 100 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for planilla_detalle
@@ -1529,7 +1529,7 @@ CREATE TABLE `planilla_detalle`  (
   INDEX `idx_planilla_detalle_referencia`(`referencia_valor` ASC) USING BTREE,
   INDEX `idx_planilla_detalle_organigrama`(`organigrama_id` ASC) USING BTREE,
   CONSTRAINT `fk_planilla_detalle_organigrama` FOREIGN KEY (`organigrama_id`) REFERENCES `organigrama` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 2213 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Tabla de detalles de planilla con valores de referencia para cálculos' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Tabla de detalles de planilla con valores de referencia para cálculos' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for planillas_acumulados_consolidados
@@ -1574,7 +1574,7 @@ CREATE TABLE `posiciones`  (
   `id_partida` int NULL DEFAULT NULL,
   `sueldo` decimal(10, 2) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of posiciones
@@ -1590,7 +1590,7 @@ CREATE TABLE `position`  (
   `description` varchar(150) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
   `rate` double NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of position
@@ -1665,7 +1665,7 @@ CREATE TABLE `roles`  (
   `status` tinyint(1) NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of roles
@@ -1689,7 +1689,7 @@ CREATE TABLE `route_permissions`  (
   UNIQUE INDEX `route`(`route` ASC) USING BTREE,
   INDEX `menu_id`(`menu_id` ASC) USING BTREE,
   CONSTRAINT `route_permissions_ibfk_1` FOREIGN KEY (`menu_id`) REFERENCES `menu_items` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 32 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of route_permissions
@@ -1754,7 +1754,7 @@ CREATE TABLE `schedules`  (
   UNIQUE INDEX `unique_codigo`(`codigo` ASC) USING BTREE,
   INDEX `idx_lunch_schedule`(`salida_almuerzo` ASC, `entrada_almuerzo` ASC) USING BTREE,
   INDEX `idx_schedules_active_tolerances`(`activo` ASC, `time_in_tolerance_after` ASC, `time_out_tolerance_after` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = latin1 COLLATE = latin1_swedish_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of schedules
@@ -1776,7 +1776,7 @@ CREATE TABLE `situaciones`  (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `codigo`(`codigo` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of situaciones
@@ -1839,7 +1839,7 @@ CREATE TABLE `tipos_acumulados`  (
   UNIQUE INDEX `codigo`(`codigo` ASC) USING BTREE,
   INDEX `idx_codigo`(`codigo` ASC) USING BTREE,
   INDEX `idx_activo`(`activo` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 24 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tipos_acumulados
@@ -1862,7 +1862,7 @@ CREATE TABLE `tipos_planilla`  (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `codigo`(`codigo` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of tipos_planilla
@@ -1890,7 +1890,7 @@ CREATE TABLE `vacation_annual_balances`  (
   INDEX `idx_vab_saldo`(`saldo_disponible_year` ASC) USING BTREE,
   INDEX `idx_vab_employee_year_saldo`(`employee_id` ASC, `year` ASC, `saldo_disponible_year` ASC) USING BTREE,
   CONSTRAINT `vacation_annual_balances_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 33 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Balance anual detallado de vacaciones por empleado y año' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Balance anual detallado de vacaciones por empleado y año' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for vacation_calculations
@@ -1911,7 +1911,7 @@ CREATE TABLE `vacation_calculations`  (
   INDEX `fk_calc_vacation_request`(`vacation_request_id` ASC) USING BTREE,
   INDEX `idx_calc_type`(`calculation_type` ASC) USING BTREE,
   CONSTRAINT `vacation_calculations_ibfk_1` FOREIGN KEY (`vacation_request_id`) REFERENCES `vacation_requests` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for vacation_calendar
@@ -1956,7 +1956,7 @@ CREATE TABLE `vacation_policies`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_policy_default`(`is_default` ASC) USING BTREE,
   INDEX `idx_policy_active`(`active` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of vacation_policies
@@ -2011,7 +2011,7 @@ CREATE TABLE `vacation_requests`  (
   CONSTRAINT `fk_vacation_requests_payroll` FOREIGN KEY (`payroll_id`) REFERENCES `planilla_cabecera` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `vacation_requests_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `vacation_requests_ibfk_2` FOREIGN KEY (`approved_by`) REFERENCES `admin` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- View structure for v_active_alerts

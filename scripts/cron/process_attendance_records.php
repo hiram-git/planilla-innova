@@ -12,7 +12,7 @@
  * - Marcar records como procesados
  *
  * Ejemplo crontab (Linux) - Cada 20 minutos:
- * */20 * * * * php /path/to/planilla-innova/scripts/cron/process_attendance_records.php >> /path/to/logs/cron_process_records.log 2>&1
+ * *20 * * * * php /path/to/planilla-innova/scripts/cron/process_attendance_records.php >> /path/to/logs/cron_process_records.log 2>&1
  *
  * Ejemplo Task Scheduler (Windows) - Cada 20 minutos:
  * Acción: Iniciar programa
@@ -47,8 +47,8 @@ use App\Models\AttendanceRecord;
 // Banner
 echo "\n";
 echo "╔════════════════════════════════════════════════════════════╗\n";
-echo "║   CRON JOB: Procesamiento de Marcaciones                  ║\n";
-echo "║   Fecha: " . date('Y-m-d H:i:s') . "                              ║\n";
+echo "║   CRON JOB: Procesamiento de Marcaciones                   ║\n";
+echo "║   Fecha: " . date('Y-m-d H:i:s') . "                       ║\n";
 echo "╚════════════════════════════════════════════════════════════╝\n";
 echo "\n";
 
