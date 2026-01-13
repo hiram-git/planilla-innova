@@ -48,7 +48,7 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
 
             $sql = "SELECT e.id, e.fecha_ingreso, e.employee_id, e.firstname, e.lastname, e.created_on,
                            e.sueldo_individual, e.gastos_representacion, e.clave_seguro_social,
-                           e.marca_asistencia, e.tarifa_hora,
+                           e.marca_asistencia, e.permite_horas_extras, e.tiene_bono_asistencia, e.tarifa_hora,
                            p.sueldo as sueldo_posicion,
                            s.time_in, s.time_out
                     FROM employees e
@@ -122,6 +122,12 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
             // Obtener marca_asistencia (si empleado paga por horas trabajadas)
             $marca_asistencia = (int)($employee['marca_asistencia'] ?? 0);
 
+            // Obtener permite_horas_extras (si empleado puede generar horas extras)
+            $permite_horas_extras = (int)($employee['permite_horas_extras'] ?? 0);
+
+            // Obtener tiene_bono_asistencia (si empleado recibe bono de asistencia)
+            $tiene_bono_asistencia = (int)($employee['tiene_bono_asistencia'] ?? 0);
+
             // Obtener tarifa por hora desde BD (campo tarifa_hora en tabla employees)
             // Si no existe, calcular como fallback: salario / 220 horas mensuales estándar
             $tarifa_hora = (float)($employee['tarifa_hora'] ?? 0);
@@ -147,8 +153,10 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
             $this->executor->setVar('ANTIGUEDAD_ANUAL', (float)$diff->y);
             $this->executor->setVar('ANTIGUEDAD_MES', (float)$diff->m);
 
-            // Variables para cálculo de salario basado en asistencia
+            // Variables para cálculo de salario basado en asistencia y bonos
             $this->executor->setVar('MARCA_ASISTENCIA', $marca_asistencia);
+            $this->executor->setVar('PERMITE_HORAS_EXTRAS', $permite_horas_extras);
+            $this->executor->setVar('TIENE_BONO_ASISTENCIA', $tiene_bono_asistencia);
             $this->executor->setVar('TARIFA_HORA', $tarifa_hora);
 
             // Guardar para referencia interna (heredado de la clase padre)
@@ -168,6 +176,8 @@ class PlanillaConceptCalculator extends PlanillaConceptCalculatorSecure
                 'ANTIGUEDAD_ANUAL' => (float)$diff->y,
                 'ANTIGUEDAD_MES' => (float)$diff->m,
                 'MARCA_ASISTENCIA' => $marca_asistencia,
+                'PERMITE_HORAS_EXTRAS' => $permite_horas_extras,
+                'TIENE_BONO_ASISTENCIA' => $tiene_bono_asistencia,
                 'TARIFA_HORA' => $tarifa_hora,
             ];
 

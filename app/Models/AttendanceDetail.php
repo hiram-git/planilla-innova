@@ -97,6 +97,24 @@ class AttendanceDetail
     }
 
     /**
+     * Obtiene todos los detalles de asistencia para una fecha específica
+     */
+    public function getByDate($date)
+    {
+        $sql = "SELECT d.*, h.attendance_date,
+                       e.firstname, e.lastname, e.employee_id as employee_number
+                FROM {$this->table} d
+                INNER JOIN attendance_header h ON d.header_id = h.id
+                INNER JOIN employees e ON d.employee_id = e.id
+                WHERE h.attendance_date = ?
+                ORDER BY e.lastname, e.firstname";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$date]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Obtiene un detalle específico por fecha y empleado
      */
     public function getByDateAndEmployee($date, $employeeId, $deviceId = null)

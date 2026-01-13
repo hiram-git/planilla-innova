@@ -13,12 +13,13 @@ $content = '
             <div class="card-header">
                 <h3 class="card-title">Documentos laborales por empleado</h3>
                 <div class="card-tools">
-                    <span class="badge badge-secondary">Plantillas pendientes</span>
+                    <span class="badge badge-success"><i class="fas fa-check"></i> Sistema Activo</span>
                 </div>
             </div>
             <div class="card-body">
-                <div class="callout callout-info">
-                    <p class="mb-0">Las plantillas de Word se cargaran mas adelante. Por ahora se muestra el listado de empleados y los tipos de documentos disponibles.</p>
+                <div class="callout callout-success">
+                    <h5><i class="icon fas fa-check"></i> Generación de Documentos Disponible</h5>
+                    <p class="mb-0">Seleccione un empleado de la tabla y haga clic en el botón "Documentos" para generar cartas de trabajo y contratos en formato PDF o Word.</p>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped" id="employeeDocumentsTable">

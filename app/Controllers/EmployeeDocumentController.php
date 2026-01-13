@@ -6,20 +6,29 @@ use App\Core\Controller;
 use App\Core\TenantStorage;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Models\Employee;
+use App\Models\Company;
+use App\Services\DocumentGenerators\WorkCertificatePdfGenerator;
+use App\Services\DocumentGenerators\WorkCertificateWordGenerator;
+use App\Services\DocumentGenerators\WorkContractPdfGenerator;
+use App\Services\DocumentGenerators\WorkContractWordGenerator;
 
 class EmployeeDocumentController extends Controller
 {
     private const DOCUMENT_TYPES = [
-        'carta-trabajo' => 'Carta de trabajo',
-        'carta-recomendacion' => 'Carta de recomendacion',
-        'constancia-trabajo' => 'Constancia de trabajo',
-        'contrato-trabajo' => 'Contrato de trabajo'
+        'work_certificate' => 'Carta de trabajo',
+        'work_contract' => 'Contrato de trabajo'
     ];
+
+    private $employeeModel;
+    private $companyModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->requireAuth();
+        $this->employeeModel = new Employee();
+        $this->companyModel = new Company();
     }
 
     protected function requireAuth()
@@ -114,13 +123,19 @@ class EmployeeDocumentController extends Controller
                     $conditionalColumn = htmlspecialchars($emp['cargo_name'] ?? 'Sin cargo');
                 }
 
+                $documentsHtmlWithId = str_replace(
+                    'generate-document',
+                    'generate-document" data-employee-id="' . $emp['id'],
+                    $documentsHtml
+                );
+
                 $data[] = [
                     $photoHtml,
                     htmlspecialchars($emp['employee_id']),
                     htmlspecialchars($emp['firstname'] . ' ' . $emp['lastname']),
                     htmlspecialchars($emp['document_id'] ?? ''),
                     $conditionalColumn,
-                    $documentsHtml
+                    $documentsHtmlWithId
                 ];
             }
 
@@ -145,13 +160,26 @@ class EmployeeDocumentController extends Controller
 
     private function renderDocumentBadges(): string
     {
-        $badges = [];
-
-        foreach (self::DOCUMENT_TYPES as $label) {
-            $badges[] = '<span class="badge badge-secondary mr-1" title="Plantilla pendiente">' . htmlspecialchars($label) . '</span>';
-        }
-
-        return implode(' ', $badges);
+        return '<div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-file-alt"></i> Documentos
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item generate-document" href="#" data-type="work_certificate" data-format="pdf">
+                            <i class="far fa-file-pdf text-danger"></i> Carta de Trabajo (PDF)
+                        </a>
+                        <a class="dropdown-item generate-document" href="#" data-type="work_certificate" data-format="word">
+                            <i class="far fa-file-word text-primary"></i> Carta de Trabajo (Word)
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item generate-document" href="#" data-type="work_contract" data-format="pdf">
+                            <i class="far fa-file-pdf text-danger"></i> Contrato de Trabajo (PDF)
+                        </a>
+                        <a class="dropdown-item generate-document" href="#" data-type="work_contract" data-format="word">
+                            <i class="far fa-file-word text-primary"></i> Contrato de Trabajo (Word)
+                        </a>
+                    </div>
+                </div>';
     }
 
     private function getEmployeesWithPagination($start, $length, $whereConditions, $params, $orderColumn, $orderDir)
@@ -208,5 +236,151 @@ class EmployeeDocumentController extends Controller
         $result = $stmt->fetch();
 
         return intval($result['total'] ?? 0);
+    }
+
+    /**
+     * Generar documento (router principal)
+     */
+    public function generate()
+    {
+        try {
+            PermissionMiddleware::requirePermission('panel/employee-documents', 'read');
+
+            // Obtener parámetros de la solicitud
+            $employeeId = $_POST['employee_id'] ?? $_GET['employee_id'] ?? null;
+            $documentType = $_POST['document_type'] ?? $_GET['document_type'] ?? null;
+            $format = $_POST['format'] ?? $_GET['format'] ?? 'pdf';
+
+            // Validar parámetros
+            if (!$employeeId || !$documentType) {
+                throw new \Exception('Parámetros inválidos: employee_id y document_type son requeridos');
+            }
+
+            // Validar tipo de documento
+            if (!array_key_exists($documentType, self::DOCUMENT_TYPES)) {
+                throw new \Exception('Tipo de documento inválido');
+            }
+
+            // Validar formato
+            $validFormats = ['pdf', 'word'];
+            if (!in_array($format, $validFormats)) {
+                throw new \Exception('Formato inválido');
+            }
+
+            // Obtener datos del empleado
+            $employeeData = $this->employeeModel->getEmployeeWithFullDetails($employeeId);
+
+            if (!$employeeData) {
+                throw new \Exception('Empleado no encontrado');
+            }
+
+            // Obtener información de la empresa
+            $companyInfo = $this->getCompanyInfo();
+
+            // Generar documento según tipo y formato
+            $this->generateDocument($documentType, $format, $companyInfo, $employeeData);
+
+        } catch (\Exception $e) {
+            error_log('Error generando documento: ' . $e->getMessage());
+            $this->redirect('/panel/employee-documents?error=' . urlencode($e->getMessage()));
+        }
+    }
+
+    /**
+     * Generar documento específico
+     *
+     * @param string $type Tipo de documento (work_certificate | work_contract)
+     * @param string $format Formato (pdf | word)
+     * @param array $companyInfo Información de la empresa
+     * @param array $employeeData Datos del empleado
+     */
+    private function generateDocument($type, $format, $companyInfo, $employeeData)
+    {
+        $generator = null;
+
+        // Seleccionar generador según tipo y formato
+        if ($type === 'work_certificate') {
+            if ($format === 'pdf') {
+                $generator = new WorkCertificatePdfGenerator($companyInfo, $employeeData);
+            } else { // word
+                $generator = new WorkCertificateWordGenerator($companyInfo, $employeeData);
+            }
+        } elseif ($type === 'work_contract') {
+            if ($format === 'pdf') {
+                $generator = new WorkContractPdfGenerator($companyInfo, $employeeData);
+            } else { // word
+                $generator = new WorkContractWordGenerator($companyInfo, $employeeData);
+            }
+        }
+
+        if (!$generator) {
+            throw new \Exception('No se pudo instanciar el generador de documentos');
+        }
+
+        // Generar y descargar
+        $generator->generate();
+    }
+
+    /**
+     * Obtener información de la empresa
+     *
+     * @return array
+     */
+    private function getCompanyInfo()
+    {
+        try {
+            $db = $this->companyModel->getDatabase();
+            $connection = $db->getConnection();
+
+            $sql = "SELECT * FROM companies WHERE id = 1";
+            $stmt = $connection->prepare($sql);
+            $stmt->execute();
+            $company = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$company) {
+                return $this->getDefaultCompanyInfo();
+            }
+
+            return [
+                'company_name' => $company['company_name'] ?? 'EMPRESA EJEMPLO S.A.',
+                'ruc' => $company['ruc'] ?? '1234567890-1-DV',
+                'address' => $company['address'] ?? 'Dirección Empresa',
+                'phone' => $company['phone'] ?? '',
+                'email' => $company['email'] ?? '',
+                'legal_representative' => $company['legal_representative'] ?? 'Representante Legal',
+                'legal_representative_id' => $company['legal_representative_id'] ?? 'N/A',
+                'currency_symbol' => $company['currency_symbol'] ?? 'B/.',
+                'currency_code' => $company['currency_code'] ?? 'PAB',
+                'logo_empresa' => $company['logo_empresa'] ?? '',
+                'logo_izquierdo_reportes' => $company['logo_izquierdo_reportes'] ?? '',
+                'logo_derecho_reportes' => $company['logo_derecho_reportes'] ?? ''
+            ];
+        } catch (\Exception $e) {
+            error_log('Error obteniendo información de empresa: ' . $e->getMessage());
+            return $this->getDefaultCompanyInfo();
+        }
+    }
+
+    /**
+     * Obtener información por defecto de la empresa
+     *
+     * @return array
+     */
+    private function getDefaultCompanyInfo()
+    {
+        return [
+            'company_name' => 'EMPRESA EJEMPLO S.A.',
+            'ruc' => '1234567890-1-DV',
+            'address' => 'Dirección Empresa',
+            'phone' => '',
+            'email' => '',
+            'legal_representative' => 'Representante Legal',
+            'legal_representative_id' => 'N/A',
+            'currency_symbol' => 'B/.',
+            'currency_code' => 'PAB',
+            'logo_empresa' => '',
+            'logo_izquierdo_reportes' => '',
+            'logo_derecho_reportes' => ''
+        ];
     }
 }
