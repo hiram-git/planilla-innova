@@ -147,44 +147,72 @@ $content = '
                         </div>
                     </div>
 
-                    <!-- Campo Marca Asistencia -->
+                    <!-- Opciones de Asistencia y Bonos -->
                     <div class="row">
                         <div class="col-md-12">
-                            <div class="form-group">
-                                <label>
-                                    Marca Asistencia <i class="fas fa-info-circle text-info" title="Controla si se sincronizarán las marcaciones del empleado"></i>
-                                </label>
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="edit_marca_asistencia" name="edit_marca_asistencia" value="1" ' . ((isset($employee['marca_asistencia']) && $employee['marca_asistencia'] == 1) ? 'checked' : '') . '>
-                                    <label class="custom-control-label" for="edit_marca_asistencia">
-                                        <strong>Registra marcaciones</strong> (pago por horas trabajadas)
-                                    </label>
+                            <div class="card card-secondary">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="fas fa-user-clock"></i> Opciones de Asistencia y Bonos
+                                    </h3>
                                 </div>
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-clock text-primary"></i> <strong>Habilitado:</strong> Se sincronizarán marcaciones y se pagará por horas trabajadas<br>
-                                    <i class="fas fa-money-bill-wave text-secondary"></i> <strong>Deshabilitado:</strong> Se pagará sueldo quincenal fijo (sin sincronizar marcaciones)
-                                </small>
-                            </div>
-                        </div>
-                    </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <!-- Marca Asistencia -->
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>
+                                                    <i class="fas fa-clock text-primary"></i> Marca Asistencia
+                                                </label>
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="edit_marca_asistencia" name="edit_marca_asistencia" value="1" ' . ((isset($employee['marca_asistencia']) && $employee['marca_asistencia'] == 1) ? 'checked' : '') . '>
+                                                    <label class="custom-control-label" for="edit_marca_asistencia">
+                                                        Registra marcaciones
+                                                    </label>
+                                                </div>
+                                                <small class="form-text text-muted">
+                                                    Pago por horas trabajadas
+                                                </small>
+                                            </div>
+                                        </div>
 
-                    <!-- Campo Permite Horas Extras -->
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label>
-                                    Horas Extras <i class="fas fa-info-circle text-info" title="Controla si el empleado es elegible para generar horas extras"></i>
-                                </label>
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="edit_permite_horas_extras" name="edit_permite_horas_extras" value="1" ' . ((isset($employee['permite_horas_extras']) && $employee['permite_horas_extras'] == 1) ? 'checked' : '') . '>
-                                    <label class="custom-control-label" for="edit_permite_horas_extras">
-                                        <strong>Permite horas extras</strong> (elegible para overtime)
-                                    </label>
+                                        <!-- Permite Horas Extras -->
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>
+                                                    <i class="fas fa-user-clock text-success"></i> Horas Extras
+                                                </label>
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="edit_permite_horas_extras" name="edit_permite_horas_extras" value="1" ' . ((isset($employee['permite_horas_extras']) && $employee['permite_horas_extras'] == 1) ? 'checked' : '') . '>
+                                                    <label class="custom-control-label" for="edit_permite_horas_extras">
+                                                        Permite horas extras
+                                                    </label>
+                                                </div>
+                                                <small class="form-text text-muted">
+                                                    Elegible para overtime
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tiene Bono Asistencia -->
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>
+                                                    <i class="fas fa-award text-warning"></i> Bono de Asistencia
+                                                </label>
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="edit_tiene_bono_asistencia" name="edit_tiene_bono_asistencia" value="1" ' . ((isset($employee['tiene_bono_asistencia']) && $employee['tiene_bono_asistencia'] == 1) ? 'checked' : '') . '>
+                                                    <label class="custom-control-label" for="edit_tiene_bono_asistencia">
+                                                        Recibe bono de asistencia
+                                                    </label>
+                                                </div>
+                                                <small class="form-text text-muted">
+                                                    Elegible para bonos por puntualidad
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-user-clock text-success"></i> <strong>Habilitado:</strong> Horas extras se calcularán y aparecerán como PENDIENTE de aprobación<br>
-                                    <i class="fas fa-user-tie text-warning"></i> <strong>Deshabilitado:</strong> Empleado exento (gerentes, ejecutivos) - no genera horas extras
-                                </small>
                             </div>
                         </div>
                     </div>
