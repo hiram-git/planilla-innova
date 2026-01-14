@@ -1964,12 +1964,12 @@ class Payroll extends Model
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($result && $result['pending_count'] == 0) {
-                // No hay cuotas pendientes, marcar préstamo como completado
-                $sqlUpdate = "UPDATE loans SET status = 'completado' WHERE id = ?";
+                // No hay cuotas pendientes, marcar préstamo como pagado
+                $sqlUpdate = "UPDATE loans SET status = 'pagado' WHERE id = ?";
                 $stmtUpdate = $this->db->prepare($sqlUpdate);
                 $stmtUpdate->execute([$loanId]);
 
-                error_log("✅ Préstamo $loanId marcado como completado (todas las cuotas pagadas)");
+                error_log("✅ Préstamo $loanId marcado como pagado (todas las cuotas pagadas)");
             }
 
         } catch (\Exception $e) {
