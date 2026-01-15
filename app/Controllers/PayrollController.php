@@ -8,6 +8,7 @@ use App\Models\PayrollDetail;
 use App\Models\PayrollConcept;
 use App\Models\Concept;
 use App\Models\Employee;
+use App\Models\EmployeeManualConcept;
 use App\Core\Security;
 use App\Core\PayrollValidationRules;
 
@@ -1797,10 +1798,109 @@ class PayrollController extends Controller
                 }
             }
 
+            // 6.5. PROCESAR CONCEPTOS MANUALES PARA ESTE EMPLEADO
+            // Usar fecha_hasta para incluir conceptos que empiezan durante el período
+            $manualConceptModel = new EmployeeManualConcept();
+            $manualConcepts = $manualConceptModel->getActiveForEmployee(
+                $employeeId,
+                $payroll['fecha_hasta'],
+                $tipoPlanillaId ?: $payroll['tipo_planilla_id'],
+                $payroll['frecuencia_id']
+            );
+
+            if (!empty($manualConcepts)) {
+                error_log("Regeneración: Procesando " . count($manualConcepts) . " conceptos manuales para empleado $employeeId");
+
+                foreach ($manualConcepts as $manualConcept) {
+                    try {
+                        // Determinar el monto
+                        $amount = 0;
+
+                        if (!empty($manualConcept['monto_fijo']) && $manualConcept['monto_fijo'] > 0) {
+                            // Usar monto fijo si está especificado
+                            $amount = floatval($manualConcept['monto_fijo']);
+                        } elseif (!empty($manualConcept['formula'])) {
+                            // Si hay fórmula en el concepto, evaluarla
+                            try {
+                                // Establecer variables del colaborador
+                                $calculadora->setVariablesColaborador($employeeId, $tipoPlanillaId ?: $payroll['tipo_planilla_id']);
+
+                                // Evaluar la fórmula
+                                $amount = $calculadora->evaluarFormula($manualConcept['formula']);
+                                if ($amount < 0) $amount = 0;
+                            } catch (\Exception $e) {
+                                error_log("Error evaluando fórmula de concepto manual {$manualConcept['concepto_code']}: " . $e->getMessage());
+                                $amount = 0;
+                            }
+                        }
+
+                        // Determinar unidad
+                        $unidad = !empty($manualConcept['unidad']) ? $manualConcept['unidad'] : 1;
+
+                        // Si el concepto tiene fórmula y asignó UNIDAD dinámicamente, usar ese valor
+                        if (!empty($manualConcept['formula'])) {
+                            $unidadCalculada = $calculadora->obtenerUnidadCalculada();
+                            if ($unidadCalculada !== null && $unidadCalculada !== '') {
+                                $unidad = $unidadCalculada;
+                            }
+                        }
+
+                        // Insertar en planilla_detalle si hay monto
+                        if ($amount > 0) {
+                            $insertManualConceptQuery = "
+                                INSERT INTO planilla_detalle (
+                                    planilla_cabecera_id,
+                                    employee_id,
+                                    concepto_id,
+                                    monto,
+                                    tipo,
+                                    firstname,
+                                    lastname,
+                                    position_id,
+                                    schedule_id,
+                                    unidad,
+                                    fecha_transaccion
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                            ";
+
+                            $stmt = $db->prepare($insertManualConceptQuery);
+                            $result = $stmt->execute([
+                                $payrollId,
+                                $employeeId,
+                                $manualConcept['concepto_id'],
+                                round($amount, 4),
+                                $manualConcept['tipo_concepto'],
+                                $employee['firstname'],
+                                $employee['lastname'],
+                                $employee['position_id'],
+                                $employee['schedule_id'],
+                                $unidad
+                            ]);
+
+                            if ($result) {
+                                $conceptsApplied++;
+
+                                // Sumar a totales según tipo
+                                if ($manualConcept['tipo_concepto'] === 'A') {
+                                    $totalIngresos += $amount;
+                                } else {
+                                    $totalDeducciones += $amount;
+                                }
+
+                                error_log("Concepto manual {$manualConcept['concepto_code']} aplicado en regeneración: monto=$amount, unidad=$unidad");
+                            }
+                        }
+
+                    } catch (\Exception $e) {
+                        error_log("Error procesando concepto manual {$manualConcept['concepto_id']} en regeneración: " . $e->getMessage());
+                    }
+                }
+            }
+
             // 7. Las deducciones se calculan automáticamente a través de conceptos con fórmulas ACREEDOR()
             // No es necesario agregar deducciones manualmente aquí
 
-            // 6. Los totales se calculan automáticamente ya que los conceptos están en planilla_detalle
+            // 8. Los totales se calculan automáticamente ya que los conceptos están en planilla_detalle
             $salarioNeto = $totalIngresos - $totalDeducciones;
 
             $db->commit();

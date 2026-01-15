@@ -145,6 +145,9 @@ class EmployeeManualConcept extends Model
             }
 
             $sql .= " ORDER BY c.tipo_concepto DESC, c.descripcion";
+                        error_log(print_r($params, true));
+
+            error_log($sql);
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
@@ -346,20 +349,21 @@ class EmployeeManualConcept extends Model
      * Validar datos antes de crear/actualizar
      *
      * @param array $data
-     * @param int|null $excludeId
+     * @param int|null $excludeId ID del registro en modo edición (null en creación)
      * @return array ['valid' => bool, 'errors' => array]
      */
     public function validate($data, $excludeId = null)
     {
         $errors = [];
+        $isEditing = !is_null($excludeId);
 
-        // Validar employee_id
-        if (empty($data['employee_id'])) {
+        // Validar employee_id (solo en creación)
+        if (!$isEditing && empty($data['employee_id'])) {
             $errors[] = 'El empleado es requerido';
         }
 
-        // Validar concepto_id
-        if (empty($data['concepto_id'])) {
+        // Validar concepto_id (solo en creación)
+        if (!$isEditing && empty($data['concepto_id'])) {
             $errors[] = 'El concepto es requerido';
         }
 
