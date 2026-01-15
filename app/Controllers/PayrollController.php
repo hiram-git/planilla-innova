@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Database;
 use App\Models\Payroll;
 use App\Models\PayrollDetail;
 use App\Models\PayrollConcept;
@@ -1710,6 +1711,52 @@ class PayrollController extends Controller
                     // IMPORTANTE: Pasar tipo_planilla_id para obtener salario correcto de employee_payroll_salaries
                     $calculadora->setVariablesColaborador($employeeId, $tipoPlanillaId ?: $payroll['tipo_planilla_id']);
 
+                    // *** MANEJO ESPECIAL PARA CUOTAPRESTAMO ***
+                    // Si el concepto usa CUOTAPRESTAMO(), generar múltiples líneas de detalle
+                    if ($concept['monto_calculo'] == 1 && !empty($concept['formula']) &&
+                        stripos($concept['formula'], 'CUOTAPRESTAMO(') !== false) {
+
+                        // Extraer el parámetro de acreedor de la fórmula
+                        $creditorParam = $this->extractCuotaPrestamoCreditor($concept['formula']);
+
+                        if ($creditorParam) {
+                            // Obtener TODAS las cuotas de préstamos para este empleado/acreedor/período
+                            $loanInstallments = $this->getAllLoanInstallments(
+                                $employeeId,
+                                $creditorParam,
+                                $payroll['fecha_desde'],
+                                $payroll['fecha_hasta']
+                            );
+
+                            if (!empty($loanInstallments)) {
+                                error_log("CUOTAPRESTAMO: Encontradas " . count($loanInstallments) . " cuotas para empleado $employeeId, acreedor $creditorParam");
+
+                                // Generar una línea de detalle por cada cuota encontrada
+                                foreach ($loanInstallments as $installment) {
+                                    $loanAmount = floatval($installment['amount']);
+
+                                    if ($loanAmount > 0) {
+                                        $this->insertConceptDetail(
+                                            $db,
+                                            $payrollId,
+                                            $employeeId,
+                                            $concept,
+                                            $loanAmount,
+                                            1, // unidad = 1 para préstamos
+                                            $employee,
+                                            $totalIngresos,
+                                            $totalDeducciones,
+                                            $conceptsApplied
+                                        );
+                                    }
+                                }
+
+                                // Saltar el procesamiento normal para este concepto
+                                continue;
+                            }
+                        }
+                    }
+
                     // Calcular monto según la configuración del concepto (igual que procesamiento normal)
                     if (!empty($concept['valor_fijo']) && $concept['valor_fijo'] > 0) {
                         $amount = floatval($concept['valor_fijo']);
@@ -3283,6 +3330,169 @@ class PayrollController extends Controller
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Extraer el parámetro de acreedor de una fórmula CUOTAPRESTAMO
+     *
+     * @param string $formula Fórmula que contiene CUOTAPRESTAMO(FICHA, 'ACR001')
+     * @return string|null Código del acreedor o null si no se encuentra
+     */
+    private function extractCuotaPrestamoCreditor(string $formula): ?string
+    {
+        // Buscar patrón: CUOTAPRESTAMO(primer_param, 'segundo_param') o CUOTAPRESTAMO(primer_param, "segundo_param")
+        // El acreedor es el segundo parámetro
+        if (preg_match('/CUOTAPRESTAMO\s*\(\s*[^,]+\s*,\s*[\'"]([^\'"]+)[\'"]\s*\)/i', $formula, $matches)) {
+            return trim($matches[1]);
+        }
+
+        // Intentar sin comillas (caso numérico)
+        if (preg_match('/CUOTAPRESTAMO\s*\(\s*[^,]+\s*,\s*([0-9]+)\s*\)/i', $formula, $matches)) {
+            return trim($matches[1]);
+        }
+
+        error_log("No se pudo extraer parámetro de acreedor de la fórmula: $formula");
+        return null;
+    }
+
+    /**
+     * Obtener todas las cuotas de préstamos activos para un empleado/acreedor/período
+     *
+     * @param int $employeeId ID del empleado
+     * @param string $creditorParam Código o ID del acreedor
+     * @param string $fechaDesde Fecha inicio del período
+     * @param string $fechaHasta Fecha fin del período
+     * @return array Array de cuotas con amount, due_date, loan_id
+     */
+    private function getAllLoanInstallments(int $employeeId, string $creditorParam, string $fechaDesde, string $fechaHasta): array
+    {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+
+            // Primero, obtener el ID numérico del acreedor si se pasó un código
+            $creditorId = null;
+            if (is_numeric($creditorParam)) {
+                $creditorId = (int)$creditorParam;
+            } else {
+                // Buscar por código (creditor_id varchar)
+                $sql = "SELECT id FROM creditors WHERE creditor_id = ? LIMIT 1";
+                $stmt = $db->prepare($sql);
+                $stmt->execute([$creditorParam]);
+                $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $creditorId = $result ? (int)$result['id'] : null;
+            }
+
+            if (!$creditorId) {
+                error_log("No se encontró acreedor con identificador: $creditorParam");
+                return [];
+            }
+
+            // Buscar TODAS las cuotas (no LIMIT 1) que caen dentro del período
+            $sql = "SELECT li.id, li.loan_id, li.amount, li.due_date, li.installment_number,
+                           l.creditor_id
+                    FROM loan_installments li
+                    INNER JOIN loans l ON l.id = li.loan_id
+                    WHERE l.employee_id = ?
+                    AND l.creditor_id = ?
+                    AND l.status = 'activo'
+                    AND li.status IN ('pendiente', 'generada')
+                    AND li.due_date >= ?
+                    AND li.due_date <= ?
+                    ORDER BY li.due_date ASC, li.installment_number ASC";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$employeeId, $creditorId, $fechaDesde, $fechaHasta]);
+            $installments = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            error_log("getAllLoanInstallments: Employee $employeeId, Creditor $creditorParam (ID: $creditorId), Período: $fechaDesde a $fechaHasta - Encontradas: " . count($installments) . " cuotas");
+
+            return $installments;
+
+        } catch (\PDOException $e) {
+            error_log("Error obteniendo cuotas de préstamos: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Insertar una línea de detalle de concepto en planilla_detalle
+     *
+     * @param Database $db Conexión a base de datos
+     * @param int $payrollId ID de planilla cabecera
+     * @param int $employeeId ID del empleado
+     * @param array $concept Datos del concepto
+     * @param float $amount Monto a insertar
+     * @param mixed $unidad Valor de unidad
+     * @param array $employee Datos del empleado
+     * @param float &$totalIngresos Total ingresos (referencia, se actualiza)
+     * @param float &$totalDeducciones Total deducciones (referencia, se actualiza)
+     * @param int &$conceptsApplied Contador de conceptos (referencia, se actualiza)
+     * @return bool True si se insertó correctamente
+     */
+    private function insertConceptDetail(
+        Database $db,
+        int $payrollId,
+        int $employeeId,
+        array $concept,
+        float $amount,
+        $unidad,
+        array $employee,
+        float &$totalIngresos,
+        float &$totalDeducciones,
+        int &$conceptsApplied
+    ): bool {
+        try {
+            $insertConceptQuery = "
+                INSERT INTO planilla_detalle (
+                    planilla_cabecera_id,
+                    employee_id,
+                    concepto_id,
+                    monto,
+                    tipo,
+                    firstname,
+                    lastname,
+                    position_id,
+                    schedule_id,
+                    unidad,
+                    fecha_transaccion
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            ";
+
+            $conceptType = $concept['tipo'] ?? 'A';
+
+            $stmt = $db->prepare($insertConceptQuery);
+            $result = $stmt->execute([
+                $payrollId,
+                $employeeId,
+                $concept['id'],
+                $amount,
+                $conceptType,
+                $employee['firstname'],
+                $employee['lastname'],
+                $employee['position_id'],
+                $employee['schedule_id'],
+                $unidad
+            ]);
+
+            if ($result) {
+                $conceptsApplied++;
+
+                // Sumar a totales según tipo
+                if ($concept['tipo'] === 'A') {
+                    $totalIngresos += $amount;
+                } else {
+                    $totalDeducciones += $amount;
+                }
+
+                return true;
+            }
+
+            return false;
+
+        } catch (\PDOException $e) {
+            error_log("Error insertando detalle de concepto: " . $e->getMessage());
+            return false;
         }
     }
 }
