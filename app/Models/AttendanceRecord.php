@@ -206,6 +206,31 @@ class AttendanceRecord
     }
 
     /**
+     * Obtener rango de fechas de registros sin procesar
+     * @return array|null ['min_date' => string, 'max_date' => string]
+     */
+    public function getUnprocessedDateRange()
+    {
+        $sql = "SELECT
+                    MIN(punch_date) as min_date,
+                    MAX(punch_date) as max_date
+                FROM {$this->table}
+                WHERE is_duplicate = 0
+                  AND punch_date IS NOT NULL";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Retornar null si no hay fechas válidas
+        if (!$result || !$result['min_date'] || !$result['max_date']) {
+            return null;
+        }
+
+        return $result;
+    }
+
+    /**
      * Obtener registros agrupados por empleado y fecha
      * @param string|null $dateFrom
      * @param string|null $dateTo

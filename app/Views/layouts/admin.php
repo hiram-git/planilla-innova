@@ -332,13 +332,9 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
             <div class="float-right d-none d-sm-block">
                 <?php
                 use App\Helpers\VersionHelper;
-                $versionInfo = VersionHelper::getFullVersionInfo();
                 ?>
                 <b>Versión</b> <?= VersionHelper::getCurrentVersion() ?>
                 <span class="badge badge-primary ml-1">Innova Planilla</span>
-                <?php if (!empty($versionInfo['codename'])): ?>
-                <small class="text-muted ml-1"><?= htmlspecialchars($versionInfo['codename']) ?></small>
-                <?php endif; ?>
             </div>
             <strong>&copy; <?= date('Y') ?>
                 <a href="#" class="text-decoration-none">Innova Planilla</a>.

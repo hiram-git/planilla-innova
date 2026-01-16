@@ -1,13 +1,20 @@
 <?php
 
 return array (
-  'version' => '3.5.6',
-  'codename' => 'Sistema Empresarial de Planillas',
-  'build' => '2025-11-13',
+  'version' => '3.5.18',
+  'codename' => 'Fix TypeError insertConceptDetail',
+  'build' => '2026-01-15',
   'environment' => 'production',
-  'last_updated' => '2025-11-13 00:00:00',
+  'last_updated' => '2026-01-15 00:00:00',
   'changelog' =>
   array (
+    '3.5.18' => 'Fix TypeError insertConceptDetail',
+    '3.5.17' => 'Bug Fixes + UX Improvements',
+    '3.5.16' => 'Expedientes Empleados + Migraciones Multi-Tenant',
+    '3.5.15' => 'UNIDAD Dinámica en Fórmulas',
+    '3.5.14' => 'Campo UNIDAD en Planilla Detalle',
+    '3.5.13' => 'Sistema Permisos Granulares + Liquidaciones Dinámicas',
+    '3.5.12' => 'Acumulados Excel Export + Bug Fixes',
     '3.5.6' => 'Sincronización Calendario API + Feriados Pagados + Unificación',
     '3.5.5' => 'Almuerzo en Asistencias + Proceso Unificado',
     '3.5.4' => 'Reportes Asistencias + Mejoras UI Planillas',

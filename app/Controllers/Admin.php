@@ -172,6 +172,12 @@ class Admin extends Controller
 
                 $_SESSION['error'] = 'Código de empresa no válido o inactivo';
 
+                // Preservar datos ingresados para UX
+
+                $_SESSION['login_username'] = $username;
+
+                $_SESSION['login_company_code'] = $companyCode;
+
                 $this->redirect('/panel');
 
                 return;
@@ -192,6 +198,12 @@ class Admin extends Controller
 
             $_SESSION['error'] = 'Usuario y contraseña requeridos';
 
+            // Preservar datos ingresados para UX
+
+            $_SESSION['login_username'] = $username;
+
+            $_SESSION['login_company_code'] = $companyCode;
+
             $this->redirect('/admin');
 
         }
@@ -205,6 +217,10 @@ class Admin extends Controller
 
 
         if ($admin) {// Almacenar datos completos con informacion de rol dinamica
+
+            // Limpiar datos de login previos (si existen)
+
+            unset($_SESSION['login_username'], $_SESSION['login_company_code']);
 
             $_SESSION['admin'] = $admin['id'];
 
@@ -283,6 +299,9 @@ class Admin extends Controller
                     session_destroy();
                     session_start();
                     $_SESSION['error'] = $errorMessage;
+                    // Preservar datos ingresados para UX
+                    $_SESSION['login_username'] = $username;
+                    $_SESSION['login_company_code'] = $companyCode;
                     $this->redirect('/panel');
                     return;
                 }
@@ -342,6 +361,12 @@ class Admin extends Controller
             Security::logSecurityEvent('login_failed', ['username' => $username]);
 
             $_SESSION['error'] = 'Credenciales incorrectas';
+
+            // Preservar datos ingresados para UX
+
+            $_SESSION['login_username'] = $username;
+
+            $_SESSION['login_company_code'] = $companyCode;
 
             $this->redirect('/panel');
 
