@@ -18,6 +18,17 @@ $styles = '
 
 $bodyClass = 'hold-transition login-page';
 
+// Recuperar datos de sesión para UX mejorada
+$saved_username = $_SESSION['login_username'] ?? '';
+$saved_company_code = $_SESSION['login_company_code'] ?? '';
+
+// Limpiar datos de sesión después de recuperarlos (solo una vez)
+unset($_SESSION['login_username'], $_SESSION['login_company_code']);
+
+// Prioridad: datos de sesión > parámetros GET
+$username_value = !empty($saved_username) ? htmlspecialchars($saved_username) : '';
+$company_value = !empty($saved_company_code) ? htmlspecialchars($saved_company_code) : ($_GET['company'] ?? '');
+
 $content = '
 <div class="row">
     <div class="col-md-9"></div>
@@ -29,12 +40,12 @@ $content = '
                         <h1><b>Planilla Simple</b></h1>
                         <p>Gestión de Recursos Humanos</p>
                     </p>
-                    
+
                     <form action="' . \App\Core\UrlHelper::panel('login') . '" method="POST">
                         <input type="hidden" name="csrf_token" value="' . $csrf_token . '">
 
                         <div class="input-group mb-3">
-                            <input type="text" class="form-control" name="username" placeholder="Usuario" required autofocus>
+                            <input type="text" class="form-control" name="username" placeholder="Usuario" value="' . $username_value . '" required autofocus>
                             <div class="input-group-append">
                                 <div class="input-group-text">
                                     <span class="fas fa-user"></span>
@@ -52,7 +63,7 @@ $content = '
                         </div>
 
                         <div class="input-group mb-3">
-                            <input type="text" class="form-control" name="company_code" placeholder="Licencia" value="' . ($_GET['company'] ?? '') . '">
+                            <input type="text" class="form-control" name="company_code" placeholder="Licencia" value="' . $company_value . '">
                             <div class="input-group-append">
                                 <div class="input-group-text">
                                     <span class="fas fa-key"></span>

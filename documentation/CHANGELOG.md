@@ -8,6 +8,35 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.18]** - 2026-01-15 - *Fix TypeError insertConceptDetail*
+**Tipo**: BUGFIX CRÍTICO - Parameter Type Correction
+**Fase**: Core System Maintenance (100%)
+**Criticidad**: Crítica
+
+**Componentes Principales**:
+- âœ… **PayrollController Fix** (3 líneas modificadas):
+  - Firma método insertConceptDetail(): \PDO → Database
+  - Import agregado: use App\Core\Database
+  - PHPDoc actualizado: @param Database $db
+- âœ… **Regeneración Planillas Restaurada**:
+  - Error TypeError fatal resuelto
+  - Regeneración empleados con préstamos funcional
+  - Flujo CUOTAPRESTAMO operativo
+
+**ðŸ"§ Problema Resuelto**:
+```
+Fatal error: TypeError: insertConceptDetail(): Argument #1 ($db)
+must be of type PDO, App\Core\Database given
+```
+
+**ðŸ"ˆ Estadísticas**:
+- 1 archivo modificado | 3 líneas cambiadas | 1 import agregado | 1 bug crítico resuelto
+- Deployment: < 1 minuto | Sin cambios BD | Sin breaking changes
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.18.md)**
+
+---
+
 ### **[v3.5.17]** - 2025-12-29 - *Bug Fixes + UX Improvements*
 **Tipo**: MANTENIMIENTO + UX - DataTables State Persistence + Loan System Fixes
 **Fase**: Core System Maintenance (100%)
@@ -848,7 +877,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 29 de Diciembre, 2025
-Sistema: Planillas MVC v3.5.17
+Última Actualización: 15 de Enero, 2026
+Sistema: Planillas MVC v3.5.18
 Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100%
 

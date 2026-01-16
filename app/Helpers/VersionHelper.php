@@ -45,21 +45,40 @@ class VersionHelper
 
     /**
      * Cargar configuración de versión
+     * Prioridad: .env > config/version.php > defaults
      */
     private static function getVersionConfig()
     {
         if (self::$versionConfig === null) {
-            $configPath = dirname(dirname(__DIR__)) . '/config/version.php';
+            // 1. Intentar leer desde .env primero
+            $envVersion = $_ENV['APP_VERSION'] ?? getenv('APP_VERSION');
+            $envCodename = $_ENV['APP_VERSION_CODENAME'] ?? getenv('APP_VERSION_CODENAME');
 
-            if (file_exists($configPath)) {
-                self::$versionConfig = require $configPath;
-            } else {
+            if ($envVersion) {
+                // Usar valores de .env como fuente principal
                 self::$versionConfig = [
-                    'version' => '1.0.0',
-                    'codename' => 'Base System',
+                    'version' => $envVersion,
+                    'codename' => $envCodename ?: 'Sistema Empresarial de Planillas',
                     'build' => date('Y-m-d'),
-                    'environment' => 'development'
+                    'environment' => $_ENV['APP_DEBUG'] ?? getenv('APP_DEBUG') ? 'development' : 'production',
+                    'last_updated' => date('Y-m-d H:i:s'),
+                    'changelog' => []
                 ];
+            } else {
+                // 2. Fallback a config/version.php
+                $configPath = dirname(dirname(__DIR__)) . '/config/version.php';
+
+                if (file_exists($configPath)) {
+                    self::$versionConfig = require $configPath;
+                } else {
+                    // 3. Valores por defecto
+                    self::$versionConfig = [
+                        'version' => '1.0.0',
+                        'codename' => 'Base System',
+                        'build' => date('Y-m-d'),
+                        'environment' => 'development'
+                    ];
+                }
             }
         }
 

@@ -193,9 +193,11 @@ function processEndOfDay(string $tenantDb, string $date): array
 
         // Obtener empleados activos que marcan asistencia
         $db = Database::getInstance()->getConnection();
-        $sql = "SELECT id, employee_id, firstname, lastname, schedule_id
-                FROM employees
-                WHERE status = 'A' AND marca_asistencia = 1";
+        $sql = "SELECT e.id, e.employee_id, e.firstname, e.lastname, e.schedule_id
+                FROM employees e
+                LEFT JOIN situaciones sit ON e.situacion_id = sit.id
+                WHERE (e.situacion_id = 1 OR sit.descripcion LIKE '%activ%' OR sit.descripcion LIKE '%ACTIV%' OR e.situacion_id IS NULL)
+                  AND COALESCE(e.marca_asistencia, 0) = 1";
         $stmt = $db->query($sql);
         $activeEmployees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

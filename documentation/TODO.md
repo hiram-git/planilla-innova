@@ -1,8 +1,20 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2025-12-29 (v3.5.17)
+Actualizado: 2026-01-15 (v3.5.18)
 
-## ✅ Completado Recientemente (v3.5.17 - 29-Dic-2025)
+## ✅ Completado Recientemente (v3.5.18 - 15-Ene-2026)
+
+### Bugfix Crítico TypeError insertConceptDetail
+- [x] Fix tipo parámetro insertConceptDetail(): \PDO → Database en PayrollController.php
+- [x] Agregar import use App\Core\Database en PayrollController.php
+- [x] Actualizar PHPDoc @param para reflejar tipo correcto
+- [x] Verificar funcionamiento regeneración empleados con préstamos
+- [x] Actualizar CHANGELOG.md con v3.5.18
+- [x] Crear documentation/changelog/v3.5.18.md con detalles completos
+- [x] Actualizar CLAUDE.md con nueva versión
+- [x] Actualizar TODO.md con tareas completadas v3.5.18
+
+### Previous (v3.5.17 - 29-Dic-2025)
 
 ### Bug Fixes + UX Improvements
 - [x] Agregar stateSave: true en DataTables de concepts/index.php para persistir estado
