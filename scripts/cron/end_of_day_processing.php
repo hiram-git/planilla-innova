@@ -391,8 +391,8 @@ if (empty($tenants)) {
 $tenants[] = 'planilla_prod';
 $tenants = array_values(array_unique(array_filter($tenants)));
 
-// Fecha a procesar (ayer o la fecha pasada como argumento)
-$dateToProcess = $argv[1] ?? date('Y-m-d', strtotime('-1 day'));
+// Fecha a procesar (hoy o la fecha pasada como argumento)
+$dateToProcess = $argv[1] ?? date('Y-m-d');
 
 echo "📅 Fecha a procesar: {$dateToProcess}\n";
 echo "🏢 Tenants a procesar: " . count($tenants) . "\n\n";
