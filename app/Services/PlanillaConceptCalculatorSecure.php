@@ -273,6 +273,30 @@ class PlanillaConceptCalculatorSecure
         $this->executor->addFunction('DIAS_TRABAJADOS', function () {
             return $this->obtenerDatoAsistencia('total_days_worked');
         }, 0);
+
+        // 📌 FUNCIÓN ADICIONALES - Obtener valor de campo adicional personalizado
+        // Retorna el valor numérico del campo adicional del empleado actual
+        // Solo campos NUMERO y BOOLEAN retornan valores numéricos (TEXTO/FECHA retornan 0)
+        $this->executor->addFunction('ADICIONALES', function ($codigoOEtiqueta) {
+            try {
+                // Remover comillas si existen
+                $campo = trim($codigoOEtiqueta, '"\'');
+
+                // Validar que hay empleado establecido
+                if (!isset($this->variablesColaborador['EMPLOYEE_ID'])) {
+                    return 0;
+                }
+
+                $employeeId = $this->variablesColaborador['EMPLOYEE_ID'];
+
+                // Buscar valor del campo adicional
+                return $this->obtenerCampoAdicional($employeeId, $campo);
+
+            } catch (\Exception $e) {
+                error_log("Error en función ADICIONALES('$codigoOEtiqueta'): " . $e->getMessage());
+                return 0;
+            }
+        }, 1);
     }
 
     /**
@@ -1286,6 +1310,58 @@ class PlanillaConceptCalculatorSecure
         } catch (PDOException $e) {
             error_log("Error verificando permite_horas_extras empleado: " . $e->getMessage());
             return true; // Default permite horas extras en caso de error
+        }
+    }
+
+    /**
+     * 📌 Obtener valor de campo adicional personalizado
+     *
+     * Busca el valor de un campo adicional por código o etiqueta para el empleado actual.
+     * Solo retorna valores numéricos para campos de tipo NUMERO y BOOLEAN.
+     * Campos de tipo TEXTO y FECHA retornan 0.
+     *
+     * @param int $employeeId ID del empleado
+     * @param string $codigoOEtiqueta Código o etiqueta del campo adicional
+     * @return float Valor numérico del campo o 0 si no existe/no es numérico
+     */
+    protected function obtenerCampoAdicional(int $employeeId, string $codigoOEtiqueta): float
+    {
+        try {
+            $sql = "SELECT eafv.valor, eaf.tipo_dato
+                    FROM employee_additional_field_values eafv
+                    INNER JOIN employee_additional_fields eaf ON eafv.field_id = eaf.id
+                    WHERE eafv.employee_id = ?
+                    AND (eaf.codigo = ? OR eaf.etiqueta = ?)
+                    AND eaf.activo = 1
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $codigoOEtiqueta, $codigoOEtiqueta]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$result) {
+                return 0;
+            }
+
+            // Convertir según tipo de dato
+            // Solo NUMERO y BOOLEAN retornan valores numéricos
+            if ($result['tipo_dato'] === 'NUMERO') {
+                $valor = (float)$result['valor'];
+                error_log("ADICIONALES - Employee: $employeeId | Campo: $codigoOEtiqueta | Tipo: NUMERO | Valor: $valor");
+                return $valor;
+            } elseif ($result['tipo_dato'] === 'BOOLEAN') {
+                $valor = $result['valor'] ? 1.0 : 0.0;
+                error_log("ADICIONALES - Employee: $employeeId | Campo: $codigoOEtiqueta | Tipo: BOOLEAN | Valor: $valor");
+                return $valor;
+            } else {
+                // TEXTO y FECHA retornan 0 (no son numéricos)
+                error_log("ADICIONALES - Employee: $employeeId | Campo: $codigoOEtiqueta | Tipo: {$result['tipo_dato']} | Valor: 0 (tipo no numérico)");
+                return 0;
+            }
+
+        } catch (PDOException $e) {
+            error_log("Error obteniendo campo adicional: " . $e->getMessage());
+            return 0;
         }
     }
 

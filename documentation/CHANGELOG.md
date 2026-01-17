@@ -8,6 +8,26 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.19]** - 2026-01-16 - *Módulo Campos Adicionales Personalizados*
+**Tipo**: FEATURE - Employee Custom Fields System
+**Fase**: Core System Enhancement - Dynamic Employee Data
+**Criticidad**: Media
+
+**Componentes Principales**:
+- ✅ **Sistema Catálogo Campos**: 4 tipos datos (TEXTO, NUMERO, FECHA, BOOLEAN)
+- ✅ **Integración Formularios**: Sección dinámica en create/edit empleados
+- ✅ **CRUD Completo**: Controller + Models + Views AdminLTE
+- ✅ **DataTables Server-Side**: Paginación eficiente con búsqueda
+- ✅ **7 Bugs Resueltos**: Parse errors, PDO, permisos, routing, migration
+
+**📈 Estadísticas**:
+- 11 archivos nuevos | 3 modificados | ~2,150 líneas | 2 tablas BD | 7 bugs fixed
+- Deployment: 10-15 minutos
+
+**[📄 Ver detalles completos →](./changelog/v3.5.19.md)**
+
+---
+
 ### **[v3.5.18]** - 2026-01-15 - *Fix TypeError insertConceptDetail*
 **Tipo**: BUGFIX CRÍTICO - Parameter Type Correction
 **Fase**: Core System Maintenance (100%)
@@ -877,7 +897,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 15 de Enero, 2026
-Sistema: Planillas MVC v3.5.18
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100%
+Última Actualización: 16 de Enero, 2026
+Sistema: Planillas MVC v3.5.19
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100% | Campos Adicionales 100%
 

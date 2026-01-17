@@ -1,6 +1,24 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2026-01-15 (v3.5.18)
+Actualizado: 2026-01-16 (v3.5.19)
+
+## ✅ Completado Recientemente (v3.5.19 - 16-Ene-2026)
+
+### Módulo Campos Adicionales Personalizados
+- [x] Crear migración employee_additional_fields + employee_additional_field_values (2 tablas)
+- [x] Implementar EmployeeAdditionalFieldController CRUD completo (11 métodos)
+- [x] Crear modelos EmployeeAdditionalField + EmployeeAdditionalFieldValue
+- [x] Diseñar vistas AdminLTE (index, create, edit) con layout pattern
+- [x] Integrar DataTables server-side con named parameters PDO
+- [x] Agregar sección campos adicionales en employee create/edit views
+- [x] Resolver 7 bugs críticos (parse errors, PDO, permissions, routing, migration)
+- [x] Ejecutar migración y verificar tablas creadas (4 registros sample data)
+- [x] Testing completo CRUD + validaciones + permisos
+- [x] Documentación completa en changelog/v3.5.19.md (~850 líneas)
+- [x] Actualizar CHANGELOG.md con índice v3.5.19
+- [x] Actualizar TODO.md con tareas completadas v3.5.19
+- [x] Actualizar ROADMAP.md con progreso Campos Adicionales 100%
+- [x] Actualizar CLAUDE.md si necesario con patrones arquitectónicos
 
 ## ✅ Completado Recientemente (v3.5.18 - 15-Ene-2026)
 

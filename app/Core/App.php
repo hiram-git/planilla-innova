@@ -55,6 +55,7 @@ class App
                     'employees' => ['controller' => 'Employee', 'method' => null],
                     'employee-files' => ['controller' => 'EmployeeFileController', 'method' => null],
                     'employee-documents' => ['controller' => 'EmployeeDocumentController', 'method' => null],
+                    'additional-fields' => ['controller' => 'EmployeeAdditionalFieldController', 'method' => null],
                     'positions' => ['controller' => 'Position', 'method' => null],
                     'cargos' => ['controller' => 'Cargo', 'method' => null],
                     'partidas' => ['controller' => 'Partida', 'method' => null],

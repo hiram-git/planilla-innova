@@ -201,6 +201,8 @@ function processEndOfDay(string $tenantDb, string $date): array
         $stmt = $db->query($sql);
         $activeEmployees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        echo "  📊 Empleados activos con marca_asistencia=1: " . count($activeEmployees) . "\n";
+
         // Obtener empleados que YA tienen marcación
         $existingDetails = $detailModel->getByHeader($header['id']);
         $employeesWithAttendance = [];
