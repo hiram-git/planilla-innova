@@ -79,6 +79,7 @@ class Employee extends Controller
         $funcion = $this->model('Funcion');
         $partida = $this->model('Partida');
         $organigrama = $this->model('Organizational');
+        $additionalField = $this->model('EmployeeAdditionalField');
 
         $data = [
             'title' => 'Agregar Empleado',
@@ -92,6 +93,7 @@ class Employee extends Controller
             'partidas' => $partida->all(),
             'organigrama_elementos' => $organigrama->getOrganizationalFlat(),
             'company_config' => $company->getCompanyConfig(),
+            'additional_fields' => $additionalField->getAllActive(),
             'csrf_token' => AuthMiddleware::generateCSRF()
         ];
 
@@ -251,6 +253,12 @@ class Employee extends Controller
                 }
             }
 
+            // ✅ Guardar valores de campos adicionales
+            if (!empty($data['additional_fields']) && is_array($data['additional_fields']) && $newEmployeeId) {
+                $additionalFieldValue = $this->model('EmployeeAdditionalFieldValue');
+                $additionalFieldValue->saveBulkValues($newEmployeeId, $data['additional_fields']);
+            }
+
             $_SESSION['success'] = 'Colaborador agregado exitosamente con ID: ' . $employeeId;
             $this->redirect(\App\Core\UrlHelper::employee());
         } catch (\Exception $e) {
@@ -301,6 +309,12 @@ class Employee extends Controller
             ];
         }
 
+        // Obtener campos adicionales y sus valores
+        $additionalField = $this->model('EmployeeAdditionalField');
+        $additionalFieldValue = $this->model('EmployeeAdditionalFieldValue');
+        $additionalFields = $additionalField->getAllActive();
+        $additionalFieldValues = $additionalFieldValue->getByEmployee($id);
+
         $data = [
             'title' => 'Editar Empleado',
             'page_title' => 'Editar Colaborador',
@@ -315,6 +329,8 @@ class Employee extends Controller
             'partidas' => $partida->all(),
             'organigrama_elementos' => $organigrama->getOrganizationalFlat(),
             'company_config' => $company->getCompanyConfig(),
+            'additional_fields' => $additionalFields,
+            'additional_field_values' => $additionalFieldValues,
             'csrf_token' => AuthMiddleware::generateCSRF()
         ];
 
@@ -444,6 +460,12 @@ class Employee extends Controller
                 if (!$salariesResult['success']) {
                     error_log("[Employee::update] ⚠️ Warning: Some salaries failed to save for employee {$id}. Errors: " . ($salariesResult['errors'] ?? 0) . ", Details: " . json_encode($salariesResult['error_details'] ?? []));
                 }
+            }
+
+            // ✅ Guardar/actualizar valores de campos adicionales
+            if (!empty($data['additional_fields']) && is_array($data['additional_fields'])) {
+                $additionalFieldValue = $this->model('EmployeeAdditionalFieldValue');
+                $additionalFieldValue->saveBulkValues($id, $data['additional_fields']);
             }
 
             // ✅ Redirigir al formulario de edición con mensaje de éxito

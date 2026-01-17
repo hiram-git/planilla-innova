@@ -1,11 +1,26 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 29 de Diciembre, 2025
-**Versión**: 3.5.17 - Bug Fixes + UX Improvements
-**Versión Anterior**: 3.5.16 - Expedientes Empleados + Migraciones Multi-Tenant Robustas
+**Fecha**: 16 de Enero, 2026
+**Versión**: 3.5.19 - Módulo Campos Adicionales Personalizados
+**Versión Anterior**: 3.5.18 - Fix TypeError insertConceptDetail
 
-### 🆕 Hitos Recientes (v3.5.17 Bug Fixes + UX Improvements)
+### 🆕 Hitos Recientes (v3.5.19 Módulo Campos Adicionales Personalizados)
+- **Sistema Completo Campos Personalizados**: 2 tablas + CRUD + 4 tipos datos (TEXTO, NUMERO, FECHA, BOOLEAN)
+- **Integración Empleados**: Formularios create/edit con renderizado dinámico + validaciones + valores default
+- **DataTables Server-Side**: Paginación eficiente con búsqueda + named parameters PDO
+- **7 Bugs Resueltos**: Parse errors PHP + PDO pagination + permisos + routing + migration + edit button
+- **Total**: 11 archivos nuevos | 3 modificados | ~2,150 líneas | 2 tablas BD | 7 errores críticos resueltos
+[Ver v3.5.19 →](changelog/v3.5.19.md)
+
+### 🆕 Hitos Anteriores (v3.5.18 Fix TypeError insertConceptDetail - 15-Ene-2026)
+- **Fix Crítico PayrollController**: Tipo parámetro insertConceptDetail() \PDO → Database
+- **Import Agregado**: use App\Core\Database en PayrollController
+- **Regeneración Restaurada**: Flujo CUOTAPRESTAMO operativo + empleados con préstamos funcional
+- **Total**: 1 archivo | 3 líneas | 1 import | 1 bug crítico resuelto | < 1 min deployment
+[Ver v3.5.18 →](changelog/v3.5.18.md)
+
+### 🆕 Hitos Anteriores (v3.5.17 Bug Fixes + UX Improvements - 29-Dic-2025)
 - **DataTables Persistencia**: stateSave: true en concepts view + Enter key modal eliminación
 - **Préstamos Sistema Fixes**: Status ENUM migración 12 bases + creditor_id assignment + cuotas tracking
 - **Organigrama Estructura**: Migración idempotente nivel→nivel_jerarquico + eliminación columnas legacy

@@ -130,6 +130,7 @@ class SidebarComponent
         $hasPersonalSection = $isSuperAdmin ||
             $this->canAccessRoute('employees') ||
             $this->canAccessRoute('employee-documents') ||
+            $this->canAccessRoute('additional-fields') ||
             $this->canAccessRoute('positions') ||
             $this->canAccessRoute('cargos') ||
             $this->canAccessRoute('partidas') ||
@@ -196,8 +197,8 @@ class SidebarComponent
                         // Empleados
                         ($this->canAccessRoute('employees') ? '
                         <!-- Empleados -->
-                        <li class="nav-item ' . ($this->isActive('panel/employees') || $this->isActive('panel/employee-documents') ? 'menu-open' : '') . '">
-                            <a href="#" class="nav-link ' . ($this->isActive('panel/employees') || $this->isActive('panel/employee-documents') ? 'active' : '') . '">
+                        <li class="nav-item ' . ($this->isActive('panel/employees') || $this->isActive('panel/employee-documents') || $this->isActive('panel/additional-fields') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/employees') || $this->isActive('panel/employee-documents') || $this->isActive('panel/additional-fields') ? 'active' : '') . '">
                                 <i class="nav-icon fas fa-users"></i>
                                 <p>
                                     Empleados
@@ -234,6 +235,13 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::route('panel/employee-documents') . '" class="nav-link ' . ($this->isActive('panel/employee-documents') ? 'active' : '') . '">
                                         <i class="fas fa-file-signature nav-icon"></i>
                                         <p>Documentos laborales</p>
+                                    </a>
+                                </li>' : '') . '
+                                ' . ($this->canAccessRoute('additional-fields') ? '
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/additional-fields') . '" class="nav-link ' . ($this->isActive('panel/additional-fields') ? 'active' : '') . '">
+                                        <i class="fas fa-plus-square nav-icon"></i>
+                                        <p>Campos Adicionales</p>
                                     </a>
                                 </li>' : '') . '
                             </ul>

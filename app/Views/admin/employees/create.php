@@ -558,6 +558,104 @@ $content .= '                </select>
                         </div>
                     </div>
 
+';
+
+// ====================================
+// CAMPOS ADICIONALES PERSONALIZADOS
+// ====================================
+$additionalFieldsHtml = '';
+if (!empty($additional_fields)) {
+    $additionalFieldsHtml = '
+                    <!-- Campos Adicionales Personalizados -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card card-info">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="fas fa-plus-square"></i> Campos Adicionales Personalizados
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">';
+
+    foreach ($additional_fields as $field) {
+        $fieldName = 'additional_fields[' . $field['id'] . ']';
+        $oldValue = $_SESSION['old_data']['additional_fields'][$field['id']] ?? $field['valor_defecto'] ?? '';
+
+        if ($field['tipo_dato'] === 'NUMERO') {
+            $additionalFieldsHtml .= '
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="field_' . $field['id'] . '">' . htmlspecialchars($field['etiqueta']) . '</label>
+                                                <input type="number"
+                                                       class="form-control"
+                                                       id="field_' . $field['id'] . '"
+                                                       name="' . $fieldName . '"
+                                                       step="0.01"
+                                                       value="' . htmlspecialchars($oldValue) . '"
+                                                       placeholder="Ej: 150">
+                                                <small class="form-text text-muted">' . htmlspecialchars($field['descripcion'] ?: 'Valor numérico') . '</small>
+                                            </div>
+                                        </div>';
+        } elseif ($field['tipo_dato'] === 'FECHA') {
+            $additionalFieldsHtml .= '
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="field_' . $field['id'] . '">' . htmlspecialchars($field['etiqueta']) . '</label>
+                                                <input type="date"
+                                                       class="form-control"
+                                                       id="field_' . $field['id'] . '"
+                                                       name="' . $fieldName . '"
+                                                       value="' . htmlspecialchars($oldValue) . '">
+                                                <small class="form-text text-muted">' . htmlspecialchars($field['descripcion'] ?: 'Seleccione una fecha') . '</small>
+                                            </div>
+                                        </div>';
+        } elseif ($field['tipo_dato'] === 'BOOLEAN') {
+            $checked = ($oldValue == '1' || $oldValue === true) ? 'checked' : '';
+            $additionalFieldsHtml .= '
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>' . htmlspecialchars($field['etiqueta']) . '</label>
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox"
+                                                           class="custom-control-input"
+                                                           id="field_' . $field['id'] . '"
+                                                           name="' . $fieldName . '"
+                                                           value="1" ' . $checked . '>
+                                                    <label class="custom-control-label" for="field_' . $field['id'] . '">
+                                                        ' . htmlspecialchars($field['descripcion'] ?: 'Activar/Desactivar') . '
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>';
+        } else { // TEXTO
+            $additionalFieldsHtml .= '
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="field_' . $field['id'] . '">' . htmlspecialchars($field['etiqueta']) . '</label>
+                                                <input type="text"
+                                                       class="form-control"
+                                                       id="field_' . $field['id'] . '"
+                                                       name="' . $fieldName . '"
+                                                       value="' . htmlspecialchars($oldValue) . '"
+                                                       maxlength="255"
+                                                       placeholder="Ingresar texto">
+                                                <small class="form-text text-muted">' . htmlspecialchars($field['descripcion'] ?: 'Texto libre') . '</small>
+                                            </div>
+                                        </div>';
+        }
+    }
+
+    $additionalFieldsHtml .= '
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>';
+}
+
+$content .= $additionalFieldsHtml . '
+
                     <div class="form-group">
                         <label for="photo">Foto del Empleado</label>
                         <input type="file" class="form-control-file" id="photo" name="photo" accept="image/jpeg,image/png,image/gif">
