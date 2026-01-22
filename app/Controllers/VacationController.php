@@ -840,7 +840,7 @@ class VacationController extends Controller
                     FROM acumulados_por_empleado ape
                     INNER JOIN concepto c ON ape.concepto_id = c.id
                     WHERE ape.employee_id = ?
-                    AND (UPPER(c.codigo) = 'SALARIO_BASE' OR UPPER(c.descripcion) = 'SALARIO_BASE')
+                    AND (UPPER(c.concepto) = 'SALARIO_BASE' OR UPPER(c.descripcion) = 'SALARIO_BASE')
                     AND ape.fecha >= ?
                     AND ape.fecha < ?";
 
