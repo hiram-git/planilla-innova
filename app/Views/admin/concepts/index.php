@@ -438,7 +438,19 @@ $title = 'Conceptos de Nómina';
     $(document).on('click', '.show-formula', function(e) {
         e.preventDefault();
         var fullFormula = $(this).closest('td').find('.formula-text').data('full-formula');
-        alert('Fórmula completa:\n\n' + fullFormula);
+
+        toastr.info(
+            '<div style="max-width: 400px; word-wrap: break-word; white-space: pre-wrap;"><strong>Fórmula completa:</strong><br><br><code style="background: #f4f4f4; padding: 5px; display: block; margin-top: 5px;">' + fullFormula + '</code></div>',
+            'Fórmula del Concepto',
+            {
+                timeOut: 0,
+                extendedTimeOut: 0,
+                closeButton: true,
+                progressBar: false,
+                enableHtml: true,
+                tapToDismiss: false
+            }
+        );
     });
 
     // Probar fórmula
@@ -457,14 +469,22 @@ $title = 'Conceptos de Nómina';
     $('#runTest').click(function() {
         var employeeId = $('#testEmployee').val();
         var formula = $('#testFormula').val();
-        
+
         if (!employeeId) {
-            alert('Por favor seleccione un empleado');
+            toastr.warning(
+                'Por favor seleccione un empleado',
+                'Campo Requerido',
+                { timeOut: 3000 }
+            );
             return;
         }
 
         if (!formula) {
-            alert('No hay fórmula para probar');
+            toastr.warning(
+                'No hay fórmula para probar',
+                'Campo Requerido',
+                { timeOut: 3000 }
+            );
             return;
         }
 
@@ -509,7 +529,11 @@ $title = 'Conceptos de Nómina';
         console.log('Description:', description);
 
         if (!conceptId) {
-            alert('Error: No se pudo obtener el ID del concepto');
+            toastr.error(
+                'No se pudo obtener el ID del concepto',
+                'Error',
+                { timeOut: 5000 }
+            );
             return false;
         }
 
@@ -525,7 +549,11 @@ $title = 'Conceptos de Nómina';
 
             var newDescription = $('#newDescription').val().trim();
             if (newDescription === '') {
-                alert('Debe ingresar una nueva descripción para el concepto.');
+                toastr.warning(
+                    'Debe ingresar una nueva descripción para el concepto.',
+                    'Campo Requerido',
+                    { timeOut: 5000 }
+                );
                 $('#newDescription').focus();
                 return false;
             }
@@ -629,23 +657,53 @@ $title = 'Conceptos de Nómina';
                 console.log('Delete response:', response);
                 if (response.success) {
                     $('#deleteModal').modal('hide');
-                    location.reload();
+
+                    // Mostrar mensaje toastr de éxito
+                    toastr.success(
+                        response.message || 'El concepto ha sido eliminado exitosamente',
+                        'Concepto Eliminado',
+                        {
+                            timeOut: 3000,
+                            progressBar: true,
+                            closeButton: true
+                        }
+                    );
+
+                    // Recargar la página después de mostrar el mensaje
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
                 } else {
                     // Si hay un redirect, redirigir al login
                     if (response.redirect) {
-                        alert(response.message || 'Sesión expirada. Redirigiendo al login...');
-                        window.location.href = response.redirect;
+                        toastr.warning(
+                            response.message || 'Sesión expirada. Redirigiendo al login...',
+                            'Advertencia',
+                            { timeOut: 3000 }
+                        );
+                        setTimeout(function() {
+                            window.location.href = response.redirect;
+                        }, 1500);
                         return;
                     }
-                    alert('Error: ' + (response.message || 'No se pudo eliminar el concepto'));
+                    toastr.error(
+                        response.message || 'No se pudo eliminar el concepto',
+                        'Error',
+                        { timeOut: 5000 }
+                    );
                 }
             },
             error: function(xhr, status, error) {
                 console.log('Delete error:', xhr.responseText);
                 console.log('Status:', status, 'Error:', error);
-                
+
                 // Error real de conexión
-                alert('Error de conexión. No se pudo eliminar el concepto.');
+                $('#deleteModal').modal('hide');
+                toastr.error(
+                    'Error de conexión. No se pudo eliminar el concepto.',
+                    'Error de Conexión',
+                    { timeOut: 5000 }
+                );
             }
         });
     }
@@ -681,22 +739,45 @@ $title = 'Conceptos de Nómina';
                 console.log('Duplicate response:', response);
                 if (response.success) {
                     $('#duplicateModal').modal('hide');
-                    alert('Concepto duplicado exitosamente');
+
+                    // Mostrar mensaje toastr de éxito
+                    toastr.success(
+                        response.message || 'El concepto ha sido duplicado exitosamente',
+                        'Concepto Duplicado',
+                        {
+                            timeOut: 3000,
+                            progressBar: true,
+                            closeButton: true
+                        }
+                    );
+
                     // Redirigir al concepto duplicado para editarlo
-                    if (response.redirect) {
-                         var redireccion = '<?= url('/panel/concepts/') ?>';
-                        window.location.href = redireccion;
-                    } else {
-                        location.reload();
-                    }
+                    setTimeout(function() {
+                        if (response.redirect) {
+                            var redireccion = '<?= url('/panel/concepts/') ?>';
+                            window.location.href = redireccion;
+                        } else {
+                            location.reload();
+                        }
+                    }, 1500);
                 } else {
                     // Si hay un redirect, redirigir al login
                     if (response.redirect) {
-                        alert(response.message || 'Sesión expirada. Redirigiendo al login...');
-                        window.location.href = response.redirect;
+                        toastr.warning(
+                            response.message || 'Sesión expirada. Redirigiendo al login...',
+                            'Advertencia',
+                            { timeOut: 3000 }
+                        );
+                        setTimeout(function() {
+                            window.location.href = response.redirect;
+                        }, 1500);
                         return;
                     }
-                    alert('Error: ' + (response.message || 'No se pudo duplicar el concepto'));
+                    toastr.error(
+                        response.message || 'No se pudo duplicar el concepto',
+                        'Error',
+                        { timeOut: 5000 }
+                    );
                 }
             },
             error: function(xhr, status, error) {
@@ -706,7 +787,12 @@ $title = 'Conceptos de Nómina';
                 console.error('Status Code:', xhr.status);
                 console.error('Response Text:', xhr.responseText);
 
-                alert('Error al duplicar concepto. Ver consola para detalles.');
+                $('#duplicateModal').modal('hide');
+                toastr.error(
+                    'Error al duplicar concepto. Ver consola para detalles.',
+                    'Error de Conexión',
+                    { timeOut: 5000 }
+                );
             },
             complete: function() {
                 $('#confirmDuplicate').prop('disabled', false).html('<i class="fas fa-copy"></i> Duplicar');

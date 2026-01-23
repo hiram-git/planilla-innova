@@ -134,19 +134,7 @@ class LoanController extends Controller
                 $this->installmentModel->create($installment);
             }
 
-            // Verificar y crear concepto automáticamente para el acreedor
-            $conceptResult = $this->ensureConceptForCreditor($data['creditor_id']);
-
-            $successMessage = 'Préstamo creado y cuotas generadas correctamente.';
-            if ($conceptResult === 'created') {
-                $successMessage .= ' Concepto de deducción creado automáticamente.';
-            } elseif ($conceptResult === 'exists') {
-                $successMessage .= ' Concepto de deducción ya existente.';
-            } elseif ($conceptResult === 'error') {
-                $successMessage .= ' (Advertencia: no se pudo verificar/crear el concepto)';
-            }
-
-            $_SESSION['success'] = $successMessage;
+            $_SESSION['success'] = 'Préstamo creado y cuotas generadas correctamente.';
             $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
 
         } catch (Exception $e) {
