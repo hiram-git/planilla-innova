@@ -110,11 +110,12 @@ class Admin extends Model
     }
 
     /**
-     * ✅ NUEVO: Verificar si un usuario es super admin
+     * ✅ ACTUALIZADO: Verificar si un usuario es super admin del sistema
+     * Usa la columna is_system_admin en lugar de role_id
      */
     public function isSuperAdmin($admin)
     {
-        return isset($admin['role_id']) && $admin['role_id'] == 1;
+        return isset($admin['is_system_admin']) && $admin['is_system_admin'] == 1;
     }
 
     /**

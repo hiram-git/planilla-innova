@@ -128,6 +128,11 @@ function confirmDelete(userId, username) {
                                     <td><?= $user['id'] ?></td>
                                     <td>
                                         <strong><?= htmlspecialchars($user['username']) ?></strong>
+                                        <?php if (!empty($user['is_system_admin']) && $user['is_system_admin'] == 1): ?>
+                                            <span class="badge badge-danger ml-2" title="Super Administrador del Sistema">
+                                                <i class="fas fa-shield-alt"></i> SUPER ADMIN
+                                            </span>
+                                        <?php endif; ?>
                                         <?php if (!empty($user['photo'])): ?>
                                             <i class="fas fa-camera text-info ml-1" title="Tiene foto"></i>
                                         <?php endif; ?>
@@ -147,35 +152,50 @@ function confirmDelete(userId, username) {
                                         <?= date('d/m/Y', strtotime($user['created_on'])) ?>
                                     </td>
                                     <td>
-                                        <div class="custom-control custom-switch">
-                                            <input type="checkbox" 
-                                                   class="custom-control-input status-toggle" 
-                                                   id="status_<?= $user['id'] ?>"
-                                                   data-id="<?= $user['id'] ?>"
-                                                   <?= $user['status'] ? 'checked' : '' ?>>
-                                            <label class="custom-control-label" for="status_<?= $user['id'] ?>">
-                                                <?= $user['status'] ? 'Activo' : 'Inactivo' ?>
-                                            </label>
-                                        </div>
+                                        <?php if (!empty($user['is_system_admin']) && $user['is_system_admin'] == 1): ?>
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-lock"></i> Protegido
+                                            </span>
+                                        <?php else: ?>
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox"
+                                                       class="custom-control-input status-toggle"
+                                                       id="status_<?= $user['id'] ?>"
+                                                       data-id="<?= $user['id'] ?>"
+                                                       <?= $user['status'] ? 'checked' : '' ?>>
+                                                <label class="custom-control-label" for="status_<?= $user['id'] ?>">
+                                                    <?= $user['status'] ? 'Activo' : 'Inactivo' ?>
+                                                </label>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group" aria-label="Acciones">
-                                            <a href="<?= \App\Core\UrlHelper::url('/panel/users/'.$user['id']) ?>" 
-                                               class="btn btn-info btn-sm" 
+                                            <a href="<?= \App\Core\UrlHelper::url('/panel/users/'.$user['id']) ?>"
+                                               class="btn btn-info btn-sm"
                                                title="Ver detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <a href="<?= \App\Core\UrlHelper::url('/panel/users/'.$user['id'].'/edit') ?>" 
-                                               class="btn btn-warning btn-sm" 
+                                            <a href="<?= \App\Core\UrlHelper::url('/panel/users/'.$user['id'].'/edit') ?>"
+                                               class="btn btn-warning btn-sm"
                                                title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button type="button" 
-                                                    class="btn btn-danger btn-sm" 
-                                                    onclick="confirmDelete(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')"
-                                                    title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <?php if (empty($user['is_system_admin']) || $user['is_system_admin'] != 1): ?>
+                                                <button type="button"
+                                                        class="btn btn-danger btn-sm"
+                                                        onclick="confirmDelete(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')"
+                                                        title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button"
+                                                        class="btn btn-secondary btn-sm"
+                                                        disabled
+                                                        title="El Super Admin no puede ser eliminado">
+                                                    <i class="fas fa-shield-alt"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
