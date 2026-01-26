@@ -1,9 +1,9 @@
 ﻿# 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📍 **Estado Actual - V3.5.17 Bug Fixes + UX Improvements**
-- **Fecha**: 29 de Diciembre, 2025
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY 45% + EMPLOYEE IMPORT 100% + PERMISOS GRANULARES 100% + EXPEDIENTES EMPLEADOS 100% + MIGRACIONES MULTI-TENANT 100%**
-- **Versión**: 3.5.17 - Bug fixes críticos + UX improvements + Main DB migration runner
+## 📍 **Estado Actual - V3.5.19 Módulo Campos Adicionales Personalizados**
+- **Fecha**: 16 de Enero, 2026
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 45% + CALENDARIO API SYNC + API ASISTENCIAS 92% + ALERTAS LEGALES + INTEGRACIÓN PLANILLAS + PROCESAMIENTO BATCH 95% + LIQUIDACIONES PROFESIONALES 100% + SEGURIDAD REFORZADA 100% + REPORTES ASISTENCIAS 35% + MULTITENANCY 45% + EMPLOYEE IMPORT 100% + PERMISOS GRANULARES 100% + EXPEDIENTES EMPLEADOS 100% + MIGRACIONES MULTI-TENANT 100% + CAMPOS ADICIONALES 100%**
+- **Versión**: 3.5.19 - Sistema completo campos adicionales personalizados empleados
 - **Changelog**: [Ver historial completo →](documentation/CHANGELOG.md)
 
 ## 🎯 **Sistema**
@@ -25,9 +25,24 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **API Asistencias Base44**: Cliente API + sincronización automática + webhook + 3 tablas BD
 - ✅ **Sistema Asistencias**: Migraciones BD + Calculadores Core + AlertsSystem + PayrollAttendanceIntegrator + Mapeo automático + Procesamiento batch día + Almuerzo (92% completado)
 - ✅ **Expedientes Empleados**: 2 tablas (types + subtypes) + 81 registros catálogo completo
+- ✅ **Campos Adicionales Personalizados**: 2 tablas + CRUD completo + 4 tipos datos + integración empleados
 - ✅ **Multitenancy**: Wizard empresas + BD automática + License UI (45% completado)
 
 ## 🆕 **Últimas Versiones (Ver changelog para detalles)**
+
+### V3.5.19 - Módulo Campos Adicionales Personalizados (16-Ene-2026)
+- Sistema completo campos personalizados: employee_additional_fields + employee_additional_field_values
+- 4 tipos datos soportados: TEXTO, NUMERO, FECHA, BOOLEAN + valores por defecto
+- CRUD completo AdminLTE + DataTables server-side + named parameters PDO
+- Integración formularios empleados: renderizado dinámico create/edit con validaciones
+- 7 bugs resueltos: Parse errors PHP + PDO pagination + permisos + routing + migration + edit button
+- [Ver detalles →](documentation/changelog/v3.5.19.md)
+
+### V3.5.18 - Fix TypeError insertConceptDetail (15-Ene-2026)
+- Fix crítico: PayrollController::insertConceptDetail() tipo parámetro \PDO → Database
+- Import agregado: use App\Core\Database
+- Regeneración empleados con préstamos restaurada
+- [Ver detalles →](documentation/changelog/v3.5.18.md)
 
 ### V3.5.17 - Bug Fixes + UX Improvements (29-Dic-2025)
 - DataTables persistencia estado: stateSave + Enter key modal eliminación
@@ -50,16 +65,6 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - Migración: planilla_detalle.referencia_valor → unidad (VARCHAR 50)
 - Variable UNIDAD agregada al motor de fórmulas + actualización 7 archivos PHP
 - [Ver detalles →](documentation/changelog/v3.5.14.md)
-
-### V3.5.13 - Permisos Granulares + Liquidaciones Dinámicas (02-Dic-2025)
-- Sidebar con permisos granulares: canAccessRoute() + pre-verificación secciones
-- Liquidaciones 100% portables: getLiquidationFrequencyId() dinámico + 8 hardcodes eliminados
-- [Ver detalles →](documentation/changelog/v3.5.13.md)
-
-### V3.5.12 - Acumulados Excel Export + Bug Fixes (01-Dic-2025)
-- Exportación Excel acumulados: PhpSpreadsheet styling profesional + filtros completos
-- Fix variable indefinida motor fórmulas + validación variables XIII Mes
-- [Ver detalles →](documentation/changelog/v3.5.12.md)
 
 ## ⏰ **MÓDULO API MARCACIONES Y ASISTENCIAS**
 
@@ -186,6 +191,10 @@ Checkbox validación situación empleado durante reproceso. Flujo Vista→JS→C
 2 tablas nuevas: employee_file_types (13 tipos) + employee_file_subtypes (68 subtipos). Catálogo completo: Estudios Académicos, Capacitación, Permisos, Licencias, Otros. Menú ID 26.
 [Ver v3.5.16 →](documentation/changelog/v3.5.16.md)
 
+### **Campos Adicionales Personalizados** (V3.5.19)
+Sistema completo gestión campos dinámicos empleados. 2 tablas BD (employee_additional_fields + employee_additional_field_values). CRUD AdminLTE con DataTables server-side. 4 tipos datos: TEXTO, NUMERO, FECHA, BOOLEAN. Integración automática formularios create/edit empleados con renderizado condicional. Named parameters PDO + validaciones robustas.
+[Ver v3.5.19 →](documentation/changelog/v3.5.19.md)
+
 ## 📊 **CARACTERÍSTICAS UI/UX DESTACADAS**
 
 **Sidebar AdminLTE** (V3.3.16 + V3.5.13):
@@ -213,6 +222,69 @@ Checkbox validación situación empleado durante reproceso. Flujo Vista→JS→C
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
+
+## ⚙️ **REGLAS DE DESARROLLO Y MODIFICACIÓN DE CÓDIGO**
+**CRÍTICO - SEGUIR ESTRICTAMENTE PARA EVITAR ROMPER FUNCIONALIDADES**
+
+### **Principio Fundamental: Mínima Intervención**
+**"Hacer SOLO lo solicitado, sin tocar sistemas que ya funcionan"**
+
+### **Reglas Obligatorias:**
+
+1. **NO MODIFICAR archivos core/helpers sin necesidad absoluta**
+   - ❌ PROHIBIDO: Cambiar `JavaScriptHelper`, `UrlHelper`, `Database`, `Router`, etc. sin pedirlo explícitamente
+   - ❌ PROHIBIDO: Modificar sistemas de rutas, configuraciones globales, o arquitectura base
+   - ✅ PERMITIDO: Solo si el usuario explícitamente solicita "modifica el helper X"
+
+2. **RESPETAR convenciones y estándares del proyecto**
+   - ✅ Usar `window.APP_CONFIG` (ya establecido en el proyecto) - NUNCA cambiar a `appConfig`
+   - ✅ Seguir patrones de nombres de variables y métodos existentes
+   - ✅ Mantener estructura de carpetas y archivos actual
+   - ⚠️ Si necesitas cambiar una convención, **PREGUNTAR PRIMERO**
+
+3. **ALCANCE LIMITADO de modificaciones**
+   - ✅ Si piden "agrega datepicker al formulario X" → Solo agregar datepicker
+   - ❌ NO agregar validaciones, rutas AJAX, o refactorizar lógica sin pedirlo
+   - ❌ NO crear archivos JavaScript complejos si el formulario ya funciona con lógica existente
+   - ✅ Reutilizar lógica existente en lugar de crear nueva
+
+4. **VERIFICAR antes de modificar**
+   - ✅ Usar `Grep` para buscar cómo se usa actualmente un patrón (ej: `window.APP_CONFIG`)
+   - ✅ Leer archivos relacionados antes de hacer cambios
+   - ❌ NO asumir que tu implementación es mejor que la existente
+   - ⚠️ Si tienes duda, **PREGUNTAR AL USUARIO**
+
+5. **PREFERIR ediciones mínimas sobre refactorizaciones**
+   - ✅ Agregar `autocomplete="off"` en campos específicos
+   - ❌ NO refactorizar todo el formulario "para mejorarlo"
+   - ❌ NO cambiar arquitectura de routing/helpers "para hacerlo más limpio"
+
+### **Casos de Error Comunes (APRENDER DE ESTOS):**
+
+**❌ ERROR - Modificación Excesiva:**
+```
+Usuario: "Agrega datepicker y quita autocomplete"
+Claude: [Modifica JavaScriptHelper + crea sistema de rutas + refactoriza form.php]
+Resultado: Sistema de rutas roto, error 404
+```
+
+**✅ CORRECTO - Modificación Precisa:**
+```
+Usuario: "Agrega datepicker y quita autocomplete"
+Claude: [Agrega autocomplete="off" + crea JS simple con datepicker]
+Resultado: Funciona perfectamente, nada roto
+```
+
+### **Preguntas Obligatorias Antes de Modificar:**
+
+1. **¿El usuario pidió modificar este archivo específicamente?** → Si NO, no lo modifiques
+2. **¿Este cambio puede romper funcionalidad existente?** → Si SÍ, pregunta primero
+3. **¿Estoy cambiando una convención del proyecto?** → Si SÍ, pregunta primero
+4. **¿Puedo lograr el objetivo sin tocar archivos core?** → Si SÍ, hazlo así
+
+### **En caso de duda: PREGUNTAR > ASUMIR**
+
+Si no estás 100% seguro de que una modificación es necesaria o segura, **pregunta al usuario** antes de proceder.
 
 ## 📝 **POLÍTICA DE DOCUMENTACIÓN**
 **CRÍTICO - SEGUIR ESTRICTAMENTE**:
@@ -252,6 +324,8 @@ Cuando el usuario solicite cualquier tipo de análisis (usando palabras como "an
   - **ROADMAP.md**: Hoja de ruta y planificación
   - **CHANGELOG.md**: Índice principal de versiones con enlaces
   - **changelog/**: Directorio de changelogs individuales por versión
+    - **v3.5.19.md**: Módulo Campos Adicionales Personalizados (16-Ene-2026)
+    - **v3.5.18.md**: Fix TypeError insertConceptDetail (15-Ene-2026)
     - **v3.5.17.md**: Bug Fixes + UX Improvements (29-Dic-2025)
     - **v3.5.16.md**: Expedientes Empleados + Migraciones Multi-Tenant (29-Dic-2025)
     - **v3.5.15.md**: UNIDAD Dinámica en Fórmulas (28-Dic-2025)
@@ -277,6 +351,6 @@ A partir de la versión 3.4.1, cada versión tiene su propio archivo en `documen
 
 ---
 
-**Última Actualización**: 29 de Diciembre, 2025
-**Sistema**: Planillas MVC v3.5.17
-**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100%
+**Última Actualización**: 16 de Enero, 2026
+**Sistema**: Planillas MVC v3.5.19
+**Progreso Global**: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Campos Adicionales 100%

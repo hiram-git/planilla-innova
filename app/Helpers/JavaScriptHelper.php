@@ -105,10 +105,10 @@ class JavaScriptHelper
             $configJs = "window.appConfig = " . json_encode($customConfig) . ";";
             return '<script type="text/javascript">' . "\n" . $configJs . "\n" . '</script>';
         }
-        
+
         // Configuración por defecto para módulos DRY
-        return '<script type="text/javascript">' . "\n" . 
-               self::generateDryModulesConfig() . "\n" . 
+        return '<script type="text/javascript">' . "\n" .
+               self::generateDryModulesConfig() . "\n" .
                '</script>';
     }
     
