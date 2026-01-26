@@ -334,8 +334,34 @@ class Admin extends Controller
                     $diff = $today->diff($expDate);
                     $daysRemaining = $diff->invert === 1 ? -$diff->days : $diff->days;
                     $_SESSION['license_days_remaining'] = $daysRemaining;
-                    if ($daysRemaining <= 0) {
-                        $_SESSION['warning'] = 'Licencia expirada segun fecha almacenada. Actualice la licencia.';
+
+                    // Bloquear acceso si la licencia está expirada (excepto super administrador)
+                    $isSuperAdmin = isset($admin['role_id']) && $admin['role_id'] == 1;
+
+                    if ($daysRemaining < 0 && !$isSuperAdmin) {
+                        $companyName = $tenantInfo['company_name'] ?? 'Su empresa';
+                        error_log("Acceso denegado - Licencia expirada: {$licenseExpiresAt} - Usuario: {$username} - Empresa: {$companyName}");
+                        Security::logSecurityEvent('login_license_expired', [
+                            'admin_id' => $admin['id'],
+                            'license_expires_at' => $licenseExpiresAt,
+                            'days_remaining' => $daysRemaining
+                        ]);
+
+                        // Destruir sesión y redirigir
+                        session_unset();
+                        session_destroy();
+                        session_start();
+                        $_SESSION['error'] = 'Licencia expirada. Contacte al administrador del sistema.';
+                        $_SESSION['login_username'] = $username;
+                        $_SESSION['login_company_code'] = $companyCode;
+                        $this->redirect('/panel');
+                        return;
+                    }
+
+                    // Si es super admin con licencia expirada, permitir acceso pero mostrar advertencia
+                    if ($daysRemaining < 0 && $isSuperAdmin) {
+                        $_SESSION['warning'] = 'ADVERTENCIA: Licencia expirada. Renueve la licencia lo antes posible.';
+                        error_log("Super Admin accedió con licencia expirada: {$username} - Días vencidos: " . abs($daysRemaining));
                     }
                 } catch (\Exception $e) {
                     error_log('No se pudo calcular dias de licencia: ' . $e->getMessage());

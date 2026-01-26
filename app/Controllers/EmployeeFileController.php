@@ -803,16 +803,16 @@ class EmployeeFileController extends Controller
                             <div class="form-group">
                                 <label><?= htmlspecialchars($fieldLabel) ?></label>
                                 <?php if ($fieldType === 'textarea'): ?>
-                                    <textarea name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" rows="3" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>><?= htmlspecialchars($value) ?></textarea>
+                                    <textarea name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" rows="3" autocomplete="off" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>><?= htmlspecialchars($value) ?></textarea>
                                 <?php elseif ($fieldType === 'date'): ?>
-                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control date-picker" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
+                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control date-picker" value="<?= htmlspecialchars($value) ?>" autocomplete="off" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
                                 <?php elseif ($fieldType === 'datetime'): ?>
-                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control datetime-picker" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
+                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control datetime-picker" value="<?= htmlspecialchars($value) ?>" autocomplete="off" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
                                 <?php elseif ($fieldType === 'number'): ?>
-                                    <input type="number" step="<?= htmlspecialchars($field['step'] ?? '1') ?>" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
+                                    <input type="number" step="<?= htmlspecialchars($field['step'] ?? '1') ?>" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" autocomplete="off" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
                                 <?php elseif ($fieldType === 'select'): ?>
                                     <?php $options = $field['options'] ?? []; ?>
-                                    <select name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" <?= $required ?>>
+                                    <select name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" autocomplete="off" <?= $required ?>>
                                         <?php if ($placeholder !== ''): ?>
                                             <option value="" <?= $value === '' ? 'selected' : '' ?>><?= htmlspecialchars($placeholder) ?></option>
                                         <?php endif; ?>
@@ -832,7 +832,7 @@ class EmployeeFileController extends Controller
                                         <label class="custom-file-label">Seleccionar archivo</label>
                                     </div>
                                 <?php else: ?>
-                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
+                                    <input type="text" name="extra[<?= htmlspecialchars($fieldName) ?>]" class="form-control" value="<?= htmlspecialchars($value) ?>" autocomplete="off" <?= $required ?> <?= $readonly ?> <?= $placeholderAttr ?>>
                                 <?php endif; ?>
                             </div>
                         </div>

@@ -59,13 +59,13 @@ ob_start();
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Fecha del Documento</label>
-                                <input type="text" name="document_date" class="form-control date-picker" value="<?= htmlspecialchars($file['document_date'] ?? '') ?>" required>
+                                <input type="text" name="document_date" class="form-control date-picker" value="<?= htmlspecialchars($file['document_date'] ?? '') ?>" autocomplete="off" required>
                             </div>
                         </div>
                         <div class="col-md-8">
                             <div class="form-group">
                                 <label>Número de Memorando/Oficio</label>
-                                <input type="text" name="document_number" class="form-control" value="<?= htmlspecialchars($file['document_number'] ?? '') ?>" placeholder="Se genera automaticamente" readonly>
+                                <input type="text" name="document_number" class="form-control" value="<?= htmlspecialchars($file['document_number'] ?? '') ?>" placeholder="Se genera automaticamente" autocomplete="off" readonly>
                                 <small class="form-text text-muted">Se genera automaticamente por tipo, subtipo y ano.</small>
                             </div>
                         </div>
@@ -73,7 +73,7 @@ ob_start();
 
                     <div class="form-group">
                         <label>Observaciones</label>
-                        <textarea name="observations" class="form-control" rows="3"><?= htmlspecialchars($file['observations'] ?? '') ?></textarea>
+                        <textarea name="observations" class="form-control" rows="3" autocomplete="off"><?= htmlspecialchars($file['observations'] ?? '') ?></textarea>
                     </div>
 
                     <div id="dynamic-fields-container">
