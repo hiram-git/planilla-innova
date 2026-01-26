@@ -327,13 +327,21 @@ class Admin extends Controller
                     $licenseExpiresAt = $validationResult['expiration_date'];
                     $this->updateTenantLicenseExpiration($tenantId, $licenseExpiresAt);
                 }
-            } elseif (empty($licenseKey) && !empty($licenseExpiresAt)) {
+            }
+
+            // VALIDACIÓN DE FECHA DE EXPIRACIÓN (INDEPENDIENTE DE LICENSE_KEY)
+            // Esta validación se ejecuta SIEMPRE que existe license_expires_at
+            if (!empty($licenseExpiresAt)) {
                 try {
                     $expDate = new \DateTime($licenseExpiresAt);
                     $today = new \DateTime('today');
                     $diff = $today->diff($expDate);
                     $daysRemaining = $diff->invert === 1 ? -$diff->days : $diff->days;
-                    $_SESSION['license_days_remaining'] = $daysRemaining;
+
+                    // Actualizar días restantes si no se calculó anteriormente
+                    if (!isset($_SESSION['license_days_remaining'])) {
+                        $_SESSION['license_days_remaining'] = $daysRemaining;
+                    }
 
                     // Bloquear acceso si la licencia está expirada (excepto super administrador del sistema)
                     $isSuperAdmin = isset($admin['is_system_admin']) && $admin['is_system_admin'] == 1;

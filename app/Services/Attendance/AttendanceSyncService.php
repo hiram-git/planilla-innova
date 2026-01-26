@@ -234,12 +234,12 @@ class AttendanceSyncService
 
     /**
      * Sincronizar marcaciones de un empleado específico
-     * @param string $employeeEmail Email del empleado
+     * @param string $employeeDocumentId Cedula del empleado
      * @return array Estadísticas de sincronización
      */
-    public function syncEmployee($employeeEmail)
+    public function syncEmployee($employeeDocumentId)
     {
-        $filters = ['employee_email' => $employeeEmail];
+        $filters = ['employee_document_id' => $employeeDocumentId];
         $this->startSyncLog('MANUAL', $filters);
 
         try {
@@ -247,7 +247,7 @@ class AttendanceSyncService
             $this->stats['fetched'] = is_array($attendances) ? count($attendances) : 0;
 
             if (empty($attendances)) {
-                $this->endSyncLog('SUCCESS', "No hay marcaciones para el empleado {$employeeEmail}");
+                $this->endSyncLog('SUCCESS', "No hay marcaciones para el empleado {$employeeDocumentId}");
                 return $this->stats;
             }
 
@@ -362,6 +362,20 @@ class AttendanceSyncService
     }
 
     /**
+     * Extraer cedula/documento desde un registro crudo de la API
+     */
+    private function extractEmployeeDocumentId(array $raw): ?string
+    {
+        $documentId = $raw['employee_document_id'] ?? ($raw['document_id'] ?? ($raw['cedula'] ?? ($raw['employee_cedula'] ?? null)));
+        if ($documentId === null) {
+            return null;
+        }
+
+        $documentId = trim((string) $documentId);
+        return $documentId === '' ? null : $documentId;
+    }
+
+    /**
      * Procesar un registro de marcación individual
      * NUEVO FLUJO: Guarda en attendance_records en lugar de procesar directamente a detail
      * @param array $rawData Datos crudos desde API
@@ -379,9 +393,11 @@ class AttendanceSyncService
             }
 
             // Validar que tenga los campos mínimos requeridos
-            if (!isset($rawData['employee_email']) || !isset($rawData['timestamp'])) {
+            $documentId = $this->extractEmployeeDocumentId($rawData);
+
+            if (!$documentId || !isset($rawData['timestamp'])) {
                 $this->stats['skipped']++;
-                $this->errors[] = "Registro sin email o timestamp: " . json_encode($rawData);
+                $this->errors[] = "Registro sin cedula o timestamp: " . json_encode($rawData);
                 return;
             }
 
@@ -439,13 +455,14 @@ class AttendanceSyncService
     private function saveToRecords($rawData, $rawDataId)
     {
         try {
-            // 1. Buscar employee_id por email Y verificar marca_asistencia = 1
+            // 1. Buscar empleado por cedula y verificar marca_asistencia = 1
+            $documentId = $this->extractEmployeeDocumentId($rawData);
             $employee = $this->db->find(
-                "SELECT id, marca_asistencia FROM employees WHERE email = ? AND marca_asistencia = 1",
-                [$rawData['employee_email']]
+                "SELECT id, marca_asistencia FROM employees WHERE document_id = ? AND marca_asistencia = 1",
+                [$documentId]
             );
 
-            // Si no se encuentra por email, intentar por nombre completo
+            // Si no se encuentra por cedula, intentar por nombre completo
             if (!$employee && isset($rawData['employee_name'])) {
                 $nameParts = explode(' ', trim($rawData['employee_name']));
                 if (count($nameParts) >= 2) {
@@ -463,7 +480,8 @@ class AttendanceSyncService
 
             if (!$employee) {
                 // Log diferente según si es por marca_asistencia o no encontrado
-                $this->errors[] = "Empleado no encontrado o no marca asistencia: {$rawData['employee_email']} / " . ($rawData['employee_name'] ?? 'N/A');
+                $documentLabel = $documentId ?: 'N/A';
+                $this->errors[] = "Empleado no encontrado o no marca asistencia: Cedula {$documentLabel} / " . ($rawData['employee_name'] ?? 'N/A');
                 return false;
             }
 

@@ -70,7 +70,7 @@ class ApiClient
 
     /**
      * Obtener todas las marcaciones de asistencia
-     * @param array $filters Filtros opcionales (employee_email, type, timestamp, etc.)
+     * @param array $filters Filtros opcionales (employee_document_id, type, timestamp, etc.)
      * @return array Lista de marcaciones
      */
     public function getAttendances($filters = [])
