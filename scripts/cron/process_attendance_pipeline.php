@@ -94,6 +94,7 @@ use App\Services\Attendance\Calculators\AttendanceCalculator;
 use App\Services\Attendance\Calculators\AbsenceDetector;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceDetail;
+use App\Models\AttendanceApiConfig;
 use App\Models\BusinessCalendar;
 
 
@@ -159,6 +160,26 @@ foreach ($tenants as $tenantDb) {
 
     try {
         switchTenant($tenantDb);
+
+        // ============================================
+        // VALIDAR SI LA SINCRONIZACIÓN ESTÁ HABILITADA
+        // ============================================
+        $configModel = new AttendanceApiConfig();
+        $config = $configModel->getActiveConfig();
+
+        if (!$config) {
+            echo "⚠️  No hay configuración activa de API. Saltando procesamiento...\n\n";
+            continue;
+        }
+
+        echo "✓ Configuración encontrada:\n";
+        echo "  - Sincronización habilitada: " . ($config['sync_enabled'] ? 'Sí' : 'No') . "\n\n";
+
+        // Verificar si está habilitada
+        if (!$config['sync_enabled']) {
+            echo "⚠️  Sincronización automática deshabilitada. Saltando procesamiento...\n\n";
+            continue;
+        }
 
         // ============================================
         // PASO 1: PROCESAR RECORDS Ã¢ÂÂ DETAILS
