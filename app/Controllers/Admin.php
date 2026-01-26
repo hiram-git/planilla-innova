@@ -335,8 +335,8 @@ class Admin extends Controller
                     $daysRemaining = $diff->invert === 1 ? -$diff->days : $diff->days;
                     $_SESSION['license_days_remaining'] = $daysRemaining;
 
-                    // Bloquear acceso si la licencia está expirada (excepto super administrador)
-                    $isSuperAdmin = isset($admin['role_id']) && $admin['role_id'] == 1;
+                    // Bloquear acceso si la licencia está expirada (excepto super administrador del sistema)
+                    $isSuperAdmin = isset($admin['is_system_admin']) && $admin['is_system_admin'] == 1;
 
                     if ($daysRemaining < 0 && !$isSuperAdmin) {
                         $companyName = $tenantInfo['company_name'] ?? 'Su empresa';

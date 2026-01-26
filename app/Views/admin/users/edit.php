@@ -77,6 +77,20 @@ function confirmResetPassword() {
             <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
 
+        <!-- Banner Super Admin -->
+        <?php if (!empty($user['is_system_admin']) && $user['is_system_admin'] == 1): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <h5><i class="fas fa-shield-alt"></i> <strong>SUPER ADMINISTRADOR DEL SISTEMA</strong></h5>
+                <p class="mb-0">
+                    Este usuario tiene privilegios de super administrador. La contraseña está protegida y no puede ser modificada.
+                    Solo puede acceder al sistema incluso con licencia expirada.
+                </p>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        <?php endif; ?>
+
         <div class="row">
             <div class="col-md-8">
                 <!-- Formulario principal -->
@@ -84,6 +98,11 @@ function confirmResetPassword() {
                     <div class="card-header">
                         <h3 class="card-title">
                             <i class="fas fa-user-edit"></i> Editar Usuario: <?= htmlspecialchars($user['username']) ?>
+                            <?php if (!empty($user['is_system_admin']) && $user['is_system_admin'] == 1): ?>
+                                <span class="badge badge-danger ml-2">
+                                    <i class="fas fa-shield-alt"></i> SUPER ADMIN
+                                </span>
+                            <?php endif; ?>
                         </h3>
                     </div>
                     
@@ -188,61 +207,70 @@ function confirmResetPassword() {
                                 </div>
                             </div>
 
-                            <div class="alert alert-info">
-                                <h5><i class="fas fa-info-circle"></i> Cambiar Contraseña</h5>
-                                <p class="mb-0">Deje los campos de contraseña vacíos si no desea cambiar la contraseña actual.</p>
-                            </div>
-
-                            <div class="row">
-                                <!-- Contraseña -->
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="password">Nueva Contraseña</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                            </div>
-                                            <input type="password" 
-                                                   class="form-control" 
-                                                   id="password" 
-                                                   name="password" 
-                                                   placeholder="Nueva contraseña (opcional)"
-                                                   minlength="6">
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password')">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <small class="form-text text-muted">
-                                            Opcional. Si se proporciona, mínimo 6 caracteres.
-                                        </small>
-                                    </div>
+                            <?php if (empty($user['is_system_admin']) || $user['is_system_admin'] != 1): ?>
+                                <div class="alert alert-info">
+                                    <h5><i class="fas fa-info-circle"></i> Cambiar Contraseña</h5>
+                                    <p class="mb-0">Deje los campos de contraseña vacíos si no desea cambiar la contraseña actual.</p>
                                 </div>
 
-                                <!-- Confirmar Contraseña -->
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="confirm_password">Confirmar Nueva Contraseña</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <div class="row">
+                                    <!-- Contraseña -->
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="password">Nueva Contraseña</label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                                </div>
+                                                <input type="password"
+                                                       class="form-control"
+                                                       id="password"
+                                                       name="password"
+                                                       placeholder="Nueva contraseña (opcional)"
+                                                       minlength="6">
+                                                <div class="input-group-append">
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password')">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <input type="password" 
-                                                   class="form-control" 
-                                                   id="confirm_password" 
-                                                   name="confirm_password" 
-                                                   placeholder="Confirmar nueva contraseña"
-                                                   minlength="6">
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('confirm_password')">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
+                                            <small class="form-text text-muted">
+                                                Opcional. Si se proporciona, mínimo 6 caracteres.
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Confirmar Contraseña -->
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="confirm_password">Confirmar Nueva Contraseña</label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                                </div>
+                                                <input type="password"
+                                                       class="form-control"
+                                                       id="confirm_password"
+                                                       name="confirm_password"
+                                                       placeholder="Confirmar nueva contraseña"
+                                                       minlength="6">
+                                                <div class="input-group-append">
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('confirm_password')">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            <?php else: ?>
+                                <div class="alert alert-danger">
+                                    <h5><i class="fas fa-lock"></i> Contraseña Protegida</h5>
+                                    <p class="mb-0">
+                                        <i class="fas fa-shield-alt"></i> La contraseña del Super Administrador está protegida y no puede ser modificada desde esta interfaz por seguridad.
+                                    </p>
+                                </div>
+                            <?php endif; ?>
 
                             <!-- Estado -->
                             <div class="form-group">
@@ -268,9 +296,11 @@ function confirmResetPassword() {
                                     <button type="submit" class="btn btn-warning">
                                         <i class="fas fa-save"></i> Actualizar Usuario
                                     </button>
-                                    <button type="button" class="btn btn-info ml-2" onclick="confirmResetPassword()">
-                                        <i class="fas fa-key"></i> Reset Password
-                                    </button>
+                                    <?php if (empty($user['is_system_admin']) || $user['is_system_admin'] != 1): ?>
+                                        <button type="button" class="btn btn-info ml-2" onclick="confirmResetPassword()">
+                                            <i class="fas fa-key"></i> Reset Password
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-md-6 text-right">
                                     <a href="<?= \App\Core\UrlHelper::url('/panel/users') ?>" class="btn btn-outline-secondary">
@@ -309,13 +339,24 @@ function confirmResetPassword() {
                         <dl class="row">
                             <dt class="col-sm-5">ID:</dt>
                             <dd class="col-sm-7"><?= $user['id'] ?></dd>
-                            
+
                             <dt class="col-sm-5">Username:</dt>
                             <dd class="col-sm-7"><code><?= htmlspecialchars($user['username']) ?></code></dd>
-                            
+
                             <dt class="col-sm-5">Nombre:</dt>
                             <dd class="col-sm-7"><?= htmlspecialchars($user['firstname'] . ' ' . $user['lastname']) ?></dd>
-                            
+
+                            <dt class="col-sm-5">Tipo:</dt>
+                            <dd class="col-sm-7">
+                                <?php if (!empty($user['is_system_admin']) && $user['is_system_admin'] == 1): ?>
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-shield-alt"></i> SUPER ADMIN
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge badge-secondary">Usuario Normal</span>
+                                <?php endif; ?>
+                            </dd>
+
                             <dt class="col-sm-5">Rol:</dt>
                             <dd class="col-sm-7">
                                 <?php if (!empty($user['role_name'])): ?>
@@ -326,7 +367,7 @@ function confirmResetPassword() {
                                     <span class="badge badge-secondary">Sin rol</span>
                                 <?php endif; ?>
                             </dd>
-                            
+
                             <dt class="col-sm-5">Estado:</dt>
                             <dd class="col-sm-7">
                                 <?php if ($user['status']): ?>
@@ -335,7 +376,7 @@ function confirmResetPassword() {
                                     <span class="badge badge-secondary">Inactivo</span>
                                 <?php endif; ?>
                             </dd>
-                            
+
                             <dt class="col-sm-5">Creado:</dt>
                             <dd class="col-sm-7">
                                 <small><?= date('d/m/Y', strtotime($user['created_on'])) ?></small>
@@ -355,9 +396,15 @@ function confirmResetPassword() {
                         <a href="<?= \App\Core\UrlHelper::url('/panel/users/'.$user['id']) ?>" class="btn btn-info btn-block">
                             <i class="fas fa-eye"></i> Ver Detalles Completos
                         </a>
-                        <button type="button" class="btn btn-danger btn-block" onclick="confirmDelete(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
-                            <i class="fas fa-trash"></i> Eliminar Usuario
-                        </button>
+                        <?php if (empty($user['is_system_admin']) || $user['is_system_admin'] != 1): ?>
+                            <button type="button" class="btn btn-danger btn-block" onclick="confirmDelete(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
+                                <i class="fas fa-trash"></i> Eliminar Usuario
+                            </button>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-secondary btn-block" disabled title="El Super Admin no puede ser eliminado">
+                                <i class="fas fa-shield-alt"></i> Usuario Protegido
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
