@@ -78,8 +78,38 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+use App\Core\MasterDatabase;
+use App\Core\TenantResolver;
+use App\Core\Database;
 use App\Services\Attendance\RecordsProcessor;
 use App\Models\AttendanceRecord;
+use App\Models\AttendanceApiConfig;
+
+/**
+ * Cambiar de tenant reseteando la conexión global
+ */
+function switchTenant(string $dbName): void
+{
+    TenantResolver::clear();
+    Database::resetInstance();
+    $_SESSION['tenant_db'] = $dbName;
+}
+
+/**
+ * Obtener lista de tenants activos desde planilla_master
+ */
+function getActiveTenants(): array
+{
+    try {
+        $master = MasterDatabase::getInstance()->getConnection();
+        $stmt = $master->query("SELECT db_name FROM tenants WHERE status = 'ACTIVE'");
+        $tenants = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $tenants ?: [];
+    } catch (\Exception $e) {
+        echo "⚠️  No se pudieron obtener tenants desde planilla_master: {$e->getMessage()}\n";
+        return [];
+    }
+}
 
 // Banner
 echo "\n";
@@ -89,78 +119,120 @@ echo "║   Fecha: " . date('Y-m-d H:i:s') . "                       ║\n";
 echo "╚════════════════════════════════════════════════════════════╝\n";
 echo "\n";
 
-try {
-    // 1. Verificar si hay registros pendientes de procesar
-    $recordModel = new AttendanceRecord();
-    $pendingCount = $recordModel->countUnprocessed();
-
-    if ($pendingCount === 0) {
-        echo "✓ No hay registros pendientes de procesar.\n";
-        echo "⏭️  Saliendo...\n";
-        exit(0);
-    }
-
-    echo "📊 Registros pendientes: {$pendingCount}\n\n";
-
-    // 2. Obtener rango de fechas con registros pendientes
-    $dateRange = $recordModel->getUnprocessedDateRange();
-
-    if (!$dateRange || !isset($dateRange['min_date']) || !isset($dateRange['max_date'])) {
-        echo "⚠️  No se pudo determinar el rango de fechas. Saliendo...\n";
-        exit(0);
-    }
-
-    $minDate = $dateRange['min_date'];
-    $maxDate = $dateRange['max_date'];
-
-    echo "📅 Rango de fechas a procesar:\n";
-    echo "  - Desde: {$minDate}\n";
-    echo "  - Hasta: {$maxDate}\n\n";
-
-    // 3. Iniciar procesamiento
-    echo "🚀 Iniciando procesamiento...\n\n";
-    $processor = new RecordsProcessor();
-    $stats = $processor->processToDetails($minDate, $maxDate);
-
-    // 4. Mostrar resultados
-    echo "✅ Procesamiento completado:\n";
-    echo "  - Registros procesados: {$stats['total_records']}\n";
-    echo "  - Grupos procesados: {$stats['groups_processed']}\n";
-    echo "  - Details creados: {$stats['details_created']}\n";
-    echo "  - Details actualizados: {$stats['details_updated']}\n";
-    echo "  - Details omitidos: {$stats['details_skipped']}\n";
-    echo "  - Records marcados: {$stats['records_marked']}\n";
-    echo "  - Errores: {$stats['errors']}\n";
-
-    // 5. Mostrar errores si existen
-    if ($stats['errors'] > 0 && !empty($stats['errors_detail'])) {
-        echo "\n⚠️  Detalles de errores:\n";
-        foreach ($stats['errors_detail'] as $error) {
-            echo "  - {$error}\n";
-        }
-    }
-
-    // 6. Tiempo de ejecución
-    $endTime = microtime(true);
-    $executionTime = round($endTime - $startTime, 2);
-    echo "\n⏱️  Tiempo de ejecución: {$executionTime} segundos\n";
-
-    // 7. Código de salida
-    $exitCode = ($stats['errors'] > 0) ? 1 : 0;
-    echo "\n" . ($exitCode === 0 ? "✓" : "✗") . " Finalizado con código: {$exitCode}\n";
-
-    exit($exitCode);
-
-} catch (Exception $e) {
-    echo "\n❌ ERROR FATAL:\n";
-    echo "  {$e->getMessage()}\n";
-    echo "\n  Stack trace:\n";
-    echo "  {$e->getTraceAsString()}\n";
-
-    // Tiempo de ejecución
-    $endTime = microtime(true);
-    $executionTime = round($endTime - $startTime, 2);
-    echo "\n⏱️  Tiempo de ejecución: {$executionTime} segundos\n";
-
-    exit(1);
+$tenants = getActiveTenants();
+if (empty($tenants)) {
+    $tenants = [$_ENV['DB_NAME'] ?? 'planilla_prod'];
 }
+// incluir planilla_prod aunque no esté en tenants y limpiar duplicados/nulos
+$tenants[] = 'planilla_prod';
+$tenants = array_values(array_unique(array_filter($tenants)));
+
+$overallExit = 0;
+$processedTenants = 0;
+
+foreach ($tenants as $tenantDb) {
+    if (empty($tenantDb)) {
+        echo "⚠️  Tenant con db_name vacío; se omite.\n";
+        continue;
+    }
+
+    $processedTenants++;
+    echo "╔════════════════════════════════════════════════════════════╗\n";
+    echo "║  Tenant: {$tenantDb}                                       ║\n";
+    echo "╚════════════════════════════════════════════════════════════╝\n";
+
+    try {
+        switchTenant($tenantDb);
+
+        // ============================================
+        // VALIDAR SI LA SINCRONIZACIÓN ESTÁ HABILITADA
+        // ============================================
+        $configModel = new AttendanceApiConfig();
+        $config = $configModel->getActiveConfig();
+
+        if (!$config) {
+            echo "⚠️  No hay configuración activa de API. Saltando procesamiento...\n\n";
+            continue;
+        }
+
+        echo "✓ Configuración encontrada:\n";
+        echo "  - Sincronización habilitada: " . ($config['sync_enabled'] ? 'Sí' : 'No') . "\n\n";
+
+        // Verificar si está habilitada
+        if (!$config['sync_enabled']) {
+            echo "⚠️  Sincronización automática deshabilitada. Saltando procesamiento...\n\n";
+            continue;
+        }
+
+        // 1. Verificar si hay registros pendientes de procesar
+        $recordModel = new AttendanceRecord();
+        $pendingCount = $recordModel->countUnprocessed();
+
+        if ($pendingCount === 0) {
+            echo "✓ No hay registros pendientes de procesar.\n";
+            echo "⏭️  Saltando tenant...\n\n";
+            continue;
+        }
+
+        echo "📊 Registros pendientes: {$pendingCount}\n\n";
+
+        // 2. Obtener rango de fechas con registros pendientes
+        $dateRange = $recordModel->getUnprocessedDateRange();
+
+        if (!$dateRange || !isset($dateRange['min_date']) || !isset($dateRange['max_date'])) {
+            echo "⚠️  No se pudo determinar el rango de fechas. Saltando tenant...\n\n";
+            continue;
+        }
+
+        $minDate = $dateRange['min_date'];
+        $maxDate = $dateRange['max_date'];
+
+        echo "📅 Rango de fechas a procesar:\n";
+        echo "  - Desde: {$minDate}\n";
+        echo "  - Hasta: {$maxDate}\n\n";
+
+        // 3. Iniciar procesamiento
+        echo "🚀 Iniciando procesamiento...\n\n";
+        $processor = new RecordsProcessor();
+        $stats = $processor->processToDetails($minDate, $maxDate);
+
+        // 4. Mostrar resultados
+        echo "✅ Procesamiento completado:\n";
+        echo "  - Registros procesados: {$stats['total_records']}\n";
+        echo "  - Grupos procesados: {$stats['groups_processed']}\n";
+        echo "  - Details creados: {$stats['details_created']}\n";
+        echo "  - Details actualizados: {$stats['details_updated']}\n";
+        echo "  - Details omitidos: {$stats['details_skipped']}\n";
+        echo "  - Records marcados: {$stats['records_marked']}\n";
+        echo "  - Errores: {$stats['errors']}\n\n";
+
+        // 5. Mostrar errores si existen
+        if ($stats['errors'] > 0 && !empty($stats['errors_detail'])) {
+            $overallExit = 1;
+            echo "⚠️  Detalles de errores:\n";
+            foreach ($stats['errors_detail'] as $error) {
+                echo "  - {$error}\n";
+            }
+            echo "\n";
+        }
+
+    } catch (Exception $e) {
+        $overallExit = 1;
+        echo "\n❌ ERROR en tenant {$tenantDb}:\n";
+        echo "  {$e->getMessage()}\n";
+        echo "\n  Stack trace:\n";
+        echo "  {$e->getTraceAsString()}\n\n";
+    }
+}
+
+// Resumen final
+$endTime = microtime(true);
+$executionTime = round($endTime - $startTime, 2);
+
+echo "╔════════════════════════════════════════════════════════════╗\n";
+echo "║   PROCESAMIENTO COMPLETADO                                 ║\n";
+echo "╚════════════════════════════════════════════════════════════╝\n";
+echo "⏱️  Tiempo total de ejecución: {$executionTime} segundos ({$processedTenants} tenants)\n";
+echo ($overallExit === 0 ? "✓" : "⚠️") . " Proceso finalizado con código {$overallExit}\n\n";
+
+exit($overallExit);

@@ -75,6 +75,7 @@ use App\Core\TenantResolver;
 use App\Core\Database;
 use App\Models\AttendanceHeader;
 use App\Models\AttendanceDetail;
+use App\Models\AttendanceApiConfig;
 use App\Models\Employee;
 use App\Models\BusinessCalendar;
 use App\Services\Attendance\RecordsProcessor;
@@ -135,6 +136,22 @@ function processEndOfDay(string $tenantDb, string $date): array
         echo "\n══════════════════════════════════════════════════════\n";
         echo "▶️  Tenant: {$tenantDb} | Fecha: {$date}\n";
         echo "══════════════════════════════════════════════════════\n";
+
+        // Validar si la sincronización está habilitada
+        $configModel = new AttendanceApiConfig();
+        $config = $configModel->getActiveConfig();
+
+        if (!$config) {
+            echo "⚠️  No hay configuración activa de API. Saltando procesamiento...\n";
+            return $stats;
+        }
+
+        if (!$config['sync_enabled']) {
+            echo "⚠️  Sincronización automática deshabilitada. Saltando procesamiento...\n";
+            return $stats;
+        }
+
+        echo "✓ Sincronización habilitada: Procesando fin de día...\n";
 
         // Verificar si es día laboral
         $calendar = new BusinessCalendar();
