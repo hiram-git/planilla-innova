@@ -158,7 +158,7 @@ class PermissionMiddleware
             $route = str_replace('panel/', '', $route);
 
             // Buscar directamente en menu_items por URL
-            $sql = "SELECT id FROM menu_items WHERE url = ? AND status = 1";
+            $sql = "SELECT id FROM menu_items WHERE url = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$route]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
