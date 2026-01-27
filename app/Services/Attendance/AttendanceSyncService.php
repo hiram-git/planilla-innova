@@ -8,6 +8,7 @@ use App\Models\AttendanceHeader;
 use App\Models\AttendanceDetail;
 use App\Models\BusinessCalendar;
 use App\Core\Database;
+use App\Core\Config;
 use App\Services\Attendance\Calculators\AbsenceDetector;
 use Exception;
 
@@ -105,6 +106,7 @@ class AttendanceSyncService
         try {
             // Obtener marcaciones desde API
             $attendances = $this->apiClient->getAttendances($filters);
+
             $this->stats['fetched'] = is_array($attendances) ? count($attendances) : 0;
 
             if (empty($attendances)) {
@@ -184,7 +186,7 @@ class AttendanceSyncService
             }
             error_log("SYNC DEBUG - Muestras de timestamps del API:\n" . implode("\n", $sampleDates));
 
-            // Filtrar por rango de fechas
+            // Filtrar por rango de fechas (usando zona horaria configurada en APP_TIMEZONE)
             $filteredCount = 0;
             $filteredAttendances = array_filter($attendances, function($record) use ($startDate, $endDate, &$filteredCount) {
                 // Usar la misma lógica que extractRecordDate() para obtener el timestamp
@@ -195,7 +197,12 @@ class AttendanceSyncService
                 }
 
                 try {
-                    $recordDate = date('Y-m-d', strtotime($ts));
+                    // Convertir a zona horaria configurada (APP_TIMEZONE) para obtener la fecha correcta
+                    $dt = new \DateTime($ts);
+                    $timezone = Config::get('app.timezone', 'America/Panama');
+                    $dt->setTimezone(new \DateTimeZone($timezone));
+                    $recordDate = $dt->format('Y-m-d');
+
                     $match = $recordDate >= $startDate && $recordDate <= $endDate;
                     if ($match) {
                         $filteredCount++;
@@ -296,6 +303,7 @@ class AttendanceSyncService
         try {
             // Obtener todas las marcaciones
             $attendances = $this->apiClient->getAttendances();
+
             $this->stats['fetched'] = is_array($attendances) ? count($attendances) : 0;
 
             if (empty($attendances)) {
@@ -366,7 +374,10 @@ class AttendanceSyncService
      */
     private function extractEmployeeDocumentId(array $raw): ?string
     {
-        $documentId = $raw['employee_document_id'] ?? ($raw['document_id'] ?? ($raw['cedula'] ?? ($raw['employee_cedula'] ?? null)));
+        // El API Base44 envía la cédula en el campo 'employee_id' en marcaciones
+        // También soportar otros nombres por compatibilidad
+        $documentId = $raw['employee_id'] ?? ($raw['employee_document_id'] ?? ($raw['document_id'] ?? ($raw['cedula'] ?? ($raw['employee_cedula'] ?? null))));
+
         if ($documentId === null) {
             return null;
         }
