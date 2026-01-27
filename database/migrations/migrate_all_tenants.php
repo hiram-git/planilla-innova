@@ -91,15 +91,35 @@ class MultiTenantMigrationRunner
     private function connectMaster()
     {
         try {
-            $masterConfig = require __DIR__ . '/../../config/master_database.php';
+            $masterDbConfig = require __DIR__ . '/../../config/master_database.php';
 
-            $dsn = sprintf(
-                "mysql:host=%s;port=%d;dbname=%s;charset=%s",
-                $masterConfig['host'],
-                $masterConfig['port'],
-                $masterConfig['database'],
-                $masterConfig['charset']
-            );
+            // Obtener el driver por defecto
+            $driver = $masterDbConfig['default'] ?? 'mysql';
+
+            // Obtener la configuración específica del driver
+            $masterConfig = $masterDbConfig['connections'][$driver] ?? $masterDbConfig['connections']['mysql'];
+
+            // Construir DSN dinámicamente según el driver
+            if ($driver === 'pgsql') {
+                $dsn = sprintf(
+                    "pgsql:host=%s;port=%d;dbname=%s",
+                    $masterConfig['host'],
+                    $masterConfig['port'],
+                    $masterConfig['database']
+                );
+                if (!empty($masterConfig['schema'])) {
+                    $dsn .= ";options=--search_path={$masterConfig['schema']}";
+                }
+            } else {
+                // MySQL
+                $dsn = sprintf(
+                    "mysql:host=%s;port=%d;dbname=%s;charset=%s",
+                    $masterConfig['host'],
+                    $masterConfig['port'],
+                    $masterConfig['database'],
+                    $masterConfig['charset']
+                );
+            }
 
             $this->masterPdo = new PDO(
                 $dsn,
@@ -108,7 +128,7 @@ class MultiTenantMigrationRunner
                 $masterConfig['options']
             );
 
-            echo "✅ Conectado a base de datos master: {$masterConfig['database']}\n";
+            echo "✅ Conectado a base de datos master ({$driver}): {$masterConfig['database']}\n";
         } catch (PDOException $e) {
             die("❌ Error conectando a BD master: " . $e->getMessage() . "\n");
         }

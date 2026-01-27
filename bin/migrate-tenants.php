@@ -30,7 +30,13 @@ if (php_sapi_name() !== 'cli') {
 require __DIR__ . '/../vendor/autoload.php';
 
 // Cargar configuración de base de datos master
-$masterConfig = require __DIR__ . '/../config/master_database.php';
+$masterDbConfig = require __DIR__ . '/../config/master_database.php';
+
+// Obtener el driver por defecto
+$driver = $masterDbConfig['default'] ?? 'mysql';
+
+// Obtener la configuración específica del driver
+$masterConfig = $masterDbConfig['connections'][$driver] ?? $masterDbConfig['connections']['mysql'];
 
 // Validar configuración
 if (empty($masterConfig['host']) || empty($masterConfig['database'])) {
@@ -38,11 +44,21 @@ if (empty($masterConfig['host']) || empty($masterConfig['database'])) {
 }
 
 try {
-    // Conectar a master database
+    // Conectar a master database con driver dinámico
+    if ($driver === 'pgsql') {
+        $dsn = "pgsql:host={$masterConfig['host']};port={$masterConfig['port']};dbname={$masterConfig['database']}";
+        if (!empty($masterConfig['schema'])) {
+            $dsn .= ";options=--search_path={$masterConfig['schema']}";
+        }
+    } else {
+        // MySQL
+        $dsn = "mysql:host={$masterConfig['host']};dbname={$masterConfig['database']};charset={$masterConfig['charset']}";
+    }
+
     $masterDb = new PDO(
-        "mysql:host={$masterConfig['host']};dbname={$masterConfig['database']};charset=utf8mb4",
-        $masterConfig['username'] ?? 'root',
-        $masterConfig['password'] ?? '',
+        $dsn,
+        $masterConfig['username'],
+        $masterConfig['password'],
         [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
@@ -50,7 +66,7 @@ try {
     );
 
 } catch (PDOException $e) {
-    die("Error: No se pudo conectar a master database: " . $e->getMessage() . "\n");
+    die("Error: No se pudo conectar a master database ({$driver}): " . $e->getMessage() . "\n");
 }
 
 // Crear instancia del sistema de migraciones
