@@ -197,7 +197,7 @@ class AttendanceSyncService
                 }
 
                 try {
-                    // Convertir a zona horaria configurada (APP_TIMEZONE) para obtener la fecha correcta
+                    // Convertir de UTC a zona horaria local configurada (APP_TIMEZONE)
                     $dt = new \DateTime($ts);
                     $timezone = Config::get('app.timezone', 'America/Panama');
                     $dt->setTimezone(new \DateTimeZone($timezone));
@@ -356,6 +356,7 @@ class AttendanceSyncService
 
     /**
      * Extraer fecha (Y-m-d) desde un registro crudo de la API
+     * Convierte de UTC a zona horaria local configurada
      */
     private function extractRecordDate(array $raw): ?string
     {
@@ -363,6 +364,8 @@ class AttendanceSyncService
             $ts = $raw['timestamp'] ?? ($raw['actual_timestamp'] ?? ($raw['registered_timestamp'] ?? null));
             if (!$ts) return null;
             $dt = new \DateTime($ts);
+            $timezone = Config::get('app.timezone', 'America/Panama');
+            $dt->setTimezone(new \DateTimeZone($timezone));
             return $dt->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
@@ -526,8 +529,10 @@ class AttendanceSyncService
             $timestamp = $rawData['timestamp'];
             $punchType = $this->mapPunchType($rawData['type'] ?? 'entrada');
 
-            // Convertir timestamp ISO 8601 a formato MySQL
+            // Convertir timestamp ISO 8601 de UTC a zona horaria local y luego a formato MySQL
             $timestampObj = new \DateTime($timestamp);
+            $timezone = Config::get('app.timezone', 'America/Panama');
+            $timestampObj->setTimezone(new \DateTimeZone($timezone));
             $mysqlTimestamp = $timestampObj->format('Y-m-d H:i:s');
 
             $recordData = [
