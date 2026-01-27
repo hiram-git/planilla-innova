@@ -392,12 +392,21 @@ class AttendanceSyncService
                 }
             }
 
-            // Validar que tenga los campos mínimos requeridos
-            $documentId = $this->extractEmployeeDocumentId($rawData);
-
-            if (!$documentId || !isset($rawData['timestamp'])) {
+            // Validar que tenga timestamp (campo mínimo requerido)
+            if (!isset($rawData['timestamp'])) {
                 $this->stats['skipped']++;
-                $this->errors[] = "Registro sin cedula o timestamp: " . json_encode($rawData);
+                $this->errors[] = "Registro sin timestamp: " . json_encode($rawData);
+                return;
+            }
+
+            // Validar que tenga al menos un identificador de empleado
+            $hasEmployeeIdentifier = isset($rawData['employee_email']) ||
+                                    isset($rawData['employee_name']) ||
+                                    $this->extractEmployeeDocumentId($rawData);
+
+            if (!$hasEmployeeIdentifier) {
+                $this->stats['skipped']++;
+                $this->errors[] = "Registro sin identificador de empleado (email, cedula o nombre): " . json_encode($rawData);
                 return;
             }
 
@@ -455,14 +464,29 @@ class AttendanceSyncService
     private function saveToRecords($rawData, $rawDataId)
     {
         try {
-            // 1. Buscar empleado por cedula y verificar marca_asistencia = 1
-            $documentId = $this->extractEmployeeDocumentId($rawData);
-            $employee = $this->db->find(
-                "SELECT id, marca_asistencia FROM employees WHERE document_id = ? AND marca_asistencia = 1",
-                [$documentId]
-            );
+            // 1. Buscar empleado por EMAIL (campo principal en marcaciones del API)
+            $employeeEmail = $rawData['employee_email'] ?? null;
+            $employee = null;
 
-            // Si no se encuentra por cedula, intentar por nombre completo
+            if ($employeeEmail) {
+                $employee = $this->db->find(
+                    "SELECT id, marca_asistencia FROM employees WHERE email = ? AND marca_asistencia = 1",
+                    [$employeeEmail]
+                );
+            }
+
+            // 2. Si no se encuentra por email, intentar por cédula (si el API la envía)
+            if (!$employee) {
+                $documentId = $this->extractEmployeeDocumentId($rawData);
+                if ($documentId) {
+                    $employee = $this->db->find(
+                        "SELECT id, marca_asistencia FROM employees WHERE document_id = ? AND marca_asistencia = 1",
+                        [$documentId]
+                    );
+                }
+            }
+
+            // 3. Si no se encuentra por email ni cédula, intentar por nombre completo (último recurso)
             if (!$employee && isset($rawData['employee_name'])) {
                 $nameParts = explode(' ', trim($rawData['employee_name']));
                 if (count($nameParts) >= 2) {
@@ -479,9 +503,11 @@ class AttendanceSyncService
             }
 
             if (!$employee) {
-                // Log diferente según si es por marca_asistencia o no encontrado
-                $documentLabel = $documentId ?: 'N/A';
-                $this->errors[] = "Empleado no encontrado o no marca asistencia: Cedula {$documentLabel} / " . ($rawData['employee_name'] ?? 'N/A');
+                // Log con todos los campos intentados
+                $emailLabel = $employeeEmail ?: 'N/A';
+                $documentLabel = $this->extractEmployeeDocumentId($rawData) ?: 'N/A';
+                $nameLabel = $rawData['employee_name'] ?? 'N/A';
+                $this->errors[] = "Empleado no encontrado o no marca asistencia: Email={$emailLabel}, Cedula={$documentLabel}, Nombre={$nameLabel}";
                 return false;
             }
 
