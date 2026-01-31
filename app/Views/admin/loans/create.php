@@ -26,13 +26,15 @@
                                 <div class="input-group-prepend">
                                     <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
                                 </div>
-                                <select name="employee_id" class="form-control select2" required>
+                                <select name="employee_id" id="employee_id" class="form-control select2" required>
                                     <option value="">Seleccione empleado...</option>
-                                    <?php foreach ($employees as $emp): ?>
-                                        <option value="<?= $emp['id'] ?>">
-                                            <?= htmlspecialchars($emp['employee_id'] . ' - ' . $emp['firstname'] . ' ' . $emp['lastname']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <?php if (!empty($employees)): ?>
+                                        <?php foreach ($employees as $emp): ?>
+                                            <option value="<?= $emp['id'] ?>">
+                                                <?= htmlspecialchars($emp['employee_id'] . ' - ' . $emp['firstname'] . ' ' . $emp['lastname']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
                             </div>
                         </div>
@@ -265,10 +267,16 @@
 $scripts = '
 <script>
 $(document).ready(function() {
-    // Inicializar Select2
+    // Inicializar Select2 para todos los selects
     $(".select2").select2({
         theme: "bootstrap4",
         width: "100%"
+    });
+
+    // Escuchar cambios en el tipo de planilla para recargar la página
+    window.addEventListener("payrollTypeChanged", function(e) {
+        // Recargar la página para obtener empleados filtrados por el nuevo tipo de planilla
+        window.location.reload();
     });
 });
 

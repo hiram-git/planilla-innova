@@ -53,9 +53,19 @@ class LoanController extends Controller
 
     public function create()
     {
-        $employees = $this->employeeModel->getAllEmployees();
+        // Obtener tipo de planilla seleccionado desde la sesión
+        $tipoPlanillaId = $_SESSION['tipo_planilla_id'] ?? null;
+
+        // Filtrar empleados por tipo de planilla si está seleccionado
+        if ($tipoPlanillaId) {
+            $employees = $this->employeeModel->getEmployeesByTipoPlanilla($tipoPlanillaId);
+        } else {
+            $employees = $this->employeeModel->getAllEmployees();
+        }
+
         $creditors = $this->creditorModel->getOptions();
         $loanTypes = $this->loanModel->getTiposPrestamo();
+
         $this->render('admin/loans/create', [
             'title' => 'Nuevo Préstamo',
             'employees' => $employees,
@@ -296,6 +306,95 @@ class LoanController extends Controller
         }
 
         $this->redirect(\App\Core\UrlHelper::route('panel/loans'));
+    }
+
+    /**
+     * Buscar empleados para Select2 (AJAX)
+     * Filtrado por tipo de planilla seleccionado en navbar
+     */
+    public function searchEmployees()
+    {
+        try {
+            header('Content-Type: application/json');
+
+            $search = $_GET['search'] ?? '';
+            $page = (int)($_GET['page'] ?? 1);
+            $tipoPlanillaId = $_GET['tipo_planilla_id'] ?? null;
+            $limit = 20;
+            $offset = ($page - 1) * $limit;
+
+            // Construir consulta base
+            $sql = "SELECT
+                        e.id,
+                        CONCAT(e.firstname, ' ', e.lastname, ' (', e.employee_id, ')') as text,
+                        e.firstname,
+                        e.lastname,
+                        e.employee_id as code,
+                        p.codigo as position_name
+                    FROM employees e
+                    LEFT JOIN posiciones p ON e.position_id = p.id
+                    WHERE (e.firstname LIKE ?
+                         OR e.lastname LIKE ?
+                         OR e.employee_id LIKE ?
+                         OR CONCAT(e.firstname, ' ', e.lastname) LIKE ?)
+                    AND (e.situacion_id = 1 OR e.situacion_id LIKE '%activ%' OR e.situacion_id LIKE '%ACTIV%')";
+
+            // Agregar filtro por tipo de planilla si se especifica
+            if ($tipoPlanillaId !== null && $tipoPlanillaId !== '') {
+                $sql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+            }
+
+            // Consulta de conteo para paginación
+            $countSql = "SELECT COUNT(*) as total
+                        FROM employees e
+                        WHERE (e.firstname LIKE ?
+                             OR e.lastname LIKE ?
+                             OR e.employee_id LIKE ?
+                             OR CONCAT(e.firstname, ' ', e.lastname) LIKE ?)
+                        AND (e.situacion_id = 1 OR e.situacion_id LIKE '%activ%' OR e.situacion_id LIKE '%ACTIV%')";
+
+            if ($tipoPlanillaId !== null && $tipoPlanillaId !== '') {
+                $countSql .= " AND FIND_IN_SET(?, e.tipo_planilla_id)";
+            }
+
+            $searchParam = '%' . $search . '%';
+
+            // Ejecutar conteo
+            $countStmt = $this->employeeModel->db->prepare($countSql);
+            if ($tipoPlanillaId !== null && $tipoPlanillaId !== '') {
+                $countStmt->execute([$searchParam, $searchParam, $searchParam, $searchParam, $tipoPlanillaId]);
+            } else {
+                $countStmt->execute([$searchParam, $searchParam, $searchParam, $searchParam]);
+            }
+            $totalCount = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+            // Ejecutar búsqueda con límite
+            $sql .= " ORDER BY e.firstname, e.lastname LIMIT $limit OFFSET $offset";
+            $stmt = $this->employeeModel->db->prepare($sql);
+            if ($tipoPlanillaId !== null && $tipoPlanillaId !== '') {
+                $stmt->execute([$searchParam, $searchParam, $searchParam, $searchParam, $tipoPlanillaId]);
+            } else {
+                $stmt->execute([$searchParam, $searchParam, $searchParam, $searchParam]);
+            }
+            $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Formato para Select2
+            $results = [
+                'results' => $employees,
+                'pagination' => [
+                    'more' => ($offset + $limit) < $totalCount
+                ]
+            ];
+
+            echo json_encode($results);
+
+        } catch (Exception $e) {
+            error_log("Error in LoanController::searchEmployees: " . $e->getMessage());
+            echo json_encode([
+                'results' => [],
+                'pagination' => ['more' => false]
+            ]);
+        }
     }
 
     /**

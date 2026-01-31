@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Conceptos Manuales - INNOVA Planillas 3.5.19</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;} th{background:#eef2f6;}
+        .badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:12px;color:#fff;background:#e67e22;}
+        .info-box{background:#e3f2fd;border-left:4px solid #2196f3;padding:12px;margin:12px 0;}
+        .warning-box{background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:12px 0;}
+        .code-block{background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;padding:10px;margin:10px 0;font-family:monospace;font-size:13px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Módulo de Conceptos Manuales <span class="badge">v3.5.11</span></h1>
+            <p>Gestión de conceptos personalizados por empleado, integrados automáticamente en planillas.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. ¿Qué son los Conceptos Manuales?</h2>
+            <p>Sistema que permite crear conceptos de planilla específicos para empleados individuales, sin necesidad de definirlos en el catálogo global de conceptos.</p>
+            <div class="info-box">
+                <strong>Diferencia clave:</strong> Los conceptos del catálogo global aplican a todos los empleados según fórmulas. Los conceptos manuales son personalizados: cada empleado puede tener montos, unidades o referencias únicos.
+            </div>
+            <p><strong>Ejemplo de uso:</strong> Bono especial por proyecto, compensación temporal, deducción específica, ajuste único, incentivo personalizado.</p>
+        </div>
+
+        <div class="card">
+            <h2>2. Características Principales</h2>
+            <ul>
+                <li><strong>Vinculación directa:</strong> Cada concepto manual se asocia a un empleado específico</li>
+                <li><strong>Basado en catálogo:</strong> Utiliza conceptos existentes del catálogo global como base</li>
+                <li><strong>Valores personalizables:</strong> Monto, unidad y referencia únicos por empleado</li>
+                <li><strong>Integración automática:</strong> Se aplican automáticamente durante la regeneración de planillas</li>
+                <li><strong>Vigencia controlada:</strong> Estado activo/inactivo para control temporal</li>
+                <li><strong>Trazabilidad completa:</strong> Registro de creación y última modificación</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>3. Estructura de un Concepto Manual</h2>
+            <table>
+                <thead><tr><th>Campo</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Empleado</strong></td><td>Empleado al que aplica el concepto</td><td>Juan Pérez (ID: 1523)</td></tr>
+                    <tr><td><strong>Concepto Base</strong></td><td>Concepto del catálogo global a utilizar</td><td>BONO_ESPECIAL (código: BNS001)</td></tr>
+                    <tr><td><strong>Monto</strong></td><td>Valor numérico personalizado (decimal)</td><td>250.00</td></tr>
+                    <tr><td><strong>Unidad</strong></td><td>Cantidad de unidades (opcional)</td><td>1, 2, 0.5, etc.</td></tr>
+                    <tr><td><strong>Referencia</strong></td><td>Nota o descripción adicional</td><td>"Bono por proyecto X"</td></tr>
+                    <tr><td><strong>Estado</strong></td><td>Activo (1) o Inactivo (0)</td><td>Activo</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>4. Crear un Concepto Manual</h2>
+            <ol>
+                <li>Ir a <strong>Empleados → Conceptos Manuales</strong>.</li>
+                <li>Click en <strong>+ Nuevo Concepto Manual</strong>.</li>
+                <li>Complete el formulario:
+                    <ul>
+                        <li><strong>Empleado:</strong> Seleccione del dropdown (búsqueda por nombre/código).</li>
+                        <li><strong>Concepto:</strong> Seleccione del catálogo global de conceptos.</li>
+                        <li><strong>Monto:</strong> Ingrese el valor numérico (decimales permitidos).</li>
+                        <li><strong>Unidad (opcional):</strong> Cantidad de unidades si aplica.</li>
+                        <li><strong>Referencia (opcional):</strong> Nota descriptiva (máx 255 caracteres).</li>
+                        <li><strong>Estado:</strong> Marque como activo (checked) o inactivo (unchecked).</li>
+                    </ul>
+                </li>
+                <li>Guarde el registro.</li>
+            </ol>
+            <div class="warning-box">
+                <strong>Importante:</strong> El concepto manual solo se aplicará en planillas futuras o al regenerar planillas existentes. No modifica planillas ya procesadas y cerradas.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>5. Gestión de Conceptos Manuales</h2>
+
+            <h3>Listado Principal</h3>
+            <p>Vista con tabla DataTables mostrando todos los conceptos manuales configurados:</p>
+            <ul>
+                <li>Columnas: Empleado, Concepto, Monto, Unidad, Referencia, Estado, Acciones</li>
+                <li>Búsqueda global: por nombre empleado, código concepto, referencia</li>
+                <li>Filtrado por estado: Activo/Inactivo</li>
+                <li>Ordenamiento por cualquier columna</li>
+                <li>Paginación automática (10, 25, 50, 100 registros)</li>
+            </ul>
+
+            <h3>Acciones Disponibles</h3>
+            <ul>
+                <li><strong>Ver:</strong> Muestra detalles completos en modal (read-only).</li>
+                <li><strong>Editar:</strong> Permite modificar monto, unidad, referencia, estado.</li>
+                <li><strong>Eliminar:</strong> Borra el concepto manual (requiere confirmación).</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Nota:</strong> No se puede cambiar el empleado ni el concepto base después de crear el registro. Para eso debe eliminarlo y crear uno nuevo.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>6. Integración con Planillas</h2>
+
+            <h3>¿Cómo se aplican?</h3>
+            <p>Los conceptos manuales se procesan automáticamente durante la <strong>regeneración de empleados</strong> en una planilla:</p>
+            <ol>
+                <li>El sistema busca todos los conceptos manuales <strong>activos</strong> del empleado</li>
+                <li>Para cada concepto manual encontrado:
+                    <ul>
+                        <li>Verifica que el concepto base esté en el catálogo</li>
+                        <li>Crea un registro en <code>planilla_detalle</code></li>
+                        <li>Asigna el monto, unidad y referencia personalizados</li>
+                        <li>Marca el origen como concepto manual</li>
+                    </ul>
+                </li>
+                <li>Los conceptos manuales se suman/restan según su naturaleza (INGRESO/DEDUCCION)</li>
+            </ol>
+
+            <h3>Flujo de Procesamiento</h3>
+            <div class="code-block">
+1. Usuario regenera empleado en planilla<br>
+2. Sistema limpia conceptos previos del empleado<br>
+3. Sistema aplica conceptos del catálogo global (fórmulas)<br>
+4. <strong>Sistema aplica conceptos manuales activos</strong><br>
+5. Calcula totales (ingresos - deducciones)<br>
+6. Actualiza planilla_empleado
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>7. Casos de Uso Comunes</h2>
+            <table>
+                <thead><tr><th>Situación</th><th>Concepto Base</th><th>Monto</th><th>Referencia</th></tr></thead>
+                <tbody>
+                    <tr><td>Bono especial por proyecto</td><td>BONO_PROYECTO</td><td>500.00</td><td>"Proyecto Cliente ABC"</td></tr>
+                    <tr><td>Compensación temporal alquiler</td><td>COMP_ALQUILER</td><td>300.00</td><td>"Compensación 3 meses"</td></tr>
+                    <tr><td>Deducción préstamo informal</td><td>DED_PRESTAMO_OTRO</td><td>-100.00</td><td>"Cuota préstamo personal"</td></tr>
+                    <tr><td>Ajuste salarial retroactivo</td><td>AJUSTE_SALARIAL</td><td>150.00</td><td>"Ajuste retroactivo enero"</td></tr>
+                    <tr><td>Incentivo por cumplimiento meta</td><td>INCENTIVO_META</td><td>200.00</td><td>"Meta ventas Q4"</td></tr>
+                    <tr><td>Descuento uniforme personalizado</td><td>DESC_UNIFORME</td><td>-25.00</td><td>"Descuento uniforme especial"</td></tr>
+                    <tr><td>Bono transporte temporal</td><td>BONO_TRANSPORTE</td><td>75.00</td><td>"Transporte temporal proyecto"</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>8. Validaciones del Sistema</h2>
+            <table>
+                <thead><tr><th>Validación</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>Empleado requerido</td><td>Debe seleccionar un empleado válido del sistema.</td></tr>
+                    <tr><td>Concepto requerido</td><td>Debe seleccionar un concepto del catálogo global.</td></tr>
+                    <tr><td>Monto numérico</td><td>Solo acepta valores numéricos (decimales con punto).</td></tr>
+                    <tr><td>Unidad numérica</td><td>Campo opcional, pero si se llena debe ser numérico.</td></tr>
+                    <tr><td>Referencia límite</td><td>Máximo 255 caracteres en campo referencia.</td></tr>
+                    <tr><td>Concepto activo</td><td>Solo se aplican conceptos manuales con estado = 1 (activo).</td></tr>
+                    <tr><td>Concepto base existe</td><td>El concepto base debe existir en el catálogo al momento de aplicar.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>9. Diferencias con Conceptos del Catálogo</h2>
+            <table>
+                <thead><tr><th>Aspecto</th><th>Conceptos del Catálogo</th><th>Conceptos Manuales</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Alcance</strong></td><td>Global (todos los empleados)</td><td>Individual (un empleado)</td></tr>
+                    <tr><td><strong>Cálculo</strong></td><td>Fórmula automática</td><td>Monto fijo personalizado</td></tr>
+                    <tr><td><strong>Configuración</strong></td><td>Una vez en el catálogo</td><td>Uno por empleado que lo necesite</td></tr>
+                    <tr><td><strong>Flexibilidad</strong></td><td>Fórmula genérica</td><td>Valores únicos por empleado</td></tr>
+                    <tr><td><strong>Uso típico</strong></td><td>Salarios, seguro social, impuestos</td><td>Bonos especiales, ajustes únicos</td></tr>
+                    <tr><td><strong>Modificación</strong></td><td>Afecta a todos</td><td>Solo al empleado específico</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>10. Buenas Prácticas</h2>
+            <ul>
+                <li><strong>Referencias descriptivas:</strong> Use el campo referencia para documentar el motivo del concepto.</li>
+                <li><strong>Revisión periódica:</strong> Revise mensualmente conceptos manuales activos para desactivar los temporales.</li>
+                <li><strong>Nomenclatura consistente:</strong> Use referencias claras (ej: "Bono Proyecto X - Ene 2026").</li>
+                <li><strong>Control de vigencia:</strong> Desactive conceptos cuando ya no apliquen en lugar de eliminarlos (mantiene historial).</li>
+                <li><strong>Montos negativos:</strong> Use valores negativos para deducciones (ej: -50.00 para descuento).</li>
+                <li><strong>Validación pre-cierre:</strong> Revise conceptos manuales antes de cerrar planilla definitivamente.</li>
+                <li><strong>Documentación externa:</strong> Mantenga registro externo de aprobaciones de bonos/ajustes especiales.</li>
+                <li><strong>Conceptos base apropiados:</strong> Use conceptos del catálogo con naturaleza correcta (INGRESO/DEDUCCION).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>11. Preguntas Frecuentes</h2>
+
+            <h3>¿Puedo aplicar múltiples conceptos manuales al mismo empleado?</h3>
+            <p>Sí, un empleado puede tener tantos conceptos manuales como sea necesario. Cada uno se procesa independientemente.</p>
+
+            <h3>¿Qué pasa si desactivo un concepto manual?</h3>
+            <p>No se aplicará en futuras regeneraciones de planilla. Las planillas ya procesadas no se ven afectadas.</p>
+
+            <h3>¿Puedo usar el mismo concepto base para varios empleados?</h3>
+            <p>Sí, el mismo concepto del catálogo (ej: BONO_ESPECIAL) puede usarse como base para conceptos manuales de diferentes empleados con montos distintos.</p>
+
+            <h3>¿Los conceptos manuales afectan acumulados (XIII mes, vacaciones)?</h3>
+            <p>Depende de la configuración del concepto base. Si el concepto base está marcado para acumular, sí afectará los acumulados.</p>
+
+            <h3>¿Qué pasa si elimino un concepto del catálogo que usa un concepto manual?</h3>
+            <p>El concepto manual quedará inactivo pero no se eliminará. Se recomienda eliminar o reasignar los conceptos manuales primero.</p>
+        </div>
+
+        <div class="card">
+            <h2>12. Checklist de Implementación</h2>
+            <ul>
+                <li>✓ Identificar empleados que requieren conceptos personalizados.</li>
+                <li>✓ Verificar que los conceptos base existan en el catálogo.</li>
+                <li>✓ Obtener aprobación de Gerencia/RRHH para bonos o deducciones especiales.</li>
+                <li>✓ Crear conceptos manuales con referencias descriptivas.</li>
+                <li>✓ Establecer protocolo de revisión mensual de conceptos activos.</li>
+                <li>✓ Capacitar personal de planillas sobre creación y gestión.</li>
+                <li>✓ Documentar políticas de aprobación para conceptos manuales.</li>
+                <li>✓ Probar regeneración de planilla con conceptos manuales en ambiente de prueba.</li>
+            </ul>
+        </div>
+
+        <div style="text-align:center;margin:30px 0;"><a href="manual_usuario.html" style="color:#0f4c5c;text-decoration:none;font-weight:600;">← Volver al índice principal</a></div>
+    </div>
+</body>
+</html>

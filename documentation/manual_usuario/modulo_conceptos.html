@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conceptos y Formulas - INNOVA Planillas 3.5.6</title>
+    <title>Conceptos y Formulas - INNOVA Planillas 3.5.19</title>
     <style>
         :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
         *{box-sizing:border-box;}
@@ -14,13 +14,19 @@
         .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
         ul,ol{padding-left:20px;margin:8px 0;}
         code{background:#eef2f6;padding:2px 6px;border-radius:4px;font-size:90%;}
+        .badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:12px;color:#fff;background:#28a745;}
+        .info-box{background:#e3f2fd;border-left:4px solid #2196f3;padding:12px;margin:12px 0;}
+        .warning-box{background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:12px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;}
+        th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;}
+        th{background:#eef2f6;}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Conceptos y Formulas</h1>
-            <p>Catalogo, tipos, unidades, formula, configuraciones avanzadas y reportes PDF.</p>
+            <h1>Conceptos y Formulas <span class="badge">v3.5.19</span></h1>
+            <p>Catálogo, tipos, unidades, fórmulas, UNIDAD dinámica, configuraciones avanzadas y reportes PDF.</p>
         </div>
 
         <div class="card">
@@ -35,7 +41,7 @@
         <div class="card">
             <h2>2. Tipo de concepto y Unidad</h2>
             <ul>
-                <li><strong>Tipo:</strong> 
+                <li><strong>Tipo:</strong>
                     <ul>
                         <li><em>Asignacion</em>: suma al sueldo.</li>
                         <li><em>Deduccion</em>: descuenta del sueldo.</li>
@@ -51,6 +57,90 @@
                 </li>
                 <li><strong>Monto calculo:</strong> marca que el monto se obtiene por formula; si no, se usa el valor fijo ingresado.</li>
             </ul>
+        </div>
+
+        <div class="card">
+            <h2>2.1. UNIDAD Dinámica en Fórmulas <span class="badge">NUEVO v3.5.15</span></h2>
+            <p>Funcionalidad que permite <strong>asignar el valor de UNIDAD condicionalmente dentro de la fórmula</strong>, en lugar de usar un valor fijo del catálogo.</p>
+
+            <div class="info-box">
+                <strong>¿Por qué es útil?</strong> Permite que la cantidad de unidades (horas, días, unidades) sea dinámica según condiciones específicas del empleado. Por ejemplo, usar horas trabajadas si el empleado marca asistencia, o usar un valor fijo si no marca.
+            </div>
+
+            <h3>Sintaxis y Funcionamiento</h3>
+            <p>Se usa la sintaxis <code>UNIDAD = expresión</code> dentro de la fórmula para asignar el valor dinámicamente:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ejemplo Fórmula</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>UNIDAD = SI(MARCA_ASISTENCIA, HORAS_REGULARES(), 15)</code></td>
+                        <td>Si marca asistencia, UNIDAD = horas trabajadas. Si no, UNIDAD = 15</td>
+                    </tr>
+                    <tr>
+                        <td><code>UNIDAD = HORAS_EXTRAS_25()</code></td>
+                        <td>UNIDAD toma el valor de las horas extras al 25%</td>
+                    </tr>
+                    <tr>
+                        <td><code>UNIDAD = SI(SCORE_PUNTUALIDAD() >= 95, 1, 0)</code></td>
+                        <td>UNIDAD = 1 si puntualidad >= 95%, sino 0</td>
+                    </tr>
+                    <tr>
+                        <td><code>UNIDAD = DIAS_TRABAJADOS()</code></td>
+                        <td>UNIDAD = cantidad de días efectivamente trabajados</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Proceso de Captura</h3>
+            <ol>
+                <li>El sistema evalúa la fórmula completa del concepto</li>
+                <li>Si encuentra una asignación <code>UNIDAD = expresión</code>, extrae y evalúa esa expresión</li>
+                <li>El valor calculado se almacena automáticamente en <code>planilla_detalle.unidad</code></li>
+                <li>Este valor queda registrado en la planilla y es visible en reportes</li>
+            </ol>
+
+            <h3>Casos de Uso Comunes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Escenario</th>
+                        <th>Fórmula Completa</th>
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Salario por horas vs fijo</td>
+                        <td><code>UNIDAD = SI(MARCA_ASISTENCIA, HORAS_REGULARES(), 15)<br>SI(MARCA_ASISTENCIA, HORAS_REGULARES() * TARIFA_HORA, SUELDO * 0.5)</code></td>
+                        <td>Empleados con marcación usan horas reales, otros usan valor fijo</td>
+                    </tr>
+                    <tr>
+                        <td>Bono por puntualidad</td>
+                        <td><code>UNIDAD = SI(SCORE_PUNTUALIDAD() >= 95, 1, 0)<br>UNIDAD * 100</code></td>
+                        <td>Bono de $100 solo si puntualidad >= 95%</td>
+                    </tr>
+                    <tr>
+                        <td>Pago horas extras</td>
+                        <td><code>UNIDAD = HORAS_EXTRAS_25()<br>UNIDAD * (SUELDO / 220) * 1.25</code></td>
+                        <td>Registra cantidad de horas extras en UNIDAD y calcula pago</td>
+                    </tr>
+                    <tr>
+                        <td>Incentivo por días trabajados</td>
+                        <td><code>UNIDAD = DIAS_TRABAJADOS()<br>SI(UNIDAD >= 20, 50, 0)</code></td>
+                        <td>$50 si trabajó 20+ días</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning-box">
+                <strong>Importante:</strong> La asignación de UNIDAD debe aparecer <strong>antes</strong> de usarla en cálculos posteriores dentro de la misma fórmula. El sistema procesa las asignaciones en el orden que aparecen.
+            </div>
         </div>
 
         <div class="card">
@@ -113,14 +203,50 @@
         </div>
 
         <div class="card">
-            <h2>8. Ejemplos rapidos</h2>
+            <h2>8. Ejemplos rápidos</h2>
+
+            <h3>Conceptos Básicos</h3>
             <ul>
                 <li><strong>XIII proporcional:</strong> <code>ACUMULADOS("SALARIO_BASE", INICIO_PERIODO_XIII, FIN_PERIODO_XIII) / 11</code></li>
-                <li><strong>Horas extras 25%:</strong> <code>HORAS_EXTRAS_25 * (SALARIO_BASE/240) * 1.25</code></li>
+                <li><strong>Horas extras 25%:</strong> <code>HORAS_EXTRAS_25() * (SALARIO_BASE/240) * 1.25</code></li>
                 <li><strong>Deduccion acreedor:</strong> <code>ACREEDOR(EMPLEADO, 5)</code> (usa deduccion asignada al empleado con creditor_id=5).</li>
                 <li><strong>Prima antiguedad mensual:</strong> <code>(SALARIO_BASE / 4.33) * 0.0192</code> (ejemplo, ajustar a politica).</li>
             </ul>
+
+            <h3>Ejemplos con UNIDAD Dinámica</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th>Fórmula</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Salario Mixto</strong><br>(horas o fijo)</td>
+                        <td><code>UNIDAD = SI(MARCA_ASISTENCIA, HORAS_REGULARES(), 160)<br>SI(MARCA_ASISTENCIA, UNIDAD * 15, 2400)</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bono Asistencia Perfecta</strong></td>
+                        <td><code>UNIDAD = DIAS_ASISTENCIA_PERFECTA()<br>SI(UNIDAD >= 20, 150, 0)</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Descuento Tardanzas</strong></td>
+                        <td><code>UNIDAD = TARDANZAS()<br>(UNIDAD / 60) * (SUELDO / 220)</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bono Puntualidad</strong></td>
+                        <td><code>UNIDAD = SCORE_PUNTUALIDAD()<br>SI(UNIDAD >= 95, 100, SI(UNIDAD >= 90, 50, 0))</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Horas Extras Totales</strong></td>
+                        <td><code>UNIDAD = HORAS_EXTRAS_25() + HORAS_EXTRAS_50()<br>UNIDAD * (SUELDO / 220) * 1.35</code></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+
+        <div style="text-align:center;margin:30px 0;"><a href="manual_usuario.html" style="color:#0f4c5c;text-decoration:none;font-weight:600;">← Volver al índice principal</a></div>
     </div>
 </body>
 </html>

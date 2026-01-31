@@ -1,9 +1,17 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 16 de Enero, 2026
+**Fecha**: 29 de Enero, 2026 (**REVISIÓN COMPLETA - Estado Real**)
 **Versión**: 3.5.19 - Módulo Campos Adicionales Personalizados
-**Versión Anterior**: 3.5.18 - Fix TypeError insertConceptDetail
+**Commits Revisados**: 230+ commits (Nov-2025 a Ene-2026)
+**PRs Merged**: #90-#113 (24 PRs)
+
+### 🎯 **Avances Reales vs Estimados Anteriores**
+- **Multitenancy**: 30% → **85%** 🟢 (+55%)
+- **Vacaciones Panamá**: 45% → **90%** 🟢 (+45%)
+- **Motor Fórmulas**: 80% → **95%** 🟢 (+15%)
+- **Asistencias**: 92% → **92%** 🔵 (sin cambio)
+- **10+ Features Nuevas Completadas** (no reflejadas anteriormente) ✅
 
 ### 🆕 Hitos Recientes (v3.5.19 Módulo Campos Adicionales Personalizados)
 - **Sistema Completo Campos Personalizados**: 2 tablas + CRUD + 4 tipos datos (TEXTO, NUMERO, FECHA, BOOLEAN)
@@ -323,34 +331,56 @@
   - **Nota**: Esta subfase fue cancelada. La integración del BusinessCalendar con liquidaciones, vacaciones y XIII Mes se implementará como parte de **FASE 7: API Marcaciones y Asistencias (Subfase 7.3)**.
   - El modelo BusinessCalendar permanece disponible para uso futuro según necesidades del proyecto.
 
-### 🏖️ **FASE 5: MÓDULO VACACIONES PANAMÁ** *(Q4 2025/Q1 2026 - Alta Prioridad)*
+### 🏖️ **FASE 5: MÓDULO VACACIONES PANAMÁ** *(Q4 2025/Q1 2026 - ✅ 90% COMPLETADO)*
 **Objetivo**: Sistema completo gestión vacaciones según legislación panameña
-**Tiempo Estimado**: 4-5 semanas
-- [ ] **Subfase 5.1: Calculadora + Base de Datos** *(1-2 semanas)*
-  - [ ] VacationCalculator class con cálculos legislación panameña
-  - [ ] Migraciones BD: vacation_requests + vacation_balances + vacation_periods
-  - [ ] Seeders datos iniciales + configuración empresa
-  - [ ] Integración con BusinessCalendar para días laborables
-- [ ] **Subfase 5.2: CRUD Básico** *(1 semana)*
-  - [ ] VacationController con operaciones principales CRUD
-  - [ ] Vistas básicas: index.php + create.php + show.php + employee_balance.php
-  - [ ] Validaciones formularios + reglas negocio panameño
-  - [ ] Sistema estados: SOLICITADA, APROBADA, RECHAZADA, DISFRUTADA
-- [ ] **Subfase 5.3: Funcionalidades Avanzadas** *(1 semana)*
-  - [ ] Sistema aprobaciones flujo multinivel (Supervisor → RRHH)
-  - [ ] Calendario visual FullCalendar.js integration
-  - [ ] Balance automático cálculo tiempo real + APIs
-  - [ ] Notificaciones automáticas toastr + email
-- [ ] **Subfase 5.4: Integración Completa** *(1 semana)*
-  - [ ] Integración tabla acumulados_por_empleado existente
-  - [ ] Reportes PDF comprobantes + reportes gerenciales
-  - [ ] Compensaciones integración planillas regulares
-  - [ ] Motor fórmulas variables DIAS_VACACIONES + BALANCE_DISPONIBLE
+**Estado Real**: VacationController (1452 líneas) + VacationBalanceService completos
+**Tiempo Real**: 4 semanas ejecutadas
 
-### 🏢 **FASE 6: MULTITENANCY EMPRESARIAL** *(Q1 2026 - Mediana Prioridad)*
+- [x] **Subfase 5.1: Calculadora + Base de Datos** ✅ **COMPLETADA**
+  - [x] VacationBalanceService con vacation_annual_balances
+  - [x] Tablas: vacation_requests + vacation_annual_balances + vacation_calculations
+  - [x] Integración BusinessCalendar completa (calendar() método)
+  - [x] Cálculo salario diario promedio 11 meses (legislación panameña)
+
+- [x] **Subfase 5.2: CRUD Básico** ✅ **COMPLETADA**
+  - [x] VacationController completo (15 métodos: index, create, store, show, approve, reject, balance, etc.)
+  - [x] Vistas: index + create + show + balance + calendar + reports (6 vistas)
+  - [x] Validaciones robustas: solapamientos, saldos, elegibilidad
+  - [x] Estados: PENDING, APPROVED, REJECTED completos
+
+- [x] **Subfase 5.3: Funcionalidades Avanzadas** ✅ **80% COMPLETADA**
+  - [x] Sistema aprobaciones con reversión automática balances (approve/reject)
+  - [x] Calendario visual FullCalendar.js integrado con business_calendar
+  - [x] Balance automático tiempo real (getTotalAccumulatedBalance, getAnnualBalance)
+  - [x] AJAX endpoints (getAnnualBalance, generateMissingYears)
+  - [ ] ❌ Notificaciones email automáticas (pendiente)
+  - [ ] ❌ Flujo aprobación multinivel Supervisor → RRHH (pendiente)
+
+- [x] **Subfase 5.4: Integración Completa** ✅ **95% COMPLETADA**
+  - [x] Integración acumulados_por_empleado existente
+  - [x] Reportes PDF: solicitudes individuales + filtrados + resumen anual (3 tipos)
+  - [x] Generación planillas automática con SS (9.75%) + SE (1.25%)
+  - [x] Control planillas únicas (campo payroll_id)
+  - [x] Transacciones DB en aprobaciones
+  - [ ] ❌ Tests unitarios calculateVacationDailySalary (pendiente)
+
+**✅ Completado (90%)**:
+- 1452 líneas VacationController
+- 15 métodos funcionales completos
+- 6 vistas AdminLTE con DataTables
+- 3 tipos reportes PDF profesionales
+- Sistema completo balances anuales
+- Validaciones robustas + AJAX endpoints
+
+**❌ Pendiente (10%)**:
+- Notificaciones email automáticas
+- Aprobación multinivel (Supervisor → RRHH)
+- Tests unitarios
+
+### 🏢 **FASE 6: MULTITENANCY EMPRESARIAL** *(Q1 2026 - ✅ 85% COMPLETADO)*
 **Objetivo**: Sistema multi-empresa con base de datos central y base de datos separada por tenant
-**Tiempo Estimado**: 4-5 semanas (160-200 horas)
-**Estado**: 🟡 30% Completado (Scaffolding + Validación Distribuidor + Wizard UI + Debugging)
+**Tiempo Real**: 3.5 semanas ejecutadas
+**Estado**: 🟢 **Sistema Funcional** - Solo falta backoffice de administración
 
 **Arquitectura**: Híbrida (Central DB + Tenant DB)
 ```
@@ -391,80 +421,76 @@
 5. **Todas las consultas subsecuentes usan la conexión BD del tenant**
 6. Datos 100% aislados entre tenants
 
-- [x] **Subfase 6.1: Base de Datos Central** *(1 semana / 40 horas)* ✅ **70% COMPLETADA**
-  - [x] Migración `2025_11_18_create_tenants.sql`: tabla tenants en BD master (planilla_master)
-  - [x] Tabla `tenants`: id, slug, company_name, ruc, admin_email, license_key, db_host, db_name, status
-  - [x] MasterDatabase class: singleton para conexión BD master independiente
-  - [x] WizardModel class: CRUD tenants + validación distribuidor remoto
-  - [x] WizardController: createCompany() con debugging completo 11 pasos
-  - [x] Validación distribuidor: cURL configurable vía .env (DISTRIBUTOR_VALIDATION_URL)
-  - [x] License dropdown navbar: información licencia tiempo real
-  - [ ] Tabla `tenant_connections`: mejorada estructura (pendiente)
-  - [ ] Seeders: empresa demo + usuario superadmin
+- [x] **Subfase 6.1: Base de Datos Central** ✅ **COMPLETADA (100%)**
+  - [x] Tabla `tenants` completa en planilla_master
+  - [x] MasterDatabase: singleton conexión independiente
+  - [x] WizardModel: CRUD + validación distribuidor cURL
+  - [x] WizardController: createCompany() con 11 pasos debugging
+  - [x] License dropdown navbar tiempo real (v3.5.10)
+  - [x] Credenciales encriptadas (db_pass_enc)
+
+- [x] **Subfase 6.2: Conexión Dinámica a BD Tenant** ✅ **COMPLETADA (100%)**
+  - [x] **TenantResolver** (244 líneas): Detección automática por URL/sesión/código
+  - [x] Métodos: resolve(), resolveByCompanyCode(), loadTenant(), getDatabaseConfig()
+  - [x] **TenantStorage**: Persistencia multi-tenant
+  - [x] **TenantMigrationSystem**: Migraciones robustas multi-tenant
+  - [x] Session management completo (tenant_db persistente)
+  - [x] Validación tenant activo + error handling
+  - [x] Login multi-tenant por license_key/RUC/ID/slug
   - **Archivos creados**:
-    - `config/master_database.php` ✅
-    - `app/Core/MasterDatabase.php` ✅
-    - `database/migrations/master/2025_11_18_create_tenants.sql` ✅
-    - `app/Models/WizardModel.php` ✅
-    - `app/Controllers/WizardController.php` ✅ (con debugging v3.5.10)
-    - `app/Views/components/navbar.php` ✅ (license dropdown v3.5.10)
+    - `app/Core/TenantResolver.php` ✅ (244 líneas)
+    - `app/Core/TenantStorage.php` ✅
+    - `app/Core/TenantMigrationSystem.php` ✅
+    - `bin/migrate-tenants.php` ✅
+    - `database/migrations/migrate_all_tenants.php` ✅
 
-- [ ] **Subfase 6.2: Conexión Dinámica a BD Tenant** *(1-1.5 semanas / 40-60 horas)*
-  - [ ] `TenantConnectionManager.php`: gestión 2 conexiones simultáneas (central + tenant)
-  - [ ] Métodos: `getCentralConnection()`, `switchToTenant($tenantId)`, `getTenantConnection()`
-  - [ ] Modificar `Database.php`: agregar método `switchTenant()` + usar `TenantConnectionManager`
-  - [ ] `TenantMiddleware.php`: validar tenant_id en sesión + protección rutas
-  - [ ] Session management: persistir tenant_id + tenant_db_name
-  - [ ] Validación tenant activo + manejo errores conexión
-  - **Archivos a crear**:
-    - `app/Core/TenantConnectionManager.php` (300 líneas)
-    - `app/Middleware/TenantMiddleware.php` (150 líneas)
-  - **Archivos a modificar**:
-    - `app/Core/Database.php`: agregar `switchTenant()` + usar TenantConnectionManager
+- [x] **Subfase 6.3: Aislamiento BD + PostgreSQL Support** ✅ **COMPLETADA (100%)**
+  - [x] Aislamiento completo: cada tenant en su BD
+  - [x] **PostgreSQL Support**: Conexión dinámica MySQL/PostgreSQL (PR #109-110)
+  - [x] Configuración `.env.pgsql.example`
+  - [x] Migration scripts con connection handling actualizado
+  - [x] **splitSqlStatements()**: Parser robusto (60 líneas) para migraciones
+  - [x] exec() → query() para liberación correcta resultados
+  - [x] Migraciones idempotentes con INSERT...ON DUPLICATE KEY UPDATE
+  - [x] Testing: 0 errores PDO en todos los tenants
 
-- [ ] **Subfase 6.3: Modificar Models & Controllers** *(1.5-2 semanas / 60-80 horas)*
-  - [ ] Verificar que TODOS los modelos usan `$this->db->getConnection()` (no conexión directa)
-  - [ ] Testing exhaustivo: verificar aislamiento entre tenants
-  - [ ] Modificar `Database->getConnection()`: usar `TenantConnectionManager->getTenantConnection()`
-  - [ ] Validar que ningún query use BD central después del login
-  - [ ] Testing de switch entre tenants (logout/login diferentes empresas)
-  - [ ] Auditoría código: identificar queries hardcoded
-  - **Ventaja**: Como ya usamos `$this->db->getConnection()`, el cambio es transparente
-  - **Archivos a revisar**: ~40 modelos + validar que usen getConnection()
+- [x] **Subfase 6.4: Wizard + Super Admin** ✅ **COMPLETADA (95%)**
+  - [x] WizardController completo con wizard creación empresas
+  - [x] Wizard UI perfecto (márgenes simétricos + responsive)
+  - [x] **Super Admin System** (PR #106-107):
+    - [x] Column `is_system_admin` en tabla admin
+    - [x] Privileges implementation completo
+    - [x] Access control + UI elements
+  - [x] Flujo creación tenant funcional 7 pasos
+  - [x] License expiration check + validation
+  - [x] **Core Concepts Synchronization** (PR #104):
+    - [x] Script sync conceptos desde BD referencia
+    - [x] Automation setup nuevos tenants
+  - [ ] ❌ Panel backoffice CRUD tenants (pendiente 15%)
 
-- [ ] **Subfase 6.4: Wizard de Creación de Tenants** *(0.5-1 semana / 20-40 horas)*
-  - [ ] `TenantController.php`: CRUD completo tenants (solo superadmin)
-  - [ ] `TenantProvisioningService.php`: orquestador creación tenants
-  - [ ] Flujo creación:
-    - 1. Crear registro en `companies` (BD central)
-    - 2. Crear nueva base de datos para el tenant (`planilla_tenant_XXXX`)
-    - 3. Ejecutar TODAS las migraciones en la nueva BD
-    - 4. Ejecutar seeders datos iniciales (roles, conceptos base, horarios)
-    - 5. Crear credenciales acceso únicas
-    - 6. Registrar en `tenant_connections`
-    - 7. Crear usuario admin inicial para el tenant
-  - [ ] Vista `create.php`: formulario wizard paso a paso (datos empresa → configuración)
-  - [ ] Vista `index.php`: listado tenants + estadísticas + acciones
-  - [ ] Validaciones: nombre único, RUC válido, credenciales BD
-  - **Archivos a crear**:
-    - `app/Controllers/Admin/TenantController.php` (400 líneas)
-    - `app/Services/TenantProvisioningService.php` (500 líneas)
-    - `views/admin/tenants/create.php` (200 líneas)
-    - `views/admin/tenants/index.php` (180 líneas)
+- [x] **Subfase 6.5: Testing Funcional** ✅ **COMPLETADA (70%)**
+  - [x] Aislamiento verificado: tenant A no ve datos tenant B
+  - [x] Switch conexiones funcional logout/login
+  - [x] Session management robusto
+  - [x] Migraciones multi-tenant exitosas (splitSqlStatements)
+  - [ ] ❌ Suite testing automatizada 20+ tests (pendiente)
+  - [ ] ❌ Performance testing múltiples conexiones simultáneas (pendiente)
 
-- [ ] **Subfase 6.5: Testing & Seguridad** *(0.5-1 semana / 20-40 horas)*
-  - [ ] Testing aislamiento: verificar que tenant A no ve datos de tenant B
-  - [ ] Testing switch conexiones: logout/login diferentes tenants
-  - [ ] Testing concurrencia: múltiples usuarios diferentes tenants simultáneos
-  - [ ] Validación session hijacking: no permitir cambiar tenant_id manualmente
-  - [ ] Performance testing: múltiples conexiones BD simultáneas
-  - [ ] Security audit: verificar que no hay leaks de datos entre tenants
-  - [ ] Documentación técnica: arquitectura + flujos + troubleshooting
-  - [ ] Scripts verificación: `verify_tenant_isolation.php`
-  - **Deliverables**:
-    - Suite testing 20+ tests
-    - Documentación arquitectura
-    - Scripts deployment producción
+**✅ Completado (85%)**:
+- TenantResolver (244 líneas) funcional
+- Login multi-tenant completo
+- PostgreSQL support integrado
+- Super admin system operativo
+- Wizard creación empresas funcional
+- Aislamiento BD verificado
+- Migraciones robustas multi-tenant
+- Credenciales encriptadas
+- License UI dropdown
+
+**❌ Pendiente (15%)**:
+- Panel admin backoffice CRUD tenants
+- Suite testing automatizada
+- Performance testing concurrencia
 
 **Ventajas de esta arquitectura**:
 - ✅ **Aislamiento Total**: Cada tenant tiene su propia BD (seguridad máxima)
@@ -486,10 +512,11 @@
 ### ⏰ **FASE 7: INTEGRACIÓN API MARCACIONES Y ASISTENCIAS** *(Q4 2025/Q1 2026 - ⭐ PRIORIDAD ALTA)*
 **Objetivo**: Sistema completo de control de asistencias con API externa e integración automática en planillas
 **Tiempo Estimado**: 6-8 semanas
-**Estado**: 🟢 En Desarrollo (88% completado - Subfases 7.1-7.4 completadas | Subfase 7.5 30%)
+**Estado**: 🟢 En Desarrollo (91% completado - Subfases 7.1-7.4 completadas | Subfase 7.5 40%)
 **Hotfix v3.5.1**: ✅ Correcciones críticas synced_from + data cleanup + CSRF dispositivos (28-Oct-2025)
 **Mejora v3.5.2**: ✅ Reportes PDF/Excel liquidaciones con campos adicionales y firmas (30-Oct-2025)
 **Mejora v3.5.4**: ✅ Reporte marcaciones Excel + mejoras UI planillas (01-Nov-2025)
+**Actualización**: ✅ Reporte marcaciones verificado en `/panel/attendance/reports` (30-Ene-2026)
 
 - [x] **Subfase 7.1: Integración API Externa** *(2 semanas)* ✅ **COMPLETADA (9-Oct-2025)**
   - [x] ApiClient (367 líneas): Cliente HTTP cURL + retry logic + backoff exponencial
@@ -587,15 +614,16 @@
   - [x] Script testing completo 5 fases
   - [x] **Total**: ~2,600 líneas código | 3 servicios | 3 tablas BD | 4 endpoints
 
-- [~] **Subfase 7.5: Interfaz y Reportes** *(1 semana)* 🔵 **30% COMPLETADO (01-Nov-2025)**
+- [~] **Subfase 7.5: Interfaz y Reportes** *(1 semana)* 🔵 **40% COMPLETADO (30-Ene-2026)**
   - [x] **Reporte de Marcaciones (Punches Report)** ✅ **COMPLETADO**
     - [x] ReportsGenerator->generateDetailedPunchesReport() (145 líneas): SQL optimizado + estadísticas + agrupación
     - [x] ExcelExporter->exportPunchesReport() (188 líneas): Formato profesional 8 stats + top 10 + detalle dept
     - [x] AttendanceController->punchesReport() (75 líneas): Endpoint formatos view/json/excel
-    - [x] Ruta /panel/attendance/reports/punches configurada
+    - [x] Ruta /panel/attendance/reports/punches configurada y funcionando
     - [x] Estadísticas: Total marcaciones, a tiempo, tardanzas, ausencias, horas trabajadas, horas extras
     - [x] Top 10 empleados con más tardanzas
     - [x] Detalle por departamento con 10 columnas (ID, Cédula, Nombre, Cargo, Fecha, Entrada, Salida, Horas, Tardanza, Estado)
+    - [x] Vistas web completas en `/panel/attendance/reports` (Excel + Vista Web + JSON)
     - [x] **Total**: 4 archivos | ~408 líneas código
   - [ ] Vista empleados: consulta asistencias propias en tiempo real
   - [ ] Vista gerencial: dashboard asistencias por departamento/equipo

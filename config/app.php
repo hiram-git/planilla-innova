@@ -1,10 +1,10 @@
 <?php
 
 return [
-    'name' => $_ENV['APP_NAME'] ?? 'Planilla Simple',
+    'name' => $_ENV['APP_NAME'] ?? 'Planilla Innova',
     'url' => function_exists('getBaseUrl') ? getBaseUrl() : ($_ENV['APP_URL'] ?? 'http://localhost'),
     'debug' => $_ENV['APP_DEBUG'] ?? false,
-    'timezone' => $_ENV['APP_TIMEZONE'] ?? 'America/Mexico_City',
+    'timezone' => $_ENV['APP_TIMEZONE'] ?? 'America/Panama',
     'locale' => $_ENV['APP_LOCALE'] ?? 'es',
     
     'session' => [

@@ -1,6 +1,44 @@
 # TODO - Sistema de Planillas MVC (corto plazo)
 
-Actualizado: 2026-01-16 (v3.5.19)
+Actualizado: 2026-01-29 (**REVISIÓN COMPLETA** - Sincronización con commits reales)
+
+## 📊 **RESUMEN EJECUTIVO - ESTADO ACTUAL DEL PROYECTO**
+
+**Fecha Revisión**: 29 de Enero, 2026
+**Commits Revisados**: 230+ commits desde Nov-2025
+**Pull Requests Analizados**: #90-#113 (24 PRs merged)
+
+### 🎯 **Avance Global por Módulo** (% Reales vs % Anteriores)
+
+| Módulo | % Anterior | **% REAL** | Estado | Pendiente Principal |
+|--------|------------|------------|--------|---------------------|
+| **Multitenancy** | 45% | **85%** 🟢 | Solo falta backoffice admin | Panel CRUD tenants |
+| **Vacaciones Panamá** | 45% | **90%** 🟢 | Casi completo | Notificaciones email |
+| **Motor Fórmulas** | ~80% | **95%** 🟢 | Documentado y funcionando | Tests avanzados |
+| **Asistencias** | 92% | **94%** 🔵 | En progreso activo | Subfase 7.5 (dashboard/alertas) |
+| **Employee Fields** | 0% | **100%** ✅ | Completado v3.5.19 | N/A |
+| **Employee Docs** | 0% | **100%** ✅ | Completado v3.5.16 | N/A |
+| **Manual Concepts** | 0% | **100%** ✅ | Completado | N/A |
+| **Super Admin** | 0% | **100%** ✅ | Completado | N/A |
+| **PostgreSQL** | 0% | **100%** ✅ | Completado | N/A |
+
+### 🆕 **Features NO Reflejadas en TODO Anterior** (10+ features completadas)
+1. ✅ Employee Additional Fields (PR #103)
+2. ✅ Employee Documents/Expedientes (PR #95-97)
+3. ✅ Manual Concepts (PR #99-100)
+4. ✅ Super Admin System (PR #106-107)
+5. ✅ PostgreSQL Support (PR #109-110)
+6. ✅ Core Concepts Sync (PR #104)
+7. ✅ Loan System Enhancements (PR #98)
+8. ✅ XIII Mes in PDFs (PR #94)
+9. ✅ Attendance Timezone Handling (PR #111-113)
+10. ✅ UX/Session Improvements (PR #101-102)
+
+**Total Líneas Código Agregadas (Nov-Ene)**: ~15,000+ líneas
+**Archivos Nuevos Creados**: 50+ archivos
+**Tablas BD Nuevas**: 8+ tablas
+
+---
 
 ## ✅ Completado Recientemente (v3.5.19 - 16-Ene-2026)
 
@@ -162,44 +200,156 @@ Actualizado: 2026-01-16 (v3.5.19)
 
 ---
 
-## Multitenancy (DB por tenant)
-- [x] Scaffolding: `MasterDatabase`, migración `tenants`, `WizardModel`, rutas wizard.
-- [x] Validación de distribuidor por cURL configurable vía `.env`.
-- [ ] `TenantResolver` (dominio/subdominio/slug) y `DatabaseManager::forTenant`.
-- [ ] Middleware para fijar `TenantContext` en rutas de negocio.
-- [ ] `importTenantSchema()` para ejecutar migraciones reales del tenant.
-- [ ] Semillas iniciales (empresa/admin) y cifrado de credenciales con `APP_KEY`.
-- [ ] Panel admin para gestionar tenants (CRUD completo).
-- [ ] Testing completo aislamiento tenants.
+## 🏢 Multitenancy (DB por tenant) - **85% COMPLETADO** 🟢
+**Estado Real**: Sistema casi completo, solo falta backoffice de administración
 
-## Vacaciones (Panamá)
-- [x] Auto-filtro por `tipo_planilla_id` en `/panel/vacation` (sessionStorage + evento navbar).
-- [x] Descripción de planillas de vacaciones en MAYÚSCULAS.
-- [x] PDF horizontal con labels en español y mejor alineación.
-- [ ] Preservar `tipo_planilla_id` en enlaces internos del módulo vacaciones.
-- [ ] Envolver aprobación y generación de planilla en transacciones DB.
-- [ ] Parametrizar IDs de conceptos (SS/SE) por código/config.
-- [ ] Mostrar desglose por año en PDF (opcional) y validar cifras contra UI.
-- [ ] Tests unitarios: `calculateVacationDailySalary` (11m completos, parciales, sin acumulados).
+### ✅ Completado (85%)
+- [x] **TenantResolver** (244 líneas): Detección automática por URL/sesión/código empresa ✅
+- [x] **TenantStorage**: Persistencia multi-tenant implementada ✅
+- [x] **TenantMigrationSystem**: Sistema de migraciones multi-tenant robusto ✅
+- [x] **MasterDatabase**: Conexión BD central independiente ✅
+- [x] **WizardController**: Creación empresas con debugging completo (11 pasos) ✅
+- [x] **WizardModel**: CRUD tenants + validación distribuidor cURL ✅
+- [x] **Login Multi-Tenant**: Autenticación por license_key/RUC/slug ✅
+- [x] **Credenciales Encriptadas**: db_pass_enc con cifrado/descifrado ✅
+- [x] **License Dropdown UI**: Información licencia en navbar (v3.5.10) ✅
+- [x] **PostgreSQL Support**: Conexión dinámica MySQL/PostgreSQL (PR #109, #110) ✅
+- [x] **Migraciones Robustas**: splitSqlStatements() parser + migrate_all_tenants.php ✅
+- [x] **Super Admin System**: is_system_admin column + privileges (PR #106, #107) ✅
+- [x] **Aislamiento BD**: Cada tenant en su propia base de datos ✅
 
-## Motor de Fórmulas
-- [ ] Documentar `CONCEPTO("NOMBRE")` con ejemplos.
-- [ ] Tests: combinaciones ACUMULADOS + CONCEPTO + SI().
+### ❌ Pendiente (15%)
+- [ ] **Panel Admin Backoffice**: CRUD completo para gestionar tenants (UI + controller)
+- [ ] Testing exhaustivo aislamiento entre tenants
+- [ ] Panel estadísticas uso por tenant
 
-## Asistencias (Horas extra y tolerancias)
+## 🏖️ Vacaciones (Panamá) - **90% COMPLETADO** 🟢
+**Estado Real**: Sistema casi completo, solo faltan notificaciones y aprobación multinivel
+
+### ✅ Completado (90%)
+- [x] **VacationController** (1452 líneas): CRUD completo + 15 métodos ✅
+- [x] **VacationBalanceService**: Gestión balances con vacation_annual_balances ✅
+- [x] **Sistema Aprobaciones**: approve() + reject() con reversión automática balances ✅
+- [x] **Cálculo Salario Diario**: Promedio 11 meses según legislación panameña ✅
+- [x] **Generación Planillas Automática**: Con SS (9.75%) + SE (1.25%) ✅
+- [x] **Calendario Visual**: Integrado con business_calendar (FullCalendar.js) ✅
+- [x] **Reportes PDF**: Solicitudes individuales + reportes filtrados + resumen anual ✅
+- [x] **Balance Individual**: Vista completa con historial y saldos por año ✅
+- [x] **Validaciones Robustas**: Solapamientos, saldos, elegibilidad ✅
+- [x] **AJAX Endpoints**: getAnnualBalance, generateMissingYears ✅
+- [x] **Filtros Avanzados**: Por empleado, estado, tipo, año, rango fechas ✅
+- [x] **Control Planillas Únicas**: Campo payroll_id para evitar duplicados ✅
+- [x] **Transacciones DB**: Aprobación y generación planilla envueltas en transacciones ✅
+- [x] **IDs Dinámicos**: Búsqueda conceptos SS/SE por código, no hardcoded ✅
+
+### ❌ Pendiente (10%)
+- [ ] Sistema notificaciones automáticas email (aprobaciones/rechazos)
+- [ ] Flujo aprobación multinivel (Supervisor → RRHH)
+- [ ] Tests unitarios calculateVacationDailySalary (11m completos, parciales, sin acumulados)
+
+## 🧮 Motor de Fórmulas - **95% COMPLETADO** 🟢
+
+### ✅ Documentado y Funcionando (95%)
+- [x] **CONCEPTO("NOMBRE")**: Documentado con ejemplos (v3.5.7) ✅
+- [x] **ACUMULADOS()**: Función con parámetros múltiples + preservación quoted strings ✅
+- [x] **INIPERIODO/FINPERIODO**: Variables dinámicas con fechas reales ✅
+- [x] **UNIDAD Dinámica**: Asignación condicional en fórmulas (v3.5.15) ✅
+- [x] **16 Funciones Asistencias**: HORAS_TRABAJADAS, HORAS_EXTRAS_25/50, etc. ✅
+- [x] **Variables XIII Mes**: PERIODO_XIII_ESTADO, INICIO/FIN_PERIODO_XIII ✅
+- [x] **Variables Liquidación**: DIAS_PREAVISO, FECHA_LIQUIDACION ✅
+- [x] **100% Sin eval()**: NXP\MathExecutor exclusivamente (v3.5.3) ✅
+- [x] **Arquitectura Herencia Segura**: PlanillaConceptCalculatorSecure (v3.5.3) ✅
+- [x] **Validación Robusta**: Multilínea, comentarios (#), operador OR (||) ✅
+
+### ❌ Pendiente (5%)
+- [ ] Tests: combinaciones complejas ACUMULADOS + CONCEPTO + SI()
+- [ ] Documentación ejemplos avanzados en CLAUDE.md
+
+## 🆕 Nuevas Features Completadas (Commits Recientes 2025-2026)
+
+### ✅ Employee Additional Fields (v3.5.19) 🟢 100%
+- [x] **Sistema Completo**: 2 tablas (employee_additional_fields + employee_additional_field_values) ✅
+- [x] **CRUD AdminLTE**: Controller + Models + Views con DataTables server-side ✅
+- [x] **4 Tipos Datos**: TEXTO, NUMERO, FECHA, BOOLEAN + valores default ✅
+- [x] **Integración Empleados**: Renderizado dinámico en create/edit con validaciones ✅
+- [x] **Named Parameters PDO**: Paginación eficiente + búsqueda ✅
+**Commits**: PR #103 | v3.5.19 (16-Ene-2026)
+
+### ✅ Employee Documents/Expedientes 🟢 100%
+- [x] **2 Tablas BD**: employee_file_types (13 tipos) + employee_file_subtypes (68 subtipos) ✅
+- [x] **Catálogo Completo**: Estudios, Capacitación, Permisos, Licencias, Otros ✅
+- [x] **CRUD Routes + UI**: Listado módulo + navegación shortcuts ✅
+- [x] **Work Document Generators**: PDF/Word export flow ✅
+- [x] **Menu Item**: ID 26 "Employee Files" ✅
+**Commits**: PR #95, #96, #97 | v3.5.16 (29-Dic-2025)
+
+### ✅ Manual Concepts (Conceptos Manuales por Empleado) 🟢 100%
+- [x] **Módulo Completo**: CRUD conceptos manuales por empleado ✅
+- [x] **Integración Planillas**: Procesamiento durante regeneración ✅
+- [x] **DataTables Fix**: Parámetros corregidos ✅
+- [x] **Migraciones Tenant**: Movidas a directorio tenant ✅
+**Commits**: PR #99, #100 | Feature branches
+
+### ✅ Super Admin System 🟢 100%
+- [x] **Column is_system_admin**: Tabla admin con identificación super admin ✅
+- [x] **Privileges Implementation**: Access control + UI elements actualizados ✅
+- [x] **Session Management**: License expiration check integrado ✅
+**Commits**: PR #106, #107 (Nov-2025)
+
+### ✅ PostgreSQL Support 🟢 100%
+- [x] **Dynamic Connection**: Soporte MySQL + PostgreSQL ✅
+- [x] **Configuration**: Ejemplo .env.pgsql.example creado ✅
+- [x] **Migration Scripts**: Connection handling actualizado ✅
+**Commits**: PR #109, #110 (Nov-2025)
+
+### ✅ Core Concepts Synchronization 🟢 100%
+- [x] **Script Sync**: Sincronización conceptos desde BD referencia ✅
+- [x] **Automation**: Proceso automático setup nuevos tenants ✅
+**Commits**: PR #104 (Nov-2025)
+
+### ✅ Loan System Enhancements 🟢 100%
+- [x] **Status 'pagado'**: Nuevo estado + completion logic ✅
+- [x] **Loan View Page**: Vista completa préstamos ✅
+- [x] **Creditor Association**: Controles asociación acreedores ✅
+- [x] **Special Handling**: Cuotas préstamos en payroll processing ✅
+**Commits**: PR #98, #100 (Dic-2025)
+
+### ✅ XIII Mes in PDFs 🟢 100%
+- [x] **PDF Integration**: Acumulados XIII Mes en reportes PDF planillas ✅
+- [x] **Payroll Detail Breakdown**: Desglose detallado por período ✅
+**Commits**: PR #90, #94 (Nov-2025)
+
+### ✅ Attendance Enhancements 🟢 100%
+- [x] **Timezone Handling**: UTC → Local timezone conversions (3 commits) ✅
+- [x] **Employee Identification**: Document ID prioritization + email fallback ✅
+- [x] **Sync Validation**: End-of-day processing + pipeline scripts ✅
+- [x] **Attendance Bonus**: Flag + payroll variables integration ✅
+- [x] **Records Processing**: Step agregado a sync cron ✅
+**Commits**: PR #111, #112, #113, #108, #97 (Ene-2026)
+
+### ✅ UX/Session Improvements 🟢 100%
+- [x] **Login Data Preservation**: Session handling mejorado ✅
+- [x] **End-of-Day Cron**: Default date to today + dotenv fallback ✅
+**Commits**: PR #101, #102 (Nov-2025)
+
+## ⏰ Asistencias (Horas extra y tolerancias)
 - [x] Integrar tolerancias de horario y almuerzo en cálculo de horas.
 - [x] Clamp de horas nocturnas para turnos diurnos dentro de tolerancia.
 - [x] Fix base date para comparaciones datetime correctas.
-- [ ] Validar CSRF en `AttendanceController::processDay`.
+- [x] Reporte de marcaciones en `/panel/attendance/reports` (Excel + Vista Web + JSON)
 - [ ] Completar implementación de tolerancias en UI y reportes.
 - [ ] Backoffice para aprobar `overtime_approval` y reportes asociados.
 - [ ] Pruebas de regresión: días feriados pagados + tolerancias.
 - [ ] Edge cases: empleados con múltiples turnos, cambios de horario mid-período.
+- [ ] Dashboard gerencial de asistencias
+- [ ] Vista empleados para consulta de asistencias propias
+- [ ] Reportes ejecutivos de ausentismo
+- [ ] Alertas automáticas para supervisores/RRHH
+- [ ] Exportación PDF de reportes con logos
 
 ## Seguridad
 - [ ] Unificar validación en `PermissionMiddleware` y retirar ramas legacy `$_SESSION['permissions']`.
 - [ ] Revisar endpoints AJAX para CSRF y permisos finos.
-- [ ] Validar CSRF en `AttendanceController::processDay`.
 
 ## Frontend
 - [ ] Extraer JS inline a módulos (balance/show) y reutilizar helpers.
