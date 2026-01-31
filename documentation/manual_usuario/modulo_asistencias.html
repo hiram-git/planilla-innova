@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Módulo de Asistencias - INNOVA Planillas 3.5.6</title>
+    <title>Módulo de Asistencias - INNOVA Planillas 3.5.19</title>
     <style>
         :root {
             --primary: #0f4c5c;
@@ -60,14 +60,47 @@
             padding-left: 20px;
             margin: 8px 0;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #eef2f6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #fff;
+            background: #28a745;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            margin: 12px 0;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <div class="header">
-            <h1>Módulo de Asistencias</h1>
-            <p>Dispositivos/API, sincronización, cálculo, ausencias y reportes.</p>
+            <h1>Módulo de Asistencias <span class="badge">v3.5.19</span></h1>
+            <p>Dispositivos/API, sincronización, cálculo, ausencias y reportes avanzados de marcaciones.</p>
         </div>
 
         <div class="card">
@@ -125,14 +158,109 @@
         </div>
 
         <div class="card">
-            <h2>6. Reportes de asistencia</h2>
+            <h2>6. Reportes de Marcaciones <span class="badge">NUEVO</span></h2>
+            <p>Sistema completo de reportes de asistencias disponible en <strong>Asistencia → Reportes → Marcaciones</strong> (<code>/panel/attendance/reports</code>).</p>
+
+            <h3>Formatos Disponibles</h3>
             <ul>
-                <li><strong>Punches Report:</strong> totales de marcaciones, a tiempo, tardanzas, ausencias, horas
-                    trabajadas y extras.</li>
-                <li>Top 10 tardanzas y detalle por departamento (ID, cédula, nombre, cargo, fecha, entrada, salida,
-                    horas, tardanza, estado).</li>
-                <li>Exportable a Excel; disponible en <em>Asistencia → Reportes → Marcaciones</em>.</li>
+                <li><strong>Vista Web:</strong> Reporte interactivo en pantalla con filtros dinámicos</li>
+                <li><strong>Exportación Excel:</strong> Archivo descargable con formato profesional</li>
+                <li><strong>API JSON:</strong> Endpoint para integración con otros sistemas</li>
             </ul>
+
+            <h3>Estadísticas Incluidas (8 Métricas)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Métrica</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Total Marcaciones</strong></td>
+                        <td>Cantidad total de registros de entrada/salida en el período</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Marcaciones a Tiempo</strong></td>
+                        <td>Empleados que cumplieron horario sin tardanzas</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tardanzas</strong></td>
+                        <td>Total de llegadas tarde registradas</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ausencias</strong></td>
+                        <td>Días sin marcaciones (justificadas y no justificadas)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Horas Trabajadas</strong></td>
+                        <td>Total de horas regulares laboradas</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Horas Extras 25%</strong></td>
+                        <td>Primeras 3 horas adicionales con recargo del 25%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Horas Extras 50%</strong></td>
+                        <td>Horas adicionales después de las primeras 3 con recargo del 50%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Score Puntualidad</strong></td>
+                        <td>Promedio general de puntualidad del período (0-100%)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Top 10 Tardanzas</h3>
+            <p>Ranking de los 10 empleados con mayores tardanzas en el período, incluyendo:</p>
+            <ul>
+                <li>Datos empleado: ID, Cédula, Nombre completo, Departamento, Cargo</li>
+                <li>Detalles tardanza: Fecha, Hora entrada programada, Hora entrada real</li>
+                <li>Métricas: Minutos de tardanza, Horas trabajadas, Estado (Justificada/No justificada)</li>
+            </ul>
+
+            <h3>Detalle por Departamento</h3>
+            <p>Desglose completo de marcaciones organizadas por estructura departamental con todas las columnas:</p>
+            <ul>
+                <li>ID Empleado, Cédula, Nombre, Cargo</li>
+                <li>Fecha de marcación</li>
+                <li>Entrada/Salida (horas reales vs programadas)</li>
+                <li>Horas trabajadas y minutos de tardanza</li>
+                <li>Estado (A tiempo, Tardanza, Ausencia)</li>
+            </ul>
+
+            <h3>Filtros Disponibles</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filtro</th>
+                        <th>Opciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Período</strong></td>
+                        <td>Fecha inicio y fecha fin (rango personalizado)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Departamento</strong></td>
+                        <td>Filtro por área organizacional específica</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Empleado</strong></td>
+                        <td>Búsqueda individual por código o nombre</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tipo Marcación</strong></td>
+                        <td>Todas, A tiempo, Tardanzas, Ausencias</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <strong>Acceso directo:</strong> Navegue a <em>Asistencia → Reportes → Marcaciones</em> o ingrese directamente a <code>/panel/attendance/reports</code>
+            </div>
         </div>
 
         <div class="card">
@@ -145,14 +273,73 @@
         </div>
 
         <div class="card">
-            <h2>8. Checklist</h2>
+            <h2>8. Integración con Planillas</h2>
+            <p>Los datos de asistencias se integran automáticamente con el módulo de planillas mediante:</p>
             <ul>
-                <li>Todos los empleados activos tienen horario y situación correcta.</li>
-                <li>Dispositivos y API con credenciales válidas y pruebas de conexión exitosas.</li>
-                <li>Calendario empresarial cargado (feriados/días especiales) para cálculos legales.</li>
-                <li>Antes de enviar a planilla, reprocesar el día si se ajustaron tolerancias u horarios.</li>
+                <li><strong>16 Funciones de Asistencias:</strong> Disponibles en el motor de fórmulas para conceptos</li>
+                <li><strong>Resumen por Período:</strong> Tabla <code>payroll_attendance_summary</code> con estadísticas consolidadas</li>
+                <li><strong>Regeneración Planillas:</strong> Al regenerar un empleado, se recalculan conceptos basados en asistencias</li>
+            </ul>
+
+            <h3>Funciones Principales para Fórmulas</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Función</th>
+                        <th>Descripción</th>
+                        <th>Ejemplo Uso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>HORAS_TRABAJADAS()</code></td>
+                        <td>Total horas regulares</td>
+                        <td>HORAS_TRABAJADAS() * TARIFA_HORA</td>
+                    </tr>
+                    <tr>
+                        <td><code>HORAS_EXTRAS_25()</code></td>
+                        <td>Horas extras al 25%</td>
+                        <td>HORAS_EXTRAS_25() * (SUELDO/220) * 1.25</td>
+                    </tr>
+                    <tr>
+                        <td><code>HORAS_EXTRAS_50()</code></td>
+                        <td>Horas extras al 50%</td>
+                        <td>HORAS_EXTRAS_50() * (SUELDO/220) * 1.50</td>
+                    </tr>
+                    <tr>
+                        <td><code>TARDANZAS()</code></td>
+                        <td>Minutos totales de tardanza</td>
+                        <td>TARDANZAS() / 60 * (SUELDO/220)</td>
+                    </tr>
+                    <tr>
+                        <td><code>SCORE_PUNTUALIDAD()</code></td>
+                        <td>Puntuación 0-100</td>
+                        <td>SI(SCORE_PUNTUALIDAD() >= 95, 100, 0)</td>
+                    </tr>
+                    <tr>
+                        <td><code>AUSENCIAS()</code></td>
+                        <td>Días sin marcación</td>
+                        <td>AUSENCIAS() * (SUELDO/30)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>9. Checklist de Operación</h2>
+            <ul>
+                <li>✓ Todos los empleados activos tienen horario y situación correcta.</li>
+                <li>✓ Dispositivos y API con credenciales válidas y pruebas de conexión exitosas.</li>
+                <li>✓ Calendario empresarial cargado (feriados/días especiales) para cálculos legales.</li>
+                <li>✓ Sincronización programada (cron) activa para importación automática cada 15 minutos.</li>
+                <li>✓ Antes de enviar a planilla, reprocesar el día si se ajustaron tolerancias u horarios.</li>
+                <li>✓ Revisar reportes de marcaciones antes del cierre de planilla para justificar ausencias.</li>
+                <li>✓ Validar top 10 tardanzas y gestionar excepciones antes de aplicar descuentos.</li>
+                <li>✓ Verificar integración con planillas: conceptos basados en asistencias calculan correctamente.</li>
             </ul>
         </div>
+
+        <div style="text-align:center;margin:30px 0;"><a href="manual_usuario.html" style="color:#0f4c5c;text-decoration:none;font-weight:600;">← Volver al índice principal</a></div>
     </div>
 </body>
 

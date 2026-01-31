@@ -25,13 +25,13 @@ class EmployeeFile extends Model
         $sql = "SELECT ef.*,
                        t.name AS type_name,
                        st.name AS subtype_name,
-                       COUNT(a.id) AS attachments_count
+                       (SELECT COUNT(*)
+                        FROM employee_file_attachments a
+                        WHERE a.employee_file_id = ef.id) AS attachments_count
                 FROM employee_files ef
                 INNER JOIN employee_file_types t ON ef.type_id = t.id
                 INNER JOIN employee_file_subtypes st ON ef.subtype_id = st.id
-                LEFT JOIN employee_file_attachments a ON a.employee_file_id = ef.id
                 WHERE ef.employee_id = ?
-                GROUP BY ef.id
                 ORDER BY ef.document_date DESC, ef.id DESC";
 
         return $this->db->findAll($sql, [$employeeId]);

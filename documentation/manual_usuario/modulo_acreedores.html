@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acreedores y Deducciones - INNOVA Planillas 3.5.6</title>
+    <title>Acreedores y Deducciones - INNOVA Planillas 3.5.19</title>
     <style>
         :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
         *{box-sizing:border-box;}
@@ -13,13 +13,20 @@
         h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
         .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
         ul,ol{padding-left:20px;margin:8px 0;}
+        .badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:12px;color:#fff;background:#28a745;}
+        .info-box{background:#e3f2fd;border-left:4px solid #2196f3;padding:12px;margin:12px 0;}
+        .warning-box{background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:12px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;}
+        th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;}
+        th{background:#eef2f6;}
+        code{background:#eef2f6;padding:2px 6px;border-radius:4px;font-size:90%;}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Acreedores y Deducciones</h1>
-            <p>Instituciones externas, deducciones por empleado y asignación masiva.</p>
+            <h1>Acreedores, Deducciones y Préstamos <span class="badge">v3.5.19</span></h1>
+            <p>Instituciones externas, deducciones por empleado, préstamos con tracking de cuotas y asignación masiva.</p>
         </div>
 
         <div class="card">
@@ -57,14 +64,182 @@
         </div>
 
         <div class="card">
-            <h2>5. Checklist</h2>
+            <h2>5. Sistema de Préstamos <span class="badge">NUEVO v3.5.17</span></h2>
+            <p>Módulo completo para gestionar préstamos a empleados con seguimiento automático de cuotas pagadas.</p>
+
+            <h3>Crear un Préstamo</h3>
+            <ol>
+                <li>Ir a <strong>Préstamos → Nuevo Préstamo</strong></li>
+                <li>Complete los campos requeridos:
+                    <ul>
+                        <li><strong>Empleado:</strong> Seleccione del dropdown</li>
+                        <li><strong>Monto Total:</strong> Valor del préstamo</li>
+                        <li><strong>Número de Cuotas:</strong> Cantidad de pagos a realizar</li>
+                        <li><strong>Monto Cuota:</strong> Se calcula automáticamente (Total ÷ Cuotas)</li>
+                        <li><strong>Acreedor (opcional):</strong> Si el préstamo proviene de institución externa</li>
+                        <li><strong>Fecha Inicio:</strong> Inicio del descuento en planillas</li>
+                        <li><strong>Descripción:</strong> Referencia o motivo del préstamo</li>
+                    </ul>
+                </li>
+                <li>Guarde el préstamo. Estado inicial: <strong>activo</strong></li>
+            </ol>
+
+            <h3>Estados del Préstamo</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Descripción</th>
+                        <th>Comportamiento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>activo</strong></td>
+                        <td>Préstamo vigente con cuotas pendientes</td>
+                        <td>Se descuenta automáticamente en cada planilla</td>
+                    </tr>
+                    <tr>
+                        <td><strong>pagado</strong></td>
+                        <td>Todas las cuotas han sido completadas</td>
+                        <td>NO se descuenta más en planillas. Estado final.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>cancelado</strong></td>
+                        <td>Préstamo cancelado manualmente</td>
+                        <td>NO se descuenta. Permanece en historial.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Tracking de Cuotas Automático</h3>
+            <p>El sistema rastrea automáticamente el progreso del préstamo:</p>
             <ul>
-                <li>Acreedor activo y con datos completos.</li>
-                <li>Deducción asociada al empleado con fechas vigentes.</li>
-                <li>Concepto configurado y probado usando <code>ACREEDOR</code> si aplica.</li>
-                <li>Para asignaciones masivas, revise la lista final antes de confirmar.</li>
+                <li><strong>Cuotas Pagadas:</strong> Se incrementa cada vez que se procesa una planilla</li>
+                <li><strong>Monto Pagado:</strong> Se acumula: Cuotas Pagadas × Monto Cuota</li>
+                <li><strong>Saldo Pendiente:</strong> Monto Total - Monto Pagado</li>
+                <li><strong>Cambio Automático a "pagado":</strong> Cuando Cuotas Pagadas = Número de Cuotas</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Integración con Planillas:</strong> Durante la regeneración de empleados, el sistema busca préstamos activos y aplica automáticamente la cuota. Al alcanzar el total de cuotas, marca el préstamo como "pagado".
+            </div>
+
+            <h3>Vista Completa de Préstamos</h3>
+            <p>La vista principal muestra todos los préstamos con columnas detalladas:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Información</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Empleado</td>
+                        <td>Nombre completo del empleado</td>
+                    </tr>
+                    <tr>
+                        <td>Monto Total</td>
+                        <td>Valor original del préstamo</td>
+                    </tr>
+                    <tr>
+                        <td>Cuotas</td>
+                        <td>Cuotas Pagadas / Total de Cuotas (ej: 5/12)</td>
+                    </tr>
+                    <tr>
+                        <td>Monto Cuota</td>
+                        <td>Valor de cada descuento mensual</td>
+                    </tr>
+                    <tr>
+                        <td>Monto Pagado</td>
+                        <td>Total abonado hasta el momento</td>
+                    </tr>
+                    <tr>
+                        <td>Saldo</td>
+                        <td>Monto pendiente por pagar</td>
+                    </tr>
+                    <tr>
+                        <td>Acreedor</td>
+                        <td>Institución si aplica (o vacío)</td>
+                    </tr>
+                    <tr>
+                        <td>Estado</td>
+                        <td>Badge visual: Activo (azul), Pagado (verde), Cancelado (rojo)</td>
+                    </tr>
+                    <tr>
+                        <td>Acciones</td>
+                        <td>Ver, Editar, Eliminar</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Filtros y Búsqueda</h3>
+            <ul>
+                <li><strong>Por Estado:</strong> Ver solo préstamos activos, pagados o cancelados</li>
+                <li><strong>Por Empleado:</strong> Búsqueda por nombre o código</li>
+                <li><strong>Por Acreedor:</strong> Filtrar por institución financiera</li>
+                <li><strong>DataTables:</strong> Búsqueda global, ordenamiento y paginación</li>
+            </ul>
+
+            <h3>Asociación con Acreedores</h3>
+            <p>Los préstamos pueden asociarse opcionalmente a un acreedor:</p>
+            <ul>
+                <li>Útil para préstamos bancarios o de instituciones financieras</li>
+                <li>Permite generar reportes agrupados por acreedor</li>
+                <li>Facilita conciliación de pagos externos</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>Importante:</strong> Una vez que un préstamo alcanza estado "pagado", no se puede reactivar. Si hubo un error, debe eliminar y crear uno nuevo.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>6. Casos de Uso Comunes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Escenario</th>
+                        <th>Configuración</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Préstamo empresa 12 cuotas</td>
+                        <td>Monto: $600, Cuotas: 12, Cuota: $50, Acreedor: (vacío)</td>
+                    </tr>
+                    <tr>
+                        <td>Préstamo banco asociado</td>
+                        <td>Monto: $5000, Cuotas: 24, Acreedor: "Banco Nacional"</td>
+                    </tr>
+                    <tr>
+                        <td>Adelanto salarial</td>
+                        <td>Monto: $200, Cuotas: 2, Descripción: "Adelanto quincenal"</td>
+                    </tr>
+                    <tr>
+                        <td>Préstamo emergencia</td>
+                        <td>Monto: $300, Cuotas: 3, Descripción: "Emergencia médica"</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>7. Checklist de Operación</h2>
+            <ul>
+                <li>✓ Acreedor activo y con datos completos (si aplica).</li>
+                <li>✓ Deducción asociada al empleado con fechas vigentes.</li>
+                <li>✓ Concepto configurado y probado usando <code>ACREEDOR</code> si aplica.</li>
+                <li>✓ Para asignaciones masivas, revise la lista final antes de confirmar.</li>
+                <li>✓ Préstamos: Verificar que el monto total sea divisible entre número de cuotas para evitar residuos.</li>
+                <li>✓ Revisar periódicamente préstamos cercanos a completarse para validación.</li>
+                <li>✓ Confirmar que préstamos marcados como "pagado" no aparezcan en planillas nuevas.</li>
+                <li>✓ Documentar externamente aprobaciones de préstamos para auditoría.</li>
             </ul>
         </div>
+
+        <div style="text-align:center;margin:30px 0;"><a href="manual_usuario.html" style="color:#0f4c5c;text-decoration:none;font-weight:600;">← Volver al índice principal</a></div>
     </div>
 </body>
 </html>

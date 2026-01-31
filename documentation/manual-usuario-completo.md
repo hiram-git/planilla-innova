@@ -2,7 +2,7 @@
 
 **Sistema de Planillas INNOVA - Guía Detallada de Funcionalidades**
 
-*Versión 3.3.0 - Actualizado Diciembre 2025*
+*Versión 3.5.19 - Actualizado Enero 2026*
 
 ---
 
@@ -13,18 +13,23 @@
 3. [Dashboard Principal](#3--dashboard-principal)
 4. [Gestión de Personal](#4--gestión-de-personal)
    - 4.1 [Empleados](#41-empleados)
-   - 4.2 [Horarios y Turnos](#42-horarios-y-turnos)
-   - 4.3 [Estructura Organizacional](#43-estructura-organizacional)
+   - 4.2 [Campos Adicionales Personalizados](#42-campos-adicionales-personalizados)
+   - 4.3 [Expedientes de Empleados](#43-expedientes-de-empleados)
+   - 4.4 [Horarios y Turnos](#44-horarios-y-turnos)
+   - 4.5 [Estructura Organizacional](#45-estructura-organizacional)
 5. [Control de Asistencia](#5--control-de-asistencia)
    - 5.1 [Gestión de Dispositivos](#51-gestión-de-dispositivos)
    - 5.2 [Sincronización de Datos](#52-sincronización-de-datos)
    - 5.3 [Gestión de Marcaciones](#53-gestión-de-marcaciones)
+   - 5.4 [Reportes de Marcaciones](#54-reportes-de-marcaciones)
 6. [Gestión de Vacaciones](#6--gestión-de-vacaciones)
    - 6.1 [Panel de Control](#61-panel-de-control)
    - 6.2 [Solicitudes y Aprobaciones](#62-solicitudes-y-aprobaciones)
    - 6.3 [Calendario de Vacaciones](#63-calendario-de-vacaciones)
 7. [Gestión de Conceptos](#7--gestión-de-conceptos)
-8. [Gestión de Acreedores](#8--gestión-de-acreedores)
+   - 7.1 [Conceptos Estándar](#71-conceptos-estándar)
+   - 7.2 [Conceptos Manuales por Empleado](#72-conceptos-manuales-por-empleado)
+8. [Gestión de Acreedores y Préstamos](#8--gestión-de-acreedores-y-préstamos)
 9. [Gestión de Planillas](#9--gestión-de-planillas)
 10. [Sistema de Liquidaciones](#10--sistema-de-liquidaciones)
 11. [Reportes y Consultas](#11--reportes-y-consultas)
@@ -34,7 +39,7 @@
 
 ## 1. 🎯 Introducción al Sistema
 
-El Sistema de Planillas INNOVA es una solución integral para la gestión de recursos humanos, nómina y asistencia. Esta versión 3.3.0 incorpora módulos avanzados para el control de vacaciones, integración con dispositivos biométricos y un motor de fórmulas optimizado.
+El Sistema de Planillas INNOVA es una solución integral para la gestión de recursos humanos, nómina y asistencia. Esta versión 3.5.19 incorpora módulos avanzados para el control de vacaciones, integración con dispositivos biométricos, campos personalizados por empleado, expedientes digitales, conceptos manuales y un motor de fórmulas optimizado con asignación dinámica.
 
 ---
 

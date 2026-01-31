@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Campos Adicionales - INNOVA Planillas 3.5.19</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;} th{background:#eef2f6;}
+        .badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:12px;color:#fff;background:#e67e22;}
+        .info-box{background:#e3f2fd;border-left:4px solid #2196f3;padding:12px;margin:12px 0;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Módulo de Campos Adicionales Personalizados <span class="badge">v3.5.19</span></h1>
+            <p>Gestión de campos dinámicos personalizados por empleado.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. ¿Qué son los Campos Adicionales?</h2>
+            <p>Sistema que permite crear campos personalizados para almacenar información específica de cada empleado que no está contemplada en los campos estándar del sistema.</p>
+            <div class="info-box">
+                <strong>Ejemplo de uso:</strong> Número de licencia de conducir, talla de uniforme, grupo sanguíneo, contacto de emergencia, certificación especial, etc.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>2. Tipos de Campos Disponibles</h2>
+            <table>
+                <thead><tr><th>Tipo</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>TEXTO</strong></td><td>Cadena de texto libre</td><td>Licencia de conducir, contacto emergencia</td></tr>
+                    <tr><td><strong>NUMERO</strong></td><td>Valores numéricos (enteros o decimales)</td><td>Número de hijos, años de experiencia</td></tr>
+                    <tr><td><strong>FECHA</strong></td><td>Fechas en formato calendario</td><td>Vencimiento certificación, próxima evaluación</td></tr>
+                    <tr><td><strong>BOOLEAN</strong></td><td>Sí/No (verdadero/falso)</td><td>¿Tiene vehículo?, ¿Maneja inglés?</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>3. Crear un Campo Adicional</h2>
+            <ol>
+                <li>Ir a <strong>Empleados → Campos Adicionales</strong>.</li>
+                <li>Click en <strong>+ Nuevo Campo</strong>.</li>
+                <li>Complete los campos requeridos:
+                    <ul>
+                        <li><strong>Nombre del campo:</strong> Identificador único (ej: "licencia_conducir").</li>
+                        <li><strong>Etiqueta:</strong> Nombre visible en formularios (ej: "Licencia de Conducir").</li>
+                        <li><strong>Tipo de dato:</strong> Seleccione TEXTO, NUMERO, FECHA o BOOLEAN.</li>
+                        <li><strong>Valor por defecto (opcional):</strong> Valor que se asignará automáticamente a nuevos empleados.</li>
+                        <li><strong>Obligatorio:</strong> Marcar si el campo es requerido.</li>
+                    </ul>
+                </li>
+                <li>Guarde el campo. Aparecerá automáticamente en los formularios de creación/edición de empleados.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>4. Asignar Valores a Empleados</h2>
+            <p>Los campos adicionales aparecen automáticamente en:</p>
+            <ul>
+                <li><strong>Crear Empleado:</strong> Sección "Campos Personalizados" al final del formulario.</li>
+                <li><strong>Editar Empleado:</strong> Misma sección con valores previamente guardados.</li>
+            </ul>
+            <p>Los valores se guardan automáticamente al guardar el empleado.</p>
+        </div>
+
+        <div class="card">
+            <h2>5. Administración de Campos</h2>
+            <h3>Listado de Campos</h3>
+            <p>Vista principal con tabla de todos los campos personalizados configurados:</p>
+            <ul>
+                <li>Búsqueda por nombre o etiqueta</li>
+                <li>Filtrado por tipo de dato</li>
+                <li>Paginación automática (DataTables)</li>
+            </ul>
+
+            <h3>Acciones Disponibles</h3>
+            <ul>
+                <li><strong>Ver:</strong> Muestra detalles completos del campo.</li>
+                <li><strong>Editar:</strong> Permite modificar nombre, etiqueta, valor por defecto.</li>
+                <li><strong>Eliminar:</strong> Borra el campo (requiere confirmación).</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Nota:</strong> Al eliminar un campo, se eliminan todos los valores asociados de todos los empleados.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>6. Validaciones y Restricciones</h2>
+            <table>
+                <thead><tr><th>Validación</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>Nombre único</td><td>No puede haber dos campos con el mismo nombre interno.</td></tr>
+                    <tr><td>Tipo no modificable</td><td>Una vez creado, el tipo de dato no se puede cambiar (previene inconsistencias).</td></tr>
+                    <tr><td>Formato fecha</td><td>Campos tipo FECHA validan formato YYYY-MM-DD automáticamente.</td></tr>
+                    <tr><td>Tipo numérico</td><td>Campos tipo NUMERO solo aceptan valores numéricos válidos.</td></tr>
+                    <tr><td>Boolean estricto</td><td>Campos tipo BOOLEAN solo aceptan 0/1 o true/false.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>7. Casos de Uso Comunes</h2>
+            <table>
+                <thead><tr><th>Caso de Uso</th><th>Tipo</th><th>Nombre</th><th>Etiqueta</th></tr></thead>
+                <tbody>
+                    <tr><td>Contacto emergencia</td><td>TEXTO</td><td>contacto_emergencia</td><td>Contacto de Emergencia</td></tr>
+                    <tr><td>Grupo sanguíneo</td><td>TEXTO</td><td>grupo_sanguineo</td><td>Grupo Sanguíneo</td></tr>
+                    <tr><td>Número de hijos</td><td>NUMERO</td><td>numero_hijos</td><td>Número de Hijos</td></tr>
+                    <tr><td>Talla de uniforme</td><td>TEXTO</td><td>talla_uniforme</td><td>Talla de Uniforme</td></tr>
+                    <tr><td>Vencimiento licencia</td><td>FECHA</td><td>venc_licencia</td><td>Vencimiento Licencia</td></tr>
+                    <tr><td>¿Tiene vehículo?</td><td>BOOLEAN</td><td>tiene_vehiculo</td><td>¿Posee Vehículo?</td></tr>
+                    <tr><td>Nivel de inglés</td><td>TEXTO</td><td>nivel_ingles</td><td>Nivel de Inglés</td></tr>
+                    <tr><td>Certificaciones</td><td>TEXTO</td><td>certificaciones</td><td>Certificaciones Profesionales</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>8. Checklist de Implementación</h2>
+            <ul>
+                <li>✓ Definir qué información adicional necesita capturar.</li>
+                <li>✓ Seleccionar el tipo de dato correcto para cada campo.</li>
+                <li>✓ Usar nombres descriptivos sin espacios (use guión bajo: _).</li>
+                <li>✓ Establecer valores por defecto cuando sea apropiado.</li>
+                <li>✓ Marcar como obligatorio solo campos críticos.</li>
+                <li>✓ Capacitar al personal de RRHH sobre los nuevos campos.</li>
+                <li>✓ Actualizar datos de empleados existentes si es necesario.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>9. Buenas Prácticas</h2>
+            <ul>
+                <li><strong>Nomenclatura clara:</strong> Use nombres_con_guion_bajo, en minúsculas.</li>
+                <li><strong>No duplicar información:</strong> No cree campos que ya existen en el sistema estándar.</li>
+                <li><strong>Tipos apropiados:</strong> Fechas para vencimientos, NUMERO para cantidades, BOOLEAN para Sí/No.</li>
+                <li><strong>Valores por defecto:</strong> Útiles para campos con respuesta común (ej: "No" en "¿Tiene vehículo?").</li>
+                <li><strong>Documentación interna:</strong> Mantenga un registro de qué representa cada campo adicional.</li>
+            </ul>
+        </div>
+
+        <div style="text-align:center;margin:30px 0;"><a href="manual_usuario.html" style="color:#0f4c5c;text-decoration:none;font-weight:600;">← Volver al índice principal</a></div>
+    </div>
+</body>
+</html>

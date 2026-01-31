@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Expedientes de Empleados - INNOVA Planillas 3.5.19</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;} th{background:#eef2f6;}
+        .badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:12px;color:#fff;background:#e67e22;}
+        .info-box{background:#e3f2fd;border-left:4px solid #2196f3;padding:12px;margin:12px 0;}
+        .category{background:#fff3cd;padding:8px;margin:6px 0;border-radius:4px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Módulo de Expedientes de Empleados <span class="badge">v3.5.16</span></h1>
+            <p>Gestión documental completa con 81 categorías organizadas.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. ¿Qué es el Módulo de Expedientes?</h2>
+            <p>Sistema de gestión documental que permite clasificar y organizar todos los documentos relacionados con cada empleado en categorías y subcategorías predefinidas.</p>
+            <div class="info-box">
+                <strong>Beneficios:</strong> Organización centralizada, acceso rápido, cumplimiento normativo y auditoría simplificada.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>2. Categorías Principales (13 Tipos)</h2>
+            <table>
+                <thead><tr><th>ID</th><th>Categoría</th><th>Subcategorías</th></tr></thead>
+                <tbody>
+                    <tr><td>1</td><td><strong>Estudios Académicos</strong></td><td>13 tipos</td></tr>
+                    <tr><td>2</td><td><strong>Capacitación y Desarrollo</strong></td><td>5 tipos</td></tr>
+                    <tr><td>3</td><td><strong>Permisos</strong></td><td>10 tipos</td></tr>
+                    <tr><td>4</td><td><strong>Licencias</strong></td><td>13 tipos</td></tr>
+                    <tr><td>5</td><td><strong>Certificaciones Profesionales</strong></td><td>6 tipos</td></tr>
+                    <tr><td>6</td><td><strong>Documentos Legales</strong></td><td>8 tipos</td></tr>
+                    <tr><td>7</td><td><strong>Evaluaciones de Desempeño</strong></td><td>4 tipos</td></tr>
+                    <tr><td>8</td><td><strong>Documentos Médicos</strong></td><td>6 tipos</td></tr>
+                    <tr><td>9</td><td><strong>Sanciones y Amonestaciones</strong></td><td>4 tipos</td></tr>
+                    <tr><td>10</td><td><strong>Reconocimientos y Premios</strong></td><td>3 tipos</td></tr>
+                    <tr><td>11</td><td><strong>Vacaciones</strong></td><td>3 tipos</td></tr>
+                    <tr><td>12</td><td><strong>Seguridad y Salud Ocupacional</strong></td><td>5 tipos</td></tr>
+                    <tr><td>13</td><td><strong>Otros Documentos</strong></td><td>1 tipo</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>3. Subcategorías Detalladas</h2>
+
+            <div class="category">
+                <h3>Estudios Académicos (13)</h3>
+                <p>Primaria, Secundaria, Bachillerato, Técnico, Universitario (Grado/Licenciatura), Especialización, Maestría, Doctorado, Post-Doctorado, Diplomado, Cursos de Idiomas, Certificación Técnica, Otros Estudios.</p>
+            </div>
+
+            <div class="category">
+                <h3>Capacitación y Desarrollo (5)</h3>
+                <p>Curso Interno, Curso Externo, Taller, Seminario, Conferencia.</p>
+            </div>
+
+            <div class="category">
+                <h3>Permisos (10)</h3>
+                <p>Personal, Médico, Familiar, Estudio, Trabajo Externo, Sindical, Duelo, Matrimonio, Paternidad/Maternidad, Otros Permisos.</p>
+            </div>
+
+            <div class="category">
+                <h3>Licencias (13)</h3>
+                <p>Licencia Médica, Sin Goce de Sueldo, Maternidad, Paternidad, Estudio, Personal, Pre-Natal, Post-Natal, Por Enfermedad Grave de Familiar, Por Duelo, Por Matrimonio, Sindical, Otras Licencias.</p>
+            </div>
+
+            <div class="category">
+                <h3>Certificaciones Profesionales (6)</h3>
+                <p>Certificación Técnica, Certificación Profesional, Licencia Profesional, Membresía Profesional, Acreditación, Otras Certificaciones.</p>
+            </div>
+
+            <div class="category">
+                <h3>Documentos Legales (8)</h3>
+                <p>Contrato de Trabajo, Adendas al Contrato, Terminación de Contrato, Acuerdos de Confidencialidad, Poderes, Autorizaciones, Consentimientos, Otros Documentos Legales.</p>
+            </div>
+
+            <div class="category">
+                <h3>Evaluaciones de Desempeño (4)</h3>
+                <p>Evaluación Anual, Evaluación Semestral, Evaluación Trimestral, Evaluación de Período de Prueba.</p>
+            </div>
+
+            <div class="category">
+                <h3>Documentos Médicos (6)</h3>
+                <p>Certificado Médico, Examen Pre-Empleo, Examen Periódico, Constancia de Incapacidad, Recetas Médicas, Otros Documentos Médicos.</p>
+            </div>
+
+            <div class="category">
+                <h3>Sanciones y Amonestaciones (4)</h3>
+                <p>Amonestación Verbal, Amonestación Escrita, Suspensión, Otras Sanciones.</p>
+            </div>
+
+            <div class="category">
+                <h3>Reconocimientos y Premios (3)</h3>
+                <p>Reconocimiento, Premio, Bono Especial.</p>
+            </div>
+
+            <div class="category">
+                <h3>Vacaciones (3)</h3>
+                <p>Solicitud de Vacaciones, Aprobación de Vacaciones, Comprobante de Pago de Vacaciones.</p>
+            </div>
+
+            <div class="category">
+                <h3>Seguridad y Salud Ocupacional (5)</h3>
+                <p>Capacitación en Seguridad, Reporte de Incidente, Reporte de Accidente, Equipo de Protección Personal (EPP), Otros Documentos SSO.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>4. Gestionar Expedientes</h2>
+            <ol>
+                <li>Ir a <strong>Empleados → Expedientes</strong> (Menu ID 26).</li>
+                <li>Seleccione un empleado del listado.</li>
+                <li>Click en <strong>Ver Expediente</strong> para acceder a su carpeta digital.</li>
+                <li>Para agregar un documento:
+                    <ul>
+                        <li>Click en <strong>+ Agregar Documento</strong>.</li>
+                        <li>Seleccione <strong>Tipo de Expediente</strong> (ej: Estudios Académicos).</li>
+                        <li>Seleccione <strong>Subtipo</strong> (ej: Maestría).</li>
+                        <li>Complete campos adicionales (título, institución, fecha, etc.).</li>
+                        <li>Adjunte el archivo digital (PDF, JPG, PNG, DOC).</li>
+                        <li>Guarde el registro.</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>5. Consulta y Búsqueda</h2>
+            <ul>
+                <li><strong>Búsqueda por empleado:</strong> Filtre por nombre, código o departamento.</li>
+                <li><strong>Filtro por tipo:</strong> Vea solo documentos de una categoría específica (ej: solo Licencias).</li>
+                <li><strong>Ordenamiento:</strong> Por fecha de emisión, tipo, o fecha de carga.</li>
+                <li><strong>Vista previa:</strong> Visualización rápida de documentos PDF desde el navegador.</li>
+                <li><strong>Descarga:</strong> Botón para descargar el archivo original.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>6. Casos de Uso Comunes</h2>
+            <table>
+                <thead><tr><th>Situación</th><th>Tipo</th><th>Subtipo</th></tr></thead>
+                <tbody>
+                    <tr><td>Empleado trae título universitario</td><td>Estudios Académicos</td><td>Universitario</td></tr>
+                    <tr><td>Solicitud de permiso personal</td><td>Permisos</td><td>Personal</td></tr>
+                    <tr><td>Certificado médico por enfermedad</td><td>Documentos Médicos</td><td>Certificado Médico</td></tr>
+                    <tr><td>Constancia de curso de capacitación</td><td>Capacitación y Desarrollo</td><td>Curso Externo</td></tr>
+                    <tr><td>Evaluación anual completada</td><td>Evaluaciones de Desempeño</td><td>Evaluación Anual</td></tr>
+                    <tr><td>Licencia profesional renovada</td><td>Certificaciones Profesionales</td><td>Licencia Profesional</td></tr>
+                    <tr><td>Amonestación por tardanzas</td><td>Sanciones y Amonestaciones</td><td>Amonestación Escrita</td></tr>
+                    <tr><td>Reconocimiento empleado del mes</td><td>Reconocimientos y Premios</td><td>Reconocimiento</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>7. Buenas Prácticas</h2>
+            <ul>
+                <li><strong>Digitalización:</strong> Escanee todos los documentos físicos importantes.</li>
+                <li><strong>Nomenclatura:</strong> Use nombres descriptivos para archivos (ej: "Titulo_Maestria_JuanPerez_2023.pdf").</li>
+                <li><strong>Calidad:</strong> Escaneos legibles a mínimo 300 DPI.</li>
+                <li><strong>Actualización:</strong> Mantenga expedientes actualizados con documentos recientes.</li>
+                <li><strong>Seguridad:</strong> Solo personal autorizado debe acceder a documentos sensibles.</li>
+                <li><strong>Respaldo:</strong> Configure backups automáticos de la carpeta de expedientes.</li>
+                <li><strong>Retención:</strong> Establezca políticas de retención según legislación laboral local.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>8. Checklist de Implementación</h2>
+            <ul>
+                <li>✓ Digitalizar expedientes físicos existentes.</li>
+                <li>✓ Capacitar al personal de RRHH en el uso del módulo.</li>
+                <li>✓ Establecer protocolo de nomenclatura de archivos.</li>
+                <li>✓ Definir niveles de acceso por rol.</li>
+                <li>✓ Configurar almacenamiento seguro con backups.</li>
+                <li>✓ Crear calendario de revisión periódica de documentos vencidos.</li>
+                <li>✓ Documentar procedimiento interno de carga y gestión.</li>
+            </ul>
+        </div>
+
+        <div style="text-align:center;margin:30px 0;"><a href="manual_usuario.html" style="color:#0f4c5c;text-decoration:none;font-weight:600;">← Volver al índice principal</a></div>
+    </div>
+</body>
+</html>
