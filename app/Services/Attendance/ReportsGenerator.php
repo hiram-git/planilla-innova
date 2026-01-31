@@ -744,6 +744,22 @@ class ReportsGenerator
         // Agregar ausencias
         foreach ($absencesReport['by_employee'] ?? [] as $empData) {
             $empId = $empData['employee_id'];
+
+            // Contar ausencias injustificadas validando existencia de claves
+            $unjustifiedCount = 0;
+            foreach ($empData['absences'] as $absence) {
+                // Si tiene absence_type, usar ese campo
+                if (isset($absence['absence_type']) && $absence['absence_type'] === 'UNJUSTIFIED') {
+                    $unjustifiedCount++;
+                }
+                // Si no tiene absence_type, usar status y justification_type (nueva estructura)
+                elseif (!isset($absence['absence_type'])) {
+                    if ($absence['status'] !== 'JUSTIFIED' && empty($absence['justification_type'])) {
+                        $unjustifiedCount++;
+                    }
+                }
+            }
+
             $employeesMap[$empId] = [
                 'employee_id' => $empId,
                 'employee_code' => $empData['employee_code'],
@@ -752,7 +768,7 @@ class ReportsGenerator
                 'departamento' => $empData['departamento'],
                 'position_name' => $empData['position_name'],
                 'total_absences' => count($empData['absences']),
-                'unjustified_absences' => count(array_filter($empData['absences'], fn($a) => $a['absence_type'] === 'UNJUSTIFIED')),
+                'unjustified_absences' => $unjustifiedCount,
                 'total_tardiness' => 0,
                 'total_tardiness_minutes' => 0,
                 'performance_score' => 100
