@@ -56,6 +56,7 @@ class App
                     'employee-files' => ['controller' => 'EmployeeFileController', 'method' => null],
                     'employee-documents' => ['controller' => 'EmployeeDocumentController', 'method' => null],
                     'additional-fields' => ['controller' => 'EmployeeAdditionalFieldController', 'method' => null],
+                    'overtime-approvals' => ['controller' => 'OvertimeApprovalController', 'method' => null],
                     'positions' => ['controller' => 'Position', 'method' => null],
                     'cargos' => ['controller' => 'Cargo', 'method' => null],
                     'partidas' => ['controller' => 'Partida', 'method' => null],
@@ -223,6 +224,7 @@ class App
 
                             // Rutas GET para attendance
                             if ($httpMethod === 'GET') {
+
                                 // ✅ REPORTES: Manejo prioritario antes de sync/detail
                                 if ($url[2] === 'reports' && method_exists($this->controller, 'reports')) {
                                     // GET: /panel/attendance/reports - Vista principal de reportes
