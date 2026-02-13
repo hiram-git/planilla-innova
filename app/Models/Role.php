@@ -296,7 +296,7 @@ class Role extends Model
     private function getValidMenuIds()
     {
         try {
-            $sql = "SELECT id FROM menu_items WHERE status = 1";
+            $sql = "SELECT id FROM menu_items";
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
 
