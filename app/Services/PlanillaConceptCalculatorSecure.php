@@ -213,6 +213,41 @@ class PlanillaConceptCalculatorSecure
             return $h25 + $h50;
         }, 0);
 
+        // ✅ Horas extras APROBADAS al 25% (solo si empleado permite horas extras)
+        $this->executor->addFunction('HORAS_EXTRAS_APROBADAS_25', function () {
+            if (!$this->empleadoPermiteHorasExtras()) {
+                return 0;
+            }
+            return $this->obtenerDatoAsistencia('approved_overtime_hours_25');
+        }, 0);
+
+        // ✅ Horas extras APROBADAS al 50% (solo si empleado permite horas extras)
+        $this->executor->addFunction('HORAS_EXTRAS_APROBADAS_50', function () {
+            if (!$this->empleadoPermiteHorasExtras()) {
+                return 0;
+            }
+            return $this->obtenerDatoAsistencia('approved_overtime_hours_50');
+        }, 0);
+
+        // ✅ Total horas extras APROBADAS (25% + 50%) (solo si empleado permite horas extras)
+        $this->executor->addFunction('HORAS_EXTRAS_APROBADAS', function () {
+            if (!$this->empleadoPermiteHorasExtras()) {
+                return 0;
+            }
+            $h25 = $this->obtenerDatoAsistencia('approved_overtime_hours_25');
+            $h50 = $this->obtenerDatoAsistencia('approved_overtime_hours_50');
+            return $h25 + $h50;
+        }, 0);
+
+        // ✅ Cantidad de registros de horas extras APROBADAS (solo si empleado permite horas extras)
+        // Cuenta cuántos días/registros tienen horas extras aprobadas en el período
+        $this->executor->addFunction('CANTIDAD_HORAS_EXTRAS_APROBADAS', function () {
+            if (!$this->empleadoPermiteHorasExtras()) {
+                return 0;
+            }
+            return $this->obtenerDatoAsistencia('approved_overtime_count');
+        }, 0);
+
         // Horas nocturnas (6PM-6AM)
         $this->executor->addFunction('HORAS_NOCTURNAS', function () {
             return $this->obtenerDatoAsistencia('night_hours');
@@ -1106,6 +1141,10 @@ class PlanillaConceptCalculatorSecure
             'night_hours' => 'SUM(night_hours)',
             'holiday_hours' => 'SUM(holiday_hours)',
 
+            // ✅ Horas extras APROBADAS (solo con overtime_status = 'APPROVED')
+            'approved_overtime_hours_25' => 'SUM(CASE WHEN overtime_status = \'APPROVED\' THEN overtime_25_hours ELSE 0 END)',
+            'approved_overtime_hours_50' => 'SUM(CASE WHEN overtime_status = \'APPROVED\' THEN overtime_50_hours ELSE 0 END)',
+
             // Tardanzas (SUM de minutos)
             'total_tardiness_minutes' => 'SUM(tardiness_minutes)',
 
@@ -1118,6 +1157,7 @@ class PlanillaConceptCalculatorSecure
             'tardiness_count' => 'COUNT(*) WHERE is_late = 1',
             'perfect_attendance_days' => 'COUNT(*) WHERE is_perfect_attendance = 1',
             'total_days_worked' => 'COUNT(*) WHERE is_absent = 0',
+            'approved_overtime_count' => 'COUNT(*) WHERE overtime_status = \'APPROVED\' AND (overtime_25_hours > 0 OR overtime_50_hours > 0)',
         ];
 
         // Campos que requieren query especial

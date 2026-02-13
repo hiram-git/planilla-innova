@@ -20,10 +20,9 @@ class OvertimeApprovalHistory extends Model
     public $table = 'overtime_approval_history';
 
     public $fillable = [
-        'approval_id', 'action', 'performed_by',
+        'approval_id', 'user_id', 'action',
         'previous_status', 'new_status',
-        'comments', 'changes_summary',
-        'ip_address', 'user_agent'
+        'comments', 'ip_address', 'user_agent'
     ];
 
     /**
@@ -43,17 +42,17 @@ class OvertimeApprovalHistory extends Model
      *
      * @param int $approvalId ID de la solicitud
      * @param string $action Acción realizada
-     * @param int $performedBy ID del usuario
+     * @param int $userId ID del usuario
      * @param string|null $previousStatus Estado anterior
      * @param string|null $newStatus Nuevo estado
      * @param string|null $comments Comentarios
-     * @param string|null $changesSummary Resumen de cambios
+     * @param string|null $changesSummary Resumen de cambios (legacy, ignorado)
      * @return int|false ID del registro o false en error
      */
     public function logAction(
         int $approvalId,
         string $action,
-        int $performedBy,
+        int $userId,
         ?string $previousStatus = null,
         ?string $newStatus = null,
         ?string $comments = null,
@@ -63,11 +62,10 @@ class OvertimeApprovalHistory extends Model
             $data = [
                 'approval_id' => $approvalId,
                 'action' => $action,
-                'performed_by' => $performedBy,
+                'user_id' => $userId,
                 'previous_status' => $previousStatus,
-                'new_status' => $newStatus,
+                'new_status' => $newStatus ?? $previousStatus ?? 'PENDIENTE',
                 'comments' => $comments,
-                'changes_summary' => $changesSummary,
                 'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null
             ];
@@ -95,7 +93,7 @@ class OvertimeApprovalHistory extends Model
                         a.lastname,
                         CONCAT(a.firstname, ' ', a.lastname) as performed_by_name
                     FROM {$this->table} h
-                    LEFT JOIN admin a ON h.performed_by = a.id
+                    LEFT JOIN admin a ON h.user_id = a.id
                     WHERE h.approval_id = ?
                     ORDER BY h.created_at DESC";
 
@@ -127,7 +125,7 @@ class OvertimeApprovalHistory extends Model
                         DATE_FORMAT(h.created_at, '%d/%m/%Y %H:%i:%s') as formatted_date,
                         DATE_FORMAT(h.created_at, '%H:%i:%s') as formatted_time
                     FROM {$this->table} h
-                    LEFT JOIN admin a ON h.performed_by = a.id
+                    LEFT JOIN admin a ON h.user_id = a.id
                     WHERE h.approval_id = ?
                     ORDER BY h.created_at DESC";
 
@@ -160,7 +158,7 @@ class OvertimeApprovalHistory extends Model
                     FROM {$this->table} h
                     INNER JOIN overtime_approvals oa ON h.approval_id = oa.id
                     INNER JOIN employees e ON oa.employee_id = e.id
-                    WHERE h.performed_by = ?
+                    WHERE h.user_id = ?
                     ORDER BY h.created_at DESC
                     LIMIT ?";
 
@@ -216,7 +214,7 @@ class OvertimeApprovalHistory extends Model
                         a.lastname,
                         CONCAT(a.firstname, ' ', a.lastname) as performed_by_name
                     FROM {$this->table} h
-                    LEFT JOIN admin a ON h.performed_by = a.id
+                    LEFT JOIN admin a ON h.user_id = a.id
                     WHERE h.approval_id = ?
                     ORDER BY h.created_at DESC
                     LIMIT 1";
@@ -246,7 +244,7 @@ class OvertimeApprovalHistory extends Model
             $sql = "SELECT
                         h.id,
                         h.action,
-                        h.performed_by,
+                        h.user_id as performed_by,
                         CONCAT(a.firstname, ' ', a.lastname) as performed_by_name,
                         h.previous_status,
                         h.new_status,
@@ -256,7 +254,7 @@ class OvertimeApprovalHistory extends Model
                         DATE_FORMAT(h.created_at, '%H:%i') as time,
                         TIMESTAMPDIFF(MINUTE, h.created_at, NOW()) as minutes_ago
                     FROM {$this->table} h
-                    LEFT JOIN admin a ON h.performed_by = a.id
+                    LEFT JOIN admin a ON h.user_id = a.id
                     WHERE h.approval_id = ?
                     ORDER BY h.created_at ASC";
 
@@ -285,7 +283,7 @@ class OvertimeApprovalHistory extends Model
                         a.firstname,
                         a.lastname
                     FROM {$this->table} h
-                    LEFT JOIN admin a ON h.performed_by = a.id
+                    LEFT JOIN admin a ON h.user_id = a.id
                     WHERE h.approval_id = ?
                       AND h.action = ?
                     ORDER BY h.created_at DESC

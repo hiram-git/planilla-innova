@@ -119,6 +119,7 @@ class OvertimeApprovalService
                     // Crear solicitud de aprobación
                     $approvalData = [
                         'employee_id' => $record['employee_id'],
+                        'approver_id' => $approverId,
                         'period_start' => $date,
                         'period_end' => $date,
                         'total_overtime_25' => $record['overtime_25_hours'],
@@ -126,12 +127,9 @@ class OvertimeApprovalService
                         'total_hours' => $record['total_overtime'],
                         'hourly_rate' => $hourlyRate,
                         'total_amount' => $totalAmount,
-                        'approval_level' => 1,
-                        'requires_two_levels' => 0, // Por ahora solo 1 nivel
-                        'current_approver_id' => $approverId,
                         'status' => OvertimeApproval::STATUS_PENDING,
-                        'notes' => "Solicitud generada automáticamente desde attendance_calculations",
-                        'created_by' => null // Sistema
+                        'approval_level' => 1,
+                        'comments' => "Solicitud generada automáticamente desde attendance_calculations"
                     ];
 
                     $approvalId = $this->approvalModel->create($approvalData);
@@ -185,7 +183,7 @@ class OvertimeApprovalService
     }
 
     /**
-     * Aprobar solicitud (Nivel 1 o Nivel 2)
+     * Aprobar solicitud
      *
      * @param int $approvalId ID de la solicitud
      * @param int $approverId ID del aprobador
@@ -206,7 +204,7 @@ class OvertimeApprovalService
             }
 
             // Validar que el aprobador sea el asignado
-            if ($approval['current_approver_id'] != $approverId) {
+            if ($approval['approver_id'] != $approverId) {
                 throw new Exception("No tiene permisos para aprobar esta solicitud");
             }
 
@@ -219,52 +217,14 @@ class OvertimeApprovalService
             }
 
             $previousStatus = $approval['status'];
-            $currentLevel = $approval['approval_level'];
-
-            // Actualizar según nivel
-            if ($currentLevel == 1) {
-                // Aprobación Nivel 1 (Supervisor)
-                $updateData = [
-                    'approved_by_level_1' => $approverId,
-                    'approved_at_level_1' => date('Y-m-d H:i:s'),
-                    'comments_level_1' => $comments
-                ];
-
-                // Determinar si requiere segundo nivel
-                if ($approval['requires_two_levels'] == 1) {
-                    // Avanzar a Nivel 2
-                    $updateData['approval_level'] = 2;
-                    $updateData['status'] = OvertimeApproval::STATUS_IN_REVIEW;
-                    $updateData['current_approver_id'] = $this->getLevel2Approver($approval['employee_id']);
-
-                    $newStatus = OvertimeApproval::STATUS_IN_REVIEW;
-                    $historyAction = OvertimeApprovalHistory::ACTION_APPROVED_L1;
-                } else {
-                    // Aprobación final en Nivel 1
-                    $updateData['status'] = OvertimeApproval::STATUS_APPROVED;
-                    $updateData['current_approver_id'] = null;
-
-                    $newStatus = OvertimeApproval::STATUS_APPROVED;
-                    $historyAction = OvertimeApprovalHistory::ACTION_APPROVED_FINAL;
-                }
-
-            } elseif ($currentLevel == 2) {
-                // Aprobación Nivel 2 (Gerente)
-                $updateData = [
-                    'approved_by_level_2' => $approverId,
-                    'approved_at_level_2' => date('Y-m-d H:i:s'),
-                    'comments_level_2' => $comments,
-                    'status' => OvertimeApproval::STATUS_APPROVED,
-                    'current_approver_id' => null
-                ];
-
-                $newStatus = OvertimeApproval::STATUS_APPROVED;
-                $historyAction = OvertimeApprovalHistory::ACTION_APPROVED_FINAL;
-            } else {
-                throw new Exception("Nivel de aprobación inválido");
-            }
 
             // Actualizar solicitud
+            $updateData = [
+                'status' => OvertimeApproval::STATUS_APPROVED,
+                'approved_at' => date('Y-m-d H:i:s'),
+                'comments' => $comments
+            ];
+
             $updated = $this->approvalModel->update($approvalId, $updateData);
 
             if (!$updated) {
@@ -274,12 +234,11 @@ class OvertimeApprovalService
             // Registrar en historial
             $this->historyModel->logAction(
                 $approvalId,
-                $historyAction,
+                OvertimeApprovalHistory::ACTION_APPROVED_FINAL,
                 $approverId,
                 $previousStatus,
-                $newStatus,
-                $comments,
-                "Aprobado en nivel {$currentLevel}"
+                OvertimeApproval::STATUS_APPROVED,
+                $comments
             );
 
             $this->db->commit();
@@ -314,7 +273,7 @@ class OvertimeApprovalService
             }
 
             // Validar que el rechazador sea el aprobador asignado
-            if ($approval['current_approver_id'] != $rejectorId) {
+            if ($approval['approver_id'] != $rejectorId) {
                 throw new Exception("No tiene permisos para rechazar esta solicitud");
             }
 
@@ -327,16 +286,12 @@ class OvertimeApprovalService
             }
 
             $previousStatus = $approval['status'];
-            $currentLevel = $approval['approval_level'];
 
             // Actualizar solicitud
             $updateData = [
                 'status' => OvertimeApproval::STATUS_REJECTED,
-                'rejected_by' => $rejectorId,
-                'rejected_at' => date('Y-m-d H:i:s'),
-                'rejection_reason' => $reason,
-                'rejection_level' => "NIVEL_{$currentLevel}",
-                'current_approver_id' => null
+                'approved_at' => date('Y-m-d H:i:s'),
+                'rejection_reason' => $reason
             ];
 
             $updated = $this->approvalModel->update($approvalId, $updateData);
@@ -352,8 +307,7 @@ class OvertimeApprovalService
                 $rejectorId,
                 $previousStatus,
                 OvertimeApproval::STATUS_REJECTED,
-                $reason,
-                "Rechazado en nivel {$currentLevel}"
+                $reason
             );
 
             $this->db->commit();
@@ -379,6 +333,217 @@ class OvertimeApprovalService
         } catch (Exception $e) {
             error_log("Error obteniendo cola de aprobaciones: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Obtener registros diarios de horas extras desde attendance_calculations
+     *
+     * @param array $filters Filtros opcionales (employee_id, date_from, date_to, status)
+     * @return array Array de registros diarios con detalles del empleado
+     */
+    public function getDailyOvertimeRecords(array $filters = []): array
+    {
+        try {
+            // Verificar qué campo de salario existe
+            $checkColumnSql = "SHOW COLUMNS FROM employees LIKE 'sueldo'";
+            $stmt = $this->db->prepare($checkColumnSql);
+            $stmt->execute();
+            $hasSueldoField = $stmt->rowCount() > 0;
+            $salaryField = $hasSueldoField ? 'e.sueldo' : 'e.sueldo_individual';
+
+            $sql = "SELECT
+                        ac.id,
+                        ac.employee_id,
+                        e.employee_id as employee_code,
+                        CONCAT(e.firstname, ' ', e.lastname) as employee_name,
+                        s.nombre as schedule_name,
+                        ac.date,
+                        ac.time_in,
+                        ac.time_out,
+                        ac.total_hours,
+                        ac.regular_hours,
+                        ac.overtime_hours,
+                        ac.overtime_25_hours,
+                        ac.overtime_50_hours,
+                        ac.overtime_status,
+                        ac.overtime_approved_by,
+                        ac.overtime_approved_at,
+                        ac.overtime_rejection_reason,
+                        ac.overtime_notes,
+                        CONCAT(a.firstname, ' ', a.lastname) as approved_by_name,
+                        {$salaryField} as base_salary
+                    FROM attendance_calculations ac
+                    INNER JOIN employees e ON ac.employee_id = e.id
+                    LEFT JOIN schedules s ON ac.schedule_id = s.id
+                    LEFT JOIN admin a ON ac.overtime_approved_by = a.id
+                    WHERE (ac.overtime_25_hours > 0 OR ac.overtime_50_hours > 0)";
+
+            $params = [];
+
+            // Filtrar por empleado
+            if (!empty($filters['employee_id'])) {
+                $sql .= " AND ac.employee_id = ?";
+                $params[] = $filters['employee_id'];
+            }
+
+            // Filtrar por rango de fechas
+            if (!empty($filters['date_from'])) {
+                $sql .= " AND ac.date >= ?";
+                $params[] = $filters['date_from'];
+            }
+
+            if (!empty($filters['date_to'])) {
+                $sql .= " AND ac.date <= ?";
+                $params[] = $filters['date_to'];
+            }
+
+            // Filtrar por estado
+            if (!empty($filters['status'])) {
+                $sql .= " AND ac.overtime_status = ?";
+                $params[] = $filters['status'];
+            }
+
+            $sql .= " ORDER BY ac.date DESC, e.lastname ASC, e.firstname ASC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Calcular montos para cada registro
+            foreach ($records as &$record) {
+                $hourlyRate = $record['base_salary'] / 220;
+                $record['hourly_rate'] = $hourlyRate;
+                $record['amount_25'] = $record['overtime_25_hours'] * $hourlyRate * 1.25;
+                $record['amount_50'] = $record['overtime_50_hours'] * $hourlyRate * 1.50;
+                $record['total_amount'] = $record['amount_25'] + $record['amount_50'];
+            }
+
+            return $records;
+
+        } catch (PDOException $e) {
+            error_log("Error obteniendo registros diarios: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener estadísticas de registros pendientes
+     *
+     * @param array $filters Filtros opcionales
+     * @return array Array con totales
+     */
+    public function getDailyOvertimeStats(array $filters = []): array
+    {
+        try {
+            $sql = "SELECT
+                        COUNT(*) as total_records,
+                        SUM(ac.overtime_25_hours) as total_overtime_25,
+                        SUM(ac.overtime_50_hours) as total_overtime_50,
+                        SUM(ac.overtime_hours) as total_hours
+                    FROM attendance_calculations ac
+                    INNER JOIN employees e ON ac.employee_id = e.id
+                    WHERE (ac.overtime_25_hours > 0 OR ac.overtime_50_hours > 0)";
+
+            $params = [];
+
+            if (!empty($filters['employee_id'])) {
+                $sql .= " AND ac.employee_id = ?";
+                $params[] = $filters['employee_id'];
+            }
+
+            if (!empty($filters['date_from'])) {
+                $sql .= " AND ac.date >= ?";
+                $params[] = $filters['date_from'];
+            }
+
+            if (!empty($filters['date_to'])) {
+                $sql .= " AND ac.date <= ?";
+                $params[] = $filters['date_to'];
+            }
+
+            if (!empty($filters['status'])) {
+                $sql .= " AND ac.overtime_status = ?";
+                $params[] = $filters['status'];
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return [
+                'total_records' => (int)($result['total_records'] ?? 0),
+                'total_hours' => (float)($result['total_hours'] ?? 0),
+                'total_overtime_25' => (float)($result['total_overtime_25'] ?? 0),
+                'total_overtime_50' => (float)($result['total_overtime_50'] ?? 0)
+            ];
+
+        } catch (PDOException $e) {
+            error_log("Error obteniendo estadísticas diarias: " . $e->getMessage());
+            return [
+                'total_records' => 0,
+                'total_hours' => 0,
+                'total_overtime_25' => 0,
+                'total_overtime_50' => 0
+            ];
+        }
+    }
+
+    /**
+     * Aprobar registro diario de horas extras
+     *
+     * @param int $calculationId ID del registro en attendance_calculations
+     * @param int $approverId ID del aprobador
+     * @param string|null $notes Notas adicionales
+     * @return bool True si se aprobó correctamente
+     */
+    public function approveDailyRecord(int $calculationId, int $approverId, ?string $notes = null): bool
+    {
+        try {
+            $sql = "UPDATE attendance_calculations
+                    SET overtime_status = 'APPROVED',
+                        overtime_approved_by = ?,
+                        overtime_approved_at = NOW(),
+                        overtime_notes = ?
+                    WHERE id = ?
+                      AND overtime_status = 'PENDING'
+                      AND (overtime_25_hours > 0 OR overtime_50_hours > 0)";
+
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$approverId, $notes, $calculationId]);
+
+        } catch (PDOException $e) {
+            error_log("Error aprobando registro diario: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Rechazar registro diario de horas extras
+     *
+     * @param int $calculationId ID del registro en attendance_calculations
+     * @param int $rejectorId ID del usuario que rechaza
+     * @param string $reason Razón del rechazo
+     * @return bool True si se rechazó correctamente
+     */
+    public function rejectDailyRecord(int $calculationId, int $rejectorId, string $reason): bool
+    {
+        try {
+            $sql = "UPDATE attendance_calculations
+                    SET overtime_status = 'REJECTED',
+                        overtime_approved_by = ?,
+                        overtime_approved_at = NOW(),
+                        overtime_rejection_reason = ?
+                    WHERE id = ?
+                      AND overtime_status = 'PENDING'
+                      AND (overtime_25_hours > 0 OR overtime_50_hours > 0)";
+
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$rejectorId, $reason, $calculationId]);
+
+        } catch (PDOException $e) {
+            error_log("Error rechazando registro diario: " . $e->getMessage());
+            return false;
         }
     }
 

@@ -4,7 +4,8 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
-use App\Services\Attendance\OvertimeApprovalService;
+use App\Services\Attendance\OvertimeApprovalService as AttendanceOvertimeService;
+use App\Services\OvertimeApprovalService;
 use App\Models\OvertimeApproval;
 use App\Models\OvertimeApprovalHistory;
 
@@ -19,7 +20,8 @@ use App\Models\OvertimeApprovalHistory;
  */
 class OvertimeApprovalController extends Controller
 {
-    private OvertimeApprovalService $service;
+    private AttendanceOvertimeService $service;
+    private OvertimeApprovalService $generatorService;
     private OvertimeApproval $approvalModel;
     private OvertimeApprovalHistory $historyModel;
 
@@ -29,47 +31,62 @@ class OvertimeApprovalController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->service = new OvertimeApprovalService();
+        // La autenticación se maneja por el middleware en App.php (checkRoutePermissions)
+        $this->service = new AttendanceOvertimeService();
+        $this->generatorService = new OvertimeApprovalService();
         $this->approvalModel = new OvertimeApproval();
         $this->historyModel = new OvertimeApprovalHistory();
     }
 
     /**
-     * Índice principal - Listado de solicitudes
+     * Índice principal - Listado de solicitudes diarias
      *
      * GET /overtime-approvals
      */
     public function index()
     {
-        error_log("=== OvertimeApprovalController::index() called ===");
+        // Usar $_SESSION['admin'] que es el ID del usuario
+        $userId = $_SESSION['admin'] ?? null;
 
-        $userId = $_SESSION['admin_id'] ?? 1; // Default a 1 si no hay sesión
-        error_log("User ID: " . $userId);
+        if (!$userId) {
+            error_log("OvertimeApprovalController::index - No admin in session");
+            $this->redirect('/panel/login');
+            return;
+        }
 
-        // Obtener dashboard del aprobador
+        // Obtener estadísticas de registros pendientes y aprobados
         try {
-            $dashboardData = $this->service->getApproverDashboard($userId);
-            error_log("Dashboard data retrieved successfully");
+            $pendingStats = $this->service->getDailyOvertimeStats(['status' => 'PENDING']);
+            $approvedStats = $this->service->getDailyOvertimeStats(['status' => 'APPROVED']);
         } catch (\Exception $e) {
-            error_log("Error getting dashboard data: " . $e->getMessage());
-            // Si falla, usar datos vacíos
-            $dashboardData = [
-                'pending_count' => 0,
-                'pending_totals' => ['total_hours' => 0, 'total_amount' => 0]
+            error_log("Error getting stats: " . $e->getMessage());
+            $pendingStats = [
+                'total_records' => 0,
+                'total_hours' => 0,
+                'total_overtime_25' => 0,
+                'total_overtime_50' => 0
+            ];
+            $approvedStats = [
+                'total_records' => 0,
+                'total_hours' => 0,
+                'total_overtime_25' => 0,
+                'total_overtime_50' => 0
             ];
         }
 
-        // Renderizar vista
-        error_log("Rendering view: admin/overtime_approvals/index");
-        $this->render('admin/overtime_approvals/index', [
+        $data = [
             'title' => 'Aprobación de Horas Extras',
-            'pending_count' => $dashboardData['pending_count'],
-            'pending_totals' => $dashboardData['pending_totals']
-        ]);
+            'page_title' => 'Aprobación de Horas Extras - Registros Diarios',
+            'pending_stats' => $pendingStats,
+            'approved_stats' => $approvedStats,
+            'csrf_token' => \App\Core\Security::generateToken()
+        ];
+
+        $this->render('admin/overtime_approvals/index', $data);
     }
 
     /**
-     * Obtener solicitudes pendientes para DataTables (AJAX)
+     * Obtener registros diarios para DataTables (AJAX)
      *
      * GET /overtime-approvals/pending-data
      */
@@ -78,32 +95,64 @@ class OvertimeApprovalController extends Controller
         header('Content-Type: application/json');
 
         try {
-            $userId = $_SESSION['admin_id'] ?? null;
+            $userId = $_SESSION['admin'] ?? null;
 
             if (!$userId) {
-                echo json_encode(['error' => 'Usuario no autenticado']);
+                error_log("OvertimeApprovalController::getPendingData - No admin in session");
+                echo json_encode([
+                    'error' => 'Usuario no autenticado',
+                    'redirect' => \App\Core\UrlHelper::base() . '/panel/login'
+                ]);
                 return;
             }
 
-            $requests = $this->service->getApproverQueue($userId);
+            // Obtener filtros opcionales
+            $filters = [];
+
+            if (isset($_GET['status']) && $_GET['status'] !== '') {
+                $filters['status'] = $_GET['status'];
+            }
+            // No aplicar filtro por defecto - mostrar todos los registros
+
+            if (isset($_GET['employee_id']) && $_GET['employee_id'] !== '') {
+                $filters['employee_id'] = $_GET['employee_id'];
+            }
+
+            if (isset($_GET['date_from']) && $_GET['date_from'] !== '') {
+                $filters['date_from'] = $_GET['date_from'];
+            }
+
+            if (isset($_GET['date_to']) && $_GET['date_to'] !== '') {
+                $filters['date_to'] = $_GET['date_to'];
+            }
+
+            // Obtener registros diarios
+            $records = $this->service->getDailyOvertimeRecords($filters);
 
             // Formatear datos para DataTables
             $data = [];
-            foreach ($requests as $request) {
+            foreach ($records as $record) {
                 $data[] = [
-                    'id' => $request['id'],
-                    'employee_code' => $request['employee_code'],
-                    'employee_name' => $request['employee_full_name'],
-                    'period_start' => date('d/m/Y', strtotime($request['period_start'])),
-                    'period_end' => date('d/m/Y', strtotime($request['period_end'])),
-                    'total_overtime_25' => number_format($request['total_overtime_25'], 2),
-                    'total_overtime_50' => number_format($request['total_overtime_50'], 2),
-                    'total_hours' => number_format($request['total_hours'], 2),
-                    'total_amount' => number_format($request['total_amount'], 2),
-                    'status' => $request['status'],
-                    'status_badge' => $this->getStatusBadge($request['status']),
-                    'created_at' => date('d/m/Y H:i', strtotime($request['created_at'])),
-                    'days_pending' => $request['days_pending'] ?? 0
+                    'id' => $record['id'],
+                    'employee_code' => $record['employee_code'],
+                    'employee_name' => $record['employee_name'],
+                    'schedule_name' => $record['schedule_name'] ?? 'N/A',
+                    'date' => date('d/m/Y', strtotime($record['date'])),
+                    'time_in' => $record['time_in'] ? substr($record['time_in'], 0, 5) : '-',
+                    'time_out' => $record['time_out'] ? substr($record['time_out'], 0, 5) : '-',
+                    'total_hours' => number_format($record['total_hours'], 2),
+                    'regular_hours' => number_format($record['regular_hours'], 2),
+                    'overtime_25_hours' => number_format($record['overtime_25_hours'], 2),
+                    'overtime_50_hours' => number_format($record['overtime_50_hours'], 2),
+                    'overtime_hours' => number_format($record['overtime_hours'], 2),
+                    'amount_25' => number_format($record['amount_25'], 2),
+                    'amount_50' => number_format($record['amount_50'], 2),
+                    'total_amount' => number_format($record['total_amount'], 2),
+                    'status' => $record['overtime_status'],
+                    'status_badge' => $this->getStatusBadge($record['overtime_status']),
+                    'approved_by_name' => $record['approved_by_name'] ?? '-',
+                    'approved_at' => $record['overtime_approved_at'] ? date('d/m/Y H:i', strtotime($record['overtime_approved_at'])) : '-',
+                    'notes' => $record['overtime_notes'] ?? ''
                 ];
             }
 
@@ -226,13 +275,20 @@ class OvertimeApprovalController extends Controller
     }
 
     /**
-     * Aprobar solicitud (AJAX)
+     * Aprobar registro diario (AJAX)
      *
      * POST /overtime-approvals/approve
      */
     public function approve()
     {
         header('Content-Type: application/json');
+
+        // Verificar CSRF token
+        $csrfToken = $_POST['csrf_token'] ?? null;
+        if (!$csrfToken || !\App\Core\Security::validateToken($csrfToken)) {
+            echo json_encode(['error' => 'Token de seguridad inválido']);
+            return;
+        }
 
         // Verificar permisos
         if (!$this->checkPermission('overtime_approvals', 'update')) {
@@ -241,24 +297,24 @@ class OvertimeApprovalController extends Controller
         }
 
         try {
-            $approvalId = $_POST['approval_id'] ?? null;
-            $comments = $_POST['comments'] ?? null;
-            $userId = $_SESSION['admin_id'] ?? null;
+            $calculationId = $_POST['calculation_id'] ?? null;
+            $notes = $_POST['notes'] ?? null;
+            $userId = $_SESSION['admin'] ?? null;
 
-            if (!$approvalId || !$userId) {
+            if (!$calculationId || !$userId) {
                 echo json_encode(['error' => 'Datos incompletos']);
                 return;
             }
 
-            $result = $this->service->approve($approvalId, $userId, $comments);
+            $result = $this->service->approveDailyRecord($calculationId, $userId, $notes);
 
             if ($result) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Solicitud aprobada exitosamente'
+                    'message' => 'Horas extras aprobadas exitosamente'
                 ]);
             } else {
-                echo json_encode(['error' => 'Error al aprobar solicitud']);
+                echo json_encode(['error' => 'Error al aprobar registro. Verifique que esté en estado PENDING.']);
             }
 
         } catch (\Exception $e) {
@@ -268,13 +324,20 @@ class OvertimeApprovalController extends Controller
     }
 
     /**
-     * Rechazar solicitud (AJAX)
+     * Rechazar registro diario (AJAX)
      *
      * POST /overtime-approvals/reject
      */
     public function reject()
     {
         header('Content-Type: application/json');
+
+        // Verificar CSRF token
+        $csrfToken = $_POST['csrf_token'] ?? null;
+        if (!$csrfToken || !\App\Core\Security::validateToken($csrfToken)) {
+            echo json_encode(['error' => 'Token de seguridad inválido']);
+            return;
+        }
 
         // Verificar permisos
         if (!$this->checkPermission('overtime_approvals', 'update')) {
@@ -283,24 +346,24 @@ class OvertimeApprovalController extends Controller
         }
 
         try {
-            $approvalId = $_POST['approval_id'] ?? null;
+            $calculationId = $_POST['calculation_id'] ?? null;
             $reason = $_POST['reason'] ?? null;
-            $userId = $_SESSION['admin_id'] ?? null;
+            $userId = $_SESSION['admin'] ?? null;
 
-            if (!$approvalId || !$reason || !$userId) {
+            if (!$calculationId || !$reason || !$userId) {
                 echo json_encode(['error' => 'Datos incompletos']);
                 return;
             }
 
-            $result = $this->service->reject($approvalId, $userId, $reason);
+            $result = $this->service->rejectDailyRecord($calculationId, $userId, $reason);
 
             if ($result) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Solicitud rechazada exitosamente'
+                    'message' => 'Horas extras rechazadas exitosamente'
                 ]);
             } else {
-                echo json_encode(['error' => 'Error al rechazar solicitud']);
+                echo json_encode(['error' => 'Error al rechazar registro. Verifique que esté en estado PENDING.']);
             }
 
         } catch (\Exception $e) {
@@ -327,7 +390,7 @@ class OvertimeApprovalController extends Controller
         try {
             $approvalId = $_POST['approval_id'] ?? null;
             $reason = $_POST['reason'] ?? null;
-            $userId = $_SESSION['admin_id'] ?? null;
+            $userId = $_SESSION['admin'] ?? null;
 
             if (!$approvalId || !$userId) {
                 echo json_encode(['error' => 'Datos incompletos']);
@@ -361,7 +424,7 @@ class OvertimeApprovalController extends Controller
         header('Content-Type: application/json');
 
         try {
-            $userId = $_SESSION['admin_id'] ?? null;
+            $userId = $_SESSION['admin'] ?? null;
 
             if (!$userId) {
                 echo json_encode(['error' => 'Usuario no autenticado']);
@@ -427,6 +490,12 @@ class OvertimeApprovalController extends Controller
     private function getStatusBadge(string $status): string
     {
         $badges = [
+            // Estados en inglés (desde BD)
+            'PENDING' => '<span class="badge badge-warning">Pendiente</span>',
+            'APPROVED' => '<span class="badge badge-success">Aprobado</span>',
+            'REJECTED' => '<span class="badge badge-danger">Rechazado</span>',
+            'NOT_APPLICABLE' => '<span class="badge badge-secondary">No Aplica</span>',
+            // Estados en español (retrocompatibilidad)
             'PENDIENTE' => '<span class="badge badge-warning">Pendiente</span>',
             'EN_REVISION' => '<span class="badge badge-info">En Revisión</span>',
             'APROBADO' => '<span class="badge badge-success">Aprobado</span>',
@@ -457,6 +526,138 @@ class OvertimeApprovalController extends Controller
         ];
 
         return $badges[$action] ?? '<span class="badge badge-secondary">' . $action . '</span>';
+    }
+
+    /**
+     * Generar solicitudes automáticamente desde attendance_records (AJAX)
+     *
+     * POST /overtime-approvals/generate
+     */
+    public function generateFromAttendance()
+    {
+        header('Content-Type: application/json');
+
+        // Verificar permisos
+        if (!$this->checkPermission('overtime_approvals', 'create')) {
+            echo json_encode(['error' => 'No tiene permisos para generar solicitudes']);
+            return;
+        }
+
+        try {
+            $periodStart = $_POST['period_start'] ?? null;
+            $periodEnd = $_POST['period_end'] ?? null;
+            $employeeIds = isset($_POST['employee_ids']) ? json_decode($_POST['employee_ids'], true) : null;
+
+            if (!$periodStart || !$periodEnd) {
+                echo json_encode(['error' => 'Debe especificar el período de generación']);
+                return;
+            }
+
+            // Generar solicitudes
+            $result = $this->generatorService->generateApprovalsFromAttendance(
+                $periodStart,
+                $periodEnd,
+                $employeeIds
+            );
+
+            if ($result['success']) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Solicitudes generadas exitosamente",
+                    'stats' => [
+                        'created' => $result['created'],
+                        'skipped' => $result['skipped'],
+                        'errors' => $result['errors']
+                    ],
+                    'details' => $result['details']
+                ]);
+            } else {
+                echo json_encode([
+                    'error' => $result['error'] ?? 'Error al generar solicitudes'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en generateFromAttendance: " . $e->getMessage());
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Crear solicitud manual (AJAX)
+     *
+     * POST /overtime-approvals/create-manual
+     */
+    public function createManual()
+    {
+        header('Content-Type: application/json');
+
+        // Verificar permisos
+        if (!$this->checkPermission('overtime_approvals', 'create')) {
+            echo json_encode(['error' => 'No tiene permisos para crear solicitudes']);
+            return;
+        }
+
+        try {
+            $employeeId = $_POST['employee_id'] ?? null;
+            $periodStart = $_POST['period_start'] ?? null;
+            $periodEnd = $_POST['period_end'] ?? null;
+            $overtime25 = floatval($_POST['overtime_25'] ?? 0);
+            $overtime50 = floatval($_POST['overtime_50'] ?? 0);
+            $comments = $_POST['comments'] ?? null;
+            $userId = $_SESSION['admin'] ?? null;
+
+            // Validar datos requeridos
+            if (!$employeeId || !$periodStart || !$periodEnd) {
+                echo json_encode(['error' => 'Datos incompletos']);
+                return;
+            }
+
+            if ($overtime25 <= 0 && $overtime50 <= 0) {
+                echo json_encode(['error' => 'Debe especificar al menos un tipo de horas extras']);
+                return;
+            }
+
+            // Crear solicitud
+            $data = [
+                'employee_id' => $employeeId,
+                'period_start' => $periodStart,
+                'period_end' => $periodEnd,
+                'total_overtime_25' => $overtime25,
+                'total_overtime_50' => $overtime50,
+                'comments' => $comments
+            ];
+
+            $result = $this->generatorService->createManualApproval($data, $userId);
+
+            if ($result['success']) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Solicitud creada exitosamente',
+                    'approval_id' => $result['approval_id']
+                ]);
+            } else {
+                echo json_encode([
+                    'error' => $result['error'] ?? 'Error al crear solicitud'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en createManual: " . $e->getMessage());
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Mostrar formulario de creación manual
+     *
+     * GET /overtime-approvals/create
+     */
+    public function create()
+    {
+        $this->render('admin/overtime_approvals/create', [
+            'title' => 'Crear Solicitud de Horas Extras'
+        ]);
     }
 
     /**

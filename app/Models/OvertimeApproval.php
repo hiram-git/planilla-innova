@@ -20,15 +20,11 @@ class OvertimeApproval extends Model
     public $table = 'overtime_approvals';
 
     public $fillable = [
-        'employee_id', 'period_start', 'period_end',
+        'employee_id', 'approver_id', 'period_start', 'period_end',
         'total_overtime_25', 'total_overtime_50', 'total_hours',
         'hourly_rate', 'total_amount',
-        'approval_level', 'requires_two_levels', 'current_approver_id',
-        'status',
-        'approved_by_level_1', 'approved_at_level_1', 'comments_level_1',
-        'approved_by_level_2', 'approved_at_level_2', 'comments_level_2',
-        'rejected_by', 'rejected_at', 'rejection_reason', 'rejection_level',
-        'notes', 'details', 'created_by'
+        'status', 'approval_level', 'rejection_reason', 'comments',
+        'approved_at'
     ];
 
     /**
@@ -50,7 +46,7 @@ class OvertimeApproval extends Model
     {
         try {
             $sql = "SELECT * FROM v_overtime_approvals_with_employees
-                    WHERE current_approver_id = ?
+                    WHERE approver_id = ?
                       AND status IN (?, ?)
                     ORDER BY created_at ASC";
 
@@ -248,7 +244,7 @@ class OvertimeApproval extends Model
             }
 
             if (isset($filters['approver_id'])) {
-                $sql .= " AND current_approver_id = ?";
+                $sql .= " AND approver_id = ?";
                 $params[] = $filters['approver_id'];
             }
 
@@ -288,7 +284,7 @@ class OvertimeApproval extends Model
     {
         try {
             $sql = "SELECT COUNT(*) as count FROM {$this->table}
-                    WHERE current_approver_id = ?
+                    WHERE approver_id = ?
                       AND status IN (?, ?)";
 
             $stmt = $this->db->prepare($sql);
@@ -322,7 +318,7 @@ class OvertimeApproval extends Model
             $params = [self::STATUS_PENDING, self::STATUS_IN_REVIEW];
 
             if ($approverId !== null) {
-                $sql .= " AND current_approver_id = ?";
+                $sql .= " AND approver_id = ?";
                 $params[] = $approverId;
             }
 
@@ -401,10 +397,9 @@ class OvertimeApproval extends Model
         try {
             $data = [
                 'status' => self::STATUS_CANCELLED,
-                'rejected_by' => $cancelledBy,
-                'rejected_at' => date('Y-m-d H:i:s'),
-                'rejection_reason' => $reason ?? 'Solicitud cancelada',
-                'rejection_level' => 'CANCELADO'
+                'approver_id' => $cancelledBy,
+                'approved_at' => date('Y-m-d H:i:s'),
+                'rejection_reason' => $reason ?? 'Solicitud cancelada'
             ];
 
             return $this->update($approvalId, $data) !== false;

@@ -138,7 +138,7 @@ Jornada ordinaria 8h/48h semanales (Art.31) | Jornada nocturna 6PM-6AM +50% (Art
 **Motor Fórmulas V3.5.15**:
 - INIPERIODO/FINPERIODO dinámico + ACUMULADOS() + CONCEPTO() + UNIDAD dinámica
 - Arquitectura herencia segura + 100% sin eval() + nxp/math-executor
-- 16 funciones asistencias integradas (HORAS_TRABAJADAS, HORAS_EXTRAS_25/50, TARDANZAS, etc.)
+- 19 funciones asistencias integradas (HORAS_TRABAJADAS, HORAS_EXTRAS_25/50, HORAS_EXTRAS_APROBADAS_25/50, TARDANZAS, etc.)
 - Variable UNIDAD con asignación condicional en fórmulas
 
 **Custom Query Builder V3.2.2**:
@@ -148,9 +148,11 @@ Jornada ordinaria 8h/48h semanales (Art.31) | Jornada nocturna 6PM-6AM +50% (Art
 
 ### **⏰ Funciones de Asistencias V3.5.3** ✅
 
-**16 funciones** integradas al motor de fórmulas. Retornan 0 si no hay datos. Consultan `payroll_attendance_summary` automáticamente.
+**19 funciones** integradas al motor de fórmulas. Retornan 0 si no hay datos. Consultan `attendance_calculations` automáticamente.
 
 **Funciones Horas**: HORAS_TRABAJADAS(), HORAS_REGULARES(), HORAS_EXTRAS(), HORAS_EXTRAS_25(), HORAS_EXTRAS_50(), HORAS_NOCTURNAS(), HORAS_FERIADOS(), HORAS_DOMINICALES()
+
+**Funciones Horas Extras Aprobadas**: HORAS_EXTRAS_APROBADAS(), HORAS_EXTRAS_APROBADAS_25(), HORAS_EXTRAS_APROBADAS_50() - Consultan solo registros con `overtime_status = 'APPROVED'`
 
 **Funciones Ausencias/Tardanzas**: TARDANZAS(), CANTIDAD_TARDANZAS(), AUSENCIAS(), TOTAL_AUSENCIAS(), AUSENCIAS_JUSTIFICADAS()
 
@@ -158,8 +160,14 @@ Jornada ordinaria 8h/48h semanales (Art.31) | Jornada nocturna 6PM-6AM +50% (Art
 
 **Ejemplos de Uso**:
 ```php
-// Horas Extras 25%
+// Horas Extras 25% (todas, pendientes + aprobadas)
 HORAS_EXTRAS_25() * (SUELDO / 220) * 1.25
+
+// Horas Extras APROBADAS 25% (solo aprobadas desde módulo)
+HORAS_EXTRAS_APROBADAS_25() * (SUELDO / 220) * 1.25
+
+// Total Horas Extras APROBADAS (25% + 50%)
+HORAS_EXTRAS_APROBADAS() * (SUELDO / 220) * 1.25
 
 // Descuento Tardanzas
 TARDANZAS() / 60 * (SUELDO / 220)
@@ -383,8 +391,91 @@ A partir de la versión 3.4.1, cada versión tiene su propio archivo en `documen
 - **Template**: Copiar estructura de versiones existentes para nuevas versiones
 - **Convenciones**: Incluir fecha, tipo, componentes, estadísticas y referencias cruzadas
 
+## 📐 **PATRÓN DE DESARROLLO MVC**
+**Referencia**: [Ver patrón completo →](documentation/PATRON_DESARROLLO_MVC.md)
+
+### **Estructura de Archivos Estándar**
+```
+app/
+├── Controllers/NombreModuloController.php
+├── Models/NombreModulo.php
+├── Services/NombreModuloService.php (opcional)
+└── Views/admin/nombre_modulo/index.php
+```
+
+### **Reglas Importantes para Nuevos Formularios**
+
+#### ✅ **HACER (DO)**
+1. **Usar `ob_start()` y `ob_get_clean()`** para capturar scripts en vistas
+2. **Escribir HTML/PHP normalmente**, NO concatenar strings (`$content .= ''`)
+3. **Usar `\App\Core\UrlHelper::base()`** para URLs base en JavaScript
+4. **Usar `toastr`** para notificaciones (NO `alert()`)
+5. **Retornar JSON** en métodos AJAX con `header('Content-Type: application/json')`
+6. **Usar prepared statements PDO** para prevenir SQL injection
+7. **Validar permisos** en cada método del controller
+8. **Manejar excepciones** con try-catch y error_log
+9. **Usar CSRF tokens** en formularios (`Security::generateToken()`)
+10. **Seguir convención de nombres**: camelCase para métodos, snake_case para BD
+
+#### ❌ **NO HACER (DON'T)**
+1. **NO concatenar strings PHP** para construir vistas
+2. **NO usar `echo` directo** para HTML en controllers
+3. **NO usar `eval()`** bajo ninguna circunstancia
+4. **NO hardcodear URLs** en JavaScript (usar baseUrl)
+5. **NO usar queries SQL directos** sin prepared statements
+6. **NO exponer datos sensibles** en responses JSON
+7. **NO olvidar validar entrada** de usuario
+8. **NO usar variables globales** ($_GET, $_POST) sin validar
+9. **NO mezclar lógica de negocio** en controllers (usar Services)
+10. **NO duplicar código** (aplicar principio DRY)
+
+### **Patrón de Vista con Scripts**
+```php
+<?php
+// Vista: app/Views/admin/nombre_modulo/index.php
+?>
+<!-- HTML aquí -->
+
+<?php
+// Capturar scripts
+ob_start();
+?>
+<script>
+$(document).ready(function() {
+    const baseUrl = '<?= \App\Core\UrlHelper::base() ?>';
+
+    // DataTable
+    $("#dataTable").DataTable({
+        ajax: baseUrl + '/panel/ruta-modulo/data',
+        // ...
+    });
+});
+</script>
+<?php
+$scripts = ob_get_clean();
+?>
+```
+
+### **Checklist para Nuevo Módulo**
+- [ ] Crear migración SQL en `database/migrations/tenant/`
+- [ ] Crear Model en `app/Models/`
+- [ ] Crear Controller en `app/Controllers/`
+- [ ] Registrar rutas en router correspondiente
+- [ ] Crear vista index con patrón `ob_start()` / `ob_get_clean()`
+- [ ] Implementar métodos AJAX con `header('Content-Type: application/json')`
+- [ ] Agregar validaciones y manejo de errores
+- [ ] Implementar CSRF protection
+- [ ] Probar funcionalidad completa (CRUD)
+
+**Tiempo estimado**: 30-45 minutos siguiendo el patrón estándar.
+
+**Módulos de Referencia**:
+- Controller: `app/Controllers/AttendanceController.php`
+- Model: `app/Models/AttendanceRecord.php`
+- Vista: `app/Views/admin/attendance/list.php`
+
 ---
 
-**Última Actualización**: 29 de Enero, 2026 (**REVISIÓN COMPLETA - 230+ commits**)
+**Última Actualización**: 11 de Febrero, 2026 (**Patrón MVC + Función CANTIDAD_HORAS_EXTRAS_APROBADAS()**)
 **Sistema**: Planillas MVC v3.5.19
 **Progreso Global**: Core 100% | Calendario 100% | **Vacaciones 90% (+45%)** | **Multitenancy 85% (+40%)** | **Motor Fórmulas 95%** | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Campos Adicionales 100% | **PostgreSQL 100%** | **Super Admin 100%** | **Manual Concepts 100%** | **Loan System 100%**
