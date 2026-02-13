@@ -381,6 +381,12 @@ class SidebarComponent
                                         <p>Sistema de Marcaciones</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/overtime-approvals') . '" class="nav-link ' . ($this->isActive('panel/overtime-approvals') ? 'active' : '') . '">
+                                        <i class="fas fa-check-circle nav-icon"></i>
+                                        <p>Aprobación Horas Extras</p>
+                                    </a>
+                                </li>
                             </ul>
                         </li>' : '') . '
 

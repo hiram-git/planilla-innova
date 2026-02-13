@@ -56,6 +56,7 @@ class App
                     'employee-files' => ['controller' => 'EmployeeFileController', 'method' => null],
                     'employee-documents' => ['controller' => 'EmployeeDocumentController', 'method' => null],
                     'additional-fields' => ['controller' => 'EmployeeAdditionalFieldController', 'method' => null],
+                    'overtime-approvals' => ['controller' => 'OvertimeApprovalController', 'method' => null],
                     'positions' => ['controller' => 'Position', 'method' => null],
                     'cargos' => ['controller' => 'Cargo', 'method' => null],
                     'partidas' => ['controller' => 'Partida', 'method' => null],
@@ -223,6 +224,7 @@ class App
 
                             // Rutas GET para attendance
                             if ($httpMethod === 'GET') {
+
                                 // ✅ REPORTES: Manejo prioritario antes de sync/detail
                                 if ($url[2] === 'reports' && method_exists($this->controller, 'reports')) {
                                     // GET: /panel/attendance/reports - Vista principal de reportes
@@ -725,6 +727,70 @@ class App
                                 } elseif ($url[2] === 'create' && method_exists($this->controller, 'create')) {
                                     // POST /panel/organizational/create
                                     $this->method = 'create';
+                                    $this->params = [];
+                                } else {
+                                    // Fallback a index en POST no reconocido
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            }
+                        }
+
+                        // ✅ MANEJO ESPECIAL: overtime-approvals subroutes
+                        if ($url[1] === 'overtime-approvals') {
+                            $this->controller = new \App\Controllers\OvertimeApprovalController();
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            if ($httpMethod === 'GET') {
+                                if (!isset($url[2])) {
+                                    // GET /panel/overtime-approvals
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'pending-data' && method_exists($this->controller, 'getPendingData')) {
+                                    // GET /panel/overtime-approvals/pending-data (AJAX DataTables)
+                                    $this->method = 'getPendingData';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'all-data' && method_exists($this->controller, 'getAllData')) {
+                                    // GET /panel/overtime-approvals/all-data (AJAX DataTables)
+                                    $this->method = 'getAllData';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'detail' && isset($url[3]) && method_exists($this->controller, 'getDetail')) {
+                                    // GET /panel/overtime-approvals/detail/{id}
+                                    $this->method = 'getDetail';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'create' && method_exists($this->controller, 'create')) {
+                                    // GET /panel/overtime-approvals/create
+                                    $this->method = 'create';
+                                    $this->params = [];
+                                } else {
+                                    // Fallback a index
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            } elseif ($httpMethod === 'POST') {
+                                if ($url[2] === 'generate' && method_exists($this->controller, 'generateFromAttendance')) {
+                                    // POST /panel/overtime-approvals/generate
+                                    $this->method = 'generateFromAttendance';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'create-manual' && method_exists($this->controller, 'createManual')) {
+                                    // POST /panel/overtime-approvals/create-manual
+                                    $this->method = 'createManual';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'approve' && method_exists($this->controller, 'approve')) {
+                                    // POST /panel/overtime-approvals/approve
+                                    $this->method = 'approve';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'reject' && method_exists($this->controller, 'reject')) {
+                                    // POST /panel/overtime-approvals/reject
+                                    $this->method = 'reject';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'cancel' && method_exists($this->controller, 'cancel')) {
+                                    // POST /panel/overtime-approvals/cancel
+                                    $this->method = 'cancel';
                                     $this->params = [];
                                 } else {
                                     // Fallback a index en POST no reconocido
