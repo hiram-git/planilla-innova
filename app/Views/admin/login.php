@@ -14,6 +14,33 @@ $styles = '
         border-radius: 8px;
         box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
+
+    /* Ocultar elementos antes de animar (evitar flash) */
+    .login-card-body {
+        overflow: hidden; /* Evitar desbordamiento durante animaciones */
+    }
+
+    .login-box-msg {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    .input-group {
+        opacity: 0;
+    }
+
+    .text-muted {
+        opacity: 0;
+    }
+
+    .btn-primary {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    .callout {
+        opacity: 0;
+    }
 </style>';
 
 $bodyClass = 'hold-transition login-page';
@@ -99,6 +126,9 @@ $content .= '
 </div>';
 
 $scripts = '
+<!-- GSAP Library -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
 <script src="' . url('js/tenant-storage-manager.js') . '"></script>
 <script>
     // Limpiar storage al cargar la página de login
@@ -116,6 +146,100 @@ $scripts = '
             console.log("[Login] Carga normal - limpieza de datos de tenant");
             TenantStorageManager.clearTenantData();
         }
+
+        // ========================================
+        // GSAP ANIMATIONS - Login Page (Fast)
+        // ========================================
+
+        // Timeline principal con animaciones rápidas
+        const tl = gsap.timeline({
+            defaults: {
+                ease: "power2.out",
+                duration: 0.3
+            }
+        });
+
+        // 1. Animar logo/título - entrada rápida desde arriba
+        tl.to(".login-box-msg", {
+            y: 0,
+            opacity: 1,
+            clearProps: "transform",
+            duration: 0.4,
+            ease: "power2.out"
+        })
+
+        // 2. Animar campos del formulario - fade in rápido
+        .to(".input-group", {
+            opacity: 1,
+            y: 0,
+            stagger: 0.05, // Stagger reducido
+            duration: 0.3,
+            ease: "power2.out"
+        }, "-=0.3") // Mayor overlap
+
+        // 3. Animar texto de ayuda
+        .to(".text-muted", {
+            opacity: 1,
+            duration: 0.2
+        }, "-=0.2")
+
+        // 4. Animar botón - scale up rápido
+        .to(".btn-primary", {
+            opacity: 1,
+            scale: 1,
+            clearProps: "transform",
+            ease: "back.out(1.5)",
+            duration: 0.3
+        }, "-=0.15");
+
+        // Animar callout de error si existe (más rápido)
+        const errorCallout = document.querySelector(".callout-danger");
+        if (errorCallout) {
+            gsap.from(errorCallout, {
+                x: -10,
+                opacity: 0,
+                duration: 0.3,
+                ease: "power2.out",
+                delay: 0.6 // Delay reducido
+            });
+
+            // Shake effect más rápido
+            gsap.to(errorCallout, {
+                x: [0, -5, 5, -5, 5, 0],
+                duration: 0.4,
+                delay: 0.7,
+                ease: "power2.inOut"
+            });
+        }
+
+        // Hover effect en el botón (animación continua)
+        const loginBtn = document.querySelector(".btn-primary");
+        if (loginBtn) {
+            loginBtn.addEventListener("mouseenter", function() {
+                gsap.to(this, {
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px rgba(0,123,255,0.4)",
+                    duration: 0.3
+                });
+            });
+
+            loginBtn.addEventListener("mouseleave", function() {
+                gsap.to(this, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3
+                });
+            });
+        }
+
+        // Animación sutil de background (parallax leve)
+        gsap.to("body", {
+            backgroundPosition: "center 10px",
+            duration: 20,
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true
+        });
     });
 </script>';
 
