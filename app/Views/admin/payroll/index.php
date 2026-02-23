@@ -505,10 +505,117 @@ $scripts .= 'Object.assign(window.APP_CONFIG, ' . json_encode($payrollConfig, JS
 $scripts .= 'console.log("APP_CONFIG initialized:", window.APP_CONFIG);' . "\n";
 $scripts .= '</script>' . "\n";
 
-// 4. Scripts del módulo que dependen de APP_CONFIG
+// 4. GSAP Library (antes de scripts custom)
+$scripts .= '<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>' . "\n";
+
+// 5. Scripts del módulo que dependen de APP_CONFIG
 $scripts .= '<script src="' . url('/assets/javascript/modules/payroll/index.js?' . $timestamp) . '"></script>' . "\n";
 $scripts .= '<script src="' . url('/assets/javascript/modules/payroll/index-mass-email.js?' . $timestamp) . '"></script>' . "\n";
+
+// 6. GSAP Animations Script
+$scripts .= '<script>' . "\n";
+$scripts .= '// Flag global para controlar animación inicial' . "\n";
+$scripts .= 'window.payrollTableIsInitialLoad = true;' . "\n";
+$scripts .= '' . "\n";
+$scripts .= '// Función global para animar filas del DataTable' . "\n";
+$scripts .= 'window.animatePayrollTableRows = function() {' . "\n";
+$scripts .= '    const rows = $("#payrollsTable tbody tr");' . "\n";
+$scripts .= '    ' . "\n";
+$scripts .= '    // Primero, asegurar que las filas estén ocultas' . "\n";
+$scripts .= '    gsap.set(rows, { opacity: 0, y: 0 });' . "\n";
+$scripts .= '    ' . "\n";
+$scripts .= '    if (window.payrollTableIsInitialLoad) {' . "\n";
+$scripts .= '        // Primera carga: animación más elaborada' . "\n";
+$scripts .= '        gsap.set(rows, { y: 20 });' . "\n";
+$scripts .= '        gsap.to(rows, {' . "\n";
+$scripts .= '            opacity: 1,' . "\n";
+$scripts .= '            y: 0,' . "\n";
+$scripts .= '            duration: 0.4,' . "\n";
+$scripts .= '            stagger: 0.05,' . "\n";
+$scripts .= '            ease: "power2.out",' . "\n";
+$scripts .= '            clearProps: "all"' . "\n";
+$scripts .= '        });' . "\n";
+$scripts .= '        ' . "\n";
+$scripts .= '        // Animar controles de paginación' . "\n";
+$scripts .= '        gsap.to(".dataTables_info, .dataTables_paginate", {' . "\n";
+$scripts .= '            opacity: 1,' . "\n";
+$scripts .= '            duration: 0.5,' . "\n";
+$scripts .= '            delay: 0.3' . "\n";
+$scripts .= '        });' . "\n";
+$scripts .= '        ' . "\n";
+$scripts .= '        window.payrollTableIsInitialLoad = false;' . "\n";
+$scripts .= '    } else {' . "\n";
+$scripts .= '        // Recargas/filtros: fade rápido' . "\n";
+$scripts .= '        gsap.to(rows, {' . "\n";
+$scripts .= '            opacity: 1,' . "\n";
+$scripts .= '            duration: 0.3,' . "\n";
+$scripts .= '            stagger: 0.02,' . "\n";
+$scripts .= '            ease: "power1.out",' . "\n";
+$scripts .= '            clearProps: "all"' . "\n";
+$scripts .= '        });' . "\n";
+$scripts .= '    }' . "\n";
+$scripts .= '    ' . "\n";
+$scripts .= '    // Animar iconos de acciones' . "\n";
+$scripts .= '    setupActionButtonAnimations();' . "\n";
+$scripts .= '};' . "\n";
+$scripts .= '' . "\n";
+$scripts .= '// Función para animar botones de acción' . "\n";
+$scripts .= 'function setupActionButtonAnimations() {' . "\n";
+$scripts .= '    // Animar badges de estado' . "\n";
+$scripts .= '    $("#payrollsTable .badge").each(function(index) {' . "\n";
+$scripts .= '        gsap.from(this, {' . "\n";
+$scripts .= '            scale: 0,' . "\n";
+$scripts .= '            duration: 0.4,' . "\n";
+$scripts .= '            delay: index * 0.02,' . "\n";
+$scripts .= '            ease: "back.out(2)"' . "\n";
+$scripts .= '        });' . "\n";
+$scripts .= '    });' . "\n";
+$scripts .= '    ' . "\n";
+$scripts .= '    // Hover effects en botones de acción' . "\n";
+$scripts .= '    $("#payrollsTable .btn-sm").off("mouseenter.gsap mouseleave.gsap").on({' . "\n";
+$scripts .= '        "mouseenter.gsap": function() {' . "\n";
+$scripts .= '            if (!$(this).prop("disabled")) {' . "\n";
+$scripts .= '                gsap.to(this, {' . "\n";
+$scripts .= '                    scale: 1.15,' . "\n";
+$scripts .= '                    duration: 0.2,' . "\n";
+$scripts .= '                    ease: "power2.out"' . "\n";
+$scripts .= '                });' . "\n";
+$scripts .= '            }' . "\n";
+$scripts .= '        },' . "\n";
+$scripts .= '        "mouseleave.gsap": function() {' . "\n";
+$scripts .= '            gsap.to(this, {' . "\n";
+$scripts .= '                scale: 1,' . "\n";
+$scripts .= '                duration: 0.2,' . "\n";
+$scripts .= '                ease: "power2.out"' . "\n";
+$scripts .= '            });' . "\n";
+$scripts .= '        }' . "\n";
+$scripts .= '    });' . "\n";
+$scripts .= '    ' . "\n";
+$scripts .= '    // Animación para iconos dentro de botones' . "\n";
+$scripts .= '    $("#payrollsTable .btn-sm i").off("mouseenter.gsap").on("mouseenter.gsap", function() {' . "\n";
+$scripts .= '        if (!$(this).closest(".btn").prop("disabled")) {' . "\n";
+$scripts .= '            gsap.to(this, {' . "\n";
+$scripts .= '                rotation: 360,' . "\n";
+$scripts .= '                duration: 0.5,' . "\n";
+$scripts .= '                ease: "power2.inOut"' . "\n";
+$scripts .= '            });' . "\n";
+$scripts .= '        }' . "\n";
+$scripts .= '    });' . "\n";
+$scripts .= '}' . "\n";
+$scripts .= '' . "\n";
+$scripts .= '$(document).ready(function() {' . "\n";
+$scripts .= '    // Animar card al cargar la página' . "\n";
+$scripts .= '    gsap.to(".card", {' . "\n";
+$scripts .= '        opacity: 1,' . "\n";
+$scripts .= '        duration: 0.6,' . "\n";
+$scripts .= '        ease: "power2.out",' . "\n";
+$scripts .= '        delay: 0.1' . "\n";
+$scripts .= '    });' . "\n";
+$scripts .= '    ' . "\n";
+$scripts .= '});' . "\n";
+$scripts .= '</script>' . "\n";
 ?>
+
 
 <style>
 .badge {
@@ -522,6 +629,18 @@ $scripts .= '<script src="' . url('/assets/javascript/modules/payroll/index-mass
 }
 .btn-group .btn:last-child {
     margin-right: 0;
+}
+
+/* GSAP - Ocultar elementos antes de animar */
+.card {
+    opacity: 0;
+}
+
+/* Las filas del DataTable NO se ocultan con CSS - GSAP lo hace dinámicamente */
+
+.dataTables_info,
+.dataTables_paginate {
+    opacity: 0;
 }
 
 /* Enhanced styles for action blocking */

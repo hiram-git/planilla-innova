@@ -171,6 +171,14 @@
                     const now = new Date();
                     const timestamp = now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES');
                     $("#lastUpdate").text(timestamp);
+
+                    // GSAP: Animar filas después de cada draw
+                    if (typeof window.animatePayrollTableRows === 'function') {
+                        // Pequeño delay para asegurar que el DOM esté listo
+                        setTimeout(function() {
+                            window.animatePayrollTableRows();
+                        }, 50);
+                    }
                 }
             });
         },
@@ -1012,10 +1020,10 @@
             
             // Switch to processing phase
             $("#confirmationPhase").hide();
-            $("#confirmationButtons").hide();
             $("#processingPhase").show();
+            $("#confirmationButtons").hide();
             $("#processingButtons").show();
-            
+
             // Disable modal close
             $("#modalCloseBtn").prop("disabled", true);
             
@@ -1155,8 +1163,8 @@
 
             // Show completion phase
             $("#processingPhase").hide();
-            $("#processingButtons").hide();
             $("#completedPhase").show();
+            $("#processingButtons").hide();
             $("#completedButtons").show();
 
             // Update payroll info in completed phase
@@ -1201,10 +1209,11 @@
          */
         handleProcessingError: function(xhr, status, error) {
             clearInterval(this.state.progressInterval);
-            
+
+            // Show completion phase (error)
             $("#processingPhase").hide();
-            $("#processingButtons").hide();
             $("#completedPhase").show();
+            $("#processingButtons").hide();
             $("#completedButtons").show();
             
             // Show error
@@ -1286,8 +1295,8 @@
 
             // Switch to processing phase
             $("#reprocessConfirmationPhase").hide();
-            $("#reprocessConfirmationButtons").hide();
             $("#reprocessProcessingPhase").show();
+            $("#reprocessConfirmationButtons").hide();
             $("#reprocessProcessingButtons").show();
 
             // Disable modal close
@@ -1456,8 +1465,8 @@
 
             // Show completion phase
             $("#reprocessProcessingPhase").hide();
-            $("#reprocessProcessingButtons").hide();
             $("#reprocessCompletedPhase").show();
+            $("#reprocessProcessingButtons").hide();
             $("#reprocessCompletedButtons").show();
 
             // Show payroll information
@@ -1502,10 +1511,11 @@
          */
         handleReprocessingError: function(xhr, status, error) {
             clearInterval(this.state.reprocessProgressInterval);
-            
+
+            // Show completion phase (error)
             $("#reprocessProcessingPhase").hide();
-            $("#reprocessProcessingButtons").hide();
             $("#reprocessCompletedPhase").show();
+            $("#reprocessProcessingButtons").hide();
             $("#reprocessCompletedButtons").show();
             
             // Show error

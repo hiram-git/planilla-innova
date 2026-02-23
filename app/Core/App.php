@@ -87,6 +87,7 @@ class App
                     'organizational' => ['controller' => 'OrganizationalController', 'method' => null],
                     'cuentas-contables' => ['controller' => 'CuentaContable', 'method' => null],
                     'partidas-presupuestarias' => ['controller' => 'PartidaPresupuestaria', 'method' => null],
+                    'innova-export' => ['controller' => 'InnovaExportController', 'method' => null],
                     'users' => ['controller' => 'UserController', 'method' => null],
                     'roles' => ['controller' => 'RoleController', 'method' => null],
                     // Mantener compatibilidad con rutas singulares
@@ -735,6 +736,48 @@ class App
                                 }
                                 call_user_func_array([$this->controller, $this->method], $this->params);
                                 return;
+                            }
+                        }
+
+                        // ✅ MANEJO ESPECIAL: innova-export subroutes
+                        if ($url[1] === 'innova-export') {
+                            $this->controller = new \App\Controllers\InnovaExportController();
+                            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+                            if ($httpMethod === 'GET') {
+                                if (!isset($url[2])) {
+                                    // GET /panel/innova-export
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'data' && method_exists($this->controller, 'getPayrollsData')) {
+                                    // GET /panel/innova-export/data (AJAX DataTables)
+                                    $this->method = 'getPayrollsData';
+                                    $this->params = [];
+                                } elseif ($url[2] === 'export' && isset($url[3]) && method_exists($this->controller, 'export')) {
+                                    // GET /panel/innova-export/export/{id}
+                                    $this->method = 'export';
+                                    $this->params = [$url[3]];
+                                } else {
+                                    // Fallback a index
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                }
+                                call_user_func_array([$this->controller, $this->method], $this->params);
+                                return;
+                            } elseif ($httpMethod === 'POST') {
+                                if ($url[2] === 'export' && isset($url[3]) && method_exists($this->controller, 'export')) {
+                                    // POST /panel/innova-export/export/{id}
+                                    $this->method = 'export';
+                                    $this->params = [$url[3]];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                } else {
+                                    // Fallback a index en POST no reconocido
+                                    $this->method = 'index';
+                                    $this->params = [];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
+                                }
                             }
                         }
 

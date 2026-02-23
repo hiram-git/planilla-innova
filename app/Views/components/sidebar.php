@@ -145,6 +145,9 @@ class SidebarComponent
         $hasReportsSection = $isSuperAdmin ||
             $this->canAccessRoute('reports');
 
+        $hasProcessesSection = $isSuperAdmin ||
+            $this->canAccessRoute('innova-export');
+
         $hasPayrollSection = $isSuperAdmin ||
             $this->canAccessRoute('payrolls') ||
             $this->canAccessRoute('concepts') ||
@@ -432,6 +435,34 @@ class SidebarComponent
                                     <a href="' . \App\Core\UrlHelper::url('panel/reports/estimado-anual-planillas') . '" class="nav-link ' . ($this->isActive('panel/reports/estimado-anual-planillas') ? 'active' : '') . '">
                                         <i class="fas fa-calendar-alt nav-icon"></i>
                                         <p>Estimado Anual Planillas</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>' : '') . '
+
+                        ' . // ============================================================================
+                        // PROCESOS
+                        // ============================================================================
+                        ($hasProcessesSection ? '
+                        <!-- PROCESOS -->
+                        <li class="nav-header">PROCESOS</li>' : '') .
+
+                        // Procesos
+                        ($this->canAccessRoute('innova-export') ? '
+                        <!-- Procesos -->
+                        <li class="nav-item ' . ($this->isActive('panel/innova-export') ? 'menu-open' : '') . '">
+                            <a href="#" class="nav-link ' . ($this->isActive('panel/innova-export') ? 'active' : '') . '">
+                                <i class="nav-icon fas fa-cogs"></i>
+                                <p>
+                                    Procesos
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="' . \App\Core\UrlHelper::route('panel/innova-export') . '" class="nav-link ' . ($this->isActive('panel/innova-export') ? 'active' : '') . '">
+                                        <i class="fas fa-file-export nav-icon"></i>
+                                        <p>Exportar a INNOVA</p>
                                     </a>
                                 </li>
                             </ul>
