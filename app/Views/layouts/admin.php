@@ -385,6 +385,9 @@ $sidebarHtml = isset($sidebar) ? $sidebar->render() : '';
     <!-- Date Range Picker -->
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 
+    <!-- GSAP Animation Library -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
     <!-- Tenant Storage Manager -->
     <script src="<?= url('js/tenant-storage-manager.js') ?>"></script>
     <script>
