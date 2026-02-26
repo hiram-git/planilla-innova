@@ -247,15 +247,6 @@ $scripts = '
                 });
             });
         }
-
-        // Animación sutil de background (parallax leve)
-        gsap.to("body", {
-            backgroundPosition: "center 10px",
-            duration: 20,
-            ease: "sine.inOut",
-            repeat: -1,
-            yoyo: true
-        });
     });
 </script>';
 

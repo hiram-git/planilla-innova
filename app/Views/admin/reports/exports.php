@@ -172,13 +172,210 @@ $content .= '
 </div>';
 
 // Scripts y estilos para el módulo usando sistema modular
-$scriptFiles = [
-    '/assets/javascript/modules/reports/exports.js'
-];
-
 use App\Helpers\JavaScriptHelper;
 $jsConfig = JavaScriptHelper::renderConfigScript();
-$scripts = $jsConfig . "\n" . JavaScriptHelper::renderScriptTags($scriptFiles);
+
+$scripts = $jsConfig . '
+<script>
+// ========================================
+// GSAP ANIMATIONS - Exports Page
+// ========================================
+
+// Animar cards de exportación
+function animateExportCards() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const cards = $(".export-card");
+
+    if (cards.length > 0) {
+        gsap.set(cards, { opacity: 0, y: 30 });
+        gsap.to(cards, {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            stagger: 0.15,
+            ease: "power2.out",
+            clearProps: "transform,y"
+        });
+    }
+}
+
+// Animar iconos grandes de las cards
+function animateExportIcons() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const icons = $(".export-card .fa-3x");
+
+    icons.each(function(index) {
+        gsap.fromTo(this,
+            {
+                scale: 0,
+                opacity: 0,
+                rotation: -180
+            },
+            {
+                scale: 1,
+                opacity: 1,
+                rotation: 0,
+                duration: 0.6,
+                delay: 0.2 + (index * 0.15),
+                ease: "back.out(1.7)",
+                clearProps: "transform,scale,rotation"
+            }
+        );
+    });
+}
+
+// Animar botones de exportación
+function setupExportButtonAnimations() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const exportButtons = $(".export-btn");
+    const backButton = $(".card-tools .btn-secondary");
+
+    // Hover effects en botones de exportación
+    exportButtons.off("mouseenter.gsap mouseleave.gsap").on({
+        "mouseenter.gsap": function() {
+            let shadowColor = "rgba(108,117,125,0.4)"; // Default
+
+            if ($(this).hasClass("btn-primary")) {
+                shadowColor = "rgba(0,123,255,0.4)";
+            } else if ($(this).hasClass("btn-warning")) {
+                shadowColor = "rgba(255,193,7,0.4)";
+            } else if ($(this).hasClass("btn-success")) {
+                shadowColor = "rgba(40,167,69,0.4)";
+            }
+
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: "0 5px 15px " + shadowColor,
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        },
+        "mouseleave.gsap": function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: "none",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        }
+    });
+
+    // Hover effect en botón volver
+    if (backButton.length > 0) {
+        backButton.on({
+            "mouseenter": function() {
+                gsap.to(this, {
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px rgba(108,117,125,0.4)",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            },
+            "mouseleave": function() {
+                gsap.to(this, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            }
+        });
+    }
+
+    // Animación de iconos dentro de botones
+    const buttonIcons = $(".export-btn i, .card-tools .btn i");
+    buttonIcons.off("mouseenter.gsap").on("mouseenter.gsap", function() {
+        gsap.to(this, {
+            rotation: 360,
+            duration: 0.5,
+            ease: "power2.inOut"
+        });
+    });
+}
+
+// Animar alert de información
+function animateInfoAlert() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const alert = $(".alert-info");
+
+    if (alert.length > 0) {
+        gsap.set(alert, { opacity: 0, x: -30 });
+        gsap.to(alert, {
+            opacity: 1,
+            x: 0,
+            duration: 0.5,
+            delay: 0.6,
+            ease: "power2.out",
+            clearProps: "transform,x"
+        });
+    }
+}
+
+// Animar card de estadísticas
+function animateStatsCard() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const statsCard = $(".bg-gradient-success");
+
+    if (statsCard.length > 0) {
+        gsap.set(statsCard, { opacity: 0, scale: 0.9 });
+        gsap.to(statsCard, {
+            opacity: 1,
+            scale: 1,
+            duration: 0.5,
+            delay: 0.6,
+            ease: "back.out(1.7)",
+            clearProps: "transform,scale"
+        });
+    }
+
+    // Animar iconos dentro de la card de estadísticas
+    const statsIcons = $(".description-block .fa-2x");
+    statsIcons.each(function(index) {
+        gsap.fromTo(this,
+            {
+                scale: 0,
+                rotation: -90
+            },
+            {
+                scale: 1,
+                rotation: 0,
+                duration: 0.4,
+                delay: 0.8 + (index * 0.1),
+                ease: "back.out(2)",
+                clearProps: "transform,scale,rotation"
+            }
+        );
+    });
+}
+
+// Ejecutar animaciones al cargar la página
+$(document).ready(function() {
+    if (typeof gsap !== "undefined") {
+        // Timeline de animaciones
+        setTimeout(animateExportCards, 100);
+        setTimeout(animateExportIcons, 200);
+        setTimeout(animateInfoAlert, 400);
+        setTimeout(animateStatsCard, 400);
+        setTimeout(setupExportButtonAnimations, 500);
+    }
+});
+</script>
+<script src="' . url('/assets/javascript/modules/reports/exports.js') . '"></script>';
 
 $styles = '<link rel="stylesheet" href="' . url('/assets/css/modules/reports/exports.css') . '">';
 

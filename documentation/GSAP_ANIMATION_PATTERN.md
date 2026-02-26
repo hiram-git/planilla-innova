@@ -954,6 +954,170 @@ $('.select2').select2({
 
 ---
 
+## 🎭 Efectos Especiales de Animación
+
+### Shake Effect (Sacudida)
+
+El **shake effect** es útil para llamar la atención del usuario hacia elementos importantes como mensajes de error, alertas o callouts.
+
+#### ❌ INCORRECTO - Usando Array Simple
+
+```javascript
+// ❌ NO FUNCIONA CORRECTAMENTE
+gsap.to(element, {
+    x: [-12, 12, -10, 10, -8, 8, -5, 5, 0],
+    duration: 0.5,
+    ease: "power2.inOut"
+});
+```
+
+**Problema**:
+- El elemento puede quedar desalineado (fuera de posición)
+- No garantiza que termine en `x: 0`
+- El timing de cada oscilación no es predecible
+
+#### ✅ CORRECTO - Usando Keyframes Explícitos
+
+```javascript
+// ✅ FUNCIONA PERFECTAMENTE
+gsap.to(element, {
+    keyframes: [
+        { x: -12, duration: 0.05 },
+        { x: 12, duration: 0.05 },
+        { x: -10, duration: 0.05 },
+        { x: 10, duration: 0.05 },
+        { x: -8, duration: 0.05 },
+        { x: 8, duration: 0.05 },
+        { x: -5, duration: 0.05 },
+        { x: 5, duration: 0.05 },
+        { x: 0, duration: 0.1 }  // ← Asegura volver a posición original
+    ],
+    ease: "power2.inOut"
+});
+```
+
+**Ventajas**:
+- ✅ Control preciso sobre cada oscilación
+- ✅ Garantiza que termine en `x: 0` (posición original)
+- ✅ Timing individual para cada movimiento
+- ✅ Efecto más suave y predecible
+
+#### Ejemplo Completo: Login con Callout de Error
+
+Ver implementación en: `app/Views/admin/login.php` (líneas 206-229)
+
+```javascript
+// Verificar si existe callout de error/mensaje
+const errorCallout = document.querySelector(".callout-danger, .callout-warning, .callout-info, .callout-success");
+
+if (errorCallout) {
+    const tl = gsap.timeline();
+
+    // 1. Fade-in del callout
+    tl.to(errorCallout, {
+        opacity: 1,
+        duration: 0.4,
+        ease: "power2.out"
+    }, 0)
+
+    // 2. Shake effect para llamar atención (después de aparecer)
+    .to(errorCallout, {
+        keyframes: [
+            { x: -12, duration: 0.05 },
+            { x: 12, duration: 0.05 },
+            { x: -10, duration: 0.05 },
+            { x: 10, duration: 0.05 },
+            { x: -8, duration: 0.05 },
+            { x: 8, duration: 0.05 },
+            { x: -5, duration: 0.05 },
+            { x: 5, duration: 0.05 },
+            { x: 0, duration: 0.1 }
+        ],
+        ease: "power2.inOut"
+    }, 0.4); // Inicia después del fade-in
+}
+```
+
+**Timeline del Efecto**:
+```
+t=0.0    Fade-in inicia (opacity: 0 → 1)
+t=0.4    Fade-in completa / Shake inicia
+t=0.45   Primera oscilación (-12px → 12px)
+t=0.50   Segunda oscilación (-10px → 10px)
+t=0.55   Tercera oscilación (-8px → 8px)
+t=0.60   Cuarta oscilación (-5px → 5px)
+t=0.70   Regreso a posición original (x: 0)
+```
+
+#### Variaciones de Intensidad
+
+**Shake Suave** (para notificaciones informativas):
+```javascript
+keyframes: [
+    { x: -5, duration: 0.05 },
+    { x: 5, duration: 0.05 },
+    { x: -3, duration: 0.05 },
+    { x: 3, duration: 0.05 },
+    { x: 0, duration: 0.1 }
+]
+```
+
+**Shake Moderado** (para advertencias):
+```javascript
+keyframes: [
+    { x: -8, duration: 0.05 },
+    { x: 8, duration: 0.05 },
+    { x: -6, duration: 0.05 },
+    { x: 6, duration: 0.05 },
+    { x: -4, duration: 0.05 },
+    { x: 4, duration: 0.05 },
+    { x: 0, duration: 0.1 }
+]
+```
+
+**Shake Exagerado** (para errores críticos):
+```javascript
+keyframes: [
+    { x: -12, duration: 0.05 },
+    { x: 12, duration: 0.05 },
+    { x: -10, duration: 0.05 },
+    { x: 10, duration: 0.05 },
+    { x: -8, duration: 0.05 },
+    { x: 8, duration: 0.05 },
+    { x: -5, duration: 0.05 },
+    { x: 5, duration: 0.05 },
+    { x: 0, duration: 0.1 }
+]
+```
+
+#### Cuándo Usar Shake Effect
+
+| Contexto | Intensidad | Ejemplo |
+|----------|-----------|---------|
+| Error de validación de formulario | Exagerado | Credenciales incorrectas en login |
+| Advertencia importante | Moderado | Licencia próxima a expirar |
+| Notificación informativa | Suave | Mensaje de confirmación |
+| Campo obligatorio vacío | Suave | Highlight de campo requerido |
+
+#### CSS Inicial Requerido
+
+No necesitas aplicar `transform` inicial en CSS. El efecto funciona directamente:
+
+```css
+/* ✅ SUFICIENTE - Solo ocultar para fade-in */
+.callout {
+    opacity: 0;
+}
+
+/* ❌ NO NECESARIO - No agregar transform inicial */
+.callout {
+    opacity: 0;
+    transform: translateX(-20px);  /* ← NO necesario para shake */
+}
+```
+
+---
+
 ## 📝 Historial de Cambios
 
 | Versión | Fecha | Cambios |
@@ -961,9 +1125,10 @@ $('.select2').select2({
 | 1.0 | 24-Feb-2026 | Documento inicial basado en implementación empleados |
 | 1.1 | 25-Feb-2026 | Agregada sección crítica sobre ubicación de archivos JS (`/assets/` vs `/public/assets/`), nuevos patrones modulares, ejemplos de templates compartidos (reference-index.js, schedules.js), troubleshooting mejorado |
 | 1.2 | 25-Feb-2026 | **Patrones avanzados agregados**: Info-Boxes, corrección de badges con `fromTo`, botones con colores dinámicos, animaciones de modales, botones de exportación DataTables, integración avanzada drawCallback, Select2 AJAX. Basado en implementación `overtime-approvals` |
+| 1.3 | 26-Feb-2026 | **Shake Effect agregado**: Documentación completa de shake effect usando keyframes, variaciones de intensidad, ejemplos de uso, comparación método correcto vs incorrecto. Basado en implementación login con callouts de error |
 
 ---
 
 **Autor**: Sistema Innova Planilla
 **Revisión**: Documentación técnica oficial
-**Última Actualización**: 25 de Febrero, 2026
+**Última Actualización**: 26 de Febrero, 2026

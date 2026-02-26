@@ -186,7 +186,10 @@ $content = '
 ';
 
 // Scripts específicos para esta vista
-$scripts = '
+use App\Helpers\JavaScriptHelper;
+$jsConfig = JavaScriptHelper::renderConfigScript();
+
+$scripts = $jsConfig . '
 <script>
 // Configuración para el módulo de reportes
 window.REPORTS_CONFIG = {
@@ -196,12 +199,217 @@ window.REPORTS_CONFIG = {
     },
     debug: ' . (getenv('APP_ENV') === 'development' ? 'true' : 'false') . '
 };
+
+// ========================================
+// GSAP ANIMATIONS - Reports Page
+// ========================================
+
+// Función global para animar filas de la tabla de reportes
+window.animateReportsTableRows = function() {
+    // Verificar que GSAP esté disponible
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const rows = $(".reports-table tbody tr");
+
+    // Si no hay filas, no hacer nada
+    if (rows.length === 0) {
+        return;
+    }
+
+    // Primero, asegurar que las filas estén ocultas
+    gsap.set(rows, { opacity: 0, y: 20 });
+
+    // Animar filas con fade-in + slide-up
+    gsap.to(rows, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4,
+        stagger: 0.05,
+        ease: "power2.out",
+        clearProps: "transform,y"
+    });
+
+    // Animar iconos de acciones
+    setupReportsActionButtonAnimations();
+};
+
+// Función para animar botones de acción y badges
+function setupReportsActionButtonAnimations() {
+    // Verificar que GSAP esté disponible
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const badges = $(".reports-table .badge");
+    const buttons = $(".btn-report-action");
+    const icons = $(".btn-report-action i");
+
+    // Animar badges de estado
+    badges.each(function(index) {
+        gsap.fromTo(this,
+            {
+                scale: 0,
+                opacity: 0
+            },
+            {
+                scale: 1,
+                opacity: 1,
+                duration: 0.4,
+                delay: index * 0.02,
+                ease: "back.out(2)",
+                clearProps: "transform,scale"
+            }
+        );
+    });
+
+    // Hover effects en botones de acción
+    buttons.off("mouseenter.gsap mouseleave.gsap").on({
+        "mouseenter.gsap": function() {
+            if (!$(this).prop("disabled")) {
+                let shadowColor = "rgba(108,117,125,0.4)"; // Default
+
+                if ($(this).hasClass("btn-danger")) {
+                    shadowColor = "rgba(220,53,69,0.4)";
+                } else if ($(this).hasClass("btn-info")) {
+                    shadowColor = "rgba(23,162,184,0.4)";
+                } else if ($(this).hasClass("btn-success")) {
+                    shadowColor = "rgba(40,167,69,0.4)";
+                } else if ($(this).hasClass("btn-warning")) {
+                    shadowColor = "rgba(255,193,7,0.4)";
+                } else if ($(this).hasClass("btn-secondary")) {
+                    shadowColor = "rgba(108,117,125,0.4)";
+                } else if ($(this).hasClass("btn-primary")) {
+                    shadowColor = "rgba(0,123,255,0.4)";
+                }
+
+                gsap.to(this, {
+                    scale: 1.15,
+                    boxShadow: "0 5px 15px " + shadowColor,
+                    duration: 0.2,
+                    ease: "power2.out"
+                });
+            }
+        },
+        "mouseleave.gsap": function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: "none",
+                duration: 0.2,
+                ease: "power2.out"
+            });
+        }
+    });
+
+    // Animación para iconos dentro de botones
+    icons.off("mouseenter.gsap").on("mouseenter.gsap", function() {
+        if (!$(this).closest(".btn").prop("disabled")) {
+            gsap.to(this, {
+                rotation: 360,
+                duration: 0.5,
+                ease: "power2.inOut"
+            });
+        }
+    });
+}
+
+// Animar cards de reportes adicionales
+function animateReportsCards() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const cards = $(".reports-container .card");
+
+    if (cards.length > 0) {
+        gsap.set(cards, { opacity: 0, y: 20 });
+        gsap.to(cards, {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            stagger: 0.1,
+            ease: "power2.out",
+            clearProps: "transform,y"
+        });
+    }
+}
+
+// Animar alert cuando no hay planillas
+function animateReportsAlert() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const alert = $(".alert-reports");
+
+    if (alert.length > 0) {
+        gsap.set(alert, { opacity: 0, x: -20 });
+        gsap.to(alert, {
+            opacity: 1,
+            x: 0,
+            duration: 0.5,
+            ease: "power2.out",
+            clearProps: "transform,x"
+        });
+    }
+}
+
+// Ejecutar animaciones al cargar la página
+$(document).ready(function() {
+    if (typeof gsap !== "undefined") {
+        // Animar cards principales
+        setTimeout(animateReportsCards, 100);
+
+        // Animar alert si existe
+        setTimeout(animateReportsAlert, 200);
+
+        // Animar tabla de reportes
+        setTimeout(animateReportsTableRows, 300);
+    }
+});
 </script>
 <script src="' . url('assets/javascript/modules/reports/index.js', false) . '"></script>';
 
 // Estilos específicos para esta vista
 $styles = '
-<link rel="stylesheet" href="' . url('assets/css/modules/reports.css', false) . '">';
+<link rel="stylesheet" href="' . url('assets/css/modules/reports.css', false) . '">
+<style>
+/* Reducir tamaño de botones de acción para evitar salto de línea */
+.btn-report-action {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    border-radius: 0.2rem;
+}
+
+.btn-report-action i {
+    font-size: 1rem;
+}
+
+/* Ajustar spacing del grupo de botones */
+.btn-group-reports {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: nowrap;
+}
+
+/* Reducir padding de la celda de acciones */
+.reports-table tbody td:last-child {
+    padding: 0.5rem 0.3rem;
+    white-space: nowrap;
+}
+
+/* Asegurar que badges sean más compactos */
+.reports-table .badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.5em;
+}
+
+.badge-employees {
+    font-size: 0.7rem;
+}
+</style>';
 
 include __DIR__ . '/../layouts/admin.php';
 ?>
