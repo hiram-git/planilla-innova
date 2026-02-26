@@ -1200,6 +1200,59 @@ if (typeof $ !== "undefined") {
         if (editDepartamentoId) {
             loadCargosByDepartamento(editDepartamentoId, editCargoId || null);
         }
+
+        // ====================================
+        // GSAP ANIMATIONS - Button Hover Effects
+        // ====================================
+        if (typeof gsap !== "undefined") {
+            // Efecto hover en botones principales
+            const primaryButtons = $(".card-footer .btn-primary");
+            const secondaryButtons = $(".card-footer .btn-secondary, .card-tools .btn-secondary");
+
+            // Animar botón principal (Actualizar)
+            primaryButtons.each(function() {
+                const btn = this;
+                $(btn).on("mouseenter", function() {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px rgba(0,123,255,0.4)",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+
+                $(btn).on("mouseleave", function() {
+                    gsap.to(btn, {
+                        scale: 1,
+                        boxShadow: "none",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+            });
+
+            // Animar botones secundarios (Volver, Cancelar)
+            secondaryButtons.each(function() {
+                const btn = this;
+                $(btn).on("mouseenter", function() {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px rgba(108,117,125,0.3)",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+
+                $(btn).on("mouseleave", function() {
+                    gsap.to(btn, {
+                        scale: 1,
+                        boxShadow: "none",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+            });
+        }
     });
 }
 

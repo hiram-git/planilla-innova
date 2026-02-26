@@ -279,8 +279,8 @@ $scripts = '
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 $(document).ready(function() {
-    // DataTable
-    $("#table-estimado-planillas").DataTable({
+    // Inicializar DataTable
+    const table = $("#table-estimado-planillas").DataTable({
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
         },
@@ -308,7 +308,13 @@ $(document).ready(function() {
                 text: "<i class=\'fas fa-print\'></i> Imprimir",
                 className: "btn btn-info btn-sm"
             }
-        ]
+        ],
+        "drawCallback": function(settings) {
+            // GSAP: Animar filas después de cada draw
+            setTimeout(function() {
+                animateTableRows();
+            }, 50);
+        }
     });
 
     // Gráfico de Línea
@@ -365,6 +371,297 @@ $(document).ready(function() {
             }
         }
     });
+
+    // ============================================
+    // GSAP ANIMATIONS
+    // ============================================
+    if (typeof gsap !== "undefined") {
+        // Flag para controlar animación inicial de la tabla
+        let isInitialTableLoad = true;
+
+        // 1. Animar Callouts informativos
+        function animateCallouts() {
+            const callouts = $(".callout");
+
+            if (callouts.length > 0) {
+                gsap.set(callouts, { opacity: 0, x: -20 });
+
+                gsap.to(callouts, {
+                    opacity: 1,
+                    x: 0,
+                    duration: 0.5,
+                    stagger: 0.15,
+                    ease: "power2.out",
+                    clearProps: "all"
+                });
+            }
+        }
+
+        // 2. Animar Info-Boxes
+        function animateInfoBoxes() {
+            const infoBoxes = $(".info-box");
+
+            if (infoBoxes.length > 0) {
+                gsap.set(infoBoxes, { opacity: 0, y: 30 });
+
+                gsap.to(infoBoxes, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.6,
+                    stagger: 0.1,
+                    ease: "power2.out",
+                    clearProps: "all"
+                });
+            }
+        }
+
+        // 3. Animar iconos de Info-Boxes (hover)
+        function setupInfoBoxIconAnimations() {
+            const icons = $(".info-box-icon i");
+
+            icons.on("mouseenter", function() {
+                gsap.to(this, {
+                    rotation: 360,
+                    scale: 1.2,
+                    duration: 0.5,
+                    ease: "power2.inOut"
+                });
+            });
+
+            icons.on("mouseleave", function() {
+                gsap.to(this, {
+                    rotation: 0,
+                    scale: 1,
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        }
+
+        // 4. Animar botones del header
+        function setupHeaderButtonAnimations() {
+            const headerButtons = $(".card-tools .btn");
+
+            headerButtons.on("mouseenter", function() {
+                let shadowColor = "rgba(108,117,125,0.4)"; // Default
+
+                if ($(this).hasClass("btn-danger")) {
+                    shadowColor = "rgba(220,53,69,0.4)";
+                } else if ($(this).hasClass("btn-light")) {
+                    shadowColor = "rgba(248,249,250,0.4)";
+                }
+
+                gsap.to(this, {
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px " + shadowColor,
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+
+            headerButtons.on("mouseleave", function() {
+                gsap.to(this, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        }
+
+        // 5. Animar formulario de filtros
+        function setupFilterFormAnimations() {
+            const filterForm = $(".form-inline");
+            const filterButton = $(".form-inline .btn-primary");
+
+            if (filterForm.length > 0) {
+                gsap.from(filterForm, {
+                    opacity: 0,
+                    y: -10,
+                    duration: 0.4,
+                    delay: 0.3,
+                    ease: "power2.out",
+                    clearProps: "all"
+                });
+            }
+
+            filterButton.on("mouseenter", function() {
+                gsap.to(this, {
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px rgba(0,123,255,0.4)",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+
+            filterButton.on("mouseleave", function() {
+                gsap.to(this, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        }
+
+        // 6. Animar container del gráfico
+        function animateChart() {
+            const chartCard = $("#monthlyChart").closest(".card");
+
+            if (chartCard.length > 0) {
+                gsap.from(chartCard, {
+                    opacity: 0,
+                    y: 30,
+                    duration: 0.6,
+                    delay: 0.5,
+                    ease: "power2.out",
+                    clearProps: "all"
+                });
+            }
+        }
+
+        // 7. Animar filas de la tabla
+        function animateTableRows() {
+            const rows = $("#table-estimado-planillas tbody tr");
+
+            if (rows.length === 0) return;
+
+            gsap.set(rows, { opacity: 0, y: 0 });
+
+            if (isInitialTableLoad) {
+                // Primera carga: animación elaborada
+                gsap.set(rows, { y: 20 });
+                gsap.to(rows, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.4,
+                    stagger: 0.05,
+                    ease: "power2.out",
+                    clearProps: "all"
+                });
+
+                isInitialTableLoad = false;
+            } else {
+                // Recargas: fade rápido
+                gsap.to(rows, {
+                    opacity: 1,
+                    duration: 0.3,
+                    stagger: 0.02,
+                    ease: "power1.out",
+                    clearProps: "all"
+                });
+            }
+
+            // Animar números con efecto especial
+            setupNumberAnimations();
+        }
+
+        // 8. Animar números en las celdas
+        function setupNumberAnimations() {
+            const numberCells = $("#table-estimado-planillas tbody td.text-right");
+
+            numberCells.each(function(index) {
+                gsap.fromTo(this,
+                    {
+                        scale: 0.8,
+                        opacity: 0
+                    },
+                    {
+                        scale: 1,
+                        opacity: 1,
+                        duration: 0.3,
+                        delay: index * 0.01,
+                        ease: "back.out(1.7)",
+                        clearProps: "all"
+                    }
+                );
+            });
+        }
+
+        // 9. Animar cards de estadísticas (Promedios y Planilla Base)
+        function animateStatsCards() {
+            const statsCards = $(".card.bg-light");
+
+            if (statsCards.length > 0) {
+                gsap.set(statsCards, { opacity: 0, y: 20 });
+
+                gsap.to(statsCards, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.5,
+                    stagger: 0.15,
+                    delay: 0.7,
+                    ease: "power2.out",
+                    clearProps: "all"
+                });
+            }
+
+            // Animar números dentro de las cards con efecto especial
+            const statsNumbers = $(".card.bg-light .font-weight-bold");
+            statsNumbers.each(function(index) {
+                gsap.fromTo(this,
+                    {
+                        scale: 0.9,
+                        opacity: 0
+                    },
+                    {
+                        scale: 1,
+                        opacity: 1,
+                        duration: 0.4,
+                        delay: 0.9 + (index * 0.05),
+                        ease: "back.out(1.5)",
+                        clearProps: "all"
+                    }
+                );
+            });
+        }
+
+        // 10. Animar botones de exportación DataTables
+        function setupExportButtonAnimations() {
+            setTimeout(function() {
+                const exportButtons = ".dt-buttons .btn";
+
+                $(document).on("mouseenter", exportButtons, function() {
+                    let shadowColor = "rgba(108,117,125,0.4)";
+
+                    if ($(this).hasClass("btn-success")) {
+                        shadowColor = "rgba(40,167,69,0.4)";
+                    } else if ($(this).hasClass("btn-danger")) {
+                        shadowColor = "rgba(220,53,69,0.4)";
+                    } else if ($(this).hasClass("btn-info")) {
+                        shadowColor = "rgba(23,162,184,0.4)";
+                    }
+
+                    gsap.to(this, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px " + shadowColor,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+
+                $(document).on("mouseleave", exportButtons, function() {
+                    gsap.to(this, {
+                        scale: 1,
+                        boxShadow: "none",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+            }, 500);
+        }
+
+        // Ejecutar animaciones iniciales
+        animateCallouts();
+        setTimeout(animateInfoBoxes, 200);
+        setupInfoBoxIconAnimations();
+        setupHeaderButtonAnimations();
+        setupFilterFormAnimations();
+        animateChart();
+        setupExportButtonAnimations();
+        setTimeout(animateTableRows, 600);
+        setTimeout(animateStatsCards, 700);
+    }
 });
 </script>';
 

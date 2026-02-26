@@ -387,6 +387,141 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     });
+
+    // ====================================
+    // GSAP ANIMATIONS - Button Hover Effects
+    // ====================================
+    if (typeof gsap !== "undefined") {
+        // Botones primarios (azul) - Guardar, Inicializar, Importar
+        const primaryButtons = $(".btn-primary");
+
+        primaryButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                if (!$(this).prop("disabled")) {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px rgba(0,123,255,0.4)",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                }
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+
+        // Botones secundarios (gris) - Volver, Cancelar, Cerrar
+        const secondaryButtons = $(".btn-secondary");
+
+        secondaryButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                if (!$(this).prop("disabled")) {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px rgba(108,117,125,0.3)",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                }
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+
+        // Botones de éxito (verde) - Importar Horarios
+        const successButtons = $(".btn-success");
+
+        successButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                if (!$(this).prop("disabled")) {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px rgba(40,167,69,0.4)",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                }
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+
+        // Botones de información (cyan) - Inicializar Rango
+        const infoButtons = $(".btn-info");
+
+        infoButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                if (!$(this).prop("disabled")) {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px rgba(23,162,184,0.4)",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                }
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+
+        // Botones de peligro (rojo) - Restaurar Predeterminado
+        const dangerButtons = $(".btn-danger");
+
+        dangerButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                if (!$(this).prop("disabled")) {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        boxShadow: "0 5px 15px rgba(220,53,69,0.4)",
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                }
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+    }
 });
 </script>
 HTML;

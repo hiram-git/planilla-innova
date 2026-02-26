@@ -8,6 +8,86 @@ Este archivo sirve como Ã­ndice principal para el historial de cambios del sis
 
 ## ðŸ†• **Ãšltimas Versiones**
 
+### **[v3.5.21]** - 2026-02-25 - *GSAP Animations Expansion + Innova Export Fixes*
+**Tipo**: FEATURE + BUGFIX - UI/UX Enhancement + Module Fixes
+**Fase**: Frontend Animations Expansion + Production Fixes
+**Criticidad**: Media
+
+**Componentes Principales**:
+- âœ… **Animaciones GSAP - 4 Vistas Adicionales**:
+  - Vista Liquidaciones Estimadas (7 funciones, ~250 lÃ­neas)
+  - Vista Planillas Estimadas (10 funciones, ~390 lÃ­neas)
+  - Vista Innova Export (7 funciones, ~245 lÃ­neas)
+  - Botones Formulario Crear Planilla (4 funciones, ~130 lÃ­neas)
+- âœ… **Correcciones CrÃ­ticas MÃ³dulo Innova Export**:
+  - Session Key Error: `$_SESSION['admin_id']` â†' `$_SESSION['admin']`
+  - View Path Error: path correcto `admin/innova_export/index`
+  - Parse Error: eliminaciÃ³n etiqueta `<?php` duplicada
+  - View Rendering Method: `View::render()` â†' `$this->view()`
+- â�Œ **Animaciones Revertidas - Employee Manual Concepts**:
+  - DataTable quedaba en estado "Procesando" permanentemente
+  - Conflicto entre animaciones GSAP y renderizado DataTable
+  - Restaurada configuraciÃ³n bÃ¡sica funcional
+
+**CaracterÃ­sticas GSAP**:
+- Animaciones entrada: callouts, info-boxes, cards, tabla
+- Hover effects: rotaciÃ³n 360Â° + escala 1.15-1.2
+- DataTable integration: drawCallback para re-animar paginaciÃ³n
+- Efectos especÃ­ficos: badges con bounce, nÃºmeros financieros
+- Timing coordinado y event delegation
+
+**ðŸ› Bugs Resueltos**:
+- Session key redirect loop infinito
+- Vista no encontrada (path incorrecto)
+- Parse error (duplicate PHP tag)
+- Variable `$shadowColor` interpretada como PHP
+- Quotes en comentarios JavaScript
+
+**ðŸ"ˆ EstadÃ­sticas**:
+- 5 vistas modificadas | 2 controllers corregidos | 1 core file (Controller.php)
+- ~1,015 lÃ­neas agregadas | ~350 lÃ­neas revertidas | ~665 lÃ­neas netas
+- 28 funciones GSAP | 4 bugs crÃ­ticos resueltos
+- Deployment: 10-15 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.21.md)**
+
+---
+
+### **[v3.5.20]** - 2026-02-24 - *GSAP Animations + Innova Export System*
+**Tipo**: FEATURE - UI/UX Enhancement + ERP Integration
+**Fase**: Frontend Animations + External Integrations
+**Criticidad**: Media
+
+**Componentes Principales**:
+- ✅ **GSAP Animation Pattern**: Sistema de animaciones profesionales para DataTables con GSAP v3.12.5
+- ✅ **Innova Export System**: Exportación planillas a formato fixed-width text para ERP INNOVA
+- ✅ **Documentación Técnica**: GSAP_ANIMATION_PATTERN.md completo (482 líneas)
+- ✅ **Implementación Empleados**: Animaciones en index + terminated views
+- ✅ **Export Service**: InnovaExportService (433 líneas) + Controller + UI completa
+
+**Características GSAP**:
+- Animaciones fade-in + slide-up en tablas (carga inicial)
+- Hover effects en botones (scale 1.15 + rotation 360°)
+- Badges con animación scale desde 0
+- Diferenciación animación inicial vs filtros/paginación
+- clearProps automático para performance
+
+**Características Innova Export**:
+- Formato fixed-width text (347 caracteres por línea)
+- 3 tipos registros: Movimientos (1), Neto empleado (2), Totales (3)
+- Agrupación por departamento + totales automáticos
+- Solo planillas PROCESADAS/CERRADAS
+- Archivos con timestamp para auditoría
+
+**ðŸ"ˆ Estadísticas**:
+- 4 archivos nuevos | 4 modificados | ~1,625 líneas | 1 documento técnico (482 líneas)
+- 5 tipos animaciones | 15 métodos PHP | 3 rutas REST | 2 queries SQL optimizadas
+- Deployment: 15-20 minutos
+
+**[ðŸ"„ Ver detalles completos â†'](./changelog/v3.5.20.md)**
+
+---
+
 ### **[v3.5.19]** - 2026-01-16 - *Módulo Campos Adicionales Personalizados*
 **Tipo**: FEATURE - Employee Custom Fields System
 **Fase**: Core System Enhancement - Dynamic Employee Data
@@ -897,7 +977,7 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 16 de Enero, 2026
-Sistema: Planillas MVC v3.5.19
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 45% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100% | Campos Adicionales 100%
+Última Actualización: 25 de Febrero, 2026
+Sistema: Planillas MVC v3.5.21
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 85% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100% | Campos Adicionales 100% | UI/UX Animations (GSAP) 100% | ERP Integration (INNOVA) 100%
 

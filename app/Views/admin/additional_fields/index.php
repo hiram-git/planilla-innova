@@ -75,6 +75,110 @@ $content .= '
 
 $scripts = '
 <script>
+// GSAP: Flag global para controlar animación inicial
+window.additionalFieldsTableIsInitialLoad = true;
+
+// GSAP: Función para animar filas del DataTable
+window.animateAdditionalFieldsTableRows = function() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const rows = $("#fieldsTable tbody tr");
+    if (rows.length === 0) {
+        return;
+    }
+
+    // Ocultar filas inicialmente
+    gsap.set(rows, { opacity: 0, y: 0 });
+
+    if (window.additionalFieldsTableIsInitialLoad) {
+        // Primera carga: animación elaborada
+        gsap.set(rows, { y: 20 });
+        gsap.to(rows, {
+            opacity: 1,
+            y: 0,
+            duration: 0.4,
+            stagger: 0.05,
+            ease: "power2.out",
+            clearProps: "all"
+        });
+
+        // Animar controles de paginación
+        gsap.to(".dataTables_info, .dataTables_paginate", {
+            opacity: 1,
+            duration: 0.5,
+            delay: 0.3
+        });
+
+        window.additionalFieldsTableIsInitialLoad = false;
+    } else {
+        // Recargas: fade rápido
+        gsap.to(rows, {
+            opacity: 1,
+            duration: 0.3,
+            stagger: 0.02,
+            ease: "power1.out",
+            clearProps: "all"
+        });
+    }
+
+    // Animar elementos de la tabla
+    setupAdditionalFieldsActionAnimations();
+};
+
+// GSAP: Función para animar botones y badges
+function setupAdditionalFieldsActionAnimations() {
+    if (typeof gsap === "undefined") {
+        return;
+    }
+
+    const badges = $("#fieldsTable .badge");
+    const buttons = $("#fieldsTable .btn-sm");
+    const icons = $("#fieldsTable .btn-sm i");
+
+    // Animar badges
+    badges.each(function(index) {
+        gsap.from(this, {
+            scale: 0,
+            duration: 0.4,
+            delay: index * 0.02,
+            ease: "back.out(2)"
+        });
+    });
+
+    // Hover effects en botones de acción
+    buttons.off("mouseenter.gsap mouseleave.gsap").on({
+        "mouseenter.gsap": function() {
+            if (!$(this).prop("disabled")) {
+                gsap.to(this, {
+                    scale: 1.15,
+                    duration: 0.2,
+                    ease: "power2.out"
+                });
+            }
+        },
+        "mouseleave.gsap": function() {
+            gsap.to(this, {
+                scale: 1,
+                duration: 0.2,
+                ease: "power2.out"
+            });
+        }
+    });
+
+    // Animación para iconos dentro de botones
+    icons.off("mouseenter.gsap").on("mouseenter.gsap", function() {
+        if (!$(this).closest(".btn").prop("disabled")) {
+            gsap.to(this, {
+                rotation: 360,
+                duration: 0.5,
+                ease: "power2.inOut"
+            });
+        }
+    });
+}
+
 $(document).ready(function() {
     // Inicializar DataTables
     var table = $("#fieldsTable").DataTable({
@@ -100,7 +204,15 @@ $(document).ready(function() {
         },
         pageLength: 25,
         stateSave: true,
-        responsive: true
+        responsive: true,
+        drawCallback: function(settings) {
+            // GSAP: Animar filas después de cada draw
+            if (typeof window.animateAdditionalFieldsTableRows === "function") {
+                setTimeout(function() {
+                    window.animateAdditionalFieldsTableRows();
+                }, 50);
+            }
+        }
     });
 
     // Check all checkboxes
@@ -143,7 +255,39 @@ $(document).ready(function() {
             }
         });
     });
+
+    // GSAP: Efecto hover en botón "Agregar Campo"
+    if (typeof gsap !== "undefined") {
+        const addButton = $(".card-tools .btn-primary");
+
+        addButton.on("mouseenter", function() {
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: "0 5px 15px rgba(0,123,255,0.4)",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        });
+
+        addButton.on("mouseleave", function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: "none",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        });
+    }
 });
 </script>';
+
+$styles = '
+<style>
+/* GSAP - Ocultar elementos de paginación antes de animar */
+.dataTables_info,
+.dataTables_paginate {
+    opacity: 0;
+}
+</style>';
 
 include __DIR__ . '/../../layouts/admin.php';

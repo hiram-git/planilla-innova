@@ -44,6 +44,15 @@ const TerminatedEmployeesModule = {
                 "emptyTable": "No hay empleados dados de baja en el sistema",
                 "zeroRecords": "No se encontraron empleados terminados que coincidan con la búsqueda"
             },
+            "drawCallback": function(settings) {
+                // GSAP: Animar filas después de cada draw
+                if (typeof window.animateTerminatedEmployeesTableRows === 'function') {
+                    // Pequeño delay para asegurar que el DOM esté listo
+                    setTimeout(function() {
+                        window.animateTerminatedEmployeesTableRows();
+                    }, 50);
+                }
+            },
             "dom": "Bfrtip",
             "buttons": [
                 {

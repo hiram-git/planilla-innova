@@ -1,8 +1,8 @@
 ﻿# 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📍 **Estado Actual - V3.5.19 + 230 Commits Nuevos (REVISIÓN COMPLETA)**
-- **Fecha**: 29 de Enero, 2026 (**Sincronización con Estado Real del Proyecto**)
-- **Versión**: 3.5.19 - Sistema completo campos adicionales personalizados empleados
+## 📍 **Estado Actual - V3.5.21 (GSAP Animations Expansion + Innova Export Fixes)**
+- **Fecha**: 25 de Febrero, 2026 (**GSAP Animations Expansion + Correcciones Críticas**)
+- **Versión**: 3.5.21 - Expansión animaciones GSAP + correcciones módulo Innova Export
 - **Commits Revisados**: 230+ commits (Nov-2025 a Ene-2026) | **PRs Merged**: #90-#113 (24 PRs)
 - **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 90% (+45%) + MULTITENANCY 85% (+40%) + MOTOR FÓRMULAS 95% + API ASISTENCIAS 92% + CALENDARIO 100% + LIQUIDACIONES 100% + SEGURIDAD 100% + EMPLOYEE IMPORT 100% + PERMISOS GRANULARES 100% + EXPEDIENTES 100% + CAMPOS ADICIONALES 100% + POSTGRESQL 100% + SUPER ADMIN 100% + MANUAL CONCEPTS 100% + LOAN SYSTEM 100%**
 - **Changelog**: [Ver historial completo →](documentation/CHANGELOG.md)
@@ -36,6 +36,27 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Employee Documents**: Work document generators PDF/Word + templates + navigation shortcuts (100% completado)
 
 ## 🆕 **Últimas Versiones (Ver changelog para detalles)**
+
+### V3.5.21 - GSAP Animations Expansion + Innova Export Fixes (25-Feb-2026)
+- Expansión animaciones GSAP a 4 vistas adicionales: Liquidaciones Estimadas (7 funciones) + Planillas Estimadas (10 funciones) + Innova Export (7 funciones) + Crear Planilla Botones (4 funciones)
+- 28 funciones GSAP implementadas totales con patrón consolidado + timing coordinado + event delegation
+- Correcciones críticas Innova Export: 4 bugs resueltos (session key, view path, parse error, rendering method)
+- Bug crítico Controller.php: Fix session key `$_SESSION['admin_id']` → `$_SESSION['admin']` eliminando redirect loop
+- Animaciones revertidas employee-manual-concepts: DataTable stuck "Procesando" + lecciones aprendidas documentadas
+- Características GSAP: fade-in + slide-up + hover effects (rotation 360° + scale 1.15-1.2) + DataTable drawCallback integration
+- Estadísticas: 5 vistas modificadas | 2 controllers corregidos | 1 core file | ~1,015 líneas agregadas | ~350 revertidas | ~665 netas
+- [Ver detalles →](documentation/changelog/v3.5.21.md)
+
+### V3.5.20 - GSAP Animations + Innova Export System (24-Feb-2026)
+- Sistema completo animaciones GSAP v3.12.5 para DataTables
+- Patrón documentado: GSAP_ANIMATION_PATTERN.md (482 líneas) con guía implementación completa
+- Animaciones: fade-in, slide-up, scale, hover effects (rotation 360° + scale 1.15)
+- Implementado en módulos: employees/index + employees/terminated
+- InnovaExportService (433 líneas): Exportación planillas a formato fixed-width text (347 chars/línea)
+- 3 tipos registros INNOVA: Movimientos (1), Neto empleado (2), Totales (3)
+- InnovaExportController + Vista AdminLTE con DataTables para exportación
+- Agrupación por departamento + totales automáticos + solo planillas PROCESADAS/CERRADAS
+- [Ver detalles →](documentation/changelog/v3.5.20.md)
 
 ### V3.5.19 - Módulo Campos Adicionales Personalizados (16-Ene-2026)
 - Sistema completo campos personalizados: employee_additional_fields + employee_additional_field_values
@@ -476,6 +497,6 @@ $scripts = ob_get_clean();
 
 ---
 
-**Última Actualización**: 11 de Febrero, 2026 (**Patrón MVC + Función CANTIDAD_HORAS_EXTRAS_APROBADAS()**)
-**Sistema**: Planillas MVC v3.5.19
-**Progreso Global**: Core 100% | Calendario 100% | **Vacaciones 90% (+45%)** | **Multitenancy 85% (+40%)** | **Motor Fórmulas 95%** | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Campos Adicionales 100% | **PostgreSQL 100%** | **Super Admin 100%** | **Manual Concepts 100%** | **Loan System 100%**
+**Última Actualización**: 25 de Febrero, 2026 (**GSAP Animations Expansion + Innova Export Fixes**)
+**Sistema**: Planillas MVC v3.5.21
+**Progreso Global**: Core 100% | Calendario 100% | **Vacaciones 90%** | **Multitenancy 85%** | **Motor Fórmulas 95%** | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Campos Adicionales 100% | **PostgreSQL 100%** | **Super Admin 100%** | **Manual Concepts 100%** | **Loan System 100%** | **UI/UX Animations (GSAP) 100%** | **ERP Integration (INNOVA) 100%**

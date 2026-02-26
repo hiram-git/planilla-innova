@@ -1,9 +1,9 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 29 de Enero, 2026 (**REVISIÓN COMPLETA - Estado Real**)
-**Versión**: 3.5.19 - Módulo Campos Adicionales Personalizados
-**Commits Revisados**: 230+ commits (Nov-2025 a Ene-2026)
+**Fecha**: 25 de Febrero, 2026 (**GSAP Animations Expansion + Innova Export Fixes**)
+**Versión**: 3.5.21 - GSAP Animations Expansion + Innova Export Fixes
+**Commits Revisados**: 232+ commits (Nov-2025 a Feb-2026)
 **PRs Merged**: #90-#113 (24 PRs)
 
 ### 🎯 **Avances Reales vs Estimados Anteriores**
@@ -11,9 +11,32 @@
 - **Vacaciones Panamá**: 45% → **90%** 🟢 (+45%)
 - **Motor Fórmulas**: 80% → **95%** 🟢 (+15%)
 - **Asistencias**: 92% → **92%** 🔵 (sin cambio)
+- **UI/UX Animations (GSAP)**: 90% → **100%** 🟢 (+10%)
 - **10+ Features Nuevas Completadas** (no reflejadas anteriormente) ✅
 
-### 🆕 Hitos Recientes (v3.5.19 Módulo Campos Adicionales Personalizados)
+### 🆕 Hitos Recientes (v3.5.21 GSAP Animations Expansion + Innova Export Fixes - 25-Feb-2026)
+- **Animaciones GSAP - 4 Vistas Adicionales**: Liquidaciones Estimadas (7 funciones) + Planillas Estimadas (10 funciones) + Innova Export (7 funciones) + Botones Crear Planilla (4 funciones)
+- **Patrón GSAP Consolidado**: 28 funciones animación implementadas + timing coordinado + event delegation + clearProps automático
+- **Correcciones Críticas Innova Export**: 4 bugs resueltos (session key, view path, parse error, rendering method)
+- **Bug Crítico Controller.php**: Fix session key `$_SESSION['admin_id']` → `$_SESSION['admin']` + eliminación redirect loop
+- **Animaciones Revertidas**: employee-manual-concepts (DataTable stuck "Procesando") + lecciones aprendidas documentadas
+- **Características GSAP**: Fade-in + slide-up + hover effects (rotation 360° + scale 1.15-1.2) + DataTable drawCallback integration
+- **Total**: 5 vistas modificadas | 2 controllers corregidos | 1 core file | ~1,015 líneas agregadas | ~350 líneas revertidas | ~665 líneas netas | 4 bugs críticos resueltos
+[Ver v3.5.21 →](changelog/v3.5.21.md)
+
+### 🆕 Hitos Anteriores (v3.5.20 GSAP Animations + Innova Export System - 24-Feb-2026)
+- **GSAP Animation Pattern**: Sistema completo animaciones profesionales DataTables con GSAP v3.12.5
+- **Documentación GSAP**: GSAP_ANIMATION_PATTERN.md (482 líneas) con guía implementación + checklist 37 items
+- **Animaciones Implementadas**: Fade-in + slide-up + hover effects (scale 1.15, rotation 360°) + badges scale
+- **Módulos GSAP**: employees/index + employees/terminated con funciones globales animación
+- **Innova Export Service**: InnovaExportService (433 líneas) + InnovaExportController (174 líneas)
+- **Formato INNOVA**: Fixed-width text 347 caracteres/línea + 3 tipos registros (Movimientos, Neto, Totales)
+- **UI Export**: Vista AdminLTE con DataTables + menú sidebar + 3 rutas REST
+- **Validaciones**: Solo planillas PROCESADAS/CERRADAS + agrupación departamento + totales automáticos
+- **Total**: 4 archivos nuevos | 4 modificados | ~1,625 líneas | 1 documento técnico (482 líneas) | 5 tipos animaciones
+[Ver v3.5.20 →](changelog/v3.5.20.md)
+
+### 🆕 Hitos Anteriores (v3.5.19 Módulo Campos Adicionales Personalizados - 16-Ene-2026)
 - **Sistema Completo Campos Personalizados**: 2 tablas + CRUD + 4 tipos datos (TEXTO, NUMERO, FECHA, BOOLEAN)
 - **Integración Empleados**: Formularios create/edit con renderizado dinámico + validaciones + valores default
 - **DataTables Server-Side**: Paginación eficiente con búsqueda + named parameters PDO

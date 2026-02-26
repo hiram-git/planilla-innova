@@ -762,6 +762,7 @@ class App
                                     $this->method = 'index';
                                     $this->params = [];
                                 }
+
                                 call_user_func_array([$this->controller, $this->method], $this->params);
                                 return;
                             } elseif ($httpMethod === 'POST') {
@@ -779,6 +780,9 @@ class App
                                     return;
                                 }
                             }
+
+                            // Return explícito para innova-export
+                            return;
                         }
 
                         // ✅ MANEJO ESPECIAL: overtime-approvals subroutes

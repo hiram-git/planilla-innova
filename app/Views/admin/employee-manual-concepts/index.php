@@ -124,15 +124,15 @@
 <?php
 $scripts = "
 <script>
-$(document).ready(function() {
+\$(document).ready(function() {
     // DataTable
-    var table = $('#manualConceptsTable').DataTable({
+    var table = \$('#manualConceptsTable').DataTable({
         processing: true,
         serverSide: false,
         ajax: {
             url: '" . \App\Core\UrlHelper::route('panel/employee-manual-concepts/data') . "',
             data: function(d) {
-                d.estado = $('select[name=estado]').val();
+                d.estado = \$('select[name=estado]').val();
             }
         },
         columns: [
@@ -179,8 +179,8 @@ $(document).ready(function() {
     });
 
     // Cancelar concepto
-    $(document).on('click', '.btn-cancel', function() {
-        var id = $(this).data('id');
+    \$(document).on('click', '.btn-cancel', function() {
+        var id = \$(this).data('id');
 
         Swal.fire({
             title: '¿Cancelar concepto?',
@@ -193,7 +193,7 @@ $(document).ready(function() {
             cancelButtonText: 'No'
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post('" . \App\Core\UrlHelper::route('panel/employee-manual-concepts') . "/' + id + '/cancel', {
+                \$.post('" . \App\Core\UrlHelper::route('panel/employee-manual-concepts') . "/' + id + '/cancel', {
                     csrf_token: '" . ($csrf_token ?? '') . "'
                 }, function(response) {
                     if (response.success) {
@@ -208,8 +208,8 @@ $(document).ready(function() {
     });
 
     // Reactivar concepto
-    $(document).on('click', '.btn-reactivate', function() {
-        var id = $(this).data('id');
+    \$(document).on('click', '.btn-reactivate', function() {
+        var id = \$(this).data('id');
 
         Swal.fire({
             title: '¿Reactivar concepto?',
@@ -222,7 +222,7 @@ $(document).ready(function() {
             cancelButtonText: 'No'
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post('" . \App\Core\UrlHelper::route('panel/employee-manual-concepts') . "/' + id + '/reactivate', {
+                \$.post('" . \App\Core\UrlHelper::route('panel/employee-manual-concepts') . "/' + id + '/reactivate', {
                     csrf_token: '" . ($csrf_token ?? '') . "'
                 }, function(response) {
                     if (response.success) {
@@ -237,8 +237,8 @@ $(document).ready(function() {
     });
 
     // Eliminar concepto
-    $(document).on('click', '.btn-delete', function() {
-        var id = $(this).data('id');
+    \$(document).on('click', '.btn-delete', function() {
+        var id = \$(this).data('id');
 
         Swal.fire({
             title: '¿Eliminar concepto?',
@@ -251,7 +251,7 @@ $(document).ready(function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post('" . \App\Core\UrlHelper::route('panel/employee-manual-concepts') . "/' + id + '/delete', {
+                \$.post('" . \App\Core\UrlHelper::route('panel/employee-manual-concepts') . "/' + id + '/delete', {
                     csrf_token: '" . ($csrf_token ?? '') . "'
                 }, function(response) {
                     if (response.success) {

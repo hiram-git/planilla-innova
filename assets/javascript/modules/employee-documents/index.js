@@ -51,7 +51,16 @@ $(document).ready(function() {
                 },
                 order: [[1, "asc"]],
                 pageLength: 25,
-                responsive: true
+                responsive: true,
+                drawCallback: function(settings) {
+                    // GSAP: Animar filas después de cada draw
+                    if (typeof window.animateEmployeeDocumentsTableRows === 'function') {
+                        // Pequeño delay para asegurar que el DOM esté listo
+                        setTimeout(function() {
+                            window.animateEmployeeDocumentsTableRows();
+                        }, 50);
+                    }
+                }
             });
         },
 

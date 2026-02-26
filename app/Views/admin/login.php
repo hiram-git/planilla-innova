@@ -148,8 +148,11 @@ $scripts = '
         }
 
         // ========================================
-        // GSAP ANIMATIONS - Login Page (Fast)
+        // GSAP ANIMATIONS - Login Page (2 Bloques Simultáneos)
         // ========================================
+
+        // Verificar si existe callout de error/mensaje
+        const errorCallout = document.querySelector(".callout-danger, .callout-warning, .callout-info, .callout-success");
 
         // Timeline principal con animaciones rápidas
         const tl = gsap.timeline({
@@ -159,57 +162,70 @@ $scripts = '
             }
         });
 
-        // 1. Animar logo/título - entrada rápida desde arriba
+        // ========================================
+        // BLOQUE 1: Formulario (logo + campos + texto ayuda + botón)
+        // ========================================
+
+        // 1. Logo/título - entrada desde arriba
         tl.to(".login-box-msg", {
             y: 0,
             opacity: 1,
             clearProps: "transform",
             duration: 0.4,
             ease: "power2.out"
-        })
+        }, 0) // Inicia en t=0
 
-        // 2. Animar campos del formulario - fade in rápido
+        // 2. Campos del formulario
         .to(".input-group", {
             opacity: 1,
             y: 0,
-            stagger: 0.05, // Stagger reducido
+            stagger: 0.05,
             duration: 0.3,
             ease: "power2.out"
-        }, "-=0.3") // Mayor overlap
+        }, 0.1) // Inicia en t=0.1 (overlap con logo)
 
-        // 3. Animar texto de ayuda
+        // 3. Texto de ayuda
         .to(".text-muted", {
             opacity: 1,
             duration: 0.2
-        }, "-=0.2")
+        }, 0.2) // Inicia en t=0.2
 
-        // 4. Animar botón - scale up rápido
+        // 4. Botón de Entrar - scale up
         .to(".btn-primary", {
             opacity: 1,
             scale: 1,
             clearProps: "transform",
             ease: "back.out(1.5)",
             duration: 0.3
-        }, "-=0.15");
+        }, 0.25); // Inicia en t=0.25
 
-        // Animar callout de error si existe (más rápido)
-        const errorCallout = document.querySelector(".callout-danger");
+        // ========================================
+        // BLOQUE 2: Callout de errores/mensajes (SI EXISTE)
+        // Se anima SIMULTÁNEAMENTE con el Bloque 1
+        // ========================================
         if (errorCallout) {
-            gsap.from(errorCallout, {
-                x: -10,
-                opacity: 0,
-                duration: 0.3,
-                ease: "power2.out",
-                delay: 0.6 // Delay reducido
-            });
-
-            // Shake effect más rápido
-            gsap.to(errorCallout, {
-                x: [0, -5, 5, -5, 5, 0],
+            // Fade-in del callout
+            tl.to(errorCallout, {
+                opacity: 1,
                 duration: 0.4,
-                delay: 0.7,
+                ease: "power2.out"
+            }, 0) // Inicia en t=0 (simultáneo con Bloque 1)
+
+            // Shake effect EXAGERADO para llamar atención (después de aparecer)
+            .to(errorCallout, {
+                keyframes: [
+                    { x: -12, duration: 0.05 },
+                    { x: 12, duration: 0.05 },
+                    { x: -10, duration: 0.05 },
+                    { x: 10, duration: 0.05 },
+                    { x: -8, duration: 0.05 },
+                    { x: 8, duration: 0.05 },
+                    { x: -5, duration: 0.05 },
+                    { x: 5, duration: 0.05 },
+                    { x: 0, duration: 0.1 }
+                ],
                 ease: "power2.inOut"
-            });
+            }, 0.4); // Inicia en t=0.4 (después del fade-in)
         }
 
         // Hover effect en el botón (animación continua)

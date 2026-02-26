@@ -241,15 +241,32 @@ $(document).ready(function() {
     // Inicializar Select2
     $('.select2').select2({
         theme: 'bootstrap4',
-        width: '100%'
-    });
-
-    // Cargar empleados para filtro
-    $.get(baseUrl + '/panel/employees/get-active', function(employees) {
-        $("#filter_employee").empty().append("<option value=''>Todos</option>");
-        employees.forEach(function(emp) {
-            $("#filter_employee").append(`<option value="${emp.id}">${emp.employee_id} - ${emp.firstname} ${emp.lastname}</option>`);
-        });
+        width: '100%',
+        ajax: {
+            url: baseUrl + '/panel/payrolls/get-employees',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    term: params.term
+                };
+            },
+            processResults: function (data) {
+                // Asegurarse de que data.data sea un array
+                const employees = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+                return {
+                    results: employees.map(function(emp) {
+                        return {
+                            id: emp.id,
+                            text: emp.employee_id + ' - ' + emp.firstname + ' ' + emp.lastname
+                        };
+                    })
+                };
+            },
+            cache: true
+        },
+        placeholder: 'Todos',
+        allowClear: true
     });
 
     // DataTable
@@ -494,8 +511,282 @@ $(document).ready(function() {
             toastr.error("Error de conexión");
         });
     });
+
+    // ============================================
+    // GSAP ANIMATIONS
+    // ============================================
+    if (typeof gsap !== 'undefined') {
+        // Flag para controlar animación inicial de la tabla
+        let isInitialTableLoad = true;
+
+        // 1. Animar Info-Boxes al cargar la página
+        function animateInfoBoxes() {
+            const infoBoxes = $('.info-box');
+
+            if (infoBoxes.length > 0) {
+                // Configurar estado inicial
+                gsap.set(infoBoxes, { opacity: 0, y: 30 });
+
+                // Animar con stagger
+                gsap.to(infoBoxes, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.6,
+                    stagger: 0.1,
+                    ease: 'power2.out',
+                    clearProps: 'all'
+                });
+            }
+        }
+
+        // 2. Animar iconos de Info-Boxes (hover)
+        function setupInfoBoxIconAnimations() {
+            const icons = $('.info-box-icon i');
+
+            icons.on('mouseenter', function() {
+                gsap.to(this, {
+                    rotation: 360,
+                    scale: 1.2,
+                    duration: 0.5,
+                    ease: 'power2.inOut'
+                });
+            });
+
+            icons.on('mouseleave', function() {
+                gsap.to(this, {
+                    rotation: 0,
+                    scale: 1,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+        }
+
+        // 3. Animar filas de la tabla después de cargar datos
+        function animateTableRows() {
+            const rows = $('#pending-table tbody tr');
+
+            if (rows.length === 0) return;
+
+            // Configurar estado inicial
+            gsap.set(rows, { opacity: 0, y: 0 });
+
+            if (isInitialTableLoad) {
+                // Primera carga: animación elaborada con slide
+                gsap.set(rows, { y: 20 });
+                gsap.to(rows, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.4,
+                    stagger: 0.05,
+                    ease: 'power2.out',
+                    clearProps: 'all'
+                });
+
+                // Animar controles de paginación
+                gsap.to('.dataTables_info, .dataTables_paginate', {
+                    opacity: 1,
+                    duration: 0.5,
+                    delay: 0.3
+                });
+
+                isInitialTableLoad = false;
+            } else {
+                // Recargas: fade rápido
+                gsap.to(rows, {
+                    opacity: 1,
+                    duration: 0.3,
+                    stagger: 0.02,
+                    ease: 'power1.out',
+                    clearProps: 'all'
+                });
+            }
+
+            // Configurar animaciones de elementos dentro de la tabla
+            setupTableElementAnimations();
+        }
+
+        // 4. Animar badges y botones dentro de la tabla
+        function setupTableElementAnimations() {
+            const badges = $('#pending-table .badge');
+            const buttons = $('#pending-table .btn-sm');
+            const icons = $('#pending-table .btn-sm i');
+
+            // Animar badges con scale - usando fromTo para control completo
+            badges.each(function(index) {
+                gsap.fromTo(this,
+                    {
+                        scale: 0,
+                        opacity: 0
+                    },
+                    {
+                        scale: 1,
+                        opacity: 1,
+                        duration: 0.4,
+                        delay: index * 0.02,
+                        ease: 'back.out(2)',
+                        clearProps: 'all'
+                    }
+                );
+            });
+
+            // Hover effects en botones de acción
+            buttons.off('mouseenter.gsap mouseleave.gsap').on({
+                'mouseenter.gsap': function() {
+                    if (!$(this).prop('disabled')) {
+                        gsap.to(this, {
+                            scale: 1.15,
+                            duration: 0.2,
+                            ease: 'power2.out'
+                        });
+                    }
+                },
+                'mouseleave.gsap': function() {
+                    gsap.to(this, {
+                        scale: 1,
+                        duration: 0.2,
+                        ease: 'power2.out'
+                    });
+                }
+            });
+
+            // Rotación de iconos en botones
+            icons.off('mouseenter.gsap').on('mouseenter.gsap', function() {
+                if (!$(this).closest('.btn').prop('disabled')) {
+                    gsap.to(this, {
+                        rotation: 360,
+                        duration: 0.5,
+                        ease: 'power2.inOut'
+                    });
+                }
+            });
+        }
+
+        // 5. Animar botones de filtro
+        function setupFilterButtonAnimations() {
+            const filterButtons = $('#filterForm .btn, #clearFilters');
+
+            filterButtons.on('mouseenter', function() {
+                const isPrimary = $(this).hasClass('btn-primary');
+                const shadowColor = isPrimary ? 'rgba(0,123,255,0.4)' : 'rgba(108,117,125,0.4)';
+
+                gsap.to(this, {
+                    scale: 1.05,
+                    boxShadow: `0 5px 15px ${shadowColor}`,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+
+            filterButtons.on('mouseleave', function() {
+                gsap.to(this, {
+                    scale: 1,
+                    boxShadow: 'none',
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+        }
+
+        // 6. Animar botones en modales
+        function setupModalButtonAnimations() {
+            const modalButtons = '.modal .btn';
+
+            $(document).on('mouseenter', modalButtons, function() {
+                let shadowColor = 'rgba(108,117,125,0.4)'; // Default secondary
+
+                if ($(this).hasClass('btn-success')) {
+                    shadowColor = 'rgba(40,167,69,0.4)';
+                } else if ($(this).hasClass('btn-danger')) {
+                    shadowColor = 'rgba(220,53,69,0.4)';
+                } else if ($(this).hasClass('btn-secondary')) {
+                    shadowColor = 'rgba(108,117,125,0.4)';
+                }
+
+                gsap.to(this, {
+                    scale: 1.05,
+                    boxShadow: `0 5px 15px ${shadowColor}`,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+
+            $(document).on('mouseleave', modalButtons, function() {
+                gsap.to(this, {
+                    scale: 1,
+                    boxShadow: 'none',
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+        }
+
+        // 7. Animar botones de exportación (Excel, PDF)
+        function setupExportButtonAnimations() {
+            // Esperar a que DataTables cree los botones
+            setTimeout(function() {
+                const exportButtons = '.dt-buttons .btn';
+
+                $(document).on('mouseenter', exportButtons, function() {
+                    let shadowColor = 'rgba(108,117,125,0.4)';
+
+                    if ($(this).hasClass('btn-success')) {
+                        shadowColor = 'rgba(40,167,69,0.4)';
+                    } else if ($(this).hasClass('btn-danger')) {
+                        shadowColor = 'rgba(220,53,69,0.4)';
+                    }
+
+                    gsap.to(this, {
+                        scale: 1.05,
+                        boxShadow: `0 5px 15px ${shadowColor}`,
+                        duration: 0.3,
+                        ease: 'power2.out'
+                    });
+                });
+
+                $(document).on('mouseleave', exportButtons, function() {
+                    gsap.to(this, {
+                        scale: 1,
+                        boxShadow: 'none',
+                        duration: 0.3,
+                        ease: 'power2.out'
+                    });
+                });
+            }, 500);
+        }
+
+        // Ejecutar animaciones iniciales al cargar la página
+        animateInfoBoxes();
+        setupInfoBoxIconAnimations();
+        setupFilterButtonAnimations();
+        setupModalButtonAnimations();
+        setupExportButtonAnimations();
+
+        // Integrar animación de tabla con DataTables
+        // Usar el callback drawCallback que ya está configurado arriba
+        const originalDrawCallback = table.settings()[0].aoDrawCallback;
+        table.settings()[0].aoDrawCallback.push({
+            fn: function() {
+                setTimeout(animateTableRows, 50);
+            },
+            sName: 'gsapAnimation'
+        });
+
+        // Ejecutar animación de tabla en la carga inicial
+        setTimeout(animateTableRows, 300);
+    }
 });
 </script>
 <?php
 $scripts = ob_get_clean();
+
+// Estilos CSS para GSAP
+$styles = '
+<style>
+/* GSAP - Ocultar elementos de paginación antes de animar */
+.dataTables_info,
+.dataTables_paginate {
+    opacity: 0;
+}
+</style>';
 ?>

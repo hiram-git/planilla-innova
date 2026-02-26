@@ -3,7 +3,6 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Core\View;
 use App\Services\InnovaExportService;
 use App\Models\Payroll;
 
@@ -33,7 +32,7 @@ class InnovaExportController extends Controller
             'page_title' => 'Exportación a ERP INNOVA'
         ];
 
-        View::render('admin/innova_export/index', $data);
+        $this->view('admin/innova_export/index', $data);
     }
 
     /**
@@ -114,7 +113,7 @@ class InnovaExportController extends Controller
 
             if (!$result['success']) {
                 $_SESSION['error_message'] = $result['message'];
-                header('Location: ' . \App\Core\UrlHelper::route('/panel/innova-export'));
+                header('Location: /panel/innova-export');
                 exit;
             }
 
@@ -123,7 +122,7 @@ class InnovaExportController extends Controller
 
             if (!file_exists($filePath)) {
                 $_SESSION['error_message'] = 'Archivo generado pero no encontrado';
-                header('Location: ' . \App\Core\UrlHelper::route('/panel/innova-export'));
+                header('Location: /panel/innova-export');
                 exit;
             }
 
@@ -141,7 +140,7 @@ class InnovaExportController extends Controller
         } catch (\Exception $e) {
             error_log("Error en export: " . $e->getMessage());
             $_SESSION['error_message'] = 'Error al exportar: ' . $e->getMessage();
-            header('Location: ' . \App\Core\UrlHelper::route('/panel/innova-export'));
+            header('Location: /panel/innova-export');
             exit;
         }
     }
@@ -151,8 +150,8 @@ class InnovaExportController extends Controller
      */
     private function buildActionButtons($payrollId)
     {
-        $exportUrl = \App\Core\UrlHelper::route('/panel/innova-export/export/' . $payrollId);
-        $detailsUrl = \App\Core\UrlHelper::route('/panel/planillas/view/' . $payrollId);
+        $exportUrl = '/panel/innova-export/export/' . $payrollId;
+        $detailsUrl = '/panel/payrolls/view/' . $payrollId;
 
         return '
             <div class="btn-group btn-group-sm">
