@@ -62,8 +62,34 @@ app/Views/admin/example/
   └── index.php                    # Vista principal
 
 assets/javascript/modules/example/
-  └── index.js                      # Módulo DataTables
+  └── index.js                      # Código fuente JavaScript
+
+public/assets/javascript/modules/example/  👈 CRÍTICO
+  └── index.js                      # Archivo servido por el servidor web
 ```
+
+### ⚠️ CRÍTICO: Ubicación de Archivos JavaScript
+
+**IMPORTANTE**: Los archivos JavaScript deben estar en **AMBAS** ubicaciones:
+
+1. **`/assets/javascript/modules/`** → Código fuente (para desarrollo)
+2. **`/public/assets/javascript/modules/`** → Archivos servidos (para producción)
+
+❌ **ERROR COMÚN**: Solo tener el archivo en `/assets/` sin copiarlo a `/public/assets/`
+
+**Síntoma**: El módulo JavaScript no se carga, no hay logs en consola, 404 en Network tab del navegador.
+
+**Solución**: Copiar siempre el archivo a `/public/assets/`:
+
+```bash
+# Ejemplo para reference-index.js
+cp assets/javascript/modules/reference-index.js public/assets/javascript/modules/reference-index.js
+
+# Ejemplo para schedules.js
+cp assets/javascript/modules/schedules.js public/assets/javascript/modules/schedules.js
+```
+
+**¿Por qué?** El servidor web (Apache/Nginx) solo sirve archivos desde el directorio `/public/`. Los archivos en `/assets/` no son accesibles directamente por el navegador.
 
 ### Paso 1: Vista PHP (`app/Views/admin/example/index.php`)
 
@@ -366,11 +392,102 @@ gsap.to(rows, {
 
 ## 📚 Ejemplos Completos
 
-### Ejemplo 1: Lista Simple (sin plugins adicionales)
+### Ejemplo 1: Vista Individual con GSAP Inline
 Ver implementación completa en: `app/Views/admin/employees/index.php`
 
-### Ejemplo 2: Lista con Botones Export (con plugins DataTables)
+**Características**:
+- Funciones GSAP definidas inline en la vista PHP
+- Usa `$scripts` variable
+- Patrón: `$jsConfig → módulo JS → funciones GSAP inline`
+
+### Ejemplo 2: Vista Individual con Plugins DataTables
 Ver implementación completa en: `app/Views/admin/employees/terminated.php`
+
+**Características**:
+- Carga plugins adicionales (DataTables Buttons)
+- Funciones GSAP definidas inline
+- Patrón: `$jsConfig → plugins → módulo JS → funciones GSAP inline`
+
+### Ejemplo 3: Template Compartido con GSAP en Módulo JS
+Ver implementación completa en: `app/Views/admin/templates/reference_index.php` + `assets/javascript/modules/reference-index.js`
+
+**Características**:
+- **Usado por múltiples vistas**: `/panel/cargos/`, `/panel/funciones/`, `/panel/tipos-planilla`, etc.
+- Funciones GSAP integradas en el archivo `.js` modular
+- Template PHP solo carga el módulo: `$scripts = $jsConfig . '<script src="...reference-index.js"></script>'`
+- **Ventaja**: Un solo archivo JS para múltiples vistas
+- **Importante**: Copiar archivo a `/public/assets/javascript/modules/` después de modificar
+
+**Patrón en Template PHP**:
+```php
+use App\Helpers\JavaScriptHelper;
+$jsConfig = JavaScriptHelper::renderConfigScript();
+
+// Cargar módulo JavaScript (contiene funciones GSAP integradas)
+$scripts = $jsConfig . "\n" . '<script src="' . url('/assets/javascript/modules/reference-index.js') . '"></script>';
+```
+
+**Patrón en Módulo JS** (`reference-index.js`):
+```javascript
+(function() {
+    'use strict';
+
+    let referenceTable = null;
+    let isInitialLoad = true;
+
+    $(document).ready(function() {
+        initializeDataTable();
+        initializeGSAPAnimations(); // ← Funciones GSAP aquí
+    });
+
+    function initializeDataTable() {
+        referenceTable = $("#referenceTable").DataTable({
+            // ... config ...
+            drawCallback: function(settings) {
+                setTimeout(function() {
+                    animateTableRows(); // ← Llama función GSAP
+                }, 50);
+            }
+        });
+    }
+
+    function initializeGSAPAnimations() {
+        // Animar botón "Agregar"
+        const addButton = $('.card-tools .btn-primary');
+        addButton.on('mouseenter', function() {
+            gsap.to(this, { scale: 1.05, ... });
+        });
+    }
+
+    function animateTableRows() {
+        // Animaciones de filas de tabla
+        const rows = $('#referenceTable tbody tr');
+        gsap.to(rows, { opacity: 1, y: 0, ... });
+    }
+
+    function setupActionAnimations() {
+        // Animaciones de botones y badges
+    }
+})();
+```
+
+**Ventajas del patrón modular**:
+- ✅ Código más limpio en templates PHP
+- ✅ Reutilizable para múltiples vistas
+- ✅ Más fácil de mantener (un solo archivo)
+- ✅ Mejor separación de responsabilidades
+
+**Desventajas**:
+- ❌ Requiere copiar archivo a `/public/` después de cambios
+- ❌ Menos flexible para customizaciones por vista
+
+### Ejemplo 4: Template con Módulo JS Específico
+Ver implementación completa en: `app/Views/admin/templates/schedule_index.php` + `assets/javascript/modules/schedules.js`
+
+**Características**:
+- Similar al Ejemplo 3 pero para el módulo de horarios
+- Tabla con columnas personalizadas (horarios de entrada/salida, almuerzo)
+- Mismo patrón: Template carga módulo JS que tiene GSAP integrado
 
 ---
 
@@ -382,8 +499,11 @@ Usa este checklist cuando implementes GSAP en un nuevo módulo:
 - [ ] Confirmar que GSAP está cargado en `admin.php` línea 388-389
 - [ ] Identificar el ID único de la tabla DataTables (ej: `#exampleTable`)
 - [ ] Determinar si necesitas plugins adicionales DataTables
+- [ ] **Decidir patrón**: ¿GSAP inline en vista PHP o integrado en módulo JS?
+  - Inline: Para vistas únicas con customizaciones específicas
+  - Modular: Para templates compartidos por múltiples vistas
 
-### Fase 2: Vista PHP
+### Fase 2: Vista PHP (o Template PHP)
 - [ ] Crear variable `$scripts` con `JavaScriptHelper::renderConfigScript()`
 - [ ] **SI necesitas plugins**: Cargar plugins PRIMERO con `$scripts .= '<script src="..."></script>'`
 - [ ] Cargar módulo JS con `$scripts .= '<script src="' . url('/assets/javascript/modules/example/index.js') . '"></script>'`
@@ -395,6 +515,11 @@ Usa este checklist cuando implementes GSAP en un nuevo módulo:
 - [ ] Agregar `drawCallback` en configuración DataTable
 - [ ] Llamar función GSAP con `setTimeout(..., 50)` dentro de `drawCallback`
 - [ ] Verificar que la función usa el ID correcto de la tabla
+- [ ] **SI usas patrón modular**: Integrar funciones GSAP en el archivo `.js`
+- [ ] **CRÍTICO**: Copiar archivo `.js` a `/public/assets/javascript/modules/`
+  ```bash
+  cp assets/javascript/modules/tu-modulo.js public/assets/javascript/modules/tu-modulo.js
+  ```
 
 ### Fase 4: Funciones GSAP
 - [ ] Crear flag global: `window.exampleTableIsInitialLoad = true`
@@ -446,6 +571,23 @@ Para mantener consistencia en el proyecto, usa estos nombres:
 **Causa**: Las funciones GSAP se están cargando ANTES del módulo DataTables.
 **Solución**: Reordenar scripts: módulo primero, funciones GSAP después.
 
+### Problema: El módulo JavaScript no se carga (404 en Network tab)
+**Causa**: El archivo `.js` solo existe en `/assets/` pero NO en `/public/assets/`.
+**Solución**: Copiar el archivo a `/public/`:
+```bash
+cp assets/javascript/modules/tu-modulo.js public/assets/javascript/modules/tu-modulo.js
+```
+**Verificar**: Abrir DevTools → Network tab → buscar el archivo `.js` → debe retornar 200 OK (no 404).
+
+### Problema: No hay logs en consola, las animaciones no funcionan
+**Causa 1**: El archivo JavaScript no se está cargando (ver problema anterior).
+**Causa 2**: Error de sintaxis en el archivo `.js` que impide su ejecución.
+**Solución**:
+1. Verificar en Network tab que el archivo carga correctamente (200 OK)
+2. Abrir el archivo en el navegador directamente: `http://tu-dominio/assets/javascript/modules/tu-modulo.js`
+3. Revisar Console tab para errores de sintaxis
+4. Agregar `console.log('[Module] Loaded')` al inicio del archivo para confirmar carga
+
 ### Problema: Las animaciones no se ejecutan
 **Causa**: `drawCallback` no se está llamando.
 **Solución**: Verificar que DataTables se inicializa correctamente, revisar errores AJAX.
@@ -468,14 +610,360 @@ Para mantener consistencia en el proyecto, usa estos nombres:
 
 ---
 
+---
+
+## 🎨 Patrones Avanzados de Animación
+
+### Patrón 5: Vistas con Info-Boxes y Elementos Complejos
+
+Ver implementación completa en: `app/Views/admin/overtime_approvals/index.php`
+
+**Características**:
+- Animación de Info-Boxes (cards estadísticas)
+- Animación de iconos con hover (rotation + scale)
+- Select2 AJAX dinámico
+- Botones con colores diferentes (primary, secondary, success, danger)
+- Modales con animaciones
+- Integración avanzada con DataTables
+
+#### 1. Animación de Info-Boxes
+
+```javascript
+function animateInfoBoxes() {
+    const infoBoxes = $('.info-box');
+
+    if (infoBoxes.length > 0) {
+        // Configurar estado inicial
+        gsap.set(infoBoxes, { opacity: 0, y: 30 });
+
+        // Animar con stagger
+        gsap.to(infoBoxes, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: 'power2.out',
+            clearProps: 'all'
+        });
+    }
+}
+```
+
+**Cuándo usar**: Cuando tienes cards de estadísticas en la parte superior de la vista.
+
+#### 2. Animación de Iconos en Info-Boxes
+
+```javascript
+function setupInfoBoxIconAnimations() {
+    const icons = $('.info-box-icon i');
+
+    icons.on('mouseenter', function() {
+        gsap.to(this, {
+            rotation: 360,
+            scale: 1.2,
+            duration: 0.5,
+            ease: 'power2.inOut'
+        });
+    });
+
+    icons.on('mouseleave', function() {
+        gsap.to(this, {
+            rotation: 0,
+            scale: 1,
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+    });
+}
+```
+
+**Cuándo usar**: Para agregar interactividad visual a los iconos de las cards.
+
+#### 3. Corrección de Badges con fromTo
+
+**⚠️ PROBLEMA COMÚN**: Los badges se ven muy pequeños después de animar
+
+```javascript
+❌ INCORRECTO - Puede dejar badges pequeños:
+badges.each(function(index) {
+    gsap.from(this, {
+        scale: 0,
+        duration: 0.4,
+        ease: "back.out(2)"
+        // ❌ No especifica estado final, puede quedar con scale < 1
+    });
+});
+```
+
+```javascript
+✅ CORRECTO - Garantiza tamaño normal:
+badges.each(function(index) {
+    gsap.fromTo(this,
+        {
+            scale: 0,      // Estado inicial
+            opacity: 0
+        },
+        {
+            scale: 1,      // Estado final EXPLÍCITO
+            opacity: 1,
+            duration: 0.4,
+            delay: index * 0.02,
+            ease: 'back.out(2)',
+            clearProps: 'all'  // Limpia propiedades inline
+        }
+    );
+});
+```
+
+**Por qué usar `fromTo`**:
+- ✅ Control total sobre valores inicial y final
+- ✅ Garantiza que el elemento termine en tamaño normal (`scale: 1`)
+- ✅ Evita problemas de elementos que quedan pequeños
+- ✅ Más predecible que `from()` o `to()` solo
+
+#### 4. Botones con Colores Dinámicos
+
+```javascript
+function setupFilterButtonAnimations() {
+    const filterButtons = $('#filterForm .btn, #clearFilters');
+
+    filterButtons.on('mouseenter', function() {
+        const isPrimary = $(this).hasClass('btn-primary');
+        const shadowColor = isPrimary ? 'rgba(0,123,255,0.4)' : 'rgba(108,117,125,0.4)';
+
+        gsap.to(this, {
+            scale: 1.05,
+            boxShadow: `0 5px 15px ${shadowColor}`,
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+    });
+
+    filterButtons.on('mouseleave', function() {
+        gsap.to(this, {
+            scale: 1,
+            boxShadow: 'none',
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+    });
+}
+```
+
+**Colores de Sombra por Tipo de Botón**:
+
+| Clase Bootstrap | Color RGBA | Uso |
+|----------------|-----------|-----|
+| `.btn-primary` | `rgba(0,123,255,0.4)` | Botones principales (azul) |
+| `.btn-secondary` | `rgba(108,117,125,0.4)` | Botones secundarios (gris) |
+| `.btn-success` | `rgba(40,167,69,0.4)` | Botones de éxito (verde) |
+| `.btn-danger` | `rgba(220,53,69,0.4)` | Botones de peligro (rojo) |
+| `.btn-warning` | `rgba(255,193,7,0.4)` | Botones de advertencia (amarillo) |
+| `.btn-info` | `rgba(23,162,184,0.4)` | Botones informativos (cyan) |
+
+#### 5. Animación de Botones en Modales
+
+```javascript
+function setupModalButtonAnimations() {
+    const modalButtons = '.modal .btn';
+
+    $(document).on('mouseenter', modalButtons, function() {
+        let shadowColor = 'rgba(108,117,125,0.4)'; // Default
+
+        if ($(this).hasClass('btn-success')) {
+            shadowColor = 'rgba(40,167,69,0.4)';
+        } else if ($(this).hasClass('btn-danger')) {
+            shadowColor = 'rgba(220,53,69,0.4)';
+        } else if ($(this).hasClass('btn-secondary')) {
+            shadowColor = 'rgba(108,117,125,0.4)';
+        }
+
+        gsap.to(this, {
+            scale: 1.05,
+            boxShadow: `0 5px 15px ${shadowColor}`,
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+    });
+
+    $(document).on('mouseleave', modalButtons, function() {
+        gsap.to(this, {
+            scale: 1,
+            boxShadow: 'none',
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+    });
+}
+```
+
+**⚠️ Importante**: Usar `$(document).on()` en lugar de `.on()` directo para elementos que se crean dinámicamente (modales).
+
+#### 6. Animación de Botones de Exportación (DataTables)
+
+```javascript
+function setupExportButtonAnimations() {
+    // Esperar a que DataTables cree los botones
+    setTimeout(function() {
+        const exportButtons = '.dt-buttons .btn';
+
+        $(document).on('mouseenter', exportButtons, function() {
+            let shadowColor = 'rgba(108,117,125,0.4)';
+
+            if ($(this).hasClass('btn-success')) {
+                shadowColor = 'rgba(40,167,69,0.4)';
+            } else if ($(this).hasClass('btn-danger')) {
+                shadowColor = 'rgba(220,53,69,0.4)';
+            }
+
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: `0 5px 15px ${shadowColor}`,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+
+        $(document).on('mouseleave', exportButtons, function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: 'none',
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+    }, 500);  // Delay necesario para esperar creación de botones
+}
+```
+
+**⚠️ Critical**: DataTables Buttons se crean DESPUÉS de inicializar la tabla, por eso necesitamos el `setTimeout`.
+
+#### 7. Integración Avanzada con DataTables drawCallback
+
+```javascript
+// Integrar animación de tabla con DataTables
+const originalDrawCallback = table.settings()[0].aoDrawCallback;
+table.settings()[0].aoDrawCallback.push({
+    fn: function() {
+        setTimeout(animateTableRows, 50);
+    },
+    sName: 'gsapAnimation'
+});
+
+// Ejecutar animación de tabla en la carga inicial
+setTimeout(animateTableRows, 300);
+```
+
+**Ventajas de este método**:
+- ✅ No interfiere con otros callbacks existentes
+- ✅ Se ejecuta automáticamente en cada redraw
+- ✅ Funciona con paginación, filtros y ordenamiento
+
+#### 8. Patrón Completo para Vista con Elementos Complejos
+
+```javascript
+if (typeof gsap !== 'undefined') {
+    // Flag para controlar animación inicial de la tabla
+    let isInitialTableLoad = true;
+
+    // 1. Ejecutar animaciones iniciales al cargar la página
+    animateInfoBoxes();
+    setupInfoBoxIconAnimations();
+    setupFilterButtonAnimations();
+    setupModalButtonAnimations();
+    setupExportButtonAnimations();
+
+    // 2. Integrar animación de tabla con DataTables
+    const originalDrawCallback = table.settings()[0].aoDrawCallback;
+    table.settings()[0].aoDrawCallback.push({
+        fn: function() {
+            setTimeout(animateTableRows, 50);
+        },
+        sName: 'gsapAnimation'
+    });
+
+    // 3. Ejecutar animación de tabla en la carga inicial
+    setTimeout(animateTableRows, 300);
+}
+```
+
+**Orden de Ejecución**:
+1. Info-boxes (inmediato)
+2. Setup de iconos (inmediato)
+3. Setup de botones (inmediato)
+4. Setup de modales (inmediato)
+5. Setup de exportación (después de 500ms)
+6. Animación de tabla (después de 300ms o en cada redraw)
+
+---
+
+## 🔧 Select2 AJAX Dinámico (Bonus Pattern)
+
+### Problema: Endpoint que no retorna array de empleados
+
+```javascript
+❌ INCORRECTO - Puede causar error "forEach is not a function":
+$.get(baseUrl + '/panel/employees/get-active', function(employees) {
+    employees.forEach(function(emp) {  // ← Error si employees no es array
+        // ...
+    });
+});
+```
+
+### Solución: Select2 con AJAX Dinámico
+
+```javascript
+✅ CORRECTO - Carga bajo demanda:
+$('.select2').select2({
+    theme: 'bootstrap4',
+    width: '100%',
+    ajax: {
+        url: baseUrl + '/panel/payrolls/get-employees',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+            return {
+                term: params.term  // Búsqueda
+            };
+        },
+        processResults: function (data) {
+            // Validar que data sea array
+            const employees = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+            return {
+                results: employees.map(function(emp) {
+                    return {
+                        id: emp.id,
+                        text: emp.employee_id + ' - ' + emp.firstname + ' ' + emp.lastname
+                    };
+                })
+            };
+        },
+        cache: true
+    },
+    placeholder: 'Todos',
+    allowClear: true
+});
+```
+
+**Ventajas**:
+- ✅ No carga todos los empleados al inicio
+- ✅ Búsqueda dinámica mientras el usuario escribe
+- ✅ Mejor rendimiento con muchos empleados
+- ✅ Valida que la respuesta sea un array
+- ✅ No depende de endpoints que pueden no existir
+
+---
+
 ## 📝 Historial de Cambios
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 24-Feb-2026 | Documento inicial basado en implementación empleados |
+| 1.1 | 25-Feb-2026 | Agregada sección crítica sobre ubicación de archivos JS (`/assets/` vs `/public/assets/`), nuevos patrones modulares, ejemplos de templates compartidos (reference-index.js, schedules.js), troubleshooting mejorado |
+| 1.2 | 25-Feb-2026 | **Patrones avanzados agregados**: Info-Boxes, corrección de badges con `fromTo`, botones con colores dinámicos, animaciones de modales, botones de exportación DataTables, integración avanzada drawCallback, Select2 AJAX. Basado en implementación `overtime-approvals` |
 
 ---
 
 **Autor**: Sistema Innova Planilla
 **Revisión**: Documentación técnica oficial
-**Última Actualización**: 24 de Febrero, 2026
+**Última Actualización**: 25 de Febrero, 2026

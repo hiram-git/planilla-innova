@@ -90,14 +90,19 @@ $content .= '
 use App\Helpers\JavaScriptHelper;
 
 $jsConfig = JavaScriptHelper::renderConfigScript();
-$scriptFiles = [
-    '/plugins/datatables/jquery.dataTables.min.js',
-    '/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js',
-    '/assets/javascript/modules/reference-index.js'
-];
+
+// Cargar módulo JavaScript después de que GSAP y otras dependencias estén listas
+$scripts = $jsConfig . "\n" . '<script src="' . url('/assets/javascript/modules/reference-index.js') . '"></script>';
 
 $styles = '
-<link rel="stylesheet" href="' . url('plugins/datatables-bs4/css/dataTables.bootstrap4.min.css', false) . '">';
+<link rel="stylesheet" href="' . url('plugins/datatables-bs4/css/dataTables.bootstrap4.min.css', false) . '">
+<style>
+/* GSAP - Ocultar elementos de paginación antes de animar */
+.dataTables_info,
+.dataTables_paginate {
+    opacity: 0;
+}
+</style>';
 
 include __DIR__ . '/../../layouts/admin.php';
 ?>

@@ -225,7 +225,8 @@ class Controller
             session_start();
         }
 
-        if (!isset($_SESSION['admin_id'])) {
+        // La clave de sesión correcta es 'admin', no 'admin_id'
+        if (!isset($_SESSION['admin'])) {
             $this->redirect('/admin/login');
         }
     }

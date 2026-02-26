@@ -181,6 +181,31 @@ function setupEmployeeActionButtonAnimations() {
         }
     });
 }
+
+// Efecto hover en botón "Agregar Empleado" (mismo estilo que login)
+$(document).ready(function() {
+    const addEmployeeBtn = $(".card-tools .btn-primary");
+
+    if (addEmployeeBtn.length > 0) {
+        addEmployeeBtn.on("mouseenter", function() {
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: "0 5px 15px rgba(0,123,255,0.4)",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        });
+
+        addEmployeeBtn.on("mouseleave", function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: "none",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        });
+    }
+});
 </script>
 ';
 

@@ -8,24 +8,29 @@
     // Variables globales del módulo
     let deleteItemId = null;
     let currentModule = '';
+    let referenceTable = null;
+
+    // GSAP: Flag para controlar animación inicial
+    let isInitialLoad = true;
 
     // Inicialización cuando el DOM esté listo
     $(document).ready(function() {
         // Determinar el módulo actual desde la URL
         currentModule = getCurrentModuleFromUrl();
-        
+
         if (!currentModule) {
             console.error('Could not determine current module from URL');
             return;
         }
 
         // Initializing reference index
-        
+
         // Inicializar componentes
         initializeDataTable();
         initializeToggleHandlers();
         initializeActionHandlers();
         initializeDeleteModal();
+        initializeGSAPAnimations();
     });
 
     /**
@@ -38,7 +43,7 @@
         if (matches && matches[1]) {
             const module = matches[1];
             // Verificar que sea un módulo válido
-            const validModules = ['cargos', 'funciones', 'partidas', 'horarios', 'frecuencias', 'situaciones', 'tipos-planilla'];
+            const validModules = ['cargos', 'funciones', 'partidas', 'horarios', 'frecuencias', 'situaciones', 'tipos-planilla', 'cuentas-contables', 'partidas-presupuestarias'];
             if (validModules.includes(module)) {
                 return module;
             }
@@ -63,13 +68,19 @@
             responsive: true,
             columnDefs: [
                 { orderable: false, targets: [3, 5] } // Estado y Acciones no ordenables
-            ]
+            ],
+            drawCallback: function(settings) {
+                // GSAP: Animar filas después de cada draw
+                setTimeout(function() {
+                    animateTableRows();
+                }, 50);
+            }
         };
 
-        const table = $("#referenceTable").DataTable(config);
-        
+        referenceTable = $("#referenceTable").DataTable(config);
+
         // DataTable initialized
-        return table;
+        return referenceTable;
     }
 
     /**
@@ -213,7 +224,7 @@
         if (typeof $(document).Toasts === 'function') {
             const toastClass = type === 'success' ? 'bg-success' : 'bg-danger';
             const title = type === 'success' ? 'Éxito' : 'Error';
-            
+
             $(document).Toasts('create', {
                 class: toastClass,
                 title: title,
@@ -232,6 +243,142 @@
 
         // Alert fallback
         alert(message);
+    }
+
+    /**
+     * GSAP: Inicializar animaciones
+     */
+    function initializeGSAPAnimations() {
+        if (typeof gsap === 'undefined') {
+            return;
+        }
+
+        // Animar botón "Agregar"
+        const addButton = $('.card-tools .btn-primary');
+
+        addButton.on('mouseenter', function() {
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: '0 5px 15px rgba(0,123,255,0.4)',
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+
+        addButton.on('mouseleave', function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: 'none',
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+    }
+
+    /**
+     * GSAP: Animar filas de la tabla
+     */
+    function animateTableRows() {
+        if (typeof gsap === 'undefined') {
+            return;
+        }
+
+        const rows = $('#referenceTable tbody tr');
+
+        if (rows.length === 0) {
+            return;
+        }
+
+        // Ocultar filas inicialmente
+        gsap.set(rows, { opacity: 0, y: 0 });
+
+        if (isInitialLoad) {
+            // Primera carga: animación elaborada
+            gsap.set(rows, { y: 20 });
+            gsap.to(rows, {
+                opacity: 1,
+                y: 0,
+                duration: 0.4,
+                stagger: 0.05,
+                ease: 'power2.out',
+                clearProps: 'all'
+            });
+
+            // Animar controles de paginación
+            gsap.to('.dataTables_info, .dataTables_paginate', {
+                opacity: 1,
+                duration: 0.5,
+                delay: 0.3
+            });
+
+            isInitialLoad = false;
+        } else {
+            // Recargas: fade rápido
+            gsap.to(rows, {
+                opacity: 1,
+                duration: 0.3,
+                stagger: 0.02,
+                ease: 'power1.out',
+                clearProps: 'all'
+            });
+        }
+
+        // Animar elementos de la tabla
+        setupActionAnimations();
+    }
+
+    /**
+     * GSAP: Configurar animaciones de botones y badges
+     */
+    function setupActionAnimations() {
+        if (typeof gsap === 'undefined') {
+            return;
+        }
+
+        const badges = $('#referenceTable .badge');
+        const buttons = $('#referenceTable .btn-sm');
+        const icons = $('#referenceTable .btn-sm i');
+
+        // Animar badges
+        badges.each(function(index) {
+            gsap.from(this, {
+                scale: 0,
+                duration: 0.4,
+                delay: index * 0.02,
+                ease: 'back.out(2)'
+            });
+        });
+
+        // Hover effects en botones
+        buttons.off('mouseenter.gsap mouseleave.gsap').on({
+            'mouseenter.gsap': function() {
+                if (!$(this).prop('disabled')) {
+                    gsap.to(this, {
+                        scale: 1.15,
+                        duration: 0.2,
+                        ease: 'power2.out'
+                    });
+                }
+            },
+            'mouseleave.gsap': function() {
+                gsap.to(this, {
+                    scale: 1,
+                    duration: 0.2,
+                    ease: 'power2.out'
+                });
+            }
+        });
+
+        // Animación de iconos
+        icons.off('mouseenter.gsap').on('mouseenter.gsap', function() {
+            if (!$(this).closest('.btn').prop('disabled')) {
+                gsap.to(this, {
+                    rotation: 360,
+                    duration: 0.5,
+                    ease: 'power2.inOut'
+                });
+            }
+        });
     }
 
 })();

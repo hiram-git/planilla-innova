@@ -352,6 +352,85 @@ function confirmDelete(employeeId, employeeName) {
         window.location.href = "' . \App\Core\UrlHelper::employee() . '/" + employeeId + "/delete";
     }
 }
+
+// ====================================
+// GSAP ANIMATIONS - Button Hover Effects
+// ====================================
+$(document).ready(function() {
+    if (typeof gsap !== "undefined") {
+        // Botones primarios (azul) - Editar
+        const primaryButtons = $(".btn-primary");
+
+        primaryButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                gsap.to(btn, {
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px rgba(0,123,255,0.4)",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+
+        // Botones secundarios (gris) - Volver
+        const secondaryButtons = $(".btn-secondary");
+
+        secondaryButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                gsap.to(btn, {
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px rgba(108,117,125,0.3)",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+
+        // Botones de peligro (rojo) - Eliminar
+        const dangerButtons = $(".btn-danger");
+
+        dangerButtons.each(function() {
+            const btn = this;
+            $(btn).on("mouseenter", function() {
+                gsap.to(btn, {
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px rgba(220,53,69,0.4)",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+
+            $(btn).on("mouseleave", function() {
+                gsap.to(btn, {
+                    scale: 1,
+                    boxShadow: "none",
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+        });
+    }
+});
 </script>';
 
 $styles = '

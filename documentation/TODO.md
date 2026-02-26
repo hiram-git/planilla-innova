@@ -40,7 +40,34 @@ Actualizado: 2026-01-29 (**REVISIÓN COMPLETA** - Sincronización con commits re
 
 ---
 
-## ✅ Completado Recientemente (v3.5.19 - 16-Ene-2026)
+## ✅ Completado Recientemente (v3.5.20 - 24-Feb-2026)
+
+### GSAP Animation System + Innova Export
+- [x] Implementar GSAP v3.12.5 en layout global admin.php (línea 388-389)
+- [x] Crear patrón de animaciones para DataTables con GSAP
+- [x] Documentar patrón completo GSAP_ANIMATION_PATTERN.md (482 líneas)
+- [x] Implementar animaciones en employees/index.php (fade-in + slide-up + hover effects)
+- [x] Implementar animaciones en employees/terminated.php
+- [x] Crear funciones globales window.animateEmployeesTableRows()
+- [x] Implementar hover effects botones (scale 1.15 + rotation 360°)
+- [x] Implementar animaciones badges (scale desde 0)
+- [x] Crear InnovaExportService.php (433 líneas) con 15 métodos
+- [x] Implementar generación formato fixed-width text (347 caracteres/línea)
+- [x] Implementar 3 tipos registros INNOVA (Movimientos, Neto, Totales)
+- [x] Crear InnovaExportController.php (174 líneas) con 4 métodos
+- [x] Crear vista admin/innova_export/index.php (182 líneas) con DataTables
+- [x] Agregar menú "Exportación INNOVA" en sidebar
+- [x] Registrar 3 rutas REST en App.php (index, data, export)
+- [x] Implementar agrupación por departamento con totales automáticos
+- [x] Implementar validación solo planillas PROCESADAS/CERRADAS
+- [x] Testing completo ambas features
+- [x] Actualizar CHANGELOG.md con v3.5.20
+- [x] Crear documentation/changelog/v3.5.20.md con detalles completos
+- [x] Actualizar CLAUDE.md con nuevas features
+- [x] Actualizar TODO.md con tareas completadas v3.5.20
+- [x] Actualizar ROADMAP.md con progreso UI/UX + ERP Integration
+
+### Previous (v3.5.19 - 16-Ene-2026)
 
 ### Módulo Campos Adicionales Personalizados
 - [x] Crear migración employee_additional_fields + employee_additional_field_values (2 tablas)

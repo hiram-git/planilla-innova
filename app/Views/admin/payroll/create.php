@@ -108,8 +108,130 @@ $csrf_token = $data['csrf_token'] ?? '';
 <script src="<?= \App\Core\UrlHelper::url('/assets/javascript/modules/payroll/create.js') ?>"></script>
 
 <script>
-// Validación del formulario antes de enviar
 $(document).ready(function() {
+    // =========================================================================
+    // GSAP ANIMATIONS - BOTONES
+    // =========================================================================
+
+    /**
+     * 1. Animar entrada de botones del footer
+     */
+    function animateFooterButtons() {
+        const cancelBtn = $('.card-footer .btn-secondary');
+        const submitBtn = $('.card-footer .btn-primary');
+
+        if (cancelBtn.length > 0) {
+            gsap.from(cancelBtn, {
+                opacity: 0,
+                x: -20,
+                duration: 0.5,
+                delay: 0.3,
+                ease: "power2.out",
+                clearProps: "all"
+            });
+        }
+
+        if (submitBtn.length > 0) {
+            gsap.from(submitBtn, {
+                opacity: 0,
+                x: 20,
+                duration: 0.5,
+                delay: 0.3,
+                ease: "power2.out",
+                clearProps: "all"
+            });
+        }
+    }
+
+    /**
+     * 2. Configurar animación hover en botón Cancelar
+     */
+    function setupCancelButtonAnimation() {
+        const cancelBtn = $('.card-footer .btn-secondary');
+
+        cancelBtn.on('mouseenter', function() {
+            gsap.to($(this).find('i'), {
+                x: -5,
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        });
+
+        cancelBtn.on('mouseleave', function() {
+            gsap.to($(this).find('i'), {
+                x: 0,
+                duration: 0.3,
+                ease: "power2.inOut"
+            });
+        });
+    }
+
+    /**
+     * 3. Configurar animación hover en botón Crear Planilla
+     */
+    function setupSubmitButtonAnimation() {
+        const submitBtn = $('.card-footer .btn-primary');
+
+        submitBtn.on('mouseenter', function() {
+            gsap.to($(this), {
+                scale: 1.05,
+                duration: 0.3,
+                ease: "power2.out"
+            });
+            gsap.to($(this).find('i'), {
+                rotation: 360,
+                duration: 0.5,
+                ease: "power2.out"
+            });
+        });
+
+        submitBtn.on('mouseleave', function() {
+            gsap.to($(this), {
+                scale: 1,
+                duration: 0.3,
+                ease: "power2.inOut"
+            });
+            gsap.to($(this).find('i'), {
+                rotation: 0,
+                duration: 0.3,
+                ease: "power2.inOut"
+            });
+        });
+    }
+
+    /**
+     * 4. Animación de pulsación al hacer clic en botón submit
+     */
+    function setupSubmitClickAnimation() {
+        const submitBtn = $('.card-footer .btn-primary');
+
+        submitBtn.on('click', function(e) {
+            // Solo animar si el formulario es válido
+            const tipoPlanillaId = $('#tipo_planilla_id').val();
+            const frecuenciaId = $('#frecuencia_id').val();
+
+            if (tipoPlanillaId && frecuenciaId) {
+                gsap.to($(this), {
+                    scale: 0.95,
+                    duration: 0.1,
+                    yoyo: true,
+                    repeat: 1,
+                    ease: "power2.inOut"
+                });
+            }
+        });
+    }
+
+    // Ejecutar animaciones
+    animateFooterButtons();
+    setupCancelButtonAnimation();
+    setupSubmitButtonAnimation();
+    setupSubmitClickAnimation();
+
+    // =========================================================================
+    // VALIDACIÓN DEL FORMULARIO
+    // =========================================================================
+
     $('#payrollForm').on('submit', function(e) {
         const tipoPlanillaId = $('#tipo_planilla_id').val();
         const frecuenciaId = $('#frecuencia_id').val();

@@ -168,17 +168,37 @@ $scripts = '
             ease: "power2.out"
         })
 
-        // 2. Animar campos del formulario - fade in rápido
-        .to(".input-group", {
+        // 2. Animar campos del formulario Y callout de error SIMULTÁNEAMENTE - como elementos separados
+        const errorCallout = document.querySelector(".callout-danger");
+
+        // Animar campos del formulario
+        tl.to(".input-group", {
             opacity: 1,
             y: 0,
             stagger: 0.05, // Stagger reducido
             duration: 0.3,
             ease: "power2.out"
-        }, "-=0.3") // Mayor overlap
+        }, "-=0.3"); // Mayor overlap
+
+        // Animar callout de error AL MISMO TIEMPO que los campos (elemento separado)
+        if (errorCallout) {
+            tl.to(errorCallout, {
+                opacity: 1,
+                x: 0,
+                duration: 0.3,
+                ease: "power2.out"
+            }, "<") // "<" significa "al mismo tiempo que la animación anterior"
+
+            // Shake effect para llamar atención (después de aparecer)
+            .to(errorCallout, {
+                x: [0, -5, 5, -5, 5, 0],
+                duration: 0.4,
+                ease: "power2.inOut"
+            }, "+=0.1"); // Pequeña pausa antes del shake
+        }
 
         // 3. Animar texto de ayuda
-        .to(".text-muted", {
+        tl.to(".text-muted", {
             opacity: 1,
             duration: 0.2
         }, "-=0.2")
@@ -191,26 +211,6 @@ $scripts = '
             ease: "back.out(1.5)",
             duration: 0.3
         }, "-=0.15");
-
-        // Animar callout de error si existe (más rápido)
-        const errorCallout = document.querySelector(".callout-danger");
-        if (errorCallout) {
-            gsap.from(errorCallout, {
-                x: -10,
-                opacity: 0,
-                duration: 0.3,
-                ease: "power2.out",
-                delay: 0.6 // Delay reducido
-            });
-
-            // Shake effect más rápido
-            gsap.to(errorCallout, {
-                x: [0, -5, 5, -5, 5, 0],
-                duration: 0.4,
-                delay: 0.7,
-                ease: "power2.inOut"
-            });
-        }
 
         // Hover effect en el botón (animación continua)
         const loginBtn = document.querySelector(".btn-primary");
