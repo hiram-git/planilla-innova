@@ -230,8 +230,10 @@ $content .= '
 </div>';
 
 // JavaScript para horarios si es necesario
+$scripts = '';
+
 if ($route_name === 'schedules') {
-    $scripts = '
+    $scripts .= '
     <script src="' . url('plugins/inputmask/jquery.inputmask.min.js', false) . '"></script>
     <script>
     $(document).ready(function() {
@@ -243,9 +245,114 @@ if ($route_name === 'schedules') {
         });
     });
     </script>';
-} else {
-    $scripts = '';
 }
+
+// GSAP Animations para botones
+$scripts .= '
+<script>
+// ========================================
+// GSAP ANIMATIONS - Edit Form Buttons
+// ========================================
+
+$(document).ready(function() {
+    if (typeof gsap !== "undefined") {
+        setupEditFormButtonAnimations();
+    }
+});
+
+function setupEditFormButtonAnimations() {
+    // Seleccionar todos los botones del formulario
+    const backButton = $(".card-tools .btn-secondary");
+    const submitButton = $(".card-footer .btn-success");
+    const cancelButton = $(".card-footer .btn-secondary");
+
+    // Animación inicial de entrada para los botones del footer
+    gsap.fromTo([submitButton, cancelButton],
+        {
+            opacity: 0,
+            y: 10
+        },
+        {
+            opacity: 1,
+            y: 0,
+            duration: 0.4,
+            stagger: 0.1,
+            ease: "power2.out",
+            clearProps: "transform,y"
+        }
+    );
+
+    // Hover effect en botón "Volver"
+    backButton.on({
+        "mouseenter": function() {
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: "0 5px 15px rgba(108,117,125,0.4)",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        },
+        "mouseleave": function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: "none",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        }
+    });
+
+    // Hover effect en botón "Actualizar" (Success)
+    submitButton.on({
+        "mouseenter": function() {
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: "0 5px 15px rgba(40,167,69,0.4)",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        },
+        "mouseleave": function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: "none",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        }
+    });
+
+    // Hover effect en botón "Cancelar"
+    cancelButton.on({
+        "mouseenter": function() {
+            gsap.to(this, {
+                scale: 1.05,
+                boxShadow: "0 5px 15px rgba(108,117,125,0.4)",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        },
+        "mouseleave": function() {
+            gsap.to(this, {
+                scale: 1,
+                boxShadow: "none",
+                duration: 0.3,
+                ease: "power2.out"
+            });
+        }
+    });
+
+    // Animación de iconos dentro de botones (rotación 360°)
+    const buttonIcons = $(".card-tools .btn i, .card-footer .btn i");
+    buttonIcons.off("mouseenter.gsap").on("mouseenter.gsap", function() {
+        gsap.to(this, {
+            rotation: 360,
+            duration: 0.5,
+            ease: "power2.inOut"
+        });
+    });
+}
+</script>';
 
 unset($_SESSION['old_data']);
 
