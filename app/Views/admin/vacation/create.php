@@ -193,12 +193,14 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                 <?php endif; ?>
 
                 <div class="row mt-3">
+                    <!--
                     <div class="col-md-6">
                         <div class="callout callout-info">
                             <h5>Valor por Día de Vacaciones</h5>
                             <p><?= currency_symbol() ?><?= number_format($vacation_data['daily_salary'], 2) ?></p>
                         </div>
                     </div>
+                    -->
                     <div class="col-md-6">
                         <div class="callout callout-success">
                             <h5>Acumulación Mensual</h5>
@@ -389,8 +391,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                         <div class="bg-light p-3 rounded">
                                             <div id="calculation-summary">
                                                 <p class="mb-1"><strong>Días Totales:</strong> <span id="total-days">0</span></p>
-                                                <p class="mb-1"><strong>Balance Después:</strong> <span id="remaining-balance"><?= number_format($vacation_data['current_balance'], 1) ?></span></p>
-                                                <p class="mb-0"><strong>Monto Compensación:</strong> <span id="compensation-amount"><?= currency_symbol() ?>0.00</span></p>
+                                                <p class="mb-0"><strong>Balance Después:</strong> <span id="remaining-balance"><?= number_format($vacation_data['current_balance'], 1) ?></span></p>
+                                                <!-- <p class="mb-0"><strong>Monto Compensación:</strong> <span id="compensation-amount"><?= currency_symbol() ?>0.00</span></p> -->
                                             </div>
                                         </div>
                                     </div>
