@@ -174,8 +174,8 @@ $pageTitle = "Liquidaciones de Empleados";
                                         <td><?= htmlspecialchars($employee['position_name'] ?? 'N/A') ?></td>
                                         <td><?= date('d/m/Y', strtotime($employee['fecha_ingreso'])) ?></td>
                                         <td>
-                                            <strong><?= $employee['anos_trabajados'] ?> años</strong><br>
-                                            <small class="text-muted"><?= number_format($employee['dias_trabajados']) ?> días</small>
+                                            <strong><?= $employee['anos_trabajados'] ?> <?= $employee['anos_trabajados'] == 1 ? 'año' : 'años' ?></strong><br>
+                                            <small class="text-muted"><?= number_format($employee['dias_trabajados']) ?> <?= $employee['dias_trabajados'] == 1 ? 'día' : 'días' ?></small>
                                         </td>
                                         <td>
                                             <?php if ($employee['sueldo_individual']): ?>

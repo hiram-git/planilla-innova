@@ -1185,14 +1185,21 @@ class App
                                     } elseif ($url[2] === 'payroll-detail' && isset($url[3]) && method_exists($this->controller, 'payrollDetail')) {
                                         $this->method = 'payrollDetail';
                                         $this->params = [$url[3]];
-                                    } elseif ($url[2] === 'payroll-excel' && isset($url[3]) && method_exists($this->controller, 'exportPayrollExcel')) {
+                                    } elseif ($url[2] === 'preview' && isset($url[3])) {
+                                        // Ruta: /panel/liquidation/preview/{id}
+                                        $reportController = new \App\Controllers\LiquidationReportController();
+                                        $reportController->preview($url[3]);
+                                        return;
+                                    } elseif ($url[2] === 'payroll-excel' && isset($url[3])) {
                                         // Ruta: /panel/liquidation/payroll-excel/{id}
-                                        $this->method = 'exportPayrollExcel';
-                                        $this->params = [$url[3]]; // payroll_id
-                                    } elseif ($url[2] === 'payroll-pdf' && isset($url[3]) && method_exists($this->controller, 'exportPayrollPdf')) {
+                                        $reportController = new \App\Controllers\LiquidationReportController();
+                                        $reportController->exportPayrollExcel($url[3]);
+                                        return;
+                                    } elseif ($url[2] === 'payroll-pdf' && isset($url[3])) {
                                         // Ruta: /panel/liquidation/payroll-pdf/{id}
-                                        $this->method = 'exportPayrollPdf';
-                                        $this->params = [$url[3]]; // payroll_id
+                                        $reportController = new \App\Controllers\LiquidationReportController();
+                                        $reportController->exportPayrollPdf($url[3]);
+                                        return;
                                     } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
                                         $this->method = 'edit';
                                         $this->params = [$url[3]];
