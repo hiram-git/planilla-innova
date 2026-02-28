@@ -1429,6 +1429,187 @@ class LiquidationController extends Controller
             echo json_encode(['error' => 'Error en cálculo: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Obtener tipos de acumulados de conceptos según sus fórmulas
+     * Protected para permitir acceso desde clases heredadas
+     */
+    protected function getConceptAccumulatedTypes(array $conceptCodes): array
+    {
+        if (empty($conceptCodes)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($conceptCodes), '?'));
+        $sql = "SELECT concepto, formula
+                FROM concepto
+                WHERE concepto IN ($placeholders)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($conceptCodes);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $typesByConcept = [];
+        foreach ($rows as $row) {
+            $concepto = $row['concepto'] ?? '';
+            if ($concepto === '') {
+                continue;
+            }
+            $types = $this->extractAccumulatedTypesFromFormula($row['formula'] ?? '');
+            if (empty($types)) {
+                $types = ['SALARIO_BASE'];
+            }
+            $typesByConcept[$concepto] = $types;
+        }
+
+        return $typesByConcept;
+    }
+
+    /**
+     * Extraer tipos de acumulados de una fórmula
+     * Protected para permitir acceso desde clases heredadas
+     */
+    protected function extractAccumulatedTypesFromFormula(string $formula): array
+    {
+        if ($formula === '') {
+            return [];
+        }
+
+        $types = [];
+        $pattern = '/ACUMULADOS\\s*\\(\\s*(?:\"([^\"]+)\"|\\\'([^\\\']+)\\\'|([^,\\)]+))/i';
+        if (preg_match_all($pattern, $formula, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $raw = $match[1] ?? ($match[2] ?? ($match[3] ?? ''));
+                $raw = trim($raw, " \t\n\r\"'");
+                if ($raw === '') {
+                    continue;
+                }
+                foreach (explode(',', $raw) as $item) {
+                    $item = trim($item);
+                    if ($item !== '') {
+                        $types[] = $item;
+                    }
+                }
+            }
+        }
+
+        $types = array_values(array_unique($types));
+        return $types;
+    }
+
+    /**
+     * Obtener acumulados mensuales para liquidación
+     * Para LIQ007 (XIII mes): usa período trimestral correcto según legislación panameña
+     * Para otros conceptos: usa 11 meses hacia atrás
+     * Protected para permitir acceso desde clases heredadas
+     */
+    protected function getLiquidationAccumulatedMonths(int $employeeId, string $terminationDate, $tipoAcumulado = 'SALARIO_BASE', string $conceptCode = ''): array
+    {
+        try {
+            $fechaFin = new \DateTime($terminationDate);
+
+            // Para LIQ007 (XIII mes), usar período trimestral correcto de Panamá
+            if ($conceptCode === 'LIQ007') {
+                $xiiiMesCalculator = new \App\Services\XIIIMesPeriodoTrimestralCalculator();
+                $periodoInfo = $xiiiMesCalculator->determinarPeriodoTrimestral($terminationDate);
+                $fechaInicio = new \DateTime($periodoInfo['fecha_inicio']);
+                $fechaFin = new \DateTime($periodoInfo['fecha_fin']);
+
+                error_log("LIQ007: Usando período trimestral XIII mes - Período {$periodoInfo['periodo']}: {$periodoInfo['fecha_inicio']} a {$periodoInfo['fecha_fin']}");
+            } else {
+                // Para otros conceptos, usar 11 meses hacia atrás (período de liquidación estándar)
+                $fechaInicio = (clone $fechaFin)->modify('-11 months');
+            }
+
+            $tipos = is_array($tipoAcumulado) ? $tipoAcumulado : [$tipoAcumulado];
+            $tipos = array_values(array_filter(array_map(static function ($value) {
+                return trim((string)$value);
+            }, $tipos), static fn($value) => $value !== ''));
+            if (empty($tipos)) {
+                $tipos = ['SALARIO_BASE'];
+            }
+            $placeholders = implode(',', array_fill(0, count($tipos), '?'));
+
+            // LEFT JOIN para incluir acumulados importados (planilla_id = 0)
+            // Lógica dual: planilla_id = 0 usa ano/mes, planilla_id != 0 usa fechas de planilla_cabecera
+            $sql = "SELECT ape.ano, ape.mes, SUM(ape.monto) as total
+                    FROM acumulados_por_empleado ape
+                    LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
+                    WHERE ape.employee_id = ?
+                    AND ape.tipo_acumulado IN ($placeholders)
+                    AND (
+                        (ape.planilla_id = 0 AND DATE(CONCAT(ape.ano, '-', LPAD(ape.mes, 2, '0'), '-01')) BETWEEN ? AND ?)
+                        OR
+                        (ape.planilla_id != 0 AND pc.fecha_hasta >= ? AND pc.fecha_desde <= ?)
+                    )
+                    GROUP BY ape.ano, ape.mes
+                    ORDER BY ape.ano, ape.mes";
+
+            $stmt = $this->db->prepare($sql);
+            $fechaInicioStr = $fechaInicio->format('Y-m-d');
+            $fechaFinStr = $fechaFin->format('Y-m-d');
+            $stmt->execute(array_merge(
+                [$employeeId],
+                $tipos,
+                [$fechaInicioStr, $fechaFinStr, $fechaInicioStr, $fechaFinStr]
+            ));
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $byMonth = [];
+            foreach ($rows as $row) {
+                $key = sprintf('%04d-%02d', (int)$row['ano'], (int)$row['mes']);
+                $byMonth[$key] = (float)$row['total'];
+            }
+
+            // Calcular meses a mostrar según el período
+            $numMonths = $conceptCode === 'LIQ007' ? 4 : 12; // XIII mes: 4 meses del trimestre, otros: 12 meses
+            $months = [];
+            $total = 0.0;
+            $cursor = (clone $fechaInicio)->modify('first day of this month');
+
+            for ($i = 0; $i < $numMonths; $i++) {
+                $key = $cursor->format('Y-m');
+                $amount = (float)($byMonth[$key] ?? 0);
+                $months[] = [
+                    'label' => $cursor->format('m/Y'),
+                    'amount' => $amount
+                ];
+                $total += $amount;
+                $cursor->modify('+1 month');
+            }
+
+            return [
+                'start' => $fechaInicio->format('Y-m-d'),
+                'end' => $fechaFin->format('Y-m-d'),
+                'months' => $months,
+                'total' => $total,
+                'concept' => $conceptCode,
+                'periodo_info' => $conceptCode === 'LIQ007' ? $periodoInfo : null
+            ];
+        } catch (\Exception $e) {
+            error_log("Error building liquidation accumulations: " . $e->getMessage());
+        }
+
+        // Fallback en caso de error
+        $numMonths = $conceptCode === 'LIQ007' ? 4 : 12;
+        $months = [];
+        $cursor = new \DateTime(date('Y-m-01'));
+        $cursor->modify($conceptCode === 'LIQ007' ? '-3 months' : '-11 months');
+
+        for ($i = 0; $i < $numMonths; $i++) {
+            $months[] = [
+                'label' => $cursor->format('m/Y'),
+                'amount' => 0.0
+            ];
+            $cursor->modify('+1 month');
+        }
+
+        return [
+            'start' => null,
+            'end' => null,
+            'months' => $months,
+            'total' => 0.0
+        ];
+    }
 }
 // NOTA: Los métodos de reportes (preview, exportPayrollExcel, exportPayrollPdf)
 // han sido movidos a LiquidationReportController para mejor organización del código
