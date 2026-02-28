@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Services\TenantStorage;
+use App\Core\TenantStorage;
 
 /**
  * Controlador de Reportes de Liquidación
