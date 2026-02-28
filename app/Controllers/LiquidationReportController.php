@@ -48,7 +48,8 @@ class LiquidationReportController extends LiquidationController
                 $liquidationAccumulations[$conceptCode] = $this->getLiquidationAccumulatedMonths(
                     (int)$termination['employee_table_id'],
                     $termination['termination_date'],
-                    $types
+                    $types,
+                    $conceptCode  // Pasar código de concepto para detectar LIQ007
                 );
             }
 
@@ -484,7 +485,8 @@ class LiquidationReportController extends LiquidationController
                     $liquidationAccumulations[$conceptCode] = $this->getLiquidationAccumulatedMonths(
                         $employeeId,
                         $endDate,
-                        $types
+                        $types,
+                        $conceptCode  // Pasar código de concepto para detectar LIQ007
                     );
                 }
             }
@@ -952,14 +954,28 @@ class LiquidationReportController extends LiquidationController
     }
 
     /**
-     * Obtener acumulados mensuales para liquidación (11 meses)
+     * Obtener acumulados mensuales para liquidación
+     * Para LIQ007 (XIII mes): usa período trimestral correcto según legislación panameña
+     * Para otros conceptos: usa 11 meses hacia atrás
      * Protected para permitir acceso desde métodos de reportes
      */
-    protected function getLiquidationAccumulatedMonths(int $employeeId, string $terminationDate, $tipoAcumulado = 'SALARIO_BASE'): array
+    protected function getLiquidationAccumulatedMonths(int $employeeId, string $terminationDate, $tipoAcumulado = 'SALARIO_BASE', string $conceptCode = ''): array
     {
         try {
             $fechaFin = new \DateTime($terminationDate);
-            $fechaInicio = (clone $fechaFin)->modify('-11 months');
+
+            // Para LIQ007 (XIII mes), usar período trimestral correcto de Panamá
+            if ($conceptCode === 'LIQ007') {
+                $xiiiMesCalculator = new \App\Services\XIIIMesPeriodoTrimestralCalculator();
+                $periodoInfo = $xiiiMesCalculator->determinarPeriodoTrimestral($terminationDate);
+                $fechaInicio = new \DateTime($periodoInfo['fecha_inicio']);
+                $fechaFin = new \DateTime($periodoInfo['fecha_fin']);
+
+                error_log("LIQ007: Usando período trimestral XIII mes - Período {$periodoInfo['periodo']}: {$periodoInfo['fecha_inicio']} a {$periodoInfo['fecha_fin']}");
+            } else {
+                // Para otros conceptos, usar 11 meses hacia atrás (período de liquidación estándar)
+                $fechaInicio = (clone $fechaFin)->modify('-11 months');
+            }
 
             $tipos = is_array($tipoAcumulado) ? $tipoAcumulado : [$tipoAcumulado];
             $tipos = array_values(array_filter(array_map(static function ($value) {
@@ -1001,10 +1017,13 @@ class LiquidationReportController extends LiquidationController
                 $byMonth[$key] = (float)$row['total'];
             }
 
+            // Calcular meses a mostrar según el período
+            $numMonths = $conceptCode === 'LIQ007' ? 4 : 12; // XIII mes: 4 meses del trimestre, otros: 12 meses
             $months = [];
             $total = 0.0;
-            $cursor = (clone $fechaFin)->modify('first day of this month')->modify('-11 months');
-            for ($i = 0; $i < 12; $i++) {
+            $cursor = (clone $fechaInicio)->modify('first day of this month');
+
+            for ($i = 0; $i < $numMonths; $i++) {
                 $key = $cursor->format('Y-m');
                 $amount = (float)($byMonth[$key] ?? 0);
                 $months[] = [
@@ -1019,16 +1038,21 @@ class LiquidationReportController extends LiquidationController
                 'start' => $fechaInicio->format('Y-m-d'),
                 'end' => $fechaFin->format('Y-m-d'),
                 'months' => $months,
-                'total' => $total
+                'total' => $total,
+                'concept' => $conceptCode,
+                'periodo_info' => $conceptCode === 'LIQ007' ? $periodoInfo : null
             ];
         } catch (\Exception $e) {
             error_log("Error building liquidation accumulations: " . $e->getMessage());
         }
 
+        // Fallback en caso de error
+        $numMonths = $conceptCode === 'LIQ007' ? 4 : 12;
         $months = [];
         $cursor = new \DateTime(date('Y-m-01'));
-        $cursor->modify('-11 months');
-        for ($i = 0; $i < 12; $i++) {
+        $cursor->modify($conceptCode === 'LIQ007' ? '-3 months' : '-11 months');
+
+        for ($i = 0; $i < $numMonths; $i++) {
             $months[] = [
                 'label' => $cursor->format('m/Y'),
                 'amount' => 0.0

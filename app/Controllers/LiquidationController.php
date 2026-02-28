@@ -1049,7 +1049,8 @@ class LiquidationController extends Controller
                     $liquidationAccumulations[$conceptCode] = $this->getLiquidationAccumulatedMonths(
                         $employeeId,
                         $endDate,
-                        $types
+                        $types,
+                        $conceptCode  // Pasar código de concepto para detectar LIQ007
                     );
                 }
             }
