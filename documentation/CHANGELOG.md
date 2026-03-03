@@ -977,7 +977,13 @@ Al crear una nueva versiÃ³n:
 
 ---
 
-Última Actualización: 25 de Febrero, 2026
-Sistema: Planillas MVC v3.5.21
-Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 85% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100% | Campos Adicionales 100% | UI/UX Animations (GSAP) 100% | ERP Integration (INNOVA) 100%
+Última Actualización: 28 de Febrero, 2026
+Sistema: Planillas MVC v3.5.22
+Progreso Global: Core 100% | Calendario 100% | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Multitenancy 85% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Migraciones Multi-Tenant 100% | Campos Adicionales 100% | UI/UX Animations (GSAP) 100% | ERP Integration (INNOVA) 100% | Vacaciones 90%
+
+---
+
+### **VERSIÓN v3.5.22 AGREGADA** - 2026-02-28
+Ver archivo completo de changelog en: [documentation/changelog/v3.5.22.md](./changelog/v3.5.22.md)
+**Resumen**: Refactor LiquidationReportController (1196 líneas) + Métodos cálculo avanzado LIQ007 + UX vacaciones mejorada
 

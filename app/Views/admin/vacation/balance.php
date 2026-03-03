@@ -341,7 +341,25 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                                        title="Ver Planilla Generada #<?= $request['payroll_id'] ?>">
                                                         <i class="fas fa-file-alt"></i>
                                                     </a>
+                                                    <!-- Botón revertir planilla -->
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-warning btn-revert-vacation-payroll"
+                                                            data-request-id="<?= $request['id'] ?>"
+                                                            data-payroll-id="<?= $request['payroll_id'] ?>"
+                                                            data-employee-name="<?= htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']) ?>"
+                                                            title="Revertir Planilla">
+                                                        <i class="fas fa-undo"></i>
+                                                    </button>
                                                 <?php endif; ?>
+                                                <!-- Botón editar días de disfrute (siempre visible para APPROVED) -->
+                                                <button type="button"
+                                                        class="btn btn-sm btn-primary btn-edit-enjoyment-days"
+                                                        data-request-id="<?= $request['id'] ?>"
+                                                        data-current-days="<?= $request['dias_solicitados_disfrute'] ?? 0 ?>"
+                                                        data-employee-name="<?= htmlspecialchars($employee['firstname'] . ' ' . $employee['lastname']) ?>"
+                                                        title="Editar Días de Disfrute">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -647,6 +665,168 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                 Swal.fire({
                                     title: 'Error',
                                     text: response.message || 'Error desconocido al generar planilla',
+                                    icon: 'error',
+                                    confirmButtonText: 'Entendido'
+                                });
+                            }
+                        }
+                    });
+                });
+
+                // Revertir planilla de vacaciones
+                $('.btn-revert-vacation-payroll').on('click', function() {
+                    const requestId = $(this).data('request-id');
+                    const payrollId = $(this).data('payroll-id');
+                    const employeeName = $(this).data('employee-name');
+
+                    Swal.fire({
+                        title: '¿Revertir Planilla de Vacaciones?',
+                        html: `
+                            <div class="text-left">
+                                <p>Esta acción eliminará la planilla generada y volverá la solicitud a estado <strong>APROBADA</strong> sin planilla asociada.</p>
+                                <div class="alert alert-warning mt-2">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    <strong>Empleado:</strong> ${employeeName}<br>
+                                    <strong>Planilla ID:</strong> #${payrollId}
+                                </div>
+                                <p class="mb-0">Podrá generar una nueva planilla después de hacer los ajustes necesarios.</p>
+                            </div>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#f39c12',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-undo mr-2"></i> Sí, Revertir',
+                        cancelButtonText: '<i class="fas fa-times mr-2"></i> Cancelar',
+                        reverseButtons: true,
+                        showLoaderOnConfirm: true,
+                        preConfirm: () => {
+                            return $.ajax({
+                                url: `<?= \App\Core\UrlHelper::route('panel/vacation/revert-payroll/') ?>${requestId}`,
+                                method: 'POST',
+                                dataType: 'json',
+                                data: {
+                                    csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
+                                }
+                            }).fail(function(xhr) {
+                                Swal.showValidationMessage(
+                                    `Error: ${xhr.responseJSON?.message || xhr.statusText || 'No se pudo conectar con el servidor'}`
+                                );
+                            });
+                        },
+                        allowOutsideClick: () => !Swal.isLoading()
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            const response = result.value;
+
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Planilla Revertida',
+                                    html: `
+                                        <div class="text-left">
+                                            <p><strong>${response.message}</strong></p>
+                                            <div class="alert alert-success mt-2">
+                                                <i class="fas fa-check-circle mr-1"></i> La solicitud volvió a estado APROBADA sin planilla asociada.
+                                            </div>
+                                        </div>
+                                    `,
+                                    icon: 'success',
+                                    confirmButtonText: 'Recargar Página'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: response.message || 'Error desconocido al revertir planilla',
+                                    icon: 'error',
+                                    confirmButtonText: 'Entendido'
+                                });
+                            }
+                        }
+                    });
+                });
+
+                // Editar días de disfrute
+                $('.btn-edit-enjoyment-days').on('click', function() {
+                    const requestId = $(this).data('request-id');
+                    const currentDays = $(this).data('current-days');
+                    const employeeName = $(this).data('employee-name');
+
+                    Swal.fire({
+                        title: 'Editar Días de Disfrute',
+                        html: `
+                            <div class="text-left">
+                                <p>Editar los días de disfrute para <strong>${employeeName}</strong></p>
+                                <div class="form-group">
+                                    <label for="dias-disfrute">Días de Disfrute:</label>
+                                    <input type="number"
+                                           id="dias-disfrute"
+                                           class="form-control"
+                                           value="${currentDays}"
+                                           min="0"
+                                           step="0.5">
+                                </div>
+                                <div class="alert alert-info mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i> Los días de disfrute son informativos y no afectan el balance de vacaciones pagadas.
+                                </div>
+                            </div>
+                        `,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#007bff',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-save mr-2"></i> Guardar',
+                        cancelButtonText: '<i class="fas fa-times mr-2"></i> Cancelar',
+                        reverseButtons: true,
+                        showLoaderOnConfirm: true,
+                        preConfirm: () => {
+                            const diasDisfrute = document.getElementById('dias-disfrute').value;
+
+                            if (!diasDisfrute || diasDisfrute < 0) {
+                                Swal.showValidationMessage('Debe ingresar un valor válido (mayor o igual a 0)');
+                                return false;
+                            }
+
+                            return $.ajax({
+                                url: `<?= \App\Core\UrlHelper::route('panel/vacation/edit-enjoyment-days/') ?>${requestId}`,
+                                method: 'POST',
+                                dataType: 'json',
+                                data: {
+                                    csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>',
+                                    dias_disfrute: diasDisfrute
+                                }
+                            }).fail(function(xhr) {
+                                Swal.showValidationMessage(
+                                    `Error: ${xhr.responseJSON?.message || xhr.statusText || 'No se pudo conectar con el servidor'}`
+                                );
+                            });
+                        },
+                        allowOutsideClick: () => !Swal.isLoading()
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            const response = result.value;
+
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Días de Disfrute Actualizados',
+                                    html: `
+                                        <div class="text-left">
+                                            <p><strong>${response.message}</strong></p>
+                                            <div class="alert alert-success mt-2">
+                                                <i class="fas fa-check-circle mr-1"></i> Días de disfrute actualizados correctamente.
+                                            </div>
+                                        </div>
+                                    `,
+                                    icon: 'success',
+                                    confirmButtonText: 'Recargar Página'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: response.message || 'Error desconocido al actualizar días de disfrute',
                                     icon: 'error',
                                     confirmButtonText: 'Entendido'
                                 });
