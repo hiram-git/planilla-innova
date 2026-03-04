@@ -1,10 +1,10 @@
 ﻿# 🤖 CLAUDE MEMORY - Sistema de Planillas MVC
 
-## 📍 **Estado Actual - V3.5.21 (GSAP Animations Expansion + Innova Export Fixes)**
-- **Fecha**: 25 de Febrero, 2026 (**GSAP Animations Expansion + Correcciones Críticas**)
-- **Versión**: 3.5.21 - Expansión animaciones GSAP + correcciones módulo Innova Export
-- **Commits Revisados**: 230+ commits (Nov-2025 a Ene-2026) | **PRs Merged**: #90-#113 (24 PRs)
-- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 90% (+45%) + MULTITENANCY 85% (+40%) + MOTOR FÓRMULAS 95% + API ASISTENCIAS 92% + CALENDARIO 100% + LIQUIDACIONES 100% + SEGURIDAD 100% + EMPLOYEE IMPORT 100% + PERMISOS GRANULARES 100% + EXPEDIENTES 100% + CAMPOS ADICIONALES 100% + POSTGRESQL 100% + SUPER ADMIN 100% + MANUAL CONCEPTS 100% + LOAN SYSTEM 100%**
+## 📍 **Estado Actual - V3.5.22 (Liquidaciones Report Refactor + Vacation UX Improvements + Attendance Tolerances)**
+- **Fecha**: 28 de Febrero, 2026 (**Refactorización Liquidaciones + Mejoras UX Vacaciones + Sistema Tolerancias Asistencias**)
+- **Versión**: 3.5.22 - Refactor LiquidationReportController + Métodos cálculo avanzado + UX vacaciones + Sistema tolerancias completo + Cálculo almuerzo avanzado
+- **Commits Revisados**: 235+ commits (Nov-2025 a Feb-2026) | **PRs Merged**: #90-#113 (24 PRs)
+- **Estado**: ✅ **SISTEMA EMPRESARIAL 100% + VACACIONES PANAMÁ 90% (+45%) + MULTITENANCY 85% (+40%) + MOTOR FÓRMULAS 95% + API ASISTENCIAS 95% (+3%) + CALENDARIO 100% + LIQUIDACIONES 100% + SEGURIDAD 100% + EMPLOYEE IMPORT 100% + PERMISOS GRANULARES 100% + EXPEDIENTES 100% + CAMPOS ADICIONALES 100% + POSTGRESQL 100% + SUPER ADMIN 100% + MANUAL CONCEPTS 100% + LOAN SYSTEM 100% + ATTENDANCE TOLERANCES 100%**
 - **Changelog**: [Ver historial completo →](documentation/CHANGELOG.md)
 
 ## 🎯 **Sistema**
@@ -24,7 +24,7 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - ✅ **Múltiples Tipos Planilla**: Empleados en varios tipos + FIND_IN_SET() queries + Select2 múltiple
 - ✅ **Calendario Empresarial**: BusinessCalendar model + feriados Panamá 2024-2025 + FullCalendar.js + API Sync
 - ✅ **API Asistencias Base44**: Cliente API + sincronización automática + webhook + 3 tablas BD
-- ✅ **Sistema Asistencias**: Migraciones BD + Calculadores Core + AlertsSystem + PayrollAttendanceIntegrator + Mapeo automático + Procesamiento batch día + Almuerzo (92% completado)
+- ✅ **Sistema Asistencias**: Migraciones BD + Calculadores Core + AlertsSystem + PayrollAttendanceIntegrator + Mapeo automático + Procesamiento batch día + Sistema Tolerancias Completo + Cálculo Almuerzo Avanzado (95% completado)
 - ✅ **Expedientes Empleados**: 2 tablas (types + subtypes) + 81 registros catálogo completo
 - ✅ **Campos Adicionales Personalizados**: 2 tablas + CRUD completo + 4 tipos datos + integración empleados
 - ✅ **Vacaciones Panamá**: VacationController (1452 líneas) + VacationBalanceService + 15 métodos + 6 vistas + 3 reportes PDF + generación planillas automática (90% completado)
@@ -37,6 +37,18 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 
 ## 🆕 **Últimas Versiones (Ver changelog para detalles)**
 
+### V3.5.22 - Liquidaciones Report Refactor + Vacation UX Improvements (28-Feb-2026)
+- Refactorización completa: LiquidationReportController (1196 líneas) separado de LiquidationController
+- Principios SOLID aplicados: Single Responsibility (CRUD vs Reportes)
+- Métodos cálculo avanzado: getAccumulatedTypesForLiquidation() + getMonthlyTotalsForLiquidation() (181 líneas)
+- Mejoras cálculo LIQ007: Ajustes rangos fechas + logging detallado + totales mensuales precisos
+- Rutas refactorizadas: /liquidation-reports/* (reportes) vs /liquidation/* (CRUD)
+- UX Vacaciones: Ocultar campos redundantes (Valor Día + Monto Compensación) en vista create
+- Fix namespace: TenantStorage import correcto para multi-tenant
+- Mejoras visualización: Singular/plural años/días empleado ("1 año" vs "2 años")
+- Estadísticas: 5 archivos | 1 controller nuevo | ~1,403 líneas agregadas | ~1,234 eliminadas | 3 bugs corregidos
+- [Ver detalles →](documentation/changelog/v3.5.22.md)
+
 ### V3.5.21 - GSAP Animations Expansion + Innova Export Fixes (25-Feb-2026)
 - Expansión animaciones GSAP a 4 vistas adicionales: Liquidaciones Estimadas (7 funciones) + Planillas Estimadas (10 funciones) + Innova Export (7 funciones) + Crear Planilla Botones (4 funciones)
 - 28 funciones GSAP implementadas totales con patrón consolidado + timing coordinado + event delegation
@@ -47,52 +59,15 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - Estadísticas: 5 vistas modificadas | 2 controllers corregidos | 1 core file | ~1,015 líneas agregadas | ~350 revertidas | ~665 netas
 - [Ver detalles →](documentation/changelog/v3.5.21.md)
 
-### V3.5.20 - GSAP Animations + Innova Export System (24-Feb-2026)
-- Sistema completo animaciones GSAP v3.12.5 para DataTables
-- Patrón documentado: GSAP_ANIMATION_PATTERN.md (482 líneas) con guía implementación completa
-- Animaciones: fade-in, slide-up, scale, hover effects (rotation 360° + scale 1.15)
-- Implementado en módulos: employees/index + employees/terminated
-- InnovaExportService (433 líneas): Exportación planillas a formato fixed-width text (347 chars/línea)
-- 3 tipos registros INNOVA: Movimientos (1), Neto empleado (2), Totales (3)
-- InnovaExportController + Vista AdminLTE con DataTables para exportación
-- Agrupación por departamento + totales automáticos + solo planillas PROCESADAS/CERRADAS
-- [Ver detalles →](documentation/changelog/v3.5.20.md)
-
-### V3.5.19 - Módulo Campos Adicionales Personalizados (16-Ene-2026)
-- Sistema completo campos personalizados: employee_additional_fields + employee_additional_field_values
-- 4 tipos datos soportados: TEXTO, NUMERO, FECHA, BOOLEAN + valores por defecto
-- CRUD completo AdminLTE + DataTables server-side + named parameters PDO
-- Integración formularios empleados: renderizado dinámico create/edit con validaciones
-- 7 bugs resueltos: Parse errors PHP + PDO pagination + permisos + routing + migration + edit button
-- [Ver detalles →](documentation/changelog/v3.5.19.md)
-
-### V3.5.18 - Fix TypeError insertConceptDetail (15-Ene-2026)
-- Fix crítico: PayrollController::insertConceptDetail() tipo parámetro \PDO → Database
-- Import agregado: use App\Core\Database
-- Regeneración empleados con préstamos restaurada
-- [Ver detalles →](documentation/changelog/v3.5.18.md)
-
-### V3.5.17 - Bug Fixes + UX Improvements (29-Dic-2025)
-- DataTables persistencia estado: stateSave + Enter key modal eliminación
-- Préstamos fixes: ENUM status migración 12 bases + creditor_id + cuotas tracking
-- Organigrama: migración idempotente nivel→nivel_jerarquico + limpieza columnas legacy
-- Main DB migration runner: script independiente planilla_prod desde .env + SQL parser robusto
-- [Ver detalles →](documentation/changelog/v3.5.17.md)
-
-### V3.5.16 - Expedientes Empleados + Migraciones Multi-Tenant (29-Dic-2025)
-- Sistema completo expedientes: employee_file_types + employee_file_subtypes (81 registros)
-- Runner migraciones robusto: splitSqlStatements() parser + exec()→query() + manejo errores mejorado
-- [Ver detalles →](documentation/changelog/v3.5.16.md)
-
-### V3.5.15 - UNIDAD Dinámica en Fórmulas (28-Dic-2025)
-- Asignación dinámica UNIDAD en fórmulas: `UNIDAD = SI(MARCA_ASISTENCIA, HORAS_REGULARES(), 15)`
-- Captura automática después de evaluar fórmula + almacenamiento en planilla_detalle
-- [Ver detalles →](documentation/changelog/v3.5.15.md)
-
-### V3.5.14 - Campo UNIDAD en Planilla Detalle (28-Dic-2025)
-- Migración: planilla_detalle.referencia_valor → unidad (VARCHAR 50)
-- Variable UNIDAD agregada al motor de fórmulas + actualización 7 archivos PHP
-- [Ver detalles →](documentation/changelog/v3.5.14.md)
+**Versiones Anteriores**: [Ver changelog completo →](documentation/CHANGELOG.md)
+- V3.5.20: GSAP Animations + Innova Export System
+- V3.5.19: Módulo Campos Adicionales Personalizados
+- V3.5.18: Fix TypeError insertConceptDetail
+- V3.5.17: Bug Fixes + UX Improvements
+- V3.5.16: Expedientes Empleados + Migraciones Multi-Tenant
+- V3.5.15: UNIDAD Dinámica en Fórmulas
+- V3.5.14: Campo UNIDAD en Planilla Detalle
+- V3.4.x - V3.5.13: [Ver archivos individuales →](documentation/changelog/)
 
 ## ⏰ **MÓDULO API MARCACIONES Y ASISTENCIAS**
 
@@ -130,6 +105,22 @@ Plataforma empresarial de planillas con legislación panameña, acumulados autom
 - Reporte de Marcaciones: Excel + Vista Web + JSON (8 estadísticas + top 10 tardanzas)
 - **Pendiente**: Dashboard gerencial, reportes ejecutivos, alertas automáticas, exportación PDF
 - [Ver v3.5.4 →](documentation/changelog/v3.5.4.md)
+
+### **Sistema de Tolerancias y Cálculo Avanzado de Almuerzo** ✅ (18-20-Nov-2025)
+
+**Estado**: 100% COMPLETADO | **Archivos**: 20 modificados | **Código**: +2,413 líneas
+
+Sistema completo de tolerancias para entrada/salida/almuerzo + elegibilidad horas extras + aprobación horas extras + corrección horas nocturnas turnos diurnos.
+
+**Componentes Implementados**:
+- 8 campos tolerancias en `schedules` (entrada/salida/almuerzo before/after)
+- Campo `permite_horas_extras` en `employees` (elegibilidad por empleado)
+- Campo `overtime_status` en `attendance_calculations` (PENDING/APPROVED/REJECTED)
+- 6 métodos nuevos: calculateLunchWithTolerance + calculateTardinessWithTolerance + otros
+- 3 funciones fórmulas: HORAS_EXTRAS_APROBADAS() + HORAS_EXTRAS_APROBADAS_25/50()
+- UI completa: Formularios empleados + horarios con tolerancias
+
+**[Ver documentación técnica completa →](documentation/attendance/TOLERANCES_SYSTEM.md)**
 
 ### **Legislación Panamá Aplicada**
 Jornada ordinaria 8h/48h semanales (Art.31) | Jornada nocturna 6PM-6AM +50% (Art.38) | Horas extras +25%/+50% (Art.39) | Domingos/feriados +50% (Art.48) | Almuerzo 30min mínimo (Art.35) | 3+ ausencias injustificadas/mes = despido (Art.213)
@@ -208,55 +199,23 @@ SI(MARCA_ASISTENCIA, HORAS_REGULARES() * TARIFA_HORA, SUELDO * 0.5)
 
 ## 📄 **SISTEMAS AUXILIARES IMPLEMENTADOS**
 
-### **XIII Mes Trimestral** (V3.3.9)
-XIIIMesPeriodoTrimestralCalculator con 3 períodos automáticos (P1-P3), variables dinámicas (INICIO/FIN_PERIODO_XIII), fórmula legislación panameña.
-
-### **Employee Import** (V3.3.10 + V3.5.9)
-Importación masiva Excel con validaciones robustas, PHP 8+ compatible, foreign key handling, 3 campos nuevos (email, marca_asistencia, permite_horas_extras), integración employee_payroll_salaries automática.
-[Ver v3.5.9 →](documentation/changelog/v3.5.9.md)
-
-### **Planillas de Liquidación** (V3.5.2 + V3.5.13)
-Generación automática período 11 meses según Código Trabajo Panamá, cálculos legislación completos, vistas separadas, reportes PDF/Excel profesionales con firmas, 100% portable sin hardcoded IDs.
-[Ver v3.5.2 →](documentation/changelog/v3.5.2.md) | [Ver v3.5.13 →](documentation/changelog/v3.5.13.md)
-
-### **Sistema Reprocesamiento Planillas** (V3.4.2)
-Checkbox validación situación empleado durante reproceso. Flujo Vista→JS→Controller→Model con parámetro `validate_situacion` opcional (default: true). Retrocompatible.
-[Ver v3.4.2 →](documentation/changelog/v3.4.2.md)
-
-### **Expedientes Empleados** (V3.5.16)
-2 tablas nuevas: employee_file_types (13 tipos) + employee_file_subtypes (68 subtipos). Catálogo completo: Estudios Académicos, Capacitación, Permisos, Licencias, Otros. Menú ID 26.
-[Ver v3.5.16 →](documentation/changelog/v3.5.16.md)
-
-### **Campos Adicionales Personalizados** (V3.5.19)
-Sistema completo gestión campos dinámicos empleados. 2 tablas BD (employee_additional_fields + employee_additional_field_values). CRUD AdminLTE con DataTables server-side. 4 tipos datos: TEXTO, NUMERO, FECHA, BOOLEAN. Integración automática formularios create/edit empleados con renderizado condicional. Named parameters PDO + validaciones robustas.
-[Ver v3.5.19 →](documentation/changelog/v3.5.19.md)
-
-### **Vacaciones Panamá** (V3.5.7 + commits recientes) - **90% COMPLETADO**
-VacationController (1452 líneas) con 15 métodos completos. VacationBalanceService con vacation_annual_balances. Sistema aprobaciones + reversión automática balances. Generación planillas automática (SS 9.75% + SE 1.25%). Calendario visual FullCalendar.js integrado con business_calendar. 3 tipos reportes PDF (solicitudes + filtrados + resumen anual). Cálculo salario diario promedio 11 meses (legislación). AJAX endpoints completos. Control planillas únicas (payroll_id). 6 vistas AdminLTE. Validaciones robustas solapamientos/saldos/elegibilidad.
-
-### **Multitenancy Empresarial** (V3.5.8-10 + PRs #104-110) - **85% COMPLETADO**
-TenantResolver (244 líneas) con detección automática por URL/sesión/código. TenantStorage + TenantMigrationSystem robustos. Login multi-tenant por license_key/RUC/ID/slug. PostgreSQL support (MySQL/PostgreSQL dinámico). Super Admin System (is_system_admin + privileges). Wizard creación empresas funcional (11 pasos debugging). License dropdown navbar tiempo real. Credenciales encriptadas (db_pass_enc). Aislamiento BD completo. Core Concepts Synchronization automática. Migraciones multi-tenant robustas (splitSqlStatements parser). **Pendiente**: Panel admin backoffice CRUD tenants.
-
-### **Manual Concepts** (PRs #99-100) - **100% COMPLETADO**
-Módulo completo CRUD conceptos manuales por empleado. Integración planillas durante regeneración. DataTables parametrizado. Migraciones tenant directory.
-
-### **Super Admin System** (PRs #106-107) - **100% COMPLETADO**
-Column is_system_admin en tabla admin. Privileges implementation + access control + UI elements. License expiration check integrado.
-
-### **PostgreSQL Support** (PRs #109-110) - **100% COMPLETADO**
-Conexión dinámica MySQL/PostgreSQL. Configuración .env.pgsql.example. Migration scripts con connection handling actualizado.
-
-### **Loan System Enhancements** (PR #98 + commits) - **100% COMPLETADO**
-Status 'pagado' nuevo + completion logic. Vista completa préstamos. Creditor association controls. Special handling cuotas préstamos en payroll processing.
-
-### **Employee Documents/Work Documents** (PRs #95-97) - **100% COMPLETADO**
-Work document generators PDF/Word export flow. Listado módulo + templates + navigation shortcuts. Employee file correlative preview.
-
-### **XIII Mes in PDFs** (PRs #90-94) - **100% COMPLETADO**
-Acumulados XIII Mes integrados en reportes PDF planillas. Payroll detail breakdown por período completo.
-
-### **Attendance Enhancements** (PRs #108-113) - **100% COMPLETADO**
-Timezone handling UTC → Local (3 commits). Employee identification document ID + email fallback. Sync validation end-of-day processing. Attendance bonus flag + payroll variables. Records processing step en sync cron.
+| Sistema | Estado | Descripción | Ver Más |
+|---------|--------|-------------|---------|
+| **XIII Mes Trimestral** | 100% | 3 períodos automáticos + variables dinámicas + legislación PA | - |
+| **Employee Import** | 100% | Importación masiva Excel + validaciones + PHP 8+ | [v3.5.9](documentation/changelog/v3.5.9.md) |
+| **Liquidaciones** | 100% | Período 11 meses + cálculos legislación + PDF/Excel | [v3.5.2](documentation/changelog/v3.5.2.md) |
+| **Reprocesamiento Planillas** | 100% | Checkbox validación situación + flujo Vista→JS→Controller | [v3.4.2](documentation/changelog/v3.4.2.md) |
+| **Expedientes Empleados** | 100% | 2 tablas + 81 registros catálogo + 13 tipos + 68 subtipos | [v3.5.16](documentation/changelog/v3.5.16.md) |
+| **Campos Adicionales** | 100% | 2 tablas + CRUD + 4 tipos datos + integración empleados | [v3.5.19](documentation/changelog/v3.5.19.md) |
+| **Vacaciones Panamá** | 90% | VacationController (1452 líneas) + aprobaciones + 3 reportes PDF | [v3.5.7](documentation/changelog/v3.5.7.md) |
+| **Multitenancy** | 85% | TenantResolver + PostgreSQL + Super Admin + Wizard | [v3.5.8-10](documentation/CHANGELOG.md) |
+| **Manual Concepts** | 100% | CRUD conceptos manuales + integración planillas | PRs #99-100 |
+| **Super Admin System** | 100% | is_system_admin column + privileges + access control | PRs #106-107 |
+| **PostgreSQL Support** | 100% | Conexión dinámica MySQL/PostgreSQL + .env.pgsql | PRs #109-110 |
+| **Loan System** | 100% | Status 'pagado' + creditor association + cuotas tracking | PR #98 |
+| **Employee Documents** | 100% | Generadores PDF/Word + templates + navigation | PRs #95-97 |
+| **XIII Mes in PDFs** | 100% | Acumulados XIII Mes integrados en reportes planillas | PRs #90-94 |
+| **Attendance Enhancements** | 100% | Timezone UTC→Local + document ID + bonus flag | PRs #108-113 |
 
 ## 📊 **CARACTERÍSTICAS UI/UX DESTACADAS**
 
@@ -281,222 +240,31 @@ Timezone handling UTC → Local (3 commits). Employee identification document ID
 
 **UX/UI**: Iconos FontAwesome estados planillas, responsive 1024px, días preaviso editables AJAX, cache-busting, modal refresh inteligente, SweetAlert2
 
-# important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
+## ⚙️ **REGLAS DE DESARROLLO**
+**[Ver reglas completas →](documentation/DEVELOPMENT_RULES.md)**
 
-## ⚙️ **REGLAS DE DESARROLLO Y MODIFICACIÓN DE CÓDIGO**
-**CRÍTICO - SEGUIR ESTRICTAMENTE PARA EVITAR ROMPER FUNCIONALIDADES**
-
-### **Principio Fundamental: Mínima Intervención**
-**"Hacer SOLO lo solicitado, sin tocar sistemas que ya funcionan"**
-
-### **Reglas Obligatorias:**
-
-1. **NO MODIFICAR archivos core/helpers sin necesidad absoluta**
-   - ❌ PROHIBIDO: Cambiar `JavaScriptHelper`, `UrlHelper`, `Database`, `Router`, etc. sin pedirlo explícitamente
-   - ❌ PROHIBIDO: Modificar sistemas de rutas, configuraciones globales, o arquitectura base
-   - ✅ PERMITIDO: Solo si el usuario explícitamente solicita "modifica el helper X"
-
-2. **RESPETAR convenciones y estándares del proyecto**
-   - ✅ Usar `window.APP_CONFIG` (ya establecido en el proyecto) - NUNCA cambiar a `appConfig`
-   - ✅ Seguir patrones de nombres de variables y métodos existentes
-   - ✅ Mantener estructura de carpetas y archivos actual
-   - ⚠️ Si necesitas cambiar una convención, **PREGUNTAR PRIMERO**
-
-3. **ALCANCE LIMITADO de modificaciones**
-   - ✅ Si piden "agrega datepicker al formulario X" → Solo agregar datepicker
-   - ❌ NO agregar validaciones, rutas AJAX, o refactorizar lógica sin pedirlo
-   - ❌ NO crear archivos JavaScript complejos si el formulario ya funciona con lógica existente
-   - ✅ Reutilizar lógica existente en lugar de crear nueva
-
-4. **VERIFICAR antes de modificar**
-   - ✅ Usar `Grep` para buscar cómo se usa actualmente un patrón (ej: `window.APP_CONFIG`)
-   - ✅ Leer archivos relacionados antes de hacer cambios
-   - ❌ NO asumir que tu implementación es mejor que la existente
-   - ⚠️ Si tienes duda, **PREGUNTAR AL USUARIO**
-
-5. **PREFERIR ediciones mínimas sobre refactorizaciones**
-   - ✅ Agregar `autocomplete="off"` en campos específicos
-   - ❌ NO refactorizar todo el formulario "para mejorarlo"
-   - ❌ NO cambiar arquitectura de routing/helpers "para hacerlo más limpio"
-
-### **Casos de Error Comunes (APRENDER DE ESTOS):**
-
-**❌ ERROR - Modificación Excesiva:**
-```
-Usuario: "Agrega datepicker y quita autocomplete"
-Claude: [Modifica JavaScriptHelper + crea sistema de rutas + refactoriza form.php]
-Resultado: Sistema de rutas roto, error 404
-```
-
-**✅ CORRECTO - Modificación Precisa:**
-```
-Usuario: "Agrega datepicker y quita autocomplete"
-Claude: [Agrega autocomplete="off" + crea JS simple con datepicker]
-Resultado: Funciona perfectamente, nada roto
-```
-
-### **Preguntas Obligatorias Antes de Modificar:**
-
-1. **¿El usuario pidió modificar este archivo específicamente?** → Si NO, no lo modifiques
-2. **¿Este cambio puede romper funcionalidad existente?** → Si SÍ, pregunta primero
-3. **¿Estoy cambiando una convención del proyecto?** → Si SÍ, pregunta primero
-4. **¿Puedo lograr el objetivo sin tocar archivos core?** → Si SÍ, hazlo así
-
-### **En caso de duda: PREGUNTAR > ASUMIR**
-
-Si no estás 100% seguro de que una modificación es necesaria o segura, **pregunta al usuario** antes de proceder.
-
-## 📝 **POLÍTICA DE DOCUMENTACIÓN**
-**CRÍTICO - SEGUIR ESTRICTAMENTE**:
-
-1. **NUNCA crear archivos de documentación (.md) automáticamente** cuando se implementa un cambio
-2. **SOLO crear documentación cuando el usuario lo solicite explícitamente** con frases como:
-   - "crea un documento de..."
-   - "documenta esto en..."
-   - "genera documentación..."
-   - "escribe un .md con..."
-3. **IMPLEMENTAR CAMBIOS DIRECTAMENTE** sin documentación adicional a menos que se pida
-4. **ACTUALIZAR CLAUDE.md** solo cuando sea un cambio de versión mayor o característica significativa
-
-**Ejemplos**:
-- ❌ Usuario: "cambia la función X" → NO crear documento de cambios automáticamente
-- ✅ Usuario: "cambia la función X" → Solo implementar el cambio
-- ✅ Usuario: "cambia la función X y documenta el cambio" → Implementar + crear documento
-
-**Razón**: Evitar saturación de archivos .md innecesarios en el proyecto.
-
-## 🚨 **FLUJO OBLIGATORIO PARA ANÁLISIS**
-**MANDATORY ANALYSIS WORKFLOW - NO EXCEPTIONS**
-
-Cuando el usuario solicite cualquier tipo de análisis (usando palabras como "analiza", "analyze", "evalúa", "estudia", etc.):
-
-1. **ANÁLISIS**: Realizar investigación y análisis completo
-2. **PRESENTACIÓN**: Presentar opciones, pros/contras, recomendaciones
-3. **ESPERAR APROBACIÓN**: NO proceder hasta recibir confirmación explícita del usuario
-4. **IMPLEMENTACIÓN**: Solo si se solicita específicamente
-
-**PROHIBIDO**: Implementar automáticamente después de análisis sin aprobación explícita.
-**OBLIGATORIO**: Siempre preguntar "¿Proceder con la implementación de [opción recomendada]?" antes de cualquier implementación.
+**Principio**: Mínima intervención - hacer SOLO lo solicitado sin tocar sistemas funcionando
+**Política Documentación**: NO crear archivos .md automáticamente, solo cuando usuario lo solicite explícitamente
+**Flujo Análisis**: SIEMPRE presentar opciones y esperar aprobación antes de implementar
 
 ## 📁 **ESTRUCTURA DE DOCUMENTACIÓN**
-- **CLAUDE.md**: Memoria principal del proyecto (raíz) - Solo info crítica + enlaces a changelogs
-- **documentation/**: Directorio para archivos de documentación del proyecto
-  - **ROADMAP.md**: Hoja de ruta y planificación
-  - **CHANGELOG.md**: Índice principal de versiones con enlaces
-  - **changelog/**: Directorio de changelogs individuales por versión
-    - **v3.5.19.md**: Módulo Campos Adicionales Personalizados (16-Ene-2026)
-    - **v3.5.18.md**: Fix TypeError insertConceptDetail (15-Ene-2026)
-    - **v3.5.17.md**: Bug Fixes + UX Improvements (29-Dic-2025)
-    - **v3.5.16.md**: Expedientes Empleados + Migraciones Multi-Tenant (29-Dic-2025)
-    - **v3.5.15.md**: UNIDAD Dinámica en Fórmulas (28-Dic-2025)
-    - **v3.5.14.md**: Campo UNIDAD en Planilla Detalle (28-Dic-2025)
-    - **v3.5.13.md**: Sistema Permisos Granulares + Liquidaciones Dinámicas (02-Dic-2025)
-    - **v3.5.12.md**: Acumulados Excel Export + Bug Fixes (01-Dic-2025)
-    - **v3.5.1-v3.5.11.md**: Versiones anteriores con detalles completos
-    - **v3.4.0-v3.4.8.md**: API Asistencias + Calculadores (Oct-2025)
-    - **README.md**: Guía de estructura y convenciones
-  - **TODO.md**: Lista de tareas pendientes
-- **docs/**: Directorio de AdminLTE (NO MODIFICAR)
+- **CLAUDE.md**: Memoria principal (raíz) - Info crítica + enlaces
+- **documentation/**: CHANGELOG.md + ROADMAP.md + TODO.md + DEVELOPMENT_RULES.md + PATRON_DESARROLLO_MVC.md
+  - **changelog/**: Changelogs individuales por versión (v3.4.0 - v3.5.22)
+  - **attendance/**: TOLERANCES_SYSTEM.md
+- **docs/**: AdminLTE (NO MODIFICAR)
 
-IMPORTANTE: Todos los archivos de documentación del proyecto deben guardarse en `/documentation` para no confundirlos con `/docs` que pertenece a la plantilla AdminLTE.
-
-### **Sistema de Changelogs Modularizados (V3.4.1+)**
-A partir de la versión 3.4.1, cada versión tiene su propio archivo en `documentation/changelog/`:
-- **Propósito**: Evitar que CLAUDE.md y CHANGELOG.md se vuelvan demasiado extensos
-- **Formato**: `vX.Y.Z.md` (ejemplo: `v3.5.16.md`)
-- **Índice**: `CHANGELOG.md` sirve como índice con resumen + enlaces a archivos individuales
-- **CLAUDE.md**: Solo menciona últimas 5 versiones con link a changelog detallado
-- **Template**: Copiar estructura de versiones existentes para nuevas versiones
-- **Convenciones**: Incluir fecha, tipo, componentes, estadísticas y referencias cruzadas
+**Convención**: Changelogs modularizados desde V3.4.1+ | Formato: `vX.Y.Z.md` | CLAUDE.md solo menciona últimas 2 versiones
 
 ## 📐 **PATRÓN DE DESARROLLO MVC**
-**Referencia**: [Ver patrón completo →](documentation/PATRON_DESARROLLO_MVC.md)
+**[Ver patrón completo →](documentation/PATRON_DESARROLLO_MVC.md)**
 
-### **Estructura de Archivos Estándar**
-```
-app/
-├── Controllers/NombreModuloController.php
-├── Models/NombreModulo.php
-├── Services/NombreModuloService.php (opcional)
-└── Views/admin/nombre_modulo/index.php
-```
-
-### **Reglas Importantes para Nuevos Formularios**
-
-#### ✅ **HACER (DO)**
-1. **Usar `ob_start()` y `ob_get_clean()`** para capturar scripts en vistas
-2. **Escribir HTML/PHP normalmente**, NO concatenar strings (`$content .= ''`)
-3. **Usar `\App\Core\UrlHelper::base()`** para URLs base en JavaScript
-4. **Usar `toastr`** para notificaciones (NO `alert()`)
-5. **Retornar JSON** en métodos AJAX con `header('Content-Type: application/json')`
-6. **Usar prepared statements PDO** para prevenir SQL injection
-7. **Validar permisos** en cada método del controller
-8. **Manejar excepciones** con try-catch y error_log
-9. **Usar CSRF tokens** en formularios (`Security::generateToken()`)
-10. **Seguir convención de nombres**: camelCase para métodos, snake_case para BD
-
-#### ❌ **NO HACER (DON'T)**
-1. **NO concatenar strings PHP** para construir vistas
-2. **NO usar `echo` directo** para HTML en controllers
-3. **NO usar `eval()`** bajo ninguna circunstancia
-4. **NO hardcodear URLs** en JavaScript (usar baseUrl)
-5. **NO usar queries SQL directos** sin prepared statements
-6. **NO exponer datos sensibles** en responses JSON
-7. **NO olvidar validar entrada** de usuario
-8. **NO usar variables globales** ($_GET, $_POST) sin validar
-9. **NO mezclar lógica de negocio** en controllers (usar Services)
-10. **NO duplicar código** (aplicar principio DRY)
-
-### **Patrón de Vista con Scripts**
-```php
-<?php
-// Vista: app/Views/admin/nombre_modulo/index.php
-?>
-<!-- HTML aquí -->
-
-<?php
-// Capturar scripts
-ob_start();
-?>
-<script>
-$(document).ready(function() {
-    const baseUrl = '<?= \App\Core\UrlHelper::base() ?>';
-
-    // DataTable
-    $("#dataTable").DataTable({
-        ajax: baseUrl + '/panel/ruta-modulo/data',
-        // ...
-    });
-});
-</script>
-<?php
-$scripts = ob_get_clean();
-?>
-```
-
-### **Checklist para Nuevo Módulo**
-- [ ] Crear migración SQL en `database/migrations/tenant/`
-- [ ] Crear Model en `app/Models/`
-- [ ] Crear Controller en `app/Controllers/`
-- [ ] Registrar rutas en router correspondiente
-- [ ] Crear vista index con patrón `ob_start()` / `ob_get_clean()`
-- [ ] Implementar métodos AJAX con `header('Content-Type: application/json')`
-- [ ] Agregar validaciones y manejo de errores
-- [ ] Implementar CSRF protection
-- [ ] Probar funcionalidad completa (CRUD)
-
-**Tiempo estimado**: 30-45 minutos siguiendo el patrón estándar.
-
-**Módulos de Referencia**:
-- Controller: `app/Controllers/AttendanceController.php`
-- Model: `app/Models/AttendanceRecord.php`
-- Vista: `app/Views/admin/attendance/list.php`
+**Estructura**: Controller + Model + Service (opcional) + Views
+**Reglas Clave**: ob_start/ob_get_clean para scripts | PDO prepared statements | CSRF tokens | Validación permisos | NO eval() | NO concatenar strings
+**Tiempo Estimado**: 30-45 min por módulo CRUD completo
 
 ---
 
-**Última Actualización**: 25 de Febrero, 2026 (**GSAP Animations Expansion + Innova Export Fixes**)
-**Sistema**: Planillas MVC v3.5.21
-**Progreso Global**: Core 100% | Calendario 100% | **Vacaciones 90%** | **Multitenancy 85%** | **Motor Fórmulas 95%** | API Asistencias 92% | Liquidaciones 100% | Seguridad 100% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Campos Adicionales 100% | **PostgreSQL 100%** | **Super Admin 100%** | **Manual Concepts 100%** | **Loan System 100%** | **UI/UX Animations (GSAP) 100%** | **ERP Integration (INNOVA) 100%**
+**Última Actualización**: 03 de Marzo, 2026 (**Liquidaciones Report Refactor + Vacation UX Improvements + Attendance Tolerances System**)
+**Sistema**: Planillas MVC v3.5.22
+**Progreso Global**: Core 100% | Calendario 100% | **Vacaciones 90%** | **Multitenancy 85%** | **Motor Fórmulas 95%** | **API Asistencias 95%** (+3%) | **Attendance Tolerances 100%** | Liquidaciones 100% | Seguridad 100% | Employee Import 100% | Acumulados Export 100% | Permisos Granular 100% | Employee Files 100% | Campos Adicionales 100% | **PostgreSQL 100%** | **Super Admin 100%** | **Manual Concepts 100%** | **Loan System 100%** | **UI/UX Animations (GSAP) 100%** | **ERP Integration (INNOVA) 100%**
