@@ -545,6 +545,14 @@ class App
                                     // POST /panel/vacation/generate-payroll/{request_id}
                                     $this->method = 'generatePayroll';
                                     $this->params = [$url[3]];
+                                } elseif ($url[2] === 'revert-payroll' && isset($url[3]) && method_exists($this->controller, 'revertPayroll')) {
+                                    // POST /panel/vacation/revert-payroll/{request_id}
+                                    $this->method = 'revertPayroll';
+                                    $this->params = [$url[3]];
+                                } elseif ($url[2] === 'edit-enjoyment-days' && isset($url[3]) && method_exists($this->controller, 'editEnjoymentDays')) {
+                                    // POST /panel/vacation/edit-enjoyment-days/{request_id}
+                                    $this->method = 'editEnjoymentDays';
+                                    $this->params = [$url[3]];
                                 } else {
                                     // Fallback a index en POST no reconocido
                                     $this->method = 'index';

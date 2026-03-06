@@ -1031,13 +1031,13 @@ class VacationController extends Controller
                 $concepto_id,
                 $monto_vacaciones,
                 $tipo_concepto,
-                $employee['organigrama_id'],
-                $employee['organigrama_path'],
-                $employee['position_id'],
-                $employee['schedule_id'],
+                $employee['organigrama_id'] ?? null,
+                $employee['organigrama_path'] ?? null,
+                $employee['position_id'] ?? null,
+                $employee['schedule_id'] ?? null,
                 $employee['firstname'],
                 $employee['lastname'],
-                $employee['cargo_id']
+                $employee['cargo_id'] ?? null
             ]);
 
             // 2. Insertar concepto Seguro Social (9.75% del monto de vacaciones)
@@ -1054,13 +1054,13 @@ class VacationController extends Controller
                     $concepto_ss['id'],
                     $monto_ss,
                     'D', // Deducción
-                    $employee['departamento_id'],
-                    $employee['organigrama_path'],
-                    $employee['position_id'],
-                    $employee['schedule_id'],
+                    $employee['departamento_id'] ?? null,
+                    $employee['organigrama_path'] ?? null,
+                    $employee['position_id'] ?? null,
+                    $employee['schedule_id'] ?? null,
                     $employee['firstname'],
                     $employee['lastname'],
-                    $employee['cargo_id']
+                    $employee['cargo_id'] ?? null
                 ]);
             }
 
@@ -1078,13 +1078,13 @@ class VacationController extends Controller
                     $concepto_se['id'],
                     $monto_se,
                     'D', // Deducción
-                    $employee['departamento_id'],
-                    $employee['organigrama_path'],
-                    $employee['position_id'],
-                    $employee['schedule_id'],
+                    $employee['departamento_id'] ?? null,
+                    $employee['organigrama_path'] ?? null,
+                    $employee['position_id'] ?? null,
+                    $employee['schedule_id'] ?? null,
                     $employee['firstname'],
                     $employee['lastname'],
-                    $employee['cargo_id']
+                    $employee['cargo_id'] ?? null
                 ]);
             }
 
@@ -1446,6 +1446,243 @@ class VacationController extends Controller
         } catch (\Exception $e) {
             error_log('Error generating annual summary PDF: ' . $e->getMessage());
             $this->redirectWithToastr('/panel/vacation/reports', 'error', 'Error al generar resumen anual: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Revertir planilla de vacaciones generada
+     * Similar al sistema de liquidaciones
+     */
+    public function revertPayroll($request_id)
+    {
+        try {
+            $this->validateCsrfToken();
+
+            // Obtener datos de la solicitud de vacaciones
+            $sql = "SELECT vr.*, e.firstname, e.lastname
+                    FROM vacation_requests vr
+                    INNER JOIN employees e ON vr.employee_id = e.id
+                    WHERE vr.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$request_id]);
+            $request = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$request) {
+                header('Content-Type: application/json');
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Solicitud de vacaciones no encontrada'
+                ]);
+                exit;
+            }
+
+            // Validar que tenga una planilla asociada
+            if (empty($request['payroll_id'])) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Esta solicitud no tiene una planilla asociada'
+                ]);
+                exit;
+            }
+
+            // Validar que la solicitud esté aprobada
+            if ($request['status'] !== 'APPROVED') {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Solo se pueden revertir planillas de solicitudes aprobadas'
+                ]);
+                exit;
+            }
+
+            $this->db->beginTransaction();
+
+            $payroll_id = $request['payroll_id'];
+
+            // 1. Eliminar detalles de la planilla
+            $sql = "DELETE FROM planilla_detalle WHERE planilla_cabecera_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payroll_id]);
+
+            // 2. Eliminar cabecera de la planilla
+            $sql = "DELETE FROM planilla_cabecera WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$payroll_id]);
+
+            // 3. Limpiar referencia payroll_id en la solicitud de vacaciones
+            $sql = "UPDATE vacation_requests SET payroll_id = NULL WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$request_id]);
+
+            // 4. Log de auditoría
+            error_log("Planilla de vacaciones revertida: Solicitud #$request_id, Planilla #$payroll_id, Usuario: " . ($_SESSION['admin_id'] ?? 'N/A'));
+
+            $this->db->commit();
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Planilla de vacaciones revertida exitosamente. La solicitud volvió a estado APROBADA sin planilla asociada.'
+            ]);
+            exit;
+
+        } catch (PDOException $e) {
+            $this->db->rollback();
+            error_log('Error revirtiendo planilla de vacaciones: ' . $e->getMessage());
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al revertir planilla: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+
+    /**
+     * Editar días de disfrute de una solicitud de vacaciones
+     */
+    public function editEnjoymentDays($request_id)
+    {
+        try {
+            $this->validateCsrfToken();
+
+            $dias_disfrute = $_POST['dias_disfrute'] ?? null;
+
+            if ($dias_disfrute === null || $dias_disfrute < 0) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Debe proporcionar un valor válido para los días de disfrute (mayor o igual a 0)'
+                ]);
+                exit;
+            }
+
+            // Obtener datos de la solicitud
+            $sql = "SELECT vr.*, e.firstname, e.lastname
+                    FROM vacation_requests vr
+                    INNER JOIN employees e ON vr.employee_id = e.id
+                    WHERE vr.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$request_id]);
+            $request = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$request) {
+                header('Content-Type: application/json');
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Solicitud de vacaciones no encontrada'
+                ]);
+                exit;
+            }
+
+            // Validar que la solicitud esté aprobada
+            if ($request['status'] !== 'APPROVED') {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Solo se pueden editar días de disfrute en solicitudes aprobadas'
+                ]);
+                exit;
+            }
+
+            // Obtener balance anual del año de la solicitud
+            if (empty($request['ano_vacaciones'])) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'La solicitud no tiene un año asignado'
+                ]);
+                exit;
+            }
+
+            $sql = "SELECT * FROM vacation_annual_balances
+                    WHERE employee_id = ? AND year = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$request['employee_id'], $request['ano_vacaciones']]);
+            $annual_balance = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$annual_balance) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No se encontró el balance anual para validar'
+                ]);
+                exit;
+            }
+
+            // Calcular días disfrutados totales del año (excluyendo esta solicitud)
+            $sql = "SELECT COALESCE(SUM(dias_solicitados_disfrute), 0) as total_disfrutados
+                    FROM vacation_requests
+                    WHERE employee_id = ? AND ano_vacaciones = ? AND status = 'APPROVED' AND id != ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$request['employee_id'], $request['ano_vacaciones'], $request_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $otros_dias_disfrutados = $result['total_disfrutados'] ?? 0;
+
+            // Calcular total de días pagados del año (disponibles para disfrutar)
+            $dias_pagados_year = $annual_balance['dias_pagados_year'] ?? 0;
+
+            // Validar que el nuevo valor no exceda los días pagados disponibles
+            $total_disfrutados_con_cambio = $otros_dias_disfrutados + $dias_disfrute;
+
+            if ($total_disfrutados_con_cambio > $dias_pagados_year) {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Los días de disfrute no pueden exceder los días pagados del año. Días pagados del año {$request['ano_vacaciones']}: $dias_pagados_year. Días disfrutados por otras solicitudes: $otros_dias_disfrutados. Disponibles para esta solicitud: " . ($dias_pagados_year - $otros_dias_disfrutados)
+                ]);
+                exit;
+            }
+
+            // Calcular diferencia para actualizar el balance anual
+            $dias_disfrute_anterior = $request['dias_solicitados_disfrute'] ?? 0;
+            $diferencia = $dias_disfrute - $dias_disfrute_anterior;
+
+            // Actualizar días de disfrute en la solicitud
+            $sql = "UPDATE vacation_requests SET dias_solicitados_disfrute = ? WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$dias_disfrute, $request_id]);
+
+            // Actualizar vacation_annual_balances con la diferencia
+            if ($diferencia != 0) {
+                $sql = "UPDATE vacation_annual_balances
+                        SET dias_disfrutados_year = dias_disfrutados_year + ?,
+                            updated_at = NOW()
+                        WHERE employee_id = ? AND year = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$diferencia, $request['employee_id'], $request['ano_vacaciones']]);
+            }
+
+            // Log de auditoría
+            error_log("Días de disfrute editados: Solicitud #$request_id, Anterior: $dias_disfrute_anterior, Nuevo: $dias_disfrute, Diferencia: $diferencia, Usuario: " . ($_SESSION['admin_id'] ?? 'N/A'));
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => "Días de disfrute actualizados exitosamente a $dias_disfrute días"
+            ]);
+            exit;
+
+        } catch (PDOException $e) {
+            error_log('Error editando días de disfrute: ' . $e->getMessage());
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al actualizar días de disfrute: ' . $e->getMessage()
+            ]);
+            exit;
         }
     }
 

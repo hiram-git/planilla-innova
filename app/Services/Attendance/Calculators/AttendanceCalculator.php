@@ -189,7 +189,7 @@ class AttendanceCalculator
             $adjustedTimeIn,
             $adjustedTimeOut,
             $date,
-            $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8,
+            $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule, $lunchTimeMinutes) : 8,
             $lunchTimeMinutes,
             $schedule,
             $lunchOut,
@@ -245,7 +245,8 @@ class AttendanceCalculator
             $isLate,
             $earlyDepartureMinutes,
             $hoursBreakdown['total_hours'],
-            $schedule
+            $schedule,
+            $lunchTimeMinutes
         );
 
         // Determinar estado de aprobación de horas extras
@@ -370,9 +371,10 @@ class AttendanceCalculator
      * @param int $earlyDepartureMinutes
      * @param float $totalHours
      * @param array|null $schedule
+     * @param int $lunchTimeMinutes Minutos de almuerzo calculados
      * @return bool
      */
-    private function isPerfectAttendance($isLate, $earlyDepartureMinutes, $totalHours, $schedule)
+    private function isPerfectAttendance($isLate, $earlyDepartureMinutes, $totalHours, $schedule, $lunchTimeMinutes = 60)
     {
         // No llegó tarde
         if ($isLate) {
@@ -385,7 +387,7 @@ class AttendanceCalculator
         }
 
         // Trabajó al menos las horas esperadas
-        $expectedHours = $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule) : 8;
+        $expectedHours = $schedule ? $this->scheduleResolver->calculateExpectedWorkHours($schedule, $lunchTimeMinutes) : 8;
         if ($totalHours < $expectedHours) {
             return false;
         }

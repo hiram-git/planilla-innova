@@ -1,8 +1,8 @@
 # 🚀 ROADMAP - Sistema de Planillas MVC
 
 ## 📋 Estado Actual del Sistema
-**Fecha**: 25 de Febrero, 2026 (**GSAP Animations Expansion + Innova Export Fixes**)
-**Versión**: 3.5.21 - GSAP Animations Expansion + Innova Export Fixes
+**Fecha**: 28 de Febrero, 2026 (**Liquidaciones Report Refactor + Vacation UX Improvements**)
+**Versión**: 3.5.22 - Liquidaciones Report Refactor + Vacation UX Improvements
 **Commits Revisados**: 232+ commits (Nov-2025 a Feb-2026)
 **PRs Merged**: #90-#113 (24 PRs)
 
@@ -14,7 +14,19 @@
 - **UI/UX Animations (GSAP)**: 90% → **100%** 🟢 (+10%)
 - **10+ Features Nuevas Completadas** (no reflejadas anteriormente) ✅
 
-### 🆕 Hitos Recientes (v3.5.21 GSAP Animations Expansion + Innova Export Fixes - 25-Feb-2026)
+### 🆕 Hitos Recientes (v3.5.22 Liquidaciones Report Refactor + Vacation UX - 28-Feb-2026)
+- **Refactor LiquidationReportController**: Separación completa reportes (1196 líneas) vs CRUD
+- **Principios SOLID**: Single Responsibility aplicado - LiquidationController solo CRUD
+- **Métodos Cálculo Avanzado**: getAccumulatedTypesForLiquidation() + getMonthlyTotalsForLiquidation() (181 líneas)
+- **Mejoras LIQ007**: Totales mensuales + ajustes fechas + logging detallado para auditoría
+- **Rutas Refactorizadas**: /liquidation-reports/* (reportes) vs /liquidation/* (CRUD) - separación lógica clara
+- **UX Vacaciones**: Campos redundantes ocultados (Valor Día + Monto Compensación) en create view
+- **Fix Namespace**: TenantStorage import correcto en LiquidationReportController
+- **Visualización**: Singular/plural automático años/días empleado ("1 año" vs "2 años")
+- **Total**: 5 archivos | 1 controller nuevo | ~1,403 líneas agregadas | ~1,234 eliminadas | 3 bugs corregidos | 0 cambios BD
+[Ver v3.5.22 →](changelog/v3.5.22.md)
+
+### 🆕 Hitos Anteriores (v3.5.21 GSAP Animations Expansion + Innova Export Fixes - 25-Feb-2026)
 - **Animaciones GSAP - 4 Vistas Adicionales**: Liquidaciones Estimadas (7 funciones) + Planillas Estimadas (10 funciones) + Innova Export (7 funciones) + Botones Crear Planilla (4 funciones)
 - **Patrón GSAP Consolidado**: 28 funciones animación implementadas + timing coordinado + event delegation + clearProps automático
 - **Correcciones Críticas Innova Export**: 4 bugs resueltos (session key, view path, parse error, rendering method)

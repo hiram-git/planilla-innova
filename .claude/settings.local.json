@@ -1,18 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root planilla_prod -e \"SELECT id, descripcion, tipo_planilla_id, frecuencia_id, estado, fecha FROM planilla_cabecera WHERE descripcion LIKE ''%VACACION%'' ORDER BY id DESC LIMIT 5\")",
-      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root PINN49411848 -e \"SELECT id, codigo, nombre FROM frecuencias ORDER BY id\")",
-      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root pinn49411848 -e \"SELECT id, codigo, nombre FROM frecuencias ORDER BY id\")",
-      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root PINN49411848 -e \"SELECT id, descripcion, tipo_planilla_id, frecuencia_id, estado FROM planilla_cabecera WHERE descripcion LIKE ''%Vacacion%'' OR descripcion LIKE ''%VACACION%'' ORDER BY id DESC LIMIT 5\")",
-      "Bash(\"C:/laragon60/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe\" -u root PINN49411848 -e \"SELECT id, descripcion, frecuencia_id, estado FROM planilla_cabecera WHERE id = 109\")"
+      "Bash(test -f \"C:\\laragon60\\www\\planilla-innova\\app\\Core\\UrlHelper.php\")",
+      "WebSearch"
     ],
     "deny": [],
     "ask": [],
     "additionalDirectories": [
       "C:\\c\\xampp82\\htdocs",
       "C:\\c\\xampp82\\htdocs\\planilla-claude-v2\\app",
-      "C:\\xampp82\\php\\logs"
+      "C:\\laragon60\\tmp"
     ]
   }
 }
