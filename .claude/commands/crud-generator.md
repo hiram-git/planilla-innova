@@ -1,7 +1,7 @@
 ---
 name: crud-generator
 description: Generate complete CRUD module following MVC pattern from PATRON_DESARROLLO_MVC.md
-argument-hint: module_name table_name field1:type field2:type... (e.g., "departments departments name:string code:string")
+argument-hint: module_name table_name field1:type field2:type... (e.g., "Department departments name:string code:string")
 allowed-tools: [Write, Read, Edit, Glob]
 ---
 
@@ -115,7 +115,7 @@ class {ModuleName}
 ### 3. Generate Controller (app/Controllers/)
 Create `app/Controllers/{ModuleName}Controller.php` with these methods:
 - `index()` - Main view
-- `getData()` - AJAX endpoint for DataTables
+- `datatablesAjax()` - AJAX endpoint for DataTables
 - `create()` - AJAX create endpoint
 - `update($id)` - AJAX update endpoint
 - `delete($id)` - AJAX delete endpoint
@@ -146,7 +146,7 @@ $(document).ready(function() {
 
     // DataTable initialization
     const table = $("#dataTable").DataTable({
-        ajax: baseUrl + '/panel/{module-route}/data',
+        ajax: baseUrl + '/panel/{module-route}/datatables-ajax',
         columns: [/* define columns */],
         language: { url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json" }
     });
@@ -189,15 +189,22 @@ DROP TABLE IF EXISTS {table_name};
 ```
 
 ### 6. Route Registration Instructions
-Provide clear instructions to add routes manually in the appropriate router file:
+Provide clear instructions to register the module in this project routing system.
 
 ```php
-// Add to app/routes.php or appropriate router:
-$router->get('/panel/{module-route}', '{ModuleName}Controller@index');
-$router->get('/panel/{module-route}/data', '{ModuleName}Controller@getData');
-$router->post('/panel/{module-route}/create', '{ModuleName}Controller@create');
-$router->post('/panel/{module-route}/update/{id}', '{ModuleName}Controller@update');
-$router->post('/panel/{module-route}/delete/{id}', '{ModuleName}Controller@delete');
+// app/Core/App.php -> inside $routeMapping:
+'{module-route}' => ['controller' => '{ModuleName}Controller', 'method' => null],
+
+// The App router resolves methods by URL segments:
+// GET  /panel/{module-route}              -> index()
+// GET  /panel/{module-route}/datatables-ajax -> datatablesAjax()
+// POST /panel/{module-route}/create       -> create()
+// POST /panel/{module-route}/update/{id}  -> update($id)
+// POST /panel/{module-route}/delete/{id}  -> delete($id)
+//
+// Also update app/Core/RouteHelper.php if needed:
+// - breadcrumb map entries
+// - role access map (canAccessRoute / permissions)
 ```
 
 ### 7. Sidebar Menu Instructions
@@ -223,7 +230,8 @@ After generating files, show this checklist:
 - [x] View created: `app/Views/admin/{module_snake}/index.php`
 - [x] Migration created: `database/migrations/tenant/{date}_create_{table}_table.sql`
 - [x] Rollback migration created: `database/migrations/tenant/{date}_create_{table}_table.down.sql`
-- [ ] **TODO: Add routes to router** (see instructions above)
+- [ ] **TODO: Add route mapping in** `app/Core/App.php`
+- [ ] **TODO: Update permissions/breadcrumbs in** `app/Core/RouteHelper.php` (if module requires menu + access control)
 - [ ] **TODO: Add sidebar menu entry** (see instructions above)
 - [ ] **TODO: Run migration**: `php database/migrations/tenant/run_single_migration.php`
 - [ ] **TODO: Test CRUD operations** (Create, Read, Update, Delete)

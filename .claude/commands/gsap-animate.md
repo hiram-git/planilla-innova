@@ -30,8 +30,8 @@ Parse the arguments as follows:
    ```
 
 3. **File Locations** (CRITICAL for modular mode):
-   - `/assets/javascript/modules/{module}.js` → Source code
-   - `/public/assets/javascript/modules/{module}.js` → Server-accessible (MUST COPY HERE)
+   - `/assets/javascript/modules/{module}.js` OR `/assets/javascript/modules/{module}/index.js` → Source code (follow existing module convention)
+   - `/public/assets/javascript/modules/{module}.js` OR `/public/assets/javascript/modules/{module}/index.js` → Server-accessible (MUST COPY HERE)
    - ⚠️ If file only exists in `/assets/`, browser will get 404!
 
 ## 📚 Read Pattern First
@@ -416,6 +416,10 @@ Generate code in a separate JavaScript file that can be reused by multiple views
 ```
 assets/javascript/modules/{module_name}.js
 public/assets/javascript/modules/{module_name}.js  ← MUST COPY HERE
+
+# OR (if project already uses folder-based modules):
+assets/javascript/modules/{module_name}/index.js
+public/assets/javascript/modules/{module_name}/index.js  ← MUST COPY HERE
 ```
 
 #### Module Pattern (IIFE):
@@ -592,7 +596,11 @@ Provide:
 3. **CRITICAL instruction**:
    ```bash
    # IMPORTANT: Copy to public directory
+   # Linux/macOS:
    cp assets/javascript/modules/{module}.js public/assets/javascript/modules/{module}.js
+
+   # Windows PowerShell:
+   Copy-Item -Force assets/javascript/modules/{module}.js public/assets/javascript/modules/{module}.js
    ```
 
 ## ✅ Checklist to Display

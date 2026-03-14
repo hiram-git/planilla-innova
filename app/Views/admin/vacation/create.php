@@ -334,9 +334,9 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                                     <div class="form-group">
                                         <label for="dias_solicitados_pagar">Días Solicitados por Pagar</label>
                                         <input type="number" name="dias_solicitados_pagar" id="dias_solicitados_pagar"
-                                               class="form-control" min="0" max="<?= htmlspecialchars($vacation_data['current_balance']) ?>"
-                                               placeholder="0" value="0" autocomplete="off" readonly>
-                                        <small class="form-text text-muted">Días a compensar monetariamente (calculado automáticamente)</small>
+                                               class="form-control" min="0" step="0.1"
+                                               placeholder="0" value="0" autocomplete="off">
+                                        <small class="form-text text-muted">Editable manualmente - Se llena automáticamente al seleccionar fechas, pero puede cambiarse a 0 o cualquier otro valor</small>
                                     </div>
                                 </div>
                             </div>
@@ -377,22 +377,14 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                             </div>
 
                             <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="total_dias_solicitados">Total Días Solicitados</label>
-                                        <input type="number" name="total_dias_solicitados" id="total_dias_solicitados"
-                                               class="form-control" readonly title="Total de días solicitados" autocomplete="off">
-                                        <small class="form-text text-muted">Total calculado del rango de fechas seleccionado</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="form-group">
                                         <label>Resumen de Cálculo</label>
                                         <div class="bg-light p-3 rounded">
                                             <div id="calculation-summary">
-                                                <p class="mb-1"><strong>Días Totales:</strong> <span id="total-days">0</span></p>
-                                                <p class="mb-0"><strong>Balance Después:</strong> <span id="remaining-balance"><?= number_format($vacation_data['current_balance'], 1) ?></span></p>
-                                                <!-- <p class="mb-0"><strong>Monto Compensación:</strong> <span id="compensation-amount"><?= currency_symbol() ?>0.00</span></p> -->
+                                                <p class="mb-1"><strong>Días del Rango:</strong> <span id="total-days">0</span></p>
+                                                <p class="mb-1"><strong>Días por Pagar:</strong> <span id="summary-dias-pagar">0</span></p>
+                                                <p class="mb-0"><strong>Días de Disfrute:</strong> <span id="summary-dias-disfrute">0</span></p>
                                             </div>
                                         </div>
                                     </div>
@@ -559,19 +551,20 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     $('#start_date').val(start.format('YYYY-MM-DD')).trigger('change');
                     $('#end_date').val(end.format('YYYY-MM-DD')).trigger('change');
 
-                    // Calcular días solicitados (inclusive)
+                    // Calcular días del rango (inclusive)
                     const total = end.diff(start, 'days') + 1;
-                    $('#total_dias_solicitados').val(total).trigger('input');
+                    $('#dias_calculados_fechas').val(total);
 
-                    // Asignar días al campo "Días Solicitados por Pagar"
-                    $('#dias_solicitados_pagar').val(total);
+                    // Por defecto: Asignar días solo a "disfrute" (caso más común)
+                    // Dejar "por pagar" en 0 (el usuario puede editarlo manualmente)
+                    $('#dias_solicitados_pagar').val(0);
 
-                    // Asignar días al campo "Días Solicitados de Disfrute" (igual a días por pagar, pero no mayor al saldo)
-                    const diasSolicitadosDisfrute = Math.min(total, saldoDisfrute);
-                    $('#dias_solicitados_disfrute').val(diasSolicitadosDisfrute);
+                    // Asignar el total del rango a "Días de Disfrute"
+                    // (el usuario puede editar manualmente si excede el saldo)
+                    $('#dias_solicitados_disfrute').val(total);
 
                     updateCalculation();
-                    updateTotalDiasSolicitados();
+                    updateValidations();
                 });
             });
         });
@@ -585,87 +578,50 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
     const diasAnuales = <?= $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30 ?>;
     const saldoDisfrute = diasAnuales - diasDisfrutadosYear;
 
-    // Calcular días y actualizar resumen cuando cambien las fechas
+    // Calcular días del rango y actualizar resumen
     function updateCalculation() {
         const startDate = $('#start_date').val();
         const endDate = $('#end_date').val();
-        const vacationType = $('#vacation_type').val();
 
         if (startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
 
             if (end >= start) {
-                // COMENTADO: Validar anticipación de 15 días - Se permite para solicitudes históricas
-                /*
-                const today = new Date();
-                const daysDifference = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
-
-                // Limpiar alertas previas
-                $('#anticipation-warning').remove();
-
-                if (daysDifference < 15) {
-                    // Mostrar advertencia de anticipación
-                    const warningHtml = `
-                        <div id="anticipation-warning" class="alert alert-warning mt-2">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                            <strong>Advertencia:</strong> Las vacaciones deben solicitarse con al menos 15 días de anticipación.
-                            <br><small>Días de anticipación actual: ${daysDifference} días</small>
-                        </div>
-                    `;
-                    $('#start_date').closest('.form-group').append(warningHtml);
-                    $('#submitBtn').prop('disabled', true);
-                } else {
-                    // Anticipación válida, continuar con cálculos
-                    $('#submitBtn').prop('disabled', false);
-                }
-                */
-
-                // Calcular días totales
+                // Calcular días totales del rango
                 const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
                 // Actualizar campo de días calculados por fechas
                 $('#dias_calculados_fechas').val(totalDays);
-
-                // Asignar automáticamente los días totales al campo "Días Solicitados por Pagar"
-                $('#dias_solicitados_pagar').val(totalDays);
-
-                // NO sobrescribir días_solicitados_disfrute aquí - el usuario debe poder editarlo libremente
-                // Solo se inicializa una vez en el daterangepicker
-
-                const diasPagar = parseInt($('#dias_solicitados_pagar').val()) || 0;
-                const diasDisfrute = parseInt($('#dias_solicitados_disfrute').val()) || 0;
-
-                // Actualizar interfaz
                 $('#total-days').text(totalDays);
-                $('#remaining-balance').text((currentBalance - totalDays).toFixed(1));
-
-                // Recalcular totales de vacaciones
-                updateTotalDiasSolicitados();
-
-                // Calcular compensación si aplica
-                const compensationAmount = diasPagar * dailySalary;
-                $('#compensation-amount').text('<?= currency_symbol() ?>' + compensationAmount.toFixed(2));
-
             } else {
                 // Fechas inválidas
                 $('#dias_calculados_fechas').val(0);
                 $('#total-days').text(0);
-                $('#submitBtn').prop('disabled', true);
             }
         } else {
             // Sin fechas
             $('#dias_calculados_fechas').val(0);
             $('#total-days').text(0);
-            $('#submitBtn').prop('disabled', true);
         }
+
+        // Actualizar resumen
+        updateSummary();
+        updateValidations();
+    }
+
+    // Actualizar resumen de cálculo
+    function updateSummary() {
+        const diasPagar = parseInt($('#dias_solicitados_pagar').val()) || 0;
+        const diasDisfrute = parseInt($('#dias_solicitados_disfrute').val()) || 0;
+
+        $('#summary-dias-pagar').text(diasPagar);
+        $('#summary-dias-disfrute').text(diasDisfrute);
     }
 
     // Event listeners
     $('#start_date, #end_date, #vacation_type').on('change', function() {
         updateCalculation();
-        // Pequeño delay para asegurar que los valores se actualicen
-        setTimeout(updateTotalDiasSolicitados, 100);
     });
 
     // Función para obtener balance anual según el año seleccionado
@@ -677,76 +633,46 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         return 30;
     }
 
-    // Función para actualizar el total de días solicitados
-    function updateTotalDiasSolicitados() {
+    // Función de validaciones independientes
+    function updateValidations() {
         const diasPagar = parseInt($('#dias_solicitados_pagar').val()) || 0;
         const diasDisfrute = parseInt($('#dias_solicitados_disfrute').val()) || 0;
-        const diasVacacionesAnuales = parseInt($('#dias_vacaciones_anuales').val()) || 30;
-        const selectedYear = parseInt($('#ano_vacaciones').val()) || currentYear;
-        const yearBalance = getAnnualBalanceForYear(selectedYear);
-        // Total de días solicitados: tomado del rango de fechas seleccionado
-        const total = parseInt($('#dias_calculados_fechas').val()) || 0;
-
-        $('#total_dias_solicitados').val(total);
+        const saldoVacaciones = parseInt($('#saldo_vacaciones').val()) || 0;
+        const saldoDiasDisfrute = parseInt($('#saldo_dias_disfrute').val()) || 0;
+        const startDate = $('#start_date').val();
+        const endDate = $('#end_date').val();
+        const hasPeriod = startDate && endDate;
 
         // Variables para validación
         let isValid = true;
         let errorMessages = [];
 
         // Limpiar clases de error previas
-        $('#dias_solicitados_pagar, #dias_solicitados_disfrute, #total_dias_solicitados').removeClass('is-invalid');
+        $('#dias_solicitados_pagar, #dias_solicitados_disfrute').removeClass('is-invalid');
 
-        // 1. Validar que días por pagar no excedan días anuales de vacaciones (30)
-        if (diasPagar > diasVacacionesAnuales) {
+        // 1. Validar que días por pagar no excedan el SALDO DE VACACIONES
+        if (diasPagar > saldoVacaciones) {
             $('#dias_solicitados_pagar').addClass('is-invalid');
-            errorMessages.push(`Días por pagar (${diasPagar}) no pueden exceder los días anuales de vacaciones (${diasVacacionesAnuales})`);
+            errorMessages.push(`Días por pagar (${diasPagar}) no pueden exceder el Saldo de Vacaciones disponible (${saldoVacaciones})`);
             isValid = false;
         }
 
-        // 2. Validar que días por pagar no excedan el saldo anual disponible
-        if (diasPagar > yearBalance) {
-            $('#dias_solicitados_pagar').addClass('is-invalid');
-            errorMessages.push(`Días por pagar (${diasPagar}) no pueden exceder el saldo disponible del año ${selectedYear} (${yearBalance})`);
-            isValid = false;
-        }
-
-        // 3. Calcular saldo MÁXIMO disponible para disfrute (días anuales - días disfrutados ya tomados)
-        const saldoMaximoDisfrute = Math.max(0, diasAnuales - diasDisfrutadosYear);
-
-        // Actualizar el saldo mostrado dinámicamente (restando lo que se está solicitando)
-        const saldoActualDisfrute = Math.max(0, diasAnuales - diasDisfrutadosYear - diasDisfrute);
-        $('#saldo_dias_disfrute').val(saldoActualDisfrute);
-
-        // 4. Validar que días de disfrute no excedan días anuales de vacaciones (30)
-        if (diasDisfrute > diasVacacionesAnuales) {
-            $('#dias_solicitados_disfrute').addClass('is-invalid');
-            errorMessages.push(`Días de disfrute (${diasDisfrute}) no pueden exceder los días anuales de vacaciones (${diasVacacionesAnuales})`);
-            isValid = false;
-        }
-
-        // 5. Validar que días de disfrute no excedan el saldo MÁXIMO disponible
+        // 2. Validar que días de disfrute no excedan el SALDO DE DÍAS DE DISFRUTE
+        const saldoMaximoDisfrute = diasAnuales - diasDisfrutadosYear;
         if (diasDisfrute > saldoMaximoDisfrute) {
             $('#dias_solicitados_disfrute').addClass('is-invalid');
-            errorMessages.push(`Días de disfrute (${diasDisfrute}) no pueden exceder el saldo máximo disponible del año ${selectedYear} (${saldoMaximoDisfrute})`);
+            errorMessages.push(`Días de disfrute (${diasDisfrute}) no pueden exceder el Saldo de Días de Disfrute (${saldoMaximoDisfrute})`);
             isValid = false;
         }
 
-        // 6. Validar que el total no exceda el saldo anual disponible
-        if (total > yearBalance) {
-            $('#total_dias_solicitados').addClass('is-invalid');
-            errorMessages.push(`Total de días solicitados (${total}) no puede exceder el saldo disponible del año ${selectedYear} (${yearBalance})`);
-            isValid = false;
-        }
-
-        // 7. Validar que el total no exceda los días anuales de vacaciones
-        if (total > diasVacacionesAnuales) {
-            $('#total_dias_solicitados').addClass('is-invalid');
-            errorMessages.push(`Total de días solicitados (${total}) no puede exceder los días anuales de vacaciones (${diasVacacionesAnuales})`);
+        // 3. Validar que se haya seleccionado un período si hay días solicitados
+        if (!hasPeriod && (diasPagar > 0 || diasDisfrute > 0)) {
+            errorMessages.push('Debe seleccionar un período de vacaciones (rango de fechas)');
             isValid = false;
         }
 
         // Mostrar/ocultar mensajes de error
-        const errorContainer = $('#vacation-errors');
+        let errorContainer = $('#vacation-errors');
         if (errorMessages.length > 0) {
             if (errorContainer.length === 0) {
                 // Crear contenedor de errores si no existe
@@ -757,47 +683,37 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     </div>
                 `;
                 $('#calculation-summary').closest('.form-group').before(errorHtml);
+                errorContainer = $('#vacation-errors'); // Actualizar referencia
             }
 
             $('#error-list').empty();
             errorMessages.forEach(function(message) {
                 $('#error-list').append(`<li>${message}</li>`);
             });
-            $('#vacation-errors').show();
+            errorContainer.show();
         } else {
-            errorContainer.hide();
+            if (errorContainer.length > 0) {
+                errorContainer.hide();
+            }
         }
 
         // Habilitar/deshabilitar botón de envío
-        if (isValid && total > 0) {
+        // Requiere: período válido, validaciones pasadas, y al menos días por pagar o disfrute > 0
+        if (isValid && hasPeriod && (diasPagar > 0 || diasDisfrute > 0)) {
             $('#submitBtn').prop('disabled', false);
-            $('#calculation-summary').removeClass('text-danger').addClass('text-success');
         } else {
             $('#submitBtn').prop('disabled', true);
-            $('#calculation-summary').removeClass('text-success').addClass('text-danger');
         }
 
-        // Actualizar compensación monetaria basada en días por pagar
-        const compensationAmount = diasPagar * dailySalary;
-        $('#compensation-amount').text('<?= currency_symbol() ?>' + compensationAmount.toFixed(2));
+        // Actualizar saldo de días de disfrute dinámicamente
+        const nuevoSaldoDisfrute = Math.max(0, diasAnuales - diasDisfrutadosYear - diasDisfrute);
+        $('#saldo_dias_disfrute').val(nuevoSaldoDisfrute);
     }
 
-    // Event listener para Días Solicitados de Disfrute - actualizar saldo dinámicamente
-    $('#dias_solicitados_disfrute').on('input change', function() {
-        const diasSolicitadosDisfrute = parseInt($(this).val()) || 0;
-        // Calcular nuevo saldo de días de disfrute
-        const nuevoSaldoDisfrute = Math.max(0, diasAnuales - diasDisfrutadosYear - diasSolicitadosDisfrute);
-        $('#saldo_dias_disfrute').val(nuevoSaldoDisfrute);
-
-        // Actualizar validaciones
-        updateTotalDiasSolicitados();
-        updateCalculation();
-    });
-
-    // Event listeners para los nuevos campos de vacaciones
-    $('#dias_solicitados_pagar, #dias_vacaciones_anuales, #ano_vacaciones').on('input change', function() {
-        updateTotalDiasSolicitados();
-        updateCalculation();
+    // Event listeners para los campos de días solicitados
+    $('#dias_solicitados_pagar, #dias_solicitados_disfrute').on('input change', function() {
+        updateSummary();
+        updateValidations();
     });
 
     // Event listener específico para cambio de año - con AJAX para obtener balance real
@@ -813,8 +729,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         $('#start_date').val('');
         $('#end_date').val('');
         $('#dias_calculados_fechas').val(0);
-        $('#total_dias_solicitados').val(0);
         $('#dias_solicitados_pagar').val(0);
+        $('#dias_solicitados_disfrute').val(0);
 
         // Mostrar indicador de carga
         const $yearSelect = $(this);
@@ -858,12 +774,8 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     // Mostrar información del año seleccionado con datos reales
                     showYearInfo(selectedYear, data.saldo_disponible_year, data);
 
-                    // Actualizar balance en el resumen
-                    $('#remaining-balance').text(parseFloat(data.saldo_disponible_year || 0).toFixed(1));
-
                     // Recalcular validaciones con los nuevos valores
-                    updateTotalDiasSolicitados();
-                    updateCalculation();
+                    updateValidations();
 
                     console.log('Balance actualizado para año ' + selectedYear + ':', data);
                 } else {
@@ -931,7 +843,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
     $('#saldo_dias_disfrute').val(saldoDisfrute);
 
     // Validación inicial al cargar la página
-    updateTotalDiasSolicitados();
+    updateValidations();
 
     // Mostrar información inicial del año actual (sin datos detallados)
     showYearInfo(currentYear, annualBalance, null);
@@ -950,14 +862,29 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
     $('#vacationForm').on('submit', function(e) {
         const diasPagar = parseInt($('#dias_solicitados_pagar').val()) || 0;
         const diasDisfrute = parseInt($('#dias_solicitados_disfrute').val()) || 0;
-        const totalDiasSolicitados = parseInt($('#total_dias_solicitados').val()) || 0;
+        const saldoVacaciones = parseInt($('#saldo_vacaciones').val()) || 0;
         const diasVacacionesAnuales = parseInt($('#dias_vacaciones_anuales').val()) || 30;
 
         // Ejecutar validación final
-        updateTotalDiasSolicitados();
+        updateValidations();
 
-        // Validaciones específicas para envío
-        if (totalDiasSolicitados === 0) {
+        // Validar que se haya seleccionado un periodo de vacaciones
+        const startDate = $('#start_date').val();
+        const endDate = $('#end_date').val();
+
+        if (!startDate || !endDate) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Periodo de Vacaciones Requerido',
+                text: 'Debe seleccionar un rango de fechas para el periodo de vacaciones.',
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
+
+        // Validación: Al menos debe haber días por pagar O días de disfrute
+        if (diasPagar === 0 && diasDisfrute === 0) {
             e.preventDefault();
             Swal.fire({
                 icon: 'warning',
@@ -968,6 +895,20 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             return false;
         }
 
+        // Validar que días por pagar no excedan el saldo de vacaciones
+        if (diasPagar > saldoVacaciones) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Saldo Insuficiente',
+                html: `Días por pagar (<strong>${diasPagar}</strong>) no pueden exceder el Saldo de Vacaciones disponible (<strong>${saldoVacaciones}</strong>).`,
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
+
+        // COMENTADO: Validaciones de balance - permitir sin validar saldo
+        /*
         if (totalDiasSolicitados > currentBalance) {
             e.preventDefault();
             Swal.fire({
@@ -989,7 +930,10 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             });
             return false;
         }
+        */
 
+        // COMENTADO: Validación días por pagar - permitir editar sin validar límite anual
+        /*
         if (diasPagar > diasVacacionesAnuales) {
             e.preventDefault();
             Swal.fire({
@@ -1000,6 +944,7 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
             });
             return false;
         }
+        */
 
         if (diasDisfrute > diasVacacionesAnuales) {
             e.preventDefault();
@@ -1027,7 +972,6 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
 
         // Validación de campos requeridos adicionales
         const anoVacaciones = $('#ano_vacaciones').val();
-        const diasCalculadosFechas = parseInt($('#dias_calculados_fechas').val()) || 0;
 
         if (!anoVacaciones) {
             e.preventDefault();
@@ -1080,7 +1024,6 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
         if (diasPagar > 0 && diasDisfrute > 0) {
             confirmHTML += `<li><strong>${diasPagar}</strong> días por pagar (compensación monetaria)</li>`;
             confirmHTML += `<li><strong>${diasDisfrute}</strong> días de disfrute</li>`;
-            confirmHTML += `<li>Total: <strong>${totalDiasSolicitados}</strong> días</li>`;
         } else if (diasPagar > 0) {
             confirmHTML += `<li><strong>${diasPagar}</strong> días por pagar (compensación monetaria únicamente)</li>`;
         } else if (diasDisfrute > 0) {
