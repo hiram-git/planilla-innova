@@ -8,7 +8,10 @@ Generate **one** commit message in English (Conventional Commits style).
 
 **Steps:**
 
-1. Run `git diff --staged --stat` and `git diff --staged` to see changes
+1. Run `git diff --staged --stat` and `git diff --staged` to see changes.
+   - If Git returns "detected dubious ownership", rerun with:
+     - `git -c safe.directory=* diff --staged --stat`
+     - `git -c safe.directory=* diff --staged`
 2. Analyze ONLY staged changes (ignore unstaged/untracked files)
 3. Generate commit message following rules below
 
