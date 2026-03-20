@@ -153,7 +153,7 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                                             <th>Tipo de Cálculo</th>
                                             <th>Base</th>
                                             <th>Días Calculados</th>
-                                            <th>Monto</th>
+                                            <!-- <th>Monto</th> -->
                                             <th>Fórmula Aplicada</th>
                                         </tr>
                                     </thead>
@@ -163,7 +163,7 @@ $pageTitle = "Solicitud de Vacaciones #" . $request['id'];
                                                 <td><?= htmlspecialchars($calc['calculation_type']) ?></td>
                                                 <td><?= number_format($calc['calculation_base'], 2) ?></td>
                                                 <td><?= number_format($calc['days_calculated'], 1) ?></td>
-                                                <td><?= currency_symbol() ?><?= number_format($calc['amount_calculated'], 2) ?></td>
+                                                <!-- <td><?= currency_symbol() ?><?= number_format($calc['amount_calculated'], 2) ?></td> -->
                                                 <td><small class="text-muted"><?= htmlspecialchars($calc['formula_used'] ?? 'N/A') ?></small></td>
                                             </tr>
                                         <?php endforeach; ?>

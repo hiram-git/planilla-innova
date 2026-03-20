@@ -268,12 +268,12 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                     <th>Días</th>
                                     <th>Tipo</th>
                                     <th>Estado</th>
-                                    <th>Monto Compensación</th>
+                                    <!-- <th>Monto Compensación</th> -->
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($vacation_history as $request): 
+                                <?php foreach ($vacation_history as $request):
                                     ?>
                                     <tr>
                                         <td><strong>#<?= $request['id'] ?></strong></td>
@@ -310,13 +310,13 @@ $pageTitle = "Balance de Vacaciones - " . htmlspecialchars($employee['firstname'
                                             echo $status_badges[$request['status']] ?? '<span class="badge badge-light">N/A</span>';
                                             ?>
                                         </td>
-                                        <td>
+                                        <!-- <td>
                                             <?php if ($request['compensation_amount'] > 0): ?>
                                                 <strong><?= currency_symbol() ?><?= number_format($request['compensation_amount'], 2) ?></strong>
                                             <?php else: ?>
                                                 <span class="text-muted">N/A</span>
                                             <?php endif; ?>
-                                        </td>
+                                        </td> -->
                                         <td>
                                             <a href="<?= \App\Core\UrlHelper::route('panel/vacation/show/' . $request['id']) ?>"
                                                class="btn btn-sm btn-info" title="Ver Detalles">
