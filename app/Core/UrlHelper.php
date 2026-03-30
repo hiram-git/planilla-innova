@@ -194,6 +194,17 @@ class UrlHelper
     }
 
     /**
+     * Generar URL para el backoffice (administración de empresas)
+     */
+    public static function backoffice($path = '')
+    {
+        if (empty($path)) {
+            return self::route('backoffice');
+        }
+        return self::route('backoffice/' . ltrim($path, '/'));
+    }
+
+    /**
      * Verificar si una URL está activa (para navegación)
      */
     public static function isActive($path)

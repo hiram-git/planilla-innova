@@ -1,0 +1,2 @@
+# Este archivo preserva el directorio storage/logs/ en Git
+# Git no puede guardar directorios vacíos, por eso necesitamos este archivo

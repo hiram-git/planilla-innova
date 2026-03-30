@@ -197,6 +197,11 @@ class TenantStorage
         return __DIR__ . '/../../storage/tenants/' . self::getTenantKey($tenantId, $tenantDb) . '/logs/';
     }
 
+    public static function getJustificationDirectory(?int $tenantId = null, ?string $tenantDb = null): string
+    {
+        return __DIR__ . '/../../storage/tenants/' . self::getTenantKey($tenantId, $tenantDb) . '/justifications/';
+    }
+
     public static function initializeTenantStorage(int $tenantId, string $tenantDb): void
     {
         $tenantKey = self::getTenantKey($tenantId, $tenantDb);
@@ -207,6 +212,7 @@ class TenantStorage
             __DIR__ . '/../../images/logos/' . $tenantSubdir . '/',
             __DIR__ . '/../../storage/tenants/' . $tenantKey . '/logs/',
             __DIR__ . '/../../storage/tenants/' . $tenantKey . '/files/',
+            __DIR__ . '/../../storage/tenants/' . $tenantKey . '/justifications/',
         ];
 
         foreach ($paths as $path) {

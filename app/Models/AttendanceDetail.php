@@ -312,24 +312,80 @@ class AttendanceDetail
 
     /**
      * Justifica una ausencia
+     * Sincroniza automáticamente con attendance_absence_log
      */
     public function justifyAbsence($id, $data)
     {
-        $sql = "UPDATE {$this->table} SET
-                    status = 'JUSTIFIED',
-                    justification_type = ?,
-                    justification_notes = ?,
-                    justification_document = ?
-                WHERE id = ?";
+        try {
+            // Iniciar transacción para sincronización atómica
+            $this->db->beginTransaction();
 
-        $stmt = $this->db->prepare($sql);
+            // 1. Obtener información del registro de detalle (employee_id y fecha)
+            $detail = $this->getById($id);
 
-        return $stmt->execute([
-            $data['justification_type'],
-            $data['justification_notes'] ?? null,
-            $data['justification_document'] ?? null,
-            $id
-        ]);
+            if (!$detail) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            // 2. Actualizar attendance_detail
+            $sql = "UPDATE {$this->table} SET
+                        status = 'JUSTIFIED',
+                        justification_type = ?,
+                        justification_notes = ?,
+                        justification_document = ?
+                    WHERE id = ?";
+
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([
+                $data['justification_type'],
+                $data['justification_notes'] ?? null,
+                $data['justification_document'] ?? null,
+                $id
+            ]);
+
+            if (!$result) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            // 3. Sincronizar con attendance_absence_log si existe un registro de ausencia
+            $sqlAbsence = "UPDATE attendance_absence_log SET
+                            justified = 1,
+                            absence_type = 'JUSTIFIED',
+                            justification_type = ?,
+                            justification_notes = ?,
+                            justification_document = ?,
+                            resolved = 1,
+                            resolved_at = NOW(),
+                            updated_at = NOW()
+                        WHERE employee_id = ?
+                            AND absence_date = ?
+                            AND justified = 0";
+
+            $stmtAbsence = $this->db->prepare($sqlAbsence);
+            $stmtAbsence->execute([
+                $data['justification_type'],
+                $data['justification_notes'] ?? null,
+                $data['justification_document'] ?? null,
+                $detail['employee_id'],
+                $detail['date']
+            ]);
+
+            // Log de sincronización
+            $affectedRows = $stmtAbsence->rowCount();
+            error_log("Justificación sincronizada: Detail ID=$id, Employee={$detail['employee_id']}, Date={$detail['date']}, Absence log updated=$affectedRows");
+
+            $this->db->commit();
+            return true;
+
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Error justifying absence: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

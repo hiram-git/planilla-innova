@@ -43,6 +43,12 @@ class App
             return;
         }
 
+        // Manejo especial para rutas backoffice (administración de empresas)
+        if (!empty($url[0]) && $url[0] === 'backoffice') {
+            $this->handleBackofficeRoutes($url);
+            return;
+        }
+
         // Manejo especial para rutas que empiezan con 'panel'
         if (!empty($url[0]) && $url[0] === 'panel') {
             if (isset($url[1])) {
@@ -330,6 +336,14 @@ class App
                                         } elseif ($url[4] === 'get' && method_exists($this->controller, 'getDetail')) {
                                             // POST: /panel/attendance/detail/{id}/get
                                             $this->method = 'getDetail';
+                                            $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'get-justification' && method_exists($this->controller, 'getJustification')) {
+                                            // POST: /panel/attendance/detail/{id}/get-justification
+                                            $this->method = 'getJustification';
+                                            $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'update-justification' && method_exists($this->controller, 'updateJustification')) {
+                                            // POST: /panel/attendance/detail/{id}/update-justification
+                                            $this->method = 'updateJustification';
                                             $this->params = [$url[3]];
                                         }
                                         call_user_func_array([$this->controller, $this->method], $this->params);
@@ -1577,6 +1591,90 @@ class App
             error_log("Error in webhook route: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
+    /**
+     * Manejar rutas del backoffice
+     * Rutas protegidas con BackofficeAuthMiddleware
+     *
+     * Rutas disponibles:
+     * - GET  /backoffice                    → login page
+     * - POST /backoffice/authenticate       → authenticate
+     * - GET  /backoffice/dashboard          → dashboard
+     * - GET  /backoffice/tenants/data       → DataTables AJAX
+     * - GET  /backoffice/logout             → logout
+     *
+     * @param array $url URL parseada
+     */
+    protected function handleBackofficeRoutes(array $url)
+    {
+        try {
+            // Cargar middleware de autenticación backoffice
+            $currentRoute = '/' . implode('/', $url);
+
+            if (!\App\Middleware\BackofficeAuthMiddleware::handle($currentRoute)) {
+                // Middleware redirige automáticamente si falla
+                return;
+            }
+
+            // Instanciar controlador backoffice
+            $controller = new \App\Controllers\BackofficeController();
+
+            // Determinar método HTTP
+            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+            // Ruta: /backoffice (index - login page)
+            if (count($url) === 1) {
+                $controller->index();
+                return;
+            }
+
+            // Ruta: /backoffice/authenticate (POST)
+            if ($url[1] === 'authenticate' && $httpMethod === 'POST') {
+                $controller->authenticate();
+                return;
+            }
+
+            // Ruta: /backoffice/login (alias de authenticate)
+            if ($url[1] === 'login' && $httpMethod === 'POST') {
+                $controller->authenticate();
+                return;
+            }
+
+            // Ruta: /backoffice/dashboard
+            if ($url[1] === 'dashboard') {
+                $controller->dashboard();
+                return;
+            }
+
+            // Ruta: /backoffice/logout
+            if ($url[1] === 'logout') {
+                $controller->logout();
+                return;
+            }
+
+            // Ruta: /backoffice/tenants/data (AJAX DataTables)
+            if ($url[1] === 'tenants' && isset($url[2]) && $url[2] === 'data') {
+                $controller->tenantsData();
+                return;
+            }
+
+            // Ruta no encontrada
+            http_response_code(404);
+            echo '<h1>404 - Ruta no encontrada</h1>';
+            echo '<p>La ruta del backoffice no existe.</p>';
+
+        } catch (\Throwable $e) {
+            error_log("Error in backoffice route: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            http_response_code(500);
+            echo '<h1>500 - Error interno</h1>';
+            echo '<p>Ocurrió un error al procesar la solicitud.</p>';
+            if ($_ENV['APP_DEBUG'] ?? false) {
+                echo '<pre>' . htmlspecialchars($e->getMessage()) . '</pre>';
+                echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
+            }
         }
     }
 }
