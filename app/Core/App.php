@@ -337,6 +337,14 @@ class App
                                             // POST: /panel/attendance/detail/{id}/get
                                             $this->method = 'getDetail';
                                             $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'get-justification' && method_exists($this->controller, 'getJustification')) {
+                                            // POST: /panel/attendance/detail/{id}/get-justification
+                                            $this->method = 'getJustification';
+                                            $this->params = [$url[3]];
+                                        } elseif ($url[4] === 'update-justification' && method_exists($this->controller, 'updateJustification')) {
+                                            // POST: /panel/attendance/detail/{id}/update-justification
+                                            $this->method = 'updateJustification';
+                                            $this->params = [$url[3]];
                                         }
                                         call_user_func_array([$this->controller, $this->method], $this->params);
                                         return;

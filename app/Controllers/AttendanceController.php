@@ -654,10 +654,58 @@ class AttendanceController extends Controller
     public function justifyAbsence($id)
     {
         try {
+            $documentPath = null;
+
+            // Manejar carga de archivo PDF
+            if (isset($_FILES['justification_document']) && $_FILES['justification_document']['error'] === UPLOAD_ERR_OK) {
+                $file = $_FILES['justification_document'];
+
+                // Validar tipo de archivo
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
+
+                if ($mimeType !== 'application/pdf') {
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Solo se permiten archivos PDF.'
+                    ]);
+                }
+
+                // Validar tamaño (1MB máximo)
+                if ($file['size'] > 1048576) {
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'El archivo no debe superar 1MB de tamaño.'
+                    ]);
+                }
+
+                // Obtener directorio de justificaciones por tenant
+                $uploadDir = \App\Core\TenantStorage::getJustificationDirectory();
+                \App\Core\TenantStorage::ensureDirectory($uploadDir);
+
+                // Generar nombre único para el archivo
+                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $fileName = 'justification_' . $id . '_' . time() . '.' . $extension;
+                $destination = $uploadDir . $fileName;
+
+                // Mover archivo
+                if (!move_uploaded_file($file['tmp_name'], $destination)) {
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Error al guardar el archivo.'
+                    ]);
+                }
+
+                // Construir path relativo para BD
+                $tenantKey = \App\Core\TenantStorage::getTenantKey();
+                $documentPath = 'storage/tenants/' . $tenantKey . '/justifications/' . $fileName;
+            }
+
             $data = [
                 'justification_type' => $_POST['justification_type'] ?? 'OTHER',
                 'justification_notes' => $_POST['justification_notes'] ?? null,
-                'justification_document' => $_POST['justification_document'] ?? null
+                'justification_document' => $documentPath
             ];
 
             $result = $this->detailModel->justifyAbsence($id, $data);
@@ -676,6 +724,187 @@ class AttendanceController extends Controller
 
         } catch (Exception $e) {
             error_log("Error justifying absence: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Obtener detalles de una justificación existente (AJAX)
+     *
+     * @param int $id ID del attendance_detail
+     * @return array JSON response
+     */
+    public function getJustification($id)
+    {
+        try {
+            // Obtener el registro de detalle con justificación
+            $detail = $this->detailModel->getById($id);
+
+            if (!$detail) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Registro no encontrado.'
+                ]);
+            }
+
+            // Verificar que esté justificado
+            if ($detail['status'] !== 'JUSTIFIED') {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Este registro no tiene una justificación.'
+                ]);
+            }
+
+            // Preparar datos para el frontend
+            $data = [
+                'justification_type' => $detail['justification_type'],
+                'justification_notes' => $detail['justification_notes'],
+                'justification_document' => $detail['justification_document'],
+                'employee_name' => $detail['firstname'] . ' ' . $detail['lastname'],
+                'employee_code' => $detail['employee_number'] ?? $detail['employee_code'],
+                'date' => date('d/m/Y', strtotime($detail['date']))
+            ];
+
+            return $this->jsonResponse([
+                'success' => true,
+                'data' => $data
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error getting justification: " . $e->getMessage());
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Actualizar una justificación existente (AJAX)
+     *
+     * @param int $id ID del attendance_detail
+     * @return array JSON response
+     */
+    public function updateJustification($id)
+    {
+        try {
+            // Obtener el registro actual
+            $detail = $this->detailModel->getById($id);
+
+            if (!$detail) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Registro no encontrado.'
+                ]);
+            }
+
+            $documentPath = $detail['justification_document']; // Mantener el documento actual por defecto
+            $removeDocument = isset($_POST['remove_document']) && $_POST['remove_document'] == '1';
+
+            // Si se solicita eliminar el documento actual
+            if ($removeDocument) {
+                // Eliminar archivo físico si existe
+                if ($documentPath && file_exists(__DIR__ . '/../../' . $documentPath)) {
+                    unlink(__DIR__ . '/../../' . $documentPath);
+                }
+                $documentPath = null;
+            }
+
+            // Manejar carga de nuevo archivo PDF
+            if (isset($_FILES['justification_document']) && $_FILES['justification_document']['error'] === UPLOAD_ERR_OK) {
+                $file = $_FILES['justification_document'];
+
+                // Validar tipo de archivo
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
+
+                if ($mimeType !== 'application/pdf') {
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Solo se permiten archivos PDF.'
+                    ]);
+                }
+
+                // Validar tamaño (1MB máximo)
+                if ($file['size'] > 1048576) {
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'El archivo no debe superar 1MB de tamaño.'
+                    ]);
+                }
+
+                // Eliminar documento anterior si existe y se está reemplazando
+                if ($documentPath && file_exists(__DIR__ . '/../../' . $documentPath)) {
+                    unlink(__DIR__ . '/../../' . $documentPath);
+                }
+
+                // Obtener directorio de justificaciones por tenant
+                $uploadDir = \App\Core\TenantStorage::getJustificationDirectory();
+                \App\Core\TenantStorage::ensureDirectory($uploadDir);
+
+                // Generar nombre único para el archivo
+                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $fileName = 'justification_' . $id . '_' . time() . '.' . $extension;
+                $destination = $uploadDir . $fileName;
+
+                // Mover archivo
+                if (!move_uploaded_file($file['tmp_name'], $destination)) {
+                    return $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Error al guardar el archivo.'
+                    ]);
+                }
+
+                // Construir path relativo para BD
+                $tenantKey = \App\Core\TenantStorage::getTenantKey();
+                $documentPath = 'storage/tenants/' . $tenantKey . '/justifications/' . $fileName;
+            }
+
+            // Preparar datos para actualizar
+            $data = [
+                'justification_type' => $_POST['justification_type'] ?? $detail['justification_type'],
+                'justification_notes' => $_POST['justification_notes'] ?? $detail['justification_notes'],
+                'justification_document' => $documentPath
+            ];
+
+            // Actualizar el registro
+            $result = $this->detailModel->update($id, $data);
+
+            // También actualizar en attendance_absence_log si existe
+            $this->db->prepare("
+                UPDATE attendance_absence_log
+                SET justification_type = ?,
+                    justification_notes = ?,
+                    justification_document = ?,
+                    updated_at = NOW()
+                WHERE employee_id = ?
+                    AND absence_date = ?
+            ")->execute([
+                $data['justification_type'],
+                $data['justification_notes'],
+                $data['justification_document'],
+                $detail['employee_id'],
+                $detail['date']
+            ]);
+
+            if ($result) {
+                return $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Justificación actualizada exitosamente.'
+                ]);
+            } else {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Error al actualizar justificación.'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error updating justification: " . $e->getMessage());
             return $this->jsonResponse([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()

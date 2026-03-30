@@ -373,8 +373,16 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                                         <button type="button"
                                                                 class="btn btn-warning btn-justify"
                                                                 data-id="<?= $detail['id'] ?>"
-                                                                title="Justificar">
+                                                                title="Justificar Ausencia">
                                                             <i class="fas fa-file-alt"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                    <?php if ($detail['status'] === 'JUSTIFIED'): ?>
+                                                        <button type="button"
+                                                                class="btn btn-secondary btn-edit-justification"
+                                                                data-id="<?= $detail['id'] ?>"
+                                                                title="Ver/Editar Justificación">
+                                                            <i class="fas fa-file-medical-alt"></i>
                                                         </button>
                                                     <?php endif; ?>
                                                     <button type="button"
@@ -401,6 +409,107 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- Modal Justificar Ausencia -->
+<div class="modal fade" id="justifyAbsenceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt"></i> Justificar Ausencia
+                    <small id="justify_modal_subtitle" class="ml-2 text-dark-50"></small>
+                </h5>
+                <button type="button" class="close text-dark" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="form-justify-absence" enctype="multipart/form-data">
+                <input type="hidden" id="justify_detail_id" name="detail_id">
+                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?? '' ?>">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="justify_type">
+                                    <i class="fas fa-clipboard-list"></i> Tipo de Justificación
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-control" id="justify_type" name="justification_type" required>
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="MEDICAL">Médica (Incapacidad)</option>
+                                    <option value="PERMISSION">Permiso Autorizado</option>
+                                    <option value="VACATION">Vacaciones</option>
+                                    <option value="PERSONAL">Personal</option>
+                                    <option value="OTHER">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="justify_notes">
+                                    <i class="fas fa-sticky-note"></i> Observaciones
+                                </label>
+                                <textarea class="form-control" id="justify_notes" name="justification_notes" rows="3" placeholder="Ingrese observaciones o detalles de la justificación..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="justify_document">
+                                    <i class="fas fa-file-pdf"></i> Adjuntar Documento (PDF)
+                                    <small class="text-muted">(Opcional - Máximo 1MB)</small>
+                                </label>
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="justify_document" name="justification_document" accept=".pdf">
+                                    <label class="custom-file-label" for="justify_document">Seleccionar archivo PDF...</label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Solo archivos PDF, tamaño máximo 1MB
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview del PDF -->
+                    <div id="pdf-preview-container" class="row mt-3" style="display: none;">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-eye"></i> Vista Previa del Documento
+                                        <button type="button" class="btn btn-sm btn-danger float-right" id="btn-remove-pdf">
+                                            <i class="fas fa-times"></i> Quitar
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div id="pdf-info" class="alert alert-info mb-2">
+                                        <i class="fas fa-file-pdf text-danger"></i>
+                                        <strong id="pdf-filename"></strong>
+                                        <span id="pdf-filesize" class="text-muted"></span>
+                                    </div>
+                                    <embed id="pdf-embed" type="application/pdf" width="100%" height="400px" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-check"></i> Justificar Ausencia
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -461,6 +570,134 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Justificación -->
+<div class="modal fade" id="editJustificationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-medical-alt"></i> Ver/Editar Justificación
+                    <small id="edit_justification_modal_subtitle" class="ml-2 text-white-50"></small>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="form-edit-justification" enctype="multipart/form-data">
+                <input type="hidden" id="edit_justification_detail_id" name="detail_id">
+                <input type="hidden" id="edit_justification_remove_document" name="remove_document" value="0">
+                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?? '' ?>">
+                <div class="modal-body">
+                    <!-- Tipo de Justificación -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="edit_justify_type">
+                                    <i class="fas fa-clipboard-list"></i> Tipo de Justificación
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-control" id="edit_justify_type" name="justification_type" required>
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="MEDICAL">Médica (Incapacidad)</option>
+                                    <option value="PERMISSION">Permiso Autorizado</option>
+                                    <option value="VACATION">Vacaciones</option>
+                                    <option value="PERSONAL">Personal</option>
+                                    <option value="OTHER">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="edit_justify_notes">
+                                    <i class="fas fa-sticky-note"></i> Observaciones
+                                </label>
+                                <textarea class="form-control" id="edit_justify_notes" name="justification_notes" rows="3" placeholder="Ingrese observaciones o detalles de la justificación..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documento Actual (si existe) -->
+                    <div id="edit_current_document_container" class="row mb-3" style="display: none;">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-file-pdf text-danger"></i> Documento Actual
+                                        <button type="button" class="btn btn-sm btn-danger float-right" id="btn-remove-current-pdf" title="Eliminar documento actual">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div id="edit_current_pdf_info" class="alert alert-info mb-2">
+                                        <i class="fas fa-file-pdf text-danger"></i>
+                                        <strong id="edit_current_pdf_filename"></strong>
+                                    </div>
+                                    <embed id="edit_current_pdf_embed" type="application/pdf" width="100%" height="400px" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nuevo Documento (reemplazo opcional) -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="edit_justify_document">
+                                    <i class="fas fa-file-pdf"></i> <span id="edit_document_label">Reemplazar Documento (PDF)</span>
+                                    <small class="text-muted">(Opcional - Máximo 1MB)</small>
+                                </label>
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="edit_justify_document" name="justification_document" accept=".pdf">
+                                    <label class="custom-file-label" for="edit_justify_document">Seleccionar nuevo archivo PDF...</label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Solo archivos PDF, tamaño máximo 1MB
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview del Nuevo PDF -->
+                    <div id="edit_pdf_preview_container" class="row mt-3" style="display: none;">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-eye"></i> Vista Previa del Nuevo Documento
+                                        <button type="button" class="btn btn-sm btn-danger float-right" id="btn-remove-edit-pdf">
+                                            <i class="fas fa-times"></i> Quitar
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div id="edit_pdf_info" class="alert alert-info mb-2">
+                                        <i class="fas fa-file-pdf text-danger"></i>
+                                        <strong id="edit_pdf_filename"></strong>
+                                        <span id="edit_pdf_filesize" class="text-muted"></span>
+                                    </div>
+                                    <embed id="edit_pdf_embed" type="application/pdf" width="100%" height="400px" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Actualizar Justificación
                     </button>
                 </div>
             </form>
@@ -576,52 +813,101 @@ $(document).ready(function() {
         });
     });
 
-    // Justificar ausencia
+    // Justificar ausencia - Abrir modal
     $(document).on('click', '.btn-justify', function() {
         const detailId = $(this).data('id');
+        const $modal = $('#justifyAbsenceModal');
 
-        Swal.fire({
-            title: 'Justificar Ausencia',
-            html: `
-                <select id="justify-type" class="swal2-input">
-                    <option value="MEDICAL">Médica</option>
-                    <option value="PERMISSION">Permiso</option>
-                    <option value="VACATION">Vacaciones</option>
-                    <option value="OTHER">Otro</option>
-                </select>
-                <textarea id="justify-notes" class="swal2-textarea" placeholder="Notas de justificación..."></textarea>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Justificar',
-            cancelButtonText: 'Cancelar',
-            preConfirm: () => {
-                return {
-                    type: document.getElementById('justify-type').value,
-                    notes: document.getElementById('justify-notes').value
-                };
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: `${baseUrl}/panel/attendance/detail/${detailId}/justify`,
-                    method: 'POST',
-                    data: {
-                        csrf_token: '<?= $csrf_token ?? '' ?>',
-                        justification_type: result.value.type,
-                        justification_notes: result.value.notes
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            toastr.success(response.message);
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            toastr.error(response.message);
-                        }
-                    },
-                    error: function() {
-                        toastr.error('Error al justificar ausencia');
-                    }
-                });
+        // Reset form y preview
+        $('#form-justify-absence')[0].reset();
+        $('#justify_detail_id').val(detailId);
+        $('#pdf-preview-container').hide();
+        $('#pdf-embed').attr('src', '');
+        $('.custom-file-label').text('Seleccionar archivo PDF...');
+
+        $modal.modal('show');
+    });
+
+    // Validar y mostrar preview del PDF
+    $('#justify_document').on('change', function(e) {
+        const file = e.target.files[0];
+
+        if (!file) {
+            $('#pdf-preview-container').hide();
+            $('.custom-file-label').text('Seleccionar archivo PDF...');
+            return;
+        }
+
+        // Validar tipo de archivo
+        if (file.type !== 'application/pdf') {
+            toastr.error('Solo se permiten archivos PDF');
+            $(this).val('');
+            $('.custom-file-label').text('Seleccionar archivo PDF...');
+            return;
+        }
+
+        // Validar tamaño (1MB = 1048576 bytes)
+        if (file.size > 1048576) {
+            toastr.error('El archivo no debe superar 1MB de tamaño');
+            $(this).val('');
+            $('.custom-file-label').text('Seleccionar archivo PDF...');
+            return;
+        }
+
+        // Actualizar label con nombre del archivo
+        $('.custom-file-label').text(file.name);
+
+        // Mostrar información del archivo
+        $('#pdf-filename').text(file.name);
+        $('#pdf-filesize').text(' (' + (file.size / 1024).toFixed(2) + ' KB)');
+
+        // Crear URL del archivo para preview
+        const fileURL = URL.createObjectURL(file);
+        $('#pdf-embed').attr('src', fileURL);
+        $('#pdf-preview-container').show();
+    });
+
+    // Quitar archivo PDF
+    $('#btn-remove-pdf').on('click', function() {
+        $('#justify_document').val('');
+        $('.custom-file-label').text('Seleccionar archivo PDF...');
+        $('#pdf-preview-container').hide();
+        $('#pdf-embed').attr('src', '');
+    });
+
+    // Submit del formulario de justificación
+    $('#form-justify-absence').on('submit', function(e) {
+        e.preventDefault();
+
+        const detailId = $('#justify_detail_id').val();
+        const formData = new FormData(this);
+
+        // Validar tipo de justificación
+        if (!$('#justify_type').val()) {
+            toastr.error('Debe seleccionar un tipo de justificación');
+            return;
+        }
+
+        $.ajax({
+            url: `${baseUrl}/panel/attendance/detail/${detailId}/justify`,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    $('#justifyAbsenceModal').modal('hide');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'Error al justificar ausencia';
+                toastr.error(errorMsg);
             }
         });
     });
@@ -1166,6 +1452,179 @@ $(document).ready(function() {
             }
         });
     }
+
+    // ========================================
+    // EDITAR JUSTIFICACIÓN
+    // ========================================
+
+    // Abrir modal de edición de justificación con datos existentes
+    $(document).on('click', '.btn-edit-justification', function() {
+        const detailId = $(this).data('id');
+        const $modal = $('#editJustificationModal');
+
+        // Reset form y hidden fields
+        $('#form-edit-justification')[0].reset();
+        $('#edit_justification_detail_id').val(detailId);
+        $('#edit_justification_remove_document').val('0');
+
+        // Ocultar previews
+        $('#edit_current_document_container').hide();
+        $('#edit_pdf_preview_container').hide();
+        $('#edit_current_pdf_embed').attr('src', '');
+        $('#edit_pdf_embed').attr('src', '');
+        $('#edit_document_label').text('Adjuntar Documento (PDF)');
+
+        // Cargar datos de justificación existente
+        $.ajax({
+            url: `${baseUrl}/panel/attendance/detail/${detailId}/get-justification`,
+            method: 'POST',
+            data: {
+                csrf_token: '<?= $csrf_token ?? '' ?>'
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const data = response.data;
+
+                    // Cargar tipo y notas
+                    $('#edit_justify_type').val(data.justification_type || '');
+                    $('#edit_justify_notes').val(data.justification_notes || '');
+
+                    // Subtítulo con empleado y fecha
+                    const employeeName = data.employee_name || '';
+                    const employeeCode = data.employee_code || '';
+                    const date = data.date || '';
+                    $('#edit_justification_modal_subtitle').text(`${employeeName} (${employeeCode}) — ${date}`);
+
+                    // Si existe documento PDF, mostrarlo
+                    if (data.justification_document) {
+                        const documentPath = `${baseUrl}/${data.justification_document}`;
+                        const filename = data.justification_document.split('/').pop();
+
+                        $('#edit_current_pdf_filename').text(filename);
+                        $('#edit_current_pdf_embed').attr('src', documentPath);
+                        $('#edit_current_document_container').show();
+                        $('#edit_document_label').text('Reemplazar Documento (PDF)');
+                    } else {
+                        $('#edit_document_label').text('Adjuntar Documento (PDF)');
+                    }
+
+                    $modal.modal('show');
+                } else {
+                    toastr.error(response.message || 'No se pudo cargar la justificación');
+                }
+            },
+            error: function(xhr) {
+                toastr.error('Error al cargar la justificación');
+                console.error(xhr);
+            }
+        });
+    });
+
+    // Botón para eliminar documento PDF actual
+    $('#btn-remove-current-pdf').on('click', function() {
+        Swal.fire({
+            title: '¿Eliminar documento actual?',
+            text: 'Esta acción no se puede deshacer',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#edit_justification_remove_document').val('1');
+                $('#edit_current_document_container').hide();
+                $('#edit_document_label').text('Adjuntar Documento (PDF)');
+                toastr.info('El documento será eliminado al guardar los cambios');
+            }
+        });
+    });
+
+    // Validar y mostrar preview del nuevo PDF en edición
+    $('#edit_justify_document').on('change', function(e) {
+        const file = e.target.files[0];
+        const $label = $(this).next('.custom-file-label');
+
+        if (!file) {
+            $('#edit_pdf_preview_container').hide();
+            $label.text('Seleccionar nuevo archivo PDF...');
+            return;
+        }
+
+        // Validar tipo de archivo
+        if (file.type !== 'application/pdf') {
+            toastr.error('Solo se permiten archivos PDF');
+            $(this).val('');
+            $label.text('Seleccionar nuevo archivo PDF...');
+            return;
+        }
+
+        // Validar tamaño (1MB = 1048576 bytes)
+        if (file.size > 1048576) {
+            toastr.error('El archivo no debe superar 1MB de tamaño');
+            $(this).val('');
+            $label.text('Seleccionar nuevo archivo PDF...');
+            return;
+        }
+
+        // Actualizar label con nombre del archivo
+        $label.text(file.name);
+
+        // Mostrar información del archivo
+        $('#edit_pdf_filename').text(file.name);
+        $('#edit_pdf_filesize').text(' (' + (file.size / 1024).toFixed(2) + ' KB)');
+
+        // Crear URL del archivo para preview
+        const fileURL = URL.createObjectURL(file);
+        $('#edit_pdf_embed').attr('src', fileURL);
+        $('#edit_pdf_preview_container').show();
+    });
+
+    // Quitar nuevo archivo PDF seleccionado
+    $('#btn-remove-edit-pdf').on('click', function() {
+        $('#edit_justify_document').val('');
+        $('#edit_justify_document').next('.custom-file-label').text('Seleccionar nuevo archivo PDF...');
+        $('#edit_pdf_preview_container').hide();
+        $('#edit_pdf_embed').attr('src', '');
+    });
+
+    // Submit del formulario de edición de justificación
+    $('#form-edit-justification').on('submit', function(e) {
+        e.preventDefault();
+
+        const detailId = $('#edit_justification_detail_id').val();
+        const formData = new FormData(this);
+
+        // Validar tipo de justificación
+        if (!$('#edit_justify_type').val()) {
+            toastr.error('Debe seleccionar un tipo de justificación');
+            return;
+        }
+
+        $.ajax({
+            url: `${baseUrl}/panel/attendance/detail/${detailId}/update-justification`,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    $('#editJustificationModal').modal('hide');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'Error al actualizar justificación';
+                toastr.error(errorMsg);
+            }
+        });
+    });
 
     // (Revertido) El modal existente se usa tras cálculo por botón Calcular
 });
