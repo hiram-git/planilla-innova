@@ -1225,6 +1225,10 @@ class App
                                     } elseif ($url[2] === 'edit' && isset($url[3]) && method_exists($this->controller, 'edit')) {
                                         $this->method = 'edit';
                                         $this->params = [$url[3]];
+                                    } elseif ($url[2] === 'get-employees' && method_exists($this->controller, 'getEmployees')) {
+                                        // Ruta: /panel/payrolls/get-employees (AJAX Select2 - listado de empleados)
+                                        $this->method = 'getEmployees';
+                                        $this->params = [];
                                     } elseif (method_exists($this->controller, $url[2])) {
                                         $this->method = $url[2];
                                         $this->params = array_slice($url, 3);
