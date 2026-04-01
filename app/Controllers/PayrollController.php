@@ -2019,6 +2019,61 @@ class PayrollController extends Controller
     }
 
     /**
+     * API: Obtener listado de empleados para Select2 (con búsqueda)
+     * GET /panel/payrolls/get-employees
+     */
+    public function getEmployees()
+    {
+        try {
+            header('Content-Type: application/json');
+
+            $term = $_GET['term'] ?? '';
+
+            // Obtener todos los empleados activos
+            $db = $this->payrollModel->getDatabase();
+            $connection = $db->getConnection();
+
+            $sql = "SELECT
+                        e.id,
+                        e.employee_id,
+                        e.firstname,
+                        e.lastname
+                    FROM employees e
+                    INNER JOIN situaciones s ON e.situacion_id = s.id
+                    WHERE s.codigo = 'activo' AND s.activo = 1";
+
+            $params = [];
+
+            // Si hay término de búsqueda, filtrar
+            if (!empty($term)) {
+                $sql .= " AND (e.employee_id LIKE ? OR e.firstname LIKE ? OR e.lastname LIKE ?)";
+                $searchTerm = "%$term%";
+                $params = [$searchTerm, $searchTerm, $searchTerm];
+            }
+
+            $sql .= " ORDER BY e.lastname, e.firstname LIMIT 50";
+
+            $stmt = $connection->prepare($sql);
+            $stmt->execute($params);
+            $employees = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'data' => $employees
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error en getEmployees: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'data' => [],
+                'error' => $e->getMessage()
+            ]);
+        }
+        exit;
+    }
+
+    /**
      * API: Endpoint AJAX para DataTables server-side processing de empleados en planilla
      */
     public function getEmployeesData($id)
