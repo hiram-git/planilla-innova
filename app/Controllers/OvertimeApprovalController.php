@@ -138,6 +138,7 @@ class OvertimeApprovalController extends Controller
                     'employee_name' => $record['employee_name'],
                     'schedule_name' => $record['schedule_name'] ?? 'N/A',
                     'date' => date('d/m/Y', strtotime($record['date'])),
+                    'date_sort' => $record['date'], // Campo para ordenamiento (YYYY-MM-DD)
                     'time_in' => $record['time_in'] ? substr($record['time_in'], 0, 5) : '-',
                     'time_out' => $record['time_out'] ? substr($record['time_out'], 0, 5) : '-',
                     'total_hours' => number_format($record['total_hours'], 2),
