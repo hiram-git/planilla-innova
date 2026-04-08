@@ -301,10 +301,13 @@ class OvertimeCalculator
         // Calcular horas totales trabajadas (aplicando tolerancias si hay horario)
         $totalHours = $this->calculateTotalHours($timeIn, $timeOut, $lunchMinutes, $schedule, $date, $lunchOut, $lunchIn);
 
-        // Verificar si es feriado/domingo
+        // Verificar si es feriado/domingo.
+        // Con override personal ($forceWorkingDay), el domingo sigue pagando 150% (Art. 48)
+        // pero se calculan tardanzas y salida anticipada como día laboral normal.
+        // El breakdown de horas mantiene holiday_hours para respetar el recargo legal.
         $holidayStatus = $this->checkHolidayStatus($date);
 
-        // Si es feriado, clasificar correctamente: holiday_hours (horario regular) + extras + nocturnas
+        // Si es feriado/domingo: clasificar como holiday_hours + extras + nocturnas
         if ($holidayStatus['is_holiday'] || $holidayStatus['is_non_working']) {
             // Horas de feriado = las del horario regular (máximo 8h o las horas esperadas)
             $actualHolidayHours = min($totalHours, $regularHours);

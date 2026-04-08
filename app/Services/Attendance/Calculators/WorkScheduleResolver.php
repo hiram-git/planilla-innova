@@ -3,6 +3,7 @@
 namespace App\Services\Attendance\Calculators;
 
 use App\Models\Employee;
+use App\Models\EmployeeDailySchedule;
 use App\Models\Schedule;
 use DateTime;
 
@@ -22,11 +23,13 @@ class WorkScheduleResolver
 {
     private $employeeModel;
     private $scheduleModel;
+    private $dailyScheduleModel;
 
     public function __construct()
     {
-        $this->employeeModel = new Employee();
-        $this->scheduleModel = new Schedule();
+        $this->employeeModel      = new Employee();
+        $this->scheduleModel      = new Schedule();
+        $this->dailyScheduleModel = new EmployeeDailySchedule();
     }
 
     /**
@@ -38,45 +41,63 @@ class WorkScheduleResolver
      */
     public function getScheduleForEmployeeOnDate($employeeId, $date)
     {
-        // Obtener empleado
+        // 1. Verificar si existe override personal para este empleado y fecha
+        $override = $this->dailyScheduleModel->getForDate($employeeId, $date);
+
+        if ($override) {
+            // Usar el horario del calendario personal (override)
+            return [
+                'schedule_id'                => $override['schedule_id'],
+                'codigo'                     => $override['codigo'] ?? null,
+                'nombre'                     => $override['nombre'] ?? null,
+                'time_in'                    => $override['time_in'],
+                'time_out'                   => $override['time_out'],
+                'salida_almuerzo'            => $override['salida_almuerzo'] ?? null,
+                'entrada_almuerzo'           => $override['entrada_almuerzo'] ?? null,
+                'time_in_tolerance_before'   => $override['time_in_tolerance_before'] ?? 0,
+                'time_in_tolerance_after'    => $override['time_in_tolerance_after'] ?? 0,
+                'time_out_tolerance_before'  => $override['time_out_tolerance_before'] ?? 0,
+                'time_out_tolerance_after'   => $override['time_out_tolerance_after'] ?? 0,
+                'lunch_out_tolerance_before' => $override['lunch_out_tolerance_before'] ?? 0,
+                'lunch_out_tolerance_after'  => $override['lunch_out_tolerance_after'] ?? 0,
+                'lunch_in_tolerance_before'  => $override['lunch_in_tolerance_before'] ?? 0,
+                'lunch_in_tolerance_after'   => $override['lunch_in_tolerance_after'] ?? 0,
+                'date'                       => $date,
+                'employee_id'               => $employeeId,
+                'is_personal_override'       => true,  // flag: ignorar día no laboral del calendario empresarial
+            ];
+        }
+
+        // 2. Sin override: usar horario base del empleado
         $employee = $this->employeeModel->find($employeeId);
-        if (!$employee) {
+        if (!$employee || empty($employee['schedule_id'])) {
             return null;
         }
 
-        // Verificar si el empleado tiene horario asignado
-        if (empty($employee['schedule_id'])) {
-            return null;
-        }
-
-        // Obtener horario del empleado
         $schedule = $this->scheduleModel->find($employee['schedule_id']);
         if (!$schedule) {
             return null;
         }
 
-        // Preparar resultado con información completa incluyendo tolerancias
         return [
-            'schedule_id' => $schedule['id'],
-            'codigo' => $schedule['codigo'] ?? null,
-            'nombre' => $schedule['nombre'] ?? null,
-            'time_in' => $schedule['time_in'],
-            'time_out' => $schedule['time_out'],
-            'salida_almuerzo' => $schedule['salida_almuerzo'] ?? null,
-            'entrada_almuerzo' => $schedule['entrada_almuerzo'] ?? null,
-            // Tolerancias de entrada
-            'time_in_tolerance_before' => $schedule['time_in_tolerance_before'] ?? 0,
-            'time_in_tolerance_after' => $schedule['time_in_tolerance_after'] ?? 0,
-            // Tolerancias de salida
-            'time_out_tolerance_before' => $schedule['time_out_tolerance_before'] ?? 0,
-            'time_out_tolerance_after' => $schedule['time_out_tolerance_after'] ?? 0,
-            // Tolerancias de almuerzo
+            'schedule_id'                => $schedule['id'],
+            'codigo'                     => $schedule['codigo'] ?? null,
+            'nombre'                     => $schedule['nombre'] ?? null,
+            'time_in'                    => $schedule['time_in'],
+            'time_out'                   => $schedule['time_out'],
+            'salida_almuerzo'            => $schedule['salida_almuerzo'] ?? null,
+            'entrada_almuerzo'           => $schedule['entrada_almuerzo'] ?? null,
+            'time_in_tolerance_before'   => $schedule['time_in_tolerance_before'] ?? 0,
+            'time_in_tolerance_after'    => $schedule['time_in_tolerance_after'] ?? 0,
+            'time_out_tolerance_before'  => $schedule['time_out_tolerance_before'] ?? 0,
+            'time_out_tolerance_after'   => $schedule['time_out_tolerance_after'] ?? 0,
             'lunch_out_tolerance_before' => $schedule['lunch_out_tolerance_before'] ?? 0,
-            'lunch_out_tolerance_after' => $schedule['lunch_out_tolerance_after'] ?? 0,
-            'lunch_in_tolerance_before' => $schedule['lunch_in_tolerance_before'] ?? 0,
-            'lunch_in_tolerance_after' => $schedule['lunch_in_tolerance_after'] ?? 0,
-            'date' => $date,
-            'employee_id' => $employeeId
+            'lunch_out_tolerance_after'  => $schedule['lunch_out_tolerance_after'] ?? 0,
+            'lunch_in_tolerance_before'  => $schedule['lunch_in_tolerance_before'] ?? 0,
+            'lunch_in_tolerance_after'   => $schedule['lunch_in_tolerance_after'] ?? 0,
+            'date'                       => $date,
+            'employee_id'               => $employeeId,
+            'is_personal_override'       => false,
         ];
     }
 

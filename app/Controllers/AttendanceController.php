@@ -1632,14 +1632,17 @@ class AttendanceController extends Controller
                 ];
             }
 
-            // Verificar si el día es domingo según el calendario empresarial
-            // Si es domingo (is_weekend = 1), saltar sin crear cabecera
+            // Verificar si el día es domingo/fin de semana según el calendario empresarial.
+            // Si lo es, solo saltarlo si NINGÚN empleado tiene override personal para ese día.
+            $dailyScheduleModel = new \App\Models\EmployeeDailySchedule();
+            $employeesWithPersonalOverride = $dailyScheduleModel->getEmployeeIdsWithOverrideForDate($date);
+            $hasPersonalOverrides = !empty($employeesWithPersonalOverride);
+
             try {
                 $calendar = new \App\Models\BusinessCalendar();
                 $dayInfo = $calendar->getDayInfo($date);
 
-                // Si es domingo o fin de semana, saltar este día
-                if ($dayInfo && $dayInfo['is_weekend'] == 1) {
+                if ($dayInfo && $dayInfo['is_weekend'] == 1 && !$hasPersonalOverrides) {
                     return [
                         'success' => true,
                         'message' => 'Día saltado (Domingo/Fin de semana)',
@@ -1661,9 +1664,8 @@ class AttendanceController extends Controller
                 }
             } catch (\Exception $e) {
                 error_log("Error checking calendar for Sunday: " . $e->getMessage());
-                // Si hay error, verificar por día de semana
-                $dayOfWeek = date('N', strtotime($date)); // 7 = Domingo
-                if ($dayOfWeek == 7) {
+                $dayOfWeek = date('N', strtotime($date));
+                if ($dayOfWeek == 7 && !$hasPersonalOverrides) {
                     return [
                         'success' => true,
                         'message' => 'Día saltado (Domingo)',
@@ -1813,25 +1815,22 @@ class AttendanceController extends Controller
                 $calendar = new \App\Models\BusinessCalendar();
                 $dayInfo = $calendar->getDayInfo($date);
 
-                // Si existe información del día en el calendario, verificar si es laboral
                 if ($dayInfo) {
-                    // Solo es laboral si day_type = 'LABORAL'
-                    // Saltar si es: FERIADO, NO_LABORAL, DUELO_NACIONAL, ESPECIAL
                     $isWorkingDay = ($dayInfo['day_type'] === 'LABORAL');
-
-                    // Verificar si es feriado pagado
                     $isPaidHoliday = ($dayInfo['day_type'] === 'FERIADO' && isset($dayInfo['is_paid_holiday']) && $dayInfo['is_paid_holiday'] == 1);
                 } else {
-                    // Si no hay información del día, asumir que es laboral de Lunes a Viernes
-                    $dayOfWeek = date('N', strtotime($date)); // 1=Lunes, 7=Domingo
+                    $dayOfWeek = date('N', strtotime($date));
                     $isWorkingDay = ($dayOfWeek >= 1 && $dayOfWeek <= 5);
                 }
             } catch (\Exception $e) {
                 error_log("Error checking business calendar: " . $e->getMessage());
-                // Fallback: asumir días laborables de Lunes a Viernes
                 $dayOfWeek = date('N', strtotime($date));
                 $isWorkingDay = ($dayOfWeek >= 1 && $dayOfWeek <= 5);
             }
+
+            // Si el día no es laboral pero hay empleados con override personal,
+            // esos empleados se tratan como día laboral para detección de ausencias.
+            // $employeesWithPersonalOverride ya fue cargado al inicio del método.
 
             // 4.5. Generar registros automáticos para FERIADOS PAGADOS
             // Si el día es feriado pagado, generar registros con holiday_hours
@@ -2003,24 +2002,40 @@ class AttendanceController extends Controller
                 ];
             }
             // 5. Detectar empleados SIN marcación y crear registros de AUSENCIA
-            // Solo detectar ausencias en días LABORABLES (no en feriados pagados)
-            elseif ($detectAbsences && $isWorkingDay) {
-                foreach ($activeEmployees as $employee) {
+            // En días laborables: todos los empleados activos.
+            // En días NO laborables: solo los que tienen override personal para ese día.
+            elseif ($detectAbsences && ($isWorkingDay || $hasPersonalOverrides)) {
+
+                // Determinar qué empleados aplican para detección de ausencias
+                $employeesForAbsenceCheck = $isWorkingDay
+                    ? $activeEmployees
+                    : array_filter($activeEmployees, fn($e) => in_array((int)$e['id'], $employeesWithPersonalOverride));
+
+                foreach ($employeesForAbsenceCheck as $employee) {
                     if (!isset($employeesWithAttendance[$employee['id']])) {
                         $stats['absences_detected']++;
 
                         try {
+                            // Obtener el schedule del override personal si aplica, o el base
+                            $scheduleId = $employee['schedule_id'] ?? null;
+                            if (!$isWorkingDay && in_array((int)$employee['id'], $employeesWithPersonalOverride)) {
+                                $overrideRecord = $dailyScheduleModel->getForDate((int)$employee['id'], $date);
+                                if ($overrideRecord) {
+                                    $scheduleId = $overrideRecord['schedule_id'];
+                                }
+                            }
+
                             $absenceData = [
-                                'header_id' => $header['id'],
-                                'employee_id' => $employee['id'],
-                                'schedule_id' => $employee['schedule_id'] ?? null,
-                                'time_in' => null,
-                                'time_out' => null,
-                                'status' => 'ABSENT',
-                                'is_late' => 0,
+                                'header_id'         => $header['id'],
+                                'employee_id'       => $employee['id'],
+                                'schedule_id'       => $scheduleId,
+                                'time_in'           => null,
+                                'time_out'          => null,
+                                'status'            => 'ABSENT',
+                                'is_late'           => 0,
                                 'tardiness_minutes' => 0,
-                                'hours_worked' => 0,
-                                'notes' => 'Ausencia detectada automáticamente - Sin marcación'
+                                'hours_worked'      => 0,
+                                'notes'             => 'Ausencia detectada automáticamente - Sin marcación'
                             ];
 
                             $detailId = $this->detailModel->create($absenceData);
@@ -2028,13 +2043,12 @@ class AttendanceController extends Controller
                             if ($detailId) {
                                 $stats['absences_created']++;
 
-                                // Registrar ausencia en el log
                                 $this->absenceDetector->saveAbsence([
-                                    'employee_id' => $employee['id'],
-                                    'date' => $date,
-                                    'absence_type' => 'UNJUSTIFIED',
+                                    'employee_id'          => $employee['id'],
+                                    'date'                 => $date,
+                                    'absence_type'         => 'UNJUSTIFIED',
                                     'attendance_detail_id' => $detailId,
-                                    'detected_at' => date('Y-m-d H:i:s')
+                                    'detected_at'          => date('Y-m-d H:i:s')
                                 ]);
                             }
                         } catch (Exception $e) {
