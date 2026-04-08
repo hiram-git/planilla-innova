@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprobación de Horas Extras - INNOVA Planillas 3.5.22</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,var(--primary),#14526a);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;}
+        th{background:var(--primary);color:#fff;padding:8px 10px;text-align:left;}
+        td{padding:7px 10px;border-bottom:1px solid #e4e7ec;}
+        tr:nth-child(even) td{background:#f9fafb;}
+        .badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600;}
+        .badge-warning{background:#ffc107;color:#333;}
+        .badge-success{background:#28a745;color:#fff;}
+        .badge-danger{background:#dc3545;color:#fff;}
+        .badge-secondary{background:#6c757d;color:#fff;}
+        code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-size:13px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Aprobación de Horas Extras</h1>
+            <p>Revisión, aprobación y rechazo de horas extras calculadas por asistencia · v3.5.22</p>
+        </div>
+
+        <div class="card">
+            <h2>Descripción general</h2>
+            <p>Este módulo permite a los responsables de nómina revisar las horas extras generadas automáticamente por el sistema de asistencias y decidir cuáles serán pagadas en planilla. Solo las horas extras con estado <strong>APROBADO</strong> son consideradas por las fórmulas <code>HORAS_EXTRAS_APROBADAS()</code>, <code>HORAS_EXTRAS_APROBADAS_25()</code> y <code>HORAS_EXTRAS_APROBADAS_50()</code>.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Requisitos previos</h2>
+            <ul>
+                <li>Asistencias sincronizadas y procesadas (módulo Asistencias debe estar activo).</li>
+                <li>Empleados con el campo <strong>Permite Horas Extras</strong> habilitado en su perfil.</li>
+                <li>Horarios con tolerancias configuradas (entrada/salida/almuerzo) para que el cálculo sea preciso.</li>
+                <li>Permiso de aprobación asignado al usuario en el sistema de roles.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Pantalla principal</h2>
+            <p>Al ingresar a <strong>Asistencias → Aprobación de Horas Extras</strong> verá 4 tarjetas de estadísticas en la parte superior:</p>
+            <table>
+                <thead><tr><th>Tarjeta</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="badge badge-warning">HE Pendientes</span></td><td>Total de horas extras aún no revisadas y cantidad de registros.</td></tr>
+                    <tr><td><span class="badge badge-success">HE Aprobadas</span></td><td>Total de horas extras ya aprobadas para pago.</td></tr>
+                    <tr><td>HE 25% Pendientes</td><td>Subtotal de horas extras al 25% sin revisar.</td></tr>
+                    <tr><td>HE 25% Aprobadas</td><td>Subtotal de horas extras al 25% ya aprobadas.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>3. Filtros disponibles</h2>
+            <ul>
+                <li><strong>Estado:</strong> Todos / Pendientes / Aprobados / Rechazados / No Aplica.</li>
+                <li><strong>Empleado:</strong> búsqueda Select2 por nombre o código.</li>
+                <li><strong>Fecha Desde / Fecha Hasta:</strong> rango de fechas de los registros diarios.</li>
+            </ul>
+            <p>Use el botón <em>Filtrar</em> para aplicar y <em>Limpiar</em> para restablecer todos los filtros.</p>
+        </div>
+
+        <div class="card">
+            <h2>4. Columnas de la tabla</h2>
+            <table>
+                <thead><tr><th>Columna</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>Código</td><td>Identificador del empleado.</td></tr>
+                    <tr><td>Empleado</td><td>Nombre completo.</td></tr>
+                    <tr><td>Horario</td><td>Horario asignado del empleado.</td></tr>
+                    <tr><td>Fecha</td><td>Día del registro de asistencia.</td></tr>
+                    <tr><td>Entrada / Salida</td><td>Hora real de marcación.</td></tr>
+                    <tr><td>H. Regulares</td><td>Horas dentro de la jornada ordinaria.</td></tr>
+                    <tr><td>H. Extras 25%</td><td>Horas extras con recargo del 25% (primeras 3h).</td></tr>
+                    <tr><td>H. Extras 50%</td><td>Horas extras con recargo del 50% (adicionales o domingos/feriados).</td></tr>
+                    <tr><td>Total HE</td><td>Suma de horas extras 25% + 50%.</td></tr>
+                    <tr><td>Estado</td><td>PENDING / APPROVED / REJECTED / NOT_APPLICABLE.</td></tr>
+                    <tr><td>Acciones</td><td>Ver detalle, Aprobar, Rechazar.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>5. Aprobar horas extras</h2>
+            <ol>
+                <li>Localice el registro en la tabla (use filtros si necesita).</li>
+                <li>Haga clic en el botón <strong>Aprobar</strong> (ícono de palomita verde).</li>
+                <li>Se abre un modal con el resumen del registro: empleado, fecha, horas 25% y 50%.</li>
+                <li>Escriba notas opcionales (justificación, autorización verbal, etc.).</li>
+                <li>Confirme con <strong>Aprobar</strong>. El estado cambia a <span class="badge badge-success">APPROVED</span>.</li>
+            </ol>
+            <p>Las horas aprobadas quedan disponibles para las fórmulas <code>HORAS_EXTRAS_APROBADAS_25()</code> y <code>HORAS_EXTRAS_APROBADAS_50()</code> al procesar planillas.</p>
+        </div>
+
+        <div class="card">
+            <h2>6. Rechazar horas extras</h2>
+            <ol>
+                <li>Haga clic en el botón <strong>Rechazar</strong> (ícono de X roja).</li>
+                <li>Ingrese el motivo del rechazo en el modal (campo obligatorio).</li>
+                <li>Confirme. El estado cambia a <span class="badge badge-danger">REJECTED</span> y no se incluirá en planillas.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>7. Ver detalle del registro</h2>
+            <p>El botón de información abre un modal con el detalle completo:</p>
+            <ul>
+                <li>Hora exacta de entrada y salida.</li>
+                <li>Tiempo de almuerzo registrado.</li>
+                <li>Desglose de horas: regulares, nocturnas, extras 25%, extras 50%, feriados, dominicales.</li>
+                <li>Score de puntualidad del día.</li>
+                <li>Historial de cambios de estado (quién aprobó/rechazó y cuándo).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>8. Estados de las horas extras</h2>
+            <table>
+                <thead><tr><th>Estado</th><th>Significado</th><th>Efecto en planilla</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="badge badge-warning">PENDING</span></td><td>Calculado, sin revisión.</td><td>No se paga (fórmulas aprobadas lo ignoran).</td></tr>
+                    <tr><td><span class="badge badge-success">APPROVED</span></td><td>Revisado y autorizado.</td><td>Se incluye en <code>HORAS_EXTRAS_APROBADAS()</code>.</td></tr>
+                    <tr><td><span class="badge badge-danger">REJECTED</span></td><td>Revisado y denegado.</td><td>No se paga.</td></tr>
+                    <tr><td><span class="badge badge-secondary">NOT_APPLICABLE</span></td><td>Empleado no elegible o jornada sin extras.</td><td>No aplica.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>9. Integración con planillas</h2>
+            <p>Para que las horas extras aprobadas se reflejen en el pago, los conceptos de planilla deben usar las funciones específicas de horas aprobadas:</p>
+            <ul>
+                <li><code>HORAS_EXTRAS_APROBADAS_25() * (SUELDO / 220) * 1.25</code> — pago horas extras 25% aprobadas.</li>
+                <li><code>HORAS_EXTRAS_APROBADAS_50() * (SUELDO / 220) * 1.50</code> — pago horas extras 50% aprobadas.</li>
+                <li><code>HORAS_EXTRAS_APROBADAS()</code> — total de horas aprobadas (25% + 50%).</li>
+            </ul>
+            <p>Si su empresa usa <code>HORAS_EXTRAS_25()</code> sin la palabra "APROBADAS", se pagan <em>todas</em> las horas sin importar el estado de aprobación.</p>
+        </div>
+
+        <div class="card">
+            <h2>10. Checklist</h2>
+            <ul>
+                <li>Sincronizar asistencias antes de revisar horas extras del período.</li>
+                <li>Revisar todos los registros en estado PENDING antes de procesar la planilla.</li>
+                <li>Documentar motivo al rechazar para respaldo y auditoría.</li>
+                <li>Verificar que los conceptos de planilla usen <code>HORAS_EXTRAS_APROBADAS_*</code> si el flujo de aprobación está activo.</li>
+            </ul>
+        </div>
+
+        <p style="text-align:right;color:#6b7280;font-size:13px;"><a href="manual_usuario.html">&larr; Volver al índice</a></p>
+    </div>
+</body>
+</html>
