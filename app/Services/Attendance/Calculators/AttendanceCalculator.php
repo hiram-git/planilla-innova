@@ -87,6 +87,14 @@ class AttendanceCalculator
         // Verificar tipo de día (laboral, feriado, etc.)
         $dayInfo = $this->overtimeCalculator->checkHolidayStatus($date);
 
+        // Si el empleado tiene override personal para este día, se considera día laboral
+        // independientemente del calendario empresarial (ej: domingo con horario asignado)
+        if (!empty($schedule['is_personal_override'])) {
+            $dayInfo['is_holiday']    = false;
+            $dayInfo['is_non_working'] = false;
+            $dayInfo['day_type']      = 'LABORAL';
+        }
+
         // Si NO hay entrada NI salida, es AUSENTE
         if (empty($timeIn) && empty($timeOut)) {
             return $this->getAbsentCalculation($attendance, $schedule, $dayInfo);
@@ -193,7 +201,7 @@ class AttendanceCalculator
             $lunchTimeMinutes,
             $schedule,
             $lunchOut,
-            $lunchIn
+            $lunchIn,
         );
 
         // Corrección: si el horario NO es nocturno y la salida ajustada no excede la hora programada,

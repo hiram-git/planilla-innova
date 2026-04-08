@@ -264,9 +264,10 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                             $calc = $detail['calculation'];
                                             $score = $calc['punctuality_score'] ?? 0;
                                             $isPerfect = $calc['is_perfect_attendance'] ?? 0;
-                                            $overtimeHours = $calc['overtime_hours'] ?? 0;
-                                            $overtime25 = $calc['overtime_25_hours'] ?? 0;
-                                            $overtime50 = $calc['overtime_50_hours'] ?? 0;
+                                            $overtimeHours  = $calc['overtime_hours'] ?? 0;
+                                            $overtime25     = $calc['overtime_25_hours'] ?? 0;
+                                            $overtime50     = $calc['overtime_50_hours'] ?? 0;
+                                            $holidayHours   = $calc['holiday_hours'] ?? 0;
 
                                             // Color del badge según score
                                             $scoreColor = 'success';
@@ -281,21 +282,26 @@ if (isset($header['processed_at']) && is_string($header['processed_at']) && strt
                                                 $punctualityDisplay .= ' <i class="fas fa-star text-warning" title="Asistencia Perfecta"></i>';
                                             }
 
-                                            // Mostrar horas extras
-                                            if ($overtimeHours > 0) {
+                                            // Mostrar horas: días de descanso/feriado → holiday_hours (150%)
+                                            // Días laborables → overtime_hours con desglose 25%/50%
+                                            if ($holidayHours > 0) {
+                                                $totalHolidayDisplay = $holidayHours + $overtimeHours;
+                                                $overtimeDisplay = '<span class="badge badge-warning" title="Día de descanso/feriado - Art. 48">';
+                                                $overtimeDisplay .= number_format($totalHolidayDisplay, 2) . 'h';
+                                                $overtimeDisplay .= '</span>';
+                                                $overtimeDisplay .= '<br><small class="text-muted">Descanso +150%: ' . number_format($holidayHours, 2) . 'h</small>';
+                                                if ($overtimeHours > 0) {
+                                                    $overtimeDisplay .= '<br><small class="text-muted">Extras descanso: ' . number_format($overtimeHours, 2) . 'h</small>';
+                                                }
+                                            } elseif ($overtimeHours > 0) {
                                                 $overtimeDisplay = '<span class="badge badge-primary" title="Horas extras totales">';
                                                 $overtimeDisplay .= number_format($overtimeHours, 2) . 'h';
                                                 $overtimeDisplay .= '</span>';
 
-                                                // Desglose de horas extras
                                                 if ($overtime25 > 0 || $overtime50 > 0) {
                                                     $overtimeDisplay .= '<br><small class="text-muted">';
-                                                    if ($overtime25 > 0) {
-                                                        $overtimeDisplay .= '+25%: ' . number_format($overtime25, 2) . 'h ';
-                                                    }
-                                                    if ($overtime50 > 0) {
-                                                        $overtimeDisplay .= '+50%: ' . number_format($overtime50, 2) . 'h';
-                                                    }
+                                                    if ($overtime25 > 0) $overtimeDisplay .= '+25%: ' . number_format($overtime25, 2) . 'h ';
+                                                    if ($overtime50 > 0) $overtimeDisplay .= '+50%: ' . number_format($overtime50, 2) . 'h';
                                                     $overtimeDisplay .= '</small>';
                                                 }
                                             } else {
