@@ -13,6 +13,7 @@ use App\Models\AttendanceDevice;
 use App\Models\AttendanceApiConfig;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
+use App\Models\OvertimeApproval;
 use App\Services\Attendance\Calculators\AttendanceCalculator;
 use App\Services\Attendance\Calculators\AbsenceDetector;
 use App\Services\Attendance\Calculators\WorkScheduleResolver;
@@ -611,6 +612,42 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Verificar si una marcación tiene horas extras aprobadas (AJAX)
+     * Usado para mostrar alerta de confirmación antes de eliminar
+     */
+    public function checkOvertimeBeforeDelete($id)
+    {
+        try {
+            $detail = $this->detailModel->getById($id);
+
+            if (!$detail) {
+                return $this->jsonResponse(['success' => false, 'message' => 'Marcación no encontrada.']);
+            }
+
+            $employeeId = (int)$detail['employee_id'];
+            $date       = $detail['date'];
+
+            $overtimeModel    = new OvertimeApproval();
+            $approvedOvertime = $overtimeModel->getApprovedOvertimeHoursForDate($employeeId, $date);
+
+            return $this->jsonResponse([
+                'success'          => true,
+                'has_approved'     => $approvedOvertime['has_approved'],
+                'overtime_status'  => $approvedOvertime['overtime_status'],
+                'overtime_25'      => $approvedOvertime['total_overtime_25'],
+                'overtime_50'      => $approvedOvertime['total_overtime_50'],
+                'total_hours'      => $approvedOvertime['total_hours'],
+                'employee_name'    => trim($detail['firstname'] . ' ' . $detail['lastname']),
+                'date'             => $date,
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error checking overtime before delete: " . $e->getMessage());
+            return $this->jsonResponse(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Eliminar marcación (AJAX)
      */
     public function deleteDetail($id)
@@ -625,9 +662,16 @@ class AttendanceController extends Controller
                 ]);
             }
 
+            $employeeId = (int)$detail['employee_id'];
+            $date       = $detail['date']; // attendance_header.attendance_date
+
             $result = $this->detailModel->delete($id);
 
             if ($result) {
+                // Eliminar en cascada las horas extras del mismo empleado y día
+                $overtimeModel = new OvertimeApproval();
+                $overtimeModel->deleteByEmployeeAndDate($employeeId, $date);
+
                 return $this->jsonResponse([
                     'success' => true,
                     'message' => 'Marcación eliminada exitosamente.'

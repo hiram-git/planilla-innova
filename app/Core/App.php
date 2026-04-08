@@ -277,6 +277,12 @@ class App
                                     $this->params = [];
                                     call_user_func_array([$this->controller, $this->method], $this->params);
                                     return;
+                                } elseif ($url[2] === 'detail' && isset($url[3]) && isset($url[4]) && $url[4] === 'check-overtime' && method_exists($this->controller, 'checkOvertimeBeforeDelete')) {
+                                    // GET: /panel/attendance/detail/{id}/check-overtime
+                                    $this->method = 'checkOvertimeBeforeDelete';
+                                    $this->params = [$url[3]];
+                                    call_user_func_array([$this->controller, $this->method], $this->params);
+                                    return;
                                 } elseif ($url[2] === 'detail' && isset($url[3]) && method_exists($this->controller, 'detail')) {
                                     // Ruta: /panel/attendance/detail/2025-10-16
                                     $this->method = 'detail';

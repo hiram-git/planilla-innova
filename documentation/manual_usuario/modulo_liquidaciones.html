@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liquidaciones - INNOVA Planillas 3.5.6</title>
+    <title>Liquidaciones - INNOVA Planillas 3.5.22</title>
     <style>
         :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
         *{box-sizing:border-box;}
@@ -17,65 +17,83 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <div class=”header”>
             <h1>Liquidaciones</h1>
-            <p>Cálculo por motivo, aprobación y planilla de liquidación.</p>
+            <p>Cálculo por motivo, aprobación y planilla de liquidación · v3.5.22</p>
         </div>
 
-        <div class="card">
+        <div class=”card”>
+            <h2>Novedades v3.5.22</h2>
+            <ul>
+                <li><strong>Rutas separadas:</strong> CRUD en <code>/liquidation/*</code> y reportes en <code>/liquidation-reports/*</code> (principio de responsabilidad única).</li>
+                <li><strong>Cálculo LIQ007 mejorado:</strong> ajuste de rangos de fechas + totales mensuales precisos + logging detallado para auditoría.</li>
+                <li><strong>Acumulados por tipo:</strong> método <em>getAccumulatedTypesForLiquidation()</em> que consolida XIII mes y otros acumulados automáticamente.</li>
+                <li><strong>Totales mensuales:</strong> método <em>getMonthlyTotalsForLiquidation()</em> para calcular base mensual exacta por período.</li>
+                <li><strong>Visualización:</strong> singular/plural dinámico (“1 año” / “2 años”, “1 día” / “2 días”) en la vista de detalle.</li>
+            </ul>
+        </div>
+
+        <div class=”card”>
             <h2>1. Requisitos</h2>
             <ul>
                 <li>Empleado activo con datos completos (fecha de ingreso, salario, situación).</li>
                 <li>Motivo definido y fecha de terminación.</li>
                 <li>Frecuencia “LIQUIDACION” creada/activa para planillas de liquidación.</li>
+                <li>Acumulados del empleado actualizados (XIII mes, vacaciones) para cálculos proporcionales precisos.</li>
             </ul>
         </div>
 
-        <div class="card">
+        <div class=”card”>
             <h2>2. Crear liquidación</h2>
             <ol>
-                <li>Ir a <strong>Liquidaciones</strong> y elegir <em>Crear</em>.</li>
-                <li>Seleccione empleado y fecha de terminación.</li>
-                <li>Elija motivo: renuncia, despido justificado/injustificado, jubilación, mutuo acuerdo.</li>
+                <li>Ir a <strong>Liquidaciones → Crear</strong>.</li>
+                <li>Seleccione el empleado y la fecha de terminación.</li>
+                <li>Elija el motivo: renuncia, despido justificado/injustificado, jubilación, mutuo acuerdo.</li>
                 <li>El sistema calcula automáticamente:
                     <ul>
                         <li>Prima de antigüedad.</li>
                         <li>Indemnización (según causa).</li>
                         <li>Preaviso.</li>
-                        <li>XIII mes proporcional.</li>
-                        <li>Vacaciones pendientes/proporcionales.</li>
+                        <li>XIII mes proporcional (concepto LIQ007 con totales mensuales precisos).</li>
+                        <li>Vacaciones pendientes y proporcionales.</li>
                     </ul>
                 </li>
-                <li>Revise los valores y guarde.</li>
+                <li>Revise los valores calculados y guarde.</li>
             </ol>
         </div>
 
-        <div class="card">
+        <div class=”card”>
             <h2>3. Planilla de liquidación</h2>
             <ul>
                 <li>Las liquidaciones pueden generar una planilla dedicada con frecuencia de liquidación.</li>
-                <li>Se procesa y cierra igual que las planillas regulares, con sus reportes.</li>
+                <li>Se procesa y cierra igual que las planillas regulares, con sus reportes PDF y Excel.</li>
+                <li>Al generar la planilla se asocian automáticamente los acumulados del empleado.</li>
             </ul>
         </div>
 
-        <div class="card">
-            <h2>4. Reportes</h2>
+        <div class=”card”>
+            <h2>4. Reportes (sección separada)</h2>
+            <p>Los reportes se encuentran en <strong>Liquidaciones → Reportes</strong> (ruta <code>/liquidation-reports/</code>):</p>
             <ul>
-                <li>Certificado de liquidación PDF (detallado con cálculos).</li>
-                <li>Comprobante de pago para el empleado.</li>
+                <li>Certificado de liquidación PDF con cálculos detallados.</li>
+                <li>Comprobante de pago para el empleado (firma y sello).</li>
                 <li>Reporte contable para registros financieros.</li>
+                <li>Exportación Excel para análisis adicional.</li>
             </ul>
         </div>
 
-        <div class="card">
+        <div class=”card”>
             <h2>5. Checklist</h2>
             <ul>
                 <li>Fecha de terminación correcta y motivo seleccionado.</li>
                 <li>Salario y antigüedad revisados antes de aprobar.</li>
+                <li>Verificar que los acumulados XIII mes estén actualizados para LIQ007.</li>
                 <li>Exportar/reportar tras aprobar para firma y archivo.</li>
                 <li>Si corresponde, crear la planilla de liquidación y procesarla.</li>
             </ul>
         </div>
+
+        <p style=”text-align:right;color:#6b7280;font-size:13px;”><a href=”manual_usuario.html”>&larr; Volver al índice</a></p>
     </div>
 </body>
 </html>

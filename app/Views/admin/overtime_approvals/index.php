@@ -183,7 +183,7 @@
                 <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                 <input type="hidden" name="calculation_id" id="approve_calculation_id">
                 <div class="modal-body">
-                    <div id="approve_summary" class="alert alert-info"></div>
+                    <div id="approve_summary" class="callout callout-info"></div>
                     <div class="form-group">
                         <label>Notas (opcional)</label>
                         <textarea class="form-control" name="notes" rows="3" placeholder="Comentarios adicionales..."></textarea>
@@ -295,7 +295,18 @@ $(document).ready(function() {
             { data: "employee_code" },
             { data: "employee_name" },
             { data: "schedule_name" },
-            { data: "date" },
+            {
+                data: "date",
+                type: "date",
+                render: function(data, type, row) {
+                    // Para ordenamiento, usar date_sort (YYYY-MM-DD)
+                    // Para mostrar, usar date (dd/mm/yyyy)
+                    if (type === 'sort' || type === 'type') {
+                        return row.date_sort;
+                    }
+                    return data;
+                }
+            },
             { data: "time_in" },
             { data: "time_out" },
             { data: "regular_hours", className: "text-right" },
@@ -442,8 +453,7 @@ $(document).ready(function() {
         $("#approve_summary").html(`
             <strong>Empleado:</strong> ${employee}<br>
             <strong>Fecha:</strong> ${date}<br>
-            <strong>Horas Extras:</strong> ${hours}<br>
-            <strong>Monto:</strong> $${amount}
+            <strong>Horas Extras:</strong> ${hours}
         `);
 
         $("#approveModal").modal("show");

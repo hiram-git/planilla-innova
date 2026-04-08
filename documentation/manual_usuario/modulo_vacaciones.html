@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vacaciones - INNOVA Planillas 3.5.6</title>
+    <title>Vacaciones - INNOVA Planillas 3.5.22</title>
     <style>
         :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
         *{box-sizing:border-box;}
@@ -19,52 +19,81 @@
     <div class="container">
         <div class="header">
             <h1>Vacaciones</h1>
-            <p>Balances, solicitudes, calendario y reportes.</p>
+            <p>Balances, solicitudes, planilla, calendario y reportes · v3.5.22</p>
+        </div>
+
+        <div class="card">
+            <h2>Novedades v3.5.22</h2>
+            <ul>
+                <li><strong>Días de disfrute editables:</strong> desde la lista de solicitudes aprobadas puede ajustarse la cantidad de días de disfrute sin necesidad de crear una nueva solicitud.</li>
+                <li><strong>Revertir planilla de vacaciones:</strong> nueva acción <em>Revertir Planilla</em> disponible en solicitudes aprobadas, permite deshacer la planilla generada si hubo un error, sin afectar la solicitud.</li>
+                <li><strong>Vista de creación simplificada:</strong> se ocultaron los campos "Valor Día" y "Monto Compensación" para evitar confusión; el sistema los calcula internamente.</li>
+                <li><strong>Singular/plural dinámico:</strong> la vista muestra "1 año" / "2 años" y "1 día" / "2 días" según corresponda.</li>
+            </ul>
         </div>
 
         <div class="card">
             <h2>1. Requisitos previos</h2>
             <ul>
                 <li>Empleados activos con fecha de ingreso registrada.</li>
-                <li>Calendario empresarial cargado (feriados/días especiales) para validaciones futuras.</li>
-                <li>Opcional: tipo de planilla para filtrar balances.</li>
+                <li>Calendario empresarial cargado (feriados/días especiales) para validaciones.</li>
+                <li>Tipo de planilla configurado si se desea generar planilla de vacaciones automáticamente.</li>
             </ul>
         </div>
 
         <div class="card">
             <h2>2. Consultar balances</h2>
             <ul>
-                <li>Vista principal muestra saldo de días, días trabajados y situación laboral.</li>
-                <li>Incluye cargo/posición y meses trabajados para referencia.</li>
+                <li>La vista principal muestra saldo de días disponibles, días trabajados y situación laboral.</li>
+                <li>Incluye cargo/posición, meses trabajados y antigüedad calculada.</li>
+                <li>Puede filtrarse por tipo de planilla para ver solo empleados de un grupo.</li>
             </ul>
         </div>
 
         <div class="card">
-            <h2>3. Solicitudes</h2>
+            <h2>3. Crear solicitud</h2>
             <ol>
-                <li>Seleccione empleado y defina fechas de inicio/fin.</li>
-                <li>Indique tipo de vacaciones (ANNUAL o COMPENSATION) y días solicitados.</li>
-                <li>Estado del flujo: PENDIENTE → APPROVED o REJECTED.</li>
-                <li>Se registra request_date para filtros y reportes.</li>
+                <li>Ir a <strong>Vacaciones → Nueva Solicitud</strong>.</li>
+                <li>Seleccione el empleado (con búsqueda Select2).</li>
+                <li>Defina las fechas de inicio y fin del período de disfrute.</li>
+                <li>Seleccione el tipo: <strong>ANNUAL</strong> (vacaciones anuales acumuladas) o <strong>COMPENSATION</strong> (compensación por días).</li>
+                <li>Ingrese los días solicitados y días de pago (por defecto igual a los días solicitados).</li>
+                <li>El sistema valida que haya saldo suficiente y guarda la solicitud en estado <strong>PENDIENTE</strong>.</li>
+            </ol>
+            <p><em>Nota: Los campos Valor Día y Monto Compensación son calculados automáticamente; no aparecen en el formulario de creación.</em></p>
+        </div>
+
+        <div class="card">
+            <h2>4. Flujo de aprobación</h2>
+            <ol>
+                <li>Estado inicial: <strong>PENDIENTE</strong>.</li>
+                <li>El responsable revisa y elige <strong>Aprobar</strong> o <strong>Rechazar</strong>.</li>
+                <li>Al aprobar, el sistema puede generar automáticamente una planilla de vacaciones.</li>
+                <li>Si se aprueba con error, usar <strong>Revertir Planilla</strong> para deshacer la planilla sin eliminar la solicitud.</li>
+                <li>Si los días de disfrute cambian después de aprobado, usar <strong>Editar Días de Disfrute</strong>.</li>
             </ol>
         </div>
 
         <div class="card">
-            <h2>4. Calendario y reportes</h2>
+            <h2>5. Calendario y reportes</h2>
             <ul>
-                <li><strong>Calendario:</strong> vista de vacaciones aprobadas; filtrable por año.</li>
-                <li><strong>Reportes:</strong> filtros por empleado, estado, tipo y fecha/rango de solicitud; límite de registros para rendimiento.</li>
+                <li><strong>Calendario:</strong> visualiza las vacaciones aprobadas por mes/año con FullCalendar.</li>
+                <li><strong>Reportes PDF:</strong> filtros por empleado, estado, tipo y rango de fechas; exporta certificado individual o listado.</li>
+                <li><strong>Reporte de saldos:</strong> listado completo de balances disponibles por empleado.</li>
             </ul>
         </div>
 
         <div class="card">
-            <h2>5. Buenas prácticas</h2>
+            <h2>6. Buenas prácticas</h2>
             <ul>
-                <li>Validar saldo antes de aprobar; documentar comentarios si se rechaza.</li>
-                <li>Usar el calendario empresarial para evitar solapes en feriados y fines de semana si aplica.</li>
-                <li>Exportar reportes periódicamente para control de ausentismo.</li>
+                <li>Validar saldo disponible antes de aprobar; documentar comentario si se rechaza.</li>
+                <li>Usar el calendario empresarial para evitar solapamiento con feriados nacionales.</li>
+                <li>Si se genera una planilla de vacaciones por error, usar "Revertir Planilla" antes de crear una corrección.</li>
+                <li>Exportar el reporte de saldos periódicamente para control de ausentismo y planificación.</li>
             </ul>
         </div>
+
+        <p style="text-align:right;color:#6b7280;font-size:13px;"><a href="manual_usuario.html">&larr; Volver al índice</a></p>
     </div>
 </body>
 </html>

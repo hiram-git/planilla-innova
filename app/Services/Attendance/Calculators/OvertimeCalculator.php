@@ -60,6 +60,119 @@ class OvertimeCalculator
     }
 
     /**
+     * Calcular horas extras con clasificación diurna/nocturna según legislación panameña.
+     *
+     * Art. 38: Horas en jornada nocturna (18:00–06:00) llevan recargo 50%.
+     * Art. 39: Primeras 3h extras diurnas al 25%, siguientes al 50%.
+     *
+     * Las horas extras nocturnas van directo al 50% (Art. 38 prevalece).
+     * Las horas extras diurnas siguen la regla de las 3h del Art. 39.
+     *
+     * @param string $timeIn  Hora de entrada (HH:MM:SS o YYYY-MM-DD HH:MM:SS)
+     * @param string $timeOut Hora de salida
+     * @param string $date    Fecha base (Y-m-d)
+     * @param float  $regularHours Horas regulares esperadas
+     * @param int    $lunchMinutes Minutos de almuerzo descontados
+     * @return array ['total_overtime', 'overtime_25', 'overtime_50']
+     */
+    public function calculateOvertimeWithNightSplit(
+        string $timeIn,
+        string $timeOut,
+        string $date,
+        float $regularHours = self::REGULAR_DAILY_HOURS,
+        int $lunchMinutes = 60
+    ): array {
+        if (empty($timeIn) || empty($timeOut)) {
+            return ['total_overtime' => 0, 'overtime_25' => 0, 'overtime_50' => 0];
+        }
+
+        $start = $this->toDateTimeWithBase($timeIn, $date);
+        $end   = $this->toDateTimeWithBase($timeOut, $date);
+
+        if ($end < $start) {
+            $end->modify('+1 day');
+        }
+
+        // Determinar el punto de inicio de las horas extras (después de las horas regulares)
+        $totalMinutes = ($start->diff($end)->days * 24 * 60)
+                      + ($start->diff($end)->h * 60)
+                      + $start->diff($end)->i;
+
+        // Descontar almuerzo si aplica
+        if ($totalMinutes > 240) {
+            $totalMinutes -= $lunchMinutes;
+        }
+
+        $totalHours   = $totalMinutes / 60;
+        $overtimeHours = max(0, $totalHours - $regularHours);
+
+        if ($overtimeHours <= 0) {
+            return ['total_overtime' => 0, 'overtime_25' => 0, 'overtime_50' => 0];
+        }
+
+        // El bloque de horas extras empieza al finalizar las horas regulares
+        $overtimeStart = (clone $start)->modify("+{$regularHours} hours");
+
+        // Si hubo almuerzo (totalMinutes > 240), adelantar overtimeStart en lunchMinutes
+        // para que refleje el tiempo real trabajado
+        if ($totalMinutes + $lunchMinutes > 240) {
+            $overtimeStart->modify("+{$lunchMinutes} minutes");
+        }
+
+        // Calcular cuántas de las horas extras caen en ventana nocturna (18:00–06:00)
+        $nightOvertimeHours = $this->calculateNightHoursInRange($overtimeStart, $end);
+        $dayOvertimeHours   = max(0, $overtimeHours - $nightOvertimeHours);
+
+        // Las extras nocturnas van al 50% (Art. 38)
+        $overtime50 = $nightOvertimeHours;
+
+        // Las extras diurnas: primeras 3h al 25%, resto al 50% (Art. 39)
+        $overtime25 = min($dayOvertimeHours, self::OVERTIME_25_LIMIT);
+        $overtime50 += max(0, $dayOvertimeHours - self::OVERTIME_25_LIMIT);
+
+        return [
+            'total_overtime' => round($overtimeHours, 2),
+            'overtime_25'    => round($overtime25, 2),
+            'overtime_50'    => round($overtime50, 2),
+        ];
+    }
+
+    /**
+     * Calcular horas nocturnas (18:00–06:00) dentro de un rango DateTime.
+     *
+     * @param DateTime $start
+     * @param DateTime $end
+     * @return float
+     */
+    private function calculateNightHoursInRange(DateTime $start, DateTime $end): float
+    {
+        $nightHours = 0;
+        $current    = clone $start;
+
+        while ($current < $end) {
+            $hour = (int)$current->format('H');
+
+            if ($hour >= self::NIGHT_SHIFT_START || $hour < self::NIGHT_SHIFT_END) {
+                $nextHour = clone $current;
+                $nextHour->modify('+1 hour');
+                $nextHour->setTime((int)$nextHour->format('H'), 0, 0);
+
+                if ($nextHour > $end) {
+                    $nextHour = $end;
+                }
+
+                $interval   = $current->diff($nextHour);
+                $minutes    = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i + ($interval->s / 60);
+                $nightHours += $minutes / 60;
+            }
+
+            $current->modify('+1 hour');
+        }
+
+        return round($nightHours, 2);
+    }
+
+    /**
      * Calcular horas nocturnas trabajadas (6PM - 6AM)
      * Código de Trabajo Art. 38: jornada nocturna con recargo 50%
      *
@@ -220,10 +333,22 @@ class OvertimeCalculator
             ];
         }
 
-        // Día normal: calcular horas regulares y extras
+        // Día normal: calcular horas regulares y extras con clasificación diurna/nocturna
         $actualRegularHours = min($totalHours, $regularHours);
-        $overtime = $this->calculateOvertime($totalHours, $regularHours);
-        $nightHours = $this->calculateNightHours($timeIn, $timeOut);
+
+        // Usar clasificación nocturna para horas extras (Art. 38 + Art. 39)
+        $overtime = $this->calculateOvertimeWithNightSplit(
+            $timeIn,
+            $timeOut,
+            $date,
+            $regularHours,
+            $lunchMinutes
+        );
+
+        // Las horas nocturnas dentro de la jornada regular (no extras) se mantienen
+        $allNightHours = $this->calculateNightHours($timeIn, $timeOut);
+        // Descontar las extras nocturnas (ya clasificadas en overtime_50) para no duplicar
+        $regularNightHours = max(0, $allNightHours - ($overtime['overtime_50'] ?? 0));
 
         return [
             'total_hours' => $totalHours,
@@ -231,7 +356,7 @@ class OvertimeCalculator
             'overtime_hours' => $overtime['total_overtime'],
             'overtime_25_hours' => $overtime['overtime_25'],
             'overtime_50_hours' => $overtime['overtime_50'],
-            'night_hours' => $nightHours,
+            'night_hours' => $regularNightHours,
             'holiday_hours' => 0,
             'is_holiday' => false,
             'day_type' => $holidayStatus['day_type']

@@ -193,6 +193,107 @@ class OvertimeApproval extends Model
     }
 
     /**
+     * Verificar si existe overtime con horas calculadas para un empleado en una fecha específica.
+     *
+     * Fuente de verdad: attendance_calculations (overtime_status APPROVED o PENDING).
+     * Si no hay registro ahí, se revisa overtime_approvals como fallback.
+     *
+     * @param int    $employeeId
+     * @param string $date  (Y-m-d)
+     * @return array ['has_approved', 'overtime_status', 'total_overtime_25', 'total_overtime_50', 'total_hours']
+     */
+    public function getApprovedOvertimeHoursForDate(int $employeeId, string $date): array
+    {
+        $empty = [
+            'has_approved'      => false,
+            'overtime_status'   => null,
+            'total_overtime_25' => 0,
+            'total_overtime_50' => 0,
+            'total_hours'       => 0,
+        ];
+
+        try {
+            // Fuente primaria: attendance_calculations
+            $sql = "SELECT overtime_25_hours, overtime_50_hours,
+                           (overtime_25_hours + overtime_50_hours) AS total_hours,
+                           overtime_status
+                    FROM attendance_calculations
+                    WHERE employee_id = ?
+                      AND date = ?
+                      AND (overtime_25_hours > 0 OR overtime_50_hours > 0)
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $date]);
+            $calc = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($calc) {
+                return [
+                    'has_approved'      => true,
+                    'overtime_status'   => $calc['overtime_status'],
+                    'total_overtime_25' => (float)$calc['overtime_25_hours'],
+                    'total_overtime_50' => (float)$calc['overtime_50_hours'],
+                    'total_hours'       => (float)$calc['total_hours'],
+                ];
+            }
+
+            // Fallback: overtime_approvals
+            $sql2 = "SELECT total_overtime_25, total_overtime_50, total_hours, status
+                     FROM {$this->table}
+                     WHERE employee_id = ?
+                       AND period_start = ?
+                       AND period_end   = ?
+                     LIMIT 1";
+
+            $stmt2 = $this->db->prepare($sql2);
+            $stmt2->execute([$employeeId, $date, $date]);
+            $approval = $stmt2->fetch(\PDO::FETCH_ASSOC);
+
+            if ($approval) {
+                return [
+                    'has_approved'      => true,
+                    'overtime_status'   => $approval['status'],
+                    'total_overtime_25' => (float)$approval['total_overtime_25'],
+                    'total_overtime_50' => (float)$approval['total_overtime_50'],
+                    'total_hours'       => (float)$approval['total_hours'],
+                ];
+            }
+
+            return $empty;
+
+        } catch (PDOException $e) {
+            error_log("Error verificando overtime aprobado: " . $e->getMessage());
+            return $empty;
+        }
+    }
+
+    /**
+     * Eliminar solicitudes de horas extras de un empleado para una fecha específica.
+     * Se llama en cascada cuando se elimina una marcación del día.
+     *
+     * @param int    $employeeId ID del empleado
+     * @param string $date       Fecha del día (Y-m-d)
+     * @return int   Filas eliminadas
+     */
+    public function deleteByEmployeeAndDate(int $employeeId, string $date): int
+    {
+        try {
+            $sql = "DELETE FROM {$this->table}
+                    WHERE employee_id = ?
+                      AND period_start = ?
+                      AND period_end = ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$employeeId, $date, $date]);
+            return $stmt->rowCount();
+
+        } catch (PDOException $e) {
+            error_log("Error eliminando overtime_approvals por empleado/fecha: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Obtener solicitudes por estado
      *
      * @param string $status Estado de la solicitud

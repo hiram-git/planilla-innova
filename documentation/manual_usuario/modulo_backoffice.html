@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Backoffice - INNOVA Planillas 3.5.22</title>
+    <style>
+        :root { --primary:#0f4c5c; --bg:#f5f7fb; --text:#1f2933; }
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+        .container{max-width:1000px;margin:0 auto;padding:20px;}
+        .header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:24px;border-radius:10px;}
+        h1{margin:0 0 6px 0;} h2{color:var(--primary);margin-top:22px;}
+        .card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px;margin:14px 0;box-shadow:0 6px 14px rgba(0,0,0,0.04);}
+        ul,ol{padding-left:20px;margin:8px 0;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;}
+        th{background:var(--primary);color:#fff;padding:8px 10px;text-align:left;}
+        td{padding:7px 10px;border-bottom:1px solid #e4e7ec;}
+        tr:nth-child(even) td{background:#f9fafb;}
+        code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-size:13px;}
+        .alert-warning{background:#fff8e1;border-left:4px solid #ffc107;padding:12px 16px;border-radius:4px;margin:10px 0;}
+        .alert-info{background:#e7f3ff;border-left:4px solid #0b7285;padding:12px 16px;border-radius:4px;margin:10px 0;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Panel Backoffice</h1>
+            <p>Administración multi-tenant: gestión de empresas, configuración y monitoreo del sistema · v3.5.22</p>
+        </div>
+
+        <div class="card">
+            <h2>Descripción general</h2>
+            <div class="alert-info">
+                El Panel Backoffice es el acceso de administración del sistema multi-tenant de INNOVA Planillas. Desde aquí, el Super Administrador puede gestionar todas las empresas (tenants) registradas en la plataforma, configurar sus parámetros, monitorear el estado del sistema y realizar operaciones administrativas que no están disponibles dentro del panel de cada empresa individual.
+            </div>
+            <div class="alert-warning">
+                <strong>Acceso restringido:</strong> este panel es exclusivo para usuarios con rol <strong>Super Administrador</strong> (<code>is_system_admin = true</code>). Los administradores de empresa normales no tienen acceso a estas funciones.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>1. Acceso al Backoffice</h2>
+            <ol>
+                <li>Ingresar a la URL del backoffice: <code>/backoffice/login</code>.</li>
+                <li>Autenticarse con las credenciales de Super Administrador (son independientes de los usuarios de cada empresa).</li>
+                <li>Al ingresar correctamente se redirige al <strong>Dashboard del Backoffice</strong>.</li>
+            </ol>
+            <p><em>El login del backoffice es diferente al login del panel de empresa (<code>/login</code>). No comparten sesión.</em></p>
+        </div>
+
+        <div class="card">
+            <h2>2. Dashboard del Backoffice</h2>
+            <p>La pantalla principal muestra un resumen del estado del sistema:</p>
+            <ul>
+                <li>Total de empresas (tenants) registradas.</li>
+                <li>Empresas activas vs. inactivas.</li>
+                <li>Últimos accesos por empresa.</li>
+                <li>Alertas del sistema o errores detectados.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>3. Gestión de empresas (Tenants)</h2>
+            <p>Desde el backoffice puede administrar cada empresa registrada:</p>
+            <table>
+                <thead><tr><th>Acción</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>Ver listado</td><td>Tabla con todas las empresas: nombre, subdominio, estado, base de datos asignada.</td></tr>
+                    <tr><td>Crear empresa</td><td>Wizard para registrar nueva empresa: datos, dominio, tipo de BD (MySQL/PostgreSQL), credenciales.</td></tr>
+                    <tr><td>Editar empresa</td><td>Modificar parámetros de conexión, logo, nombre comercial y estado.</td></tr>
+                    <tr><td>Activar / Desactivar</td><td>Suspender o reactivar el acceso de una empresa sin eliminar sus datos.</td></tr>
+                    <tr><td>Migraciones</td><td>Ejecutar migraciones pendientes en la base de datos del tenant.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>4. Wizard de creación de empresa</h2>
+            <p>Al crear una nueva empresa el sistema guía al administrador paso a paso:</p>
+            <ol>
+                <li><strong>Datos de la empresa:</strong> nombre legal, nombre comercial, RUC/identificador fiscal, país.</li>
+                <li><strong>Configuración de acceso:</strong> subdominio o identificador único, logo de la empresa.</li>
+                <li><strong>Base de datos:</strong> seleccionar MySQL o PostgreSQL, ingresar credenciales de conexión y nombre de la base de datos.</li>
+                <li><strong>Usuario administrador:</strong> crear el primer usuario administrador de la empresa (email y contraseña inicial).</li>
+                <li><strong>Confirmación:</strong> el sistema prueba la conexión y ejecuta las migraciones iniciales automáticamente.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>5. Soporte multi-base de datos</h2>
+            <p>INNOVA Planillas soporta dos motores de base de datos por tenant:</p>
+            <table>
+                <thead><tr><th>Motor</th><th>Cuándo usarlo</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>MySQL</strong></td><td>Instalaciones estándar en Laragon, XAMPP o servidores Linux con MySQL/MariaDB.</td></tr>
+                    <tr><td><strong>PostgreSQL</strong></td><td>Empresas que requieren PostgreSQL por política interna o por integración con otros sistemas.</td></tr>
+                </tbody>
+            </table>
+            <p>La configuración de conexión se guarda por tenant y el sistema resuelve automáticamente qué adaptador usar en cada solicitud.</p>
+        </div>
+
+        <div class="card">
+            <h2>6. Gestión de Super Administradores</h2>
+            <ul>
+                <li>Los Super Administradores se identifican por el flag <code>is_system_admin = true</code> en la tabla de usuarios del sistema central.</li>
+                <li>Tienen acceso a todas las empresas registradas.</li>
+                <li>Pueden impersonar (entrar como) cualquier empresa para diagnóstico o soporte técnico.</li>
+                <li>Las acciones del Super Admin quedan registradas en el log del sistema para auditoría.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>7. Migraciones multi-tenant</h2>
+            <p>Cuando se lanza una actualización del sistema que incluye cambios en la base de datos:</p>
+            <ol>
+                <li>El Super Admin accede a <strong>Backoffice → Migraciones</strong>.</li>
+                <li>Se muestra la lista de tenants con el estado de migraciones pendientes.</li>
+                <li>Puede ejecutar la migración en un tenant individual o en todos a la vez.</li>
+                <li>El resultado de cada migración (éxito/error) se muestra en pantalla y se guarda en el log.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>8. Resolución de problemas frecuentes</h2>
+            <table>
+                <thead><tr><th>Problema</th><th>Solución</th></tr></thead>
+                <tbody>
+                    <tr><td>Empresa no puede iniciar sesión</td><td>Verificar que el tenant esté activo y que las credenciales de BD sean correctas desde el backoffice.</td></tr>
+                    <tr><td>Error de conexión a BD del tenant</td><td>Editar el tenant y verificar host, puerto, nombre de BD, usuario y contraseña. Usar el botón "Probar Conexión".</td></tr>
+                    <tr><td>Migraciones pendientes</td><td>Ejecutar las migraciones desde Backoffice → Migraciones para ese tenant específico.</td></tr>
+                    <tr><td>Super Admin no puede acceder</td><td>Verificar que el usuario tenga <code>is_system_admin = true</code> en la base de datos central del sistema.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>9. Checklist de operación</h2>
+            <ul>
+                <li>Al crear una empresa nueva, verificar que la conexión a su BD sea exitosa antes de finalizar el wizard.</li>
+                <li>Ejecutar migraciones pendientes antes de notificar al cliente que puede acceder tras una actualización.</li>
+                <li>Nunca compartir las credenciales de Super Admin con administradores de empresa.</li>
+                <li>Revisar periódicamente el log de accesos del backoffice para detectar accesos no autorizados.</li>
+            </ul>
+        </div>
+
+        <p style="text-align:right;color:#6b7280;font-size:13px;"><a href="manual_usuario.html">&larr; Volver al índice</a></p>
+    </div>
+</body>
+</html>

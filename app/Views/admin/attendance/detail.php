@@ -916,35 +916,80 @@ $(document).ready(function() {
     $(document).on('click', '.btn-delete-detail', function() {
         const detailId = $(this).data('id');
 
-        Swal.fire({
-            title: '¿Está seguro?',
-            text: '¿Desea eliminar esta marcación?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: `${baseUrl}/panel/attendance/detail/${detailId}/delete`,
-                    method: 'POST',
-                    data: {
-                        csrf_token: '<?= $csrf_token ?? '' ?>'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            toastr.success(response.message);
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            toastr.error(response.message);
-                        }
-                    },
-                    error: function() {
-                        toastr.error('Error al eliminar marcación');
+        function ejecutarDelete() {
+            $.ajax({
+                url: `${baseUrl}/panel/attendance/detail/${detailId}/delete`,
+                method: 'POST',
+                data: { csrf_token: '<?= $csrf_token ?? '' ?>' },
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        toastr.error(response.message);
                     }
-                });
+                },
+                error: function() {
+                    toastr.error('Error al eliminar marcación');
+                }
+            });
+        }
+
+        // Verificar silenciosamente si hay horas extras aprobadas
+        $.ajax({
+            url: `${baseUrl}/panel/attendance/detail/${detailId}/check-overtime`,
+            method: 'GET',
+            success: function(check) {
+                if (!check.success) {
+                    toastr.error(check.message || 'Error al verificar horas extras');
+                    return;
+                }
+
+                if (check.has_approved) {
+                    // Tiene horas extras → título y advertencia según el status
+                    const statusLabels = {
+                        'APPROVED': 'aprobadas',
+                        'PENDING':  'pendientes de aprobación',
+                        'REJECTED': 'rechazadas',
+                    };
+                    const statusLabel = statusLabels[check.overtime_status] || 'calculadas';
+
+                    Swal.fire({
+                        title: '⚠️ Horas extras ' + statusLabel,
+                        html: `<p>La marcación tiene <strong>horas ${statusLabel}</strong>:</p>
+                               <ul class="text-left mt-2">
+                                   <li>Horas al 25%: <strong>${parseFloat(check.overtime_25).toFixed(2)}h</strong></li>
+                                   <li>Horas al 50%: <strong>${parseFloat(check.overtime_50).toFixed(2)}h</strong></li>
+                                   <li>Total: <strong>${parseFloat(check.total_hours).toFixed(2)}h</strong></li>
+                               </ul>
+                               <p class="mt-2 text-danger">Al eliminar la marcación, también se eliminarán estas horas extras.</p>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Sí, eliminar todo',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) ejecutarDelete();
+                    });
+                } else {
+                    // Sin horas aprobadas → confirmación simple
+                    Swal.fire({
+                        title: '¿Está seguro?',
+                        text: '¿Desea eliminar esta marcación?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) ejecutarDelete();
+                    });
+                }
+            },
+            error: function() {
+                toastr.error('Error al verificar horas extras');
             }
         });
     });
