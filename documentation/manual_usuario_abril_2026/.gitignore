@@ -1,0 +1,15 @@
+build/
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.idx
+*.ilg
+*.ind
+node_modules/
+.DS_Store
+Thumbs.db

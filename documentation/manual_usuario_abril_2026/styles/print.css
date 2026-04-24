@@ -1,0 +1,182 @@
+/* ============================================================================
+   Manual de Usuario INNOVA Planillas - Hoja de estilos print-friendly
+   Compatible con CSS Paged Media Level 3 (WeasyPrint / PrinceXML).
+   También legible en navegadores modernos.
+   ============================================================================ */
+
+/* --- Variables corporativas --------------------------------------------- */
+:root {
+  --primary: #0f4c5c;
+  --accent:  #3fb8af;
+  --bg:      #f5f7fb;
+  --text:    #1f2933;
+  --muted:   #6b7280;
+  --border:  #e4e7ec;
+}
+
+/* --- Configuración de página (WeasyPrint / Prince) ---------------------- */
+@page {
+  size: A4;
+  margin: 2.5cm 2.5cm 2cm 2.5cm;
+
+  @top-left   { content: string(chapter-title); font: 9pt "Source Sans Pro", sans-serif; color: var(--muted); }
+  @top-right  { content: "v3.5.22"; font: 9pt "Source Sans Pro", sans-serif; color: var(--muted); }
+  @bottom-left   { content: "INNOVA Planillas"; font: 9pt sans-serif; color: var(--muted); }
+  @bottom-center { content: "Abril 2026"; font: 9pt sans-serif; color: var(--muted); }
+  @bottom-right  { content: "Pág. " counter(page) " de " counter(pages); font: 9pt sans-serif; color: var(--muted); }
+}
+
+@page :first {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+/* --- Tipografía base ---------------------------------------------------- */
+body {
+  font-family: "Source Serif Pro", Georgia, serif;
+  font-size: 11pt;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: "Source Sans Pro", "Segoe UI", sans-serif;
+  color: var(--primary);
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+h1 {
+  font-size: 26pt;
+  margin-top: 0;
+  page-break-before: always;
+  break-before: page;
+  string-set: chapter-title content();
+}
+
+h2 { font-size: 18pt; margin-top: 1.2em; }
+h3 { font-size: 14pt; margin-top: 1em; }
+h4 { font-size: 12pt; margin-top: 0.8em; }
+
+p { orphans: 3; widows: 3; }
+
+code, pre {
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 9.5pt;
+  background: var(--bg);
+  border-radius: 3px;
+}
+
+code { padding: 1px 4px; }
+
+pre {
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  page-break-inside: avoid;
+  break-inside: avoid;
+  overflow-x: auto;
+}
+
+/* --- Tablas ------------------------------------------------------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  font-size: 10pt;
+}
+
+th {
+  background: var(--primary);
+  color: white;
+  padding: 8px 10px;
+  text-align: left;
+  font-family: "Source Sans Pro", sans-serif;
+}
+
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:nth-child(even) td { background: #fafbfc; }
+
+/* --- Badges (procesados por filters/badges.lua) ------------------------- */
+.badge-new,
+.badge-warn,
+.badge-info {
+  display: block;
+  padding: 10px 14px;
+  margin: 12px 0;
+  border-left: 4px solid;
+  border-radius: 4px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.badge-new  { background: #e6f5f3; border-color: var(--accent); }
+.badge-warn { background: #fff8e1; border-color: #f59e0b; }
+.badge-info { background: #eef2ff; border-color: #4f46e5; }
+
+/* --- Portada ------------------------------------------------------------ */
+.cover {
+  page: cover;
+  background: linear-gradient(135deg, var(--primary), #14526a);
+  color: white;
+  padding: 5cm 3cm;
+  text-align: center;
+  min-height: 100vh;
+}
+
+.cover-logo { width: 120mm; margin-bottom: 2cm; }
+.cover-title { color: white; font-size: 36pt; margin: 0; }
+.cover-subtitle { font-size: 18pt; opacity: 0.9; }
+.cover-version { font-size: 14pt; margin-top: 2cm; }
+.cover-author { font-size: 11pt; margin-top: 3cm; opacity: 0.85; }
+
+@page cover { margin: 0; }
+
+/* --- TOC ---------------------------------------------------------------- */
+nav#toc {
+  page-break-after: always;
+  break-after: page;
+}
+
+nav#toc h2 { color: var(--primary); }
+nav#toc ul { list-style: none; padding-left: 0; }
+nav#toc li { margin: 4px 0; }
+nav#toc a {
+  color: var(--text);
+  text-decoration: none;
+}
+nav#toc a::after {
+  content: leader('.') target-counter(attr(href url), page);
+  color: var(--muted);
+}
+
+/* --- Enlaces ------------------------------------------------------------ */
+a { color: var(--primary); text-decoration: underline; }
+a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 85%; color: var(--muted); }
+
+/* --- Figuras ------------------------------------------------------------ */
+figure { margin: 14px 0; text-align: center; page-break-inside: avoid; break-inside: avoid; }
+figure img { max-width: 100%; border: 1px solid var(--border); border-radius: 4px; }
+figcaption { font-size: 9.5pt; color: var(--muted); margin-top: 6px; }
+
+/* --- Footer en pantalla (no se imprime) --------------------------------- */
+footer {
+  text-align: center;
+  color: var(--muted);
+  padding: 24px;
+  font-size: 10pt;
+}
+
+@media print {
+  footer { display: none; }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="$lang$">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>$title$ - v$version$</title>
+  <meta name="author" content="$for(author)$$author$$sep$, $endfor$">
+  <meta name="description" content="$subtitle$">
+  $for(css)$
+  <link rel="stylesheet" href="$css$">
+  $endfor$
+</head>
+<body>
+
+<div class="cover">
+  $if(logo)$<img src="$logo$" alt="Logo INNOVA" class="cover-logo">$endif$
+  <h1 class="cover-title">$title$</h1>
+  <p class="cover-subtitle">$subtitle$</p>
+  <p class="cover-version">Versión $version$ — $date$</p>
+  <p class="cover-author">$for(author)$$author$$sep$, $endfor$</p>
+</div>
+
+$if(toc)$
+<nav id="toc" role="doc-toc">
+  <h2>Tabla de contenido</h2>
+  $table-of-contents$
+</nav>
+$endif$
+
+<main>
+  $body$
+</main>
+
+<footer>
+  INNOVA Planillas · Manual v$version$ · $date$
+</footer>
+
+</body>
+</html>
