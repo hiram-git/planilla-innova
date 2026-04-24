@@ -1,0 +1,117 @@
+---
+# ============================================================================
+# Manual de Usuario - INNOVA Planillas
+# Metadata central: todas las variables del documento se definen aquí.
+# Modificar este archivo propaga cambios al PDF y al HTML generados.
+# ============================================================================
+
+title: "Manual de Usuario"
+subtitle: "Sistema de Planillas INNOVA"
+version: "3.5.22"
+date: "Abril 2026"
+author:
+  - "Equipo INNOVA Planillas"
+lang: es
+keywords:
+  - planillas
+  - nómina
+  - recursos humanos
+  - Panamá
+  - INNOVA
+
+# ----------------------------------------------------------------------------
+# Opciones de documento (LaTeX / Pandoc)
+# ----------------------------------------------------------------------------
+documentclass: scrbook
+book: true
+has-frontmatter: false
+classoption:
+  - oneside
+  - 11pt
+  - openright
+geometry:
+  - a4paper
+  - margin=2.5cm
+  - top=2.2cm
+  - bottom=2.2cm
+  - headheight=14pt
+fontsize: 11pt
+mainfont: "Times New Roman"
+sansfont: "Arial"
+monofont: "Consolas"
+
+# ----------------------------------------------------------------------------
+# Estilos de tablas y cajas de advertencia (badges)
+# ----------------------------------------------------------------------------
+header-includes:
+  - \usepackage{array}
+  - \usepackage{longtable}
+  - \usepackage{ragged2e}
+  - \AtBeginEnvironment{longtable}{\footnotesize}
+  - \renewcommand{\arraystretch}{1.25}
+  - \usepackage{tcolorbox}
+  - \tcbuselibrary{skins,breakable}
+  - \definecolor{innovaPrimary}{HTML}{0f4c5c}
+  - \definecolor{innovaAccent}{HTML}{3fb8af}
+  - \newtcolorbox{badgenew}{colback=innovaAccent!12,colframe=innovaAccent,leftrule=4pt,arc=2pt,boxrule=0pt,left=8pt,right=8pt,top=4pt,bottom=4pt,breakable}
+  - \newtcolorbox{badgewarn}{colback=yellow!15,colframe=orange,leftrule=4pt,arc=2pt,boxrule=0pt,left=8pt,right=8pt,top=4pt,bottom=4pt,breakable}
+  - \newtcolorbox{badgeinfo}{colback=blue!8,colframe=blue!60,leftrule=4pt,arc=2pt,boxrule=0pt,left=8pt,right=8pt,top=4pt,bottom=4pt,breakable}
+
+# ----------------------------------------------------------------------------
+# Tabla de contenido y numeración
+# ----------------------------------------------------------------------------
+toc: true
+toc-depth: 3
+lof: false
+lot: false
+numbersections: true
+secnumdepth: 3
+top-level-division: chapter
+
+# ----------------------------------------------------------------------------
+# Links
+# ----------------------------------------------------------------------------
+links-as-notes: false
+colorlinks: true
+linkcolor: "black"
+urlcolor: "blue"
+toccolor: "black"
+
+# ----------------------------------------------------------------------------
+# Portada (plantilla eisvogel)
+# ----------------------------------------------------------------------------
+titlepage: true
+titlepage-color: "0f4c5c"
+titlepage-text-color: "ffffff"
+titlepage-rule-color: "3fb8af"
+titlepage-rule-height: 2
+logo: "assets/img/logo_innova.png"
+logo-width: 120mm
+
+# ----------------------------------------------------------------------------
+# Encabezado / pie de página
+# ----------------------------------------------------------------------------
+header-left: "\\leftmark"
+header-right: "v3.5.22"
+footer-left: "INNOVA Planillas"
+footer-center: "Abril 2026"
+footer-right: "Pág. \\thepage"
+
+# ----------------------------------------------------------------------------
+# Definiciones de color corporativo
+# ----------------------------------------------------------------------------
+colors:
+  primary: "0f4c5c"
+  accent:  "3fb8af"
+  bg:      "f5f7fb"
+  text:    "1f2933"
+
+# ----------------------------------------------------------------------------
+# Metadata de construcción (no afecta al PDF, útil para CI/CD y filtros Lua)
+# ----------------------------------------------------------------------------
+build:
+  source-system: "Sistema de Planillas MVC"
+  target-version: "3.5.22"
+  previous-manual: "../manual_usuario/manual_usuario.html"
+  generated-on: "2026-04-23"
+---

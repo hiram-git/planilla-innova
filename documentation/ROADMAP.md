@@ -698,21 +698,86 @@
 
 ### 🔌 **FASE 9: INTEGRACIONES EXTERNAS** *(Q2/Q3 2026 - Baja Prioridad)*
 **Objetivo**: Conectores bancarios y contables
-**Tiempo Estimado**: 8-10 semanas
-- [ ] **Subfase 9.1: Sistemas Bancarios** *(4-6 semanas)*
-  - [ ] API Banco General Panamá
-  - [ ] Transferencias ACH empleados
-  - [ ] Reconciliación automática pagos
-  - [ ] Archivos planos BAC/Banistmo
-- [ ] **Subfase 9.2: Sistemas Contables** *(3-4 semanas)*
-  - [ ] Connector SAP Business One
-  - [ ] QuickBooks Online API
-  - [ ] Export asientos contables automáticos
-  - [ ] Integración ERP empresariales
-- [ ] **Subfase 9.3: Conectores Gubernamentales** *(1-2 semanas)*
-  - [ ] API Ministerio de Trabajo
-  - [ ] Integración CSS Panamá
-  - [ ] Reportes automáticos DGI
+**Tiempo Estimado**: 10-14 semanas *(actualizado Abr-2026 tras expansión ACH Panamá)*
+
+#### **Subfase 9.1: Sistemas Bancarios Panamá** *(6-8 semanas)*
+
+> **Actualización 24-Abr-2026**: expansión de 4 a 26 items al mapear los
+> 7 bancos principales de Panamá con ACH de planilla. Cada banco tiene su
+> propio formato de archivo plano (fixed-width, CSV o XML), por lo que
+> cada uno es un entregable independiente reusable con una capa base común.
+
+- [ ] **9.1.0 Arquitectura base (pre-requisito)** *(1 semana)*
+  - [ ] `BankExportService` (interfaz/base en `app/Services/BankExports/`)
+  - [ ] `BankExporterInterface` con método `generateAchFile($payrollId, $bankConfig)`
+  - [ ] Tabla `bank_templates` con: banco, formato (CSV/FIXED/XML), especificación de columnas
+  - [ ] Tabla `bank_export_history` para trazabilidad
+  - [ ] `BankExportController` con tabla de planillas exportables por banco
+  - [ ] Permisos granulares: `bank_export.generate`, `bank_export.view_history`
+  - [ ] Validación: sólo planillas `PROCESADA` o `CERRADA`
+  - [ ] Pre-check: empleados con forma de pago `ACH` con banco, cuenta y tipo de cuenta
+
+- [ ] **9.1.1 Banco General** *(1 semana)* 🥇 *mayor volumen*
+  - [ ] Formato fixed-width ASCII
+  - [ ] Registro tipo 1: encabezado (empresa, cuenta origen, fecha proceso, total)
+  - [ ] Registro tipo 2: detalle por empleado (cuenta destino, tipo cuenta, monto, nombre)
+  - [ ] Registro tipo 3: totales de control
+  - [ ] Extensión `.txt`
+
+- [ ] **9.1.2 Banistmo** *(1 semana)*
+  - [ ] Formato CSV con delimitador `|`
+  - [ ] Cabecera con convenio empresa y fecha aplicación
+  - [ ] Validaciones: longitud cuenta, dígito verificador
+
+- [ ] **9.1.3 BAC Credomatic** *(3-4 días)*
+  - [ ] Formato fixed-width propio
+  - [ ] Archivo separado para planilla en USD vs. PAB
+
+- [ ] **9.1.4 Banco Nacional de Panamá (BNP)** *(3-4 días)* 🏛️ *entidades públicas*
+  - [ ] Formato específico entidades públicas y privadas con cuenta BNP
+  - [ ] Cabecera con RUC empresa y código de trámite
+
+- [ ] **9.1.5 Global Bank** *(3 días)*
+  - [ ] Formato CSV con encabezado definido
+  - [ ] Soporte para transferencias masivas ACH
+
+- [ ] **9.1.6 Credicorp Bank** *(3 días)*
+  - [ ] Formato propietario (revisar documentación banca empresarial)
+
+- [ ] **9.1.7 Caja de Ahorros** *(3 días)* 🏛️ *entidad estatal*
+  - [ ] Formato fixed-width para planilla funcionarios públicos
+
+- [ ] **9.1.8 API Banco General en línea** *(2-3 semanas)* — *alternativa avanzada*
+  - [ ] Autenticación OAuth2 con Banco General API
+  - [ ] Envío directo de lote ACH sin archivo intermedio
+  - [ ] Consulta de estado del lote (en proceso / aplicado / rechazado)
+  - [ ] Reintentos y manejo de errores de red
+
+- [ ] **9.1.9 Reconciliación y validación** *(1 semana)*
+  - [ ] Conciliación automática con archivo de retorno del banco
+  - [ ] Detección de pagos rechazados (cuenta cerrada, saldo insuficiente)
+  - [ ] Notificación email al admin de planilla si hay rechazos
+  - [ ] Reporte de conciliación por período
+
+#### **Subfase 9.2: Sistemas Contables** *(3-4 semanas)*
+
+- [x] ✅ **Export ERP INNOVA** — COMPLETADO en v3.5.20 (24-Feb-2026)
+  - [x] `InnovaExportService` (433 líneas, 15 métodos)
+  - [x] `InnovaExportController` (174 líneas, 4 métodos)
+  - [x] Vista `admin/innova_export/index.php` con DataTables
+  - [x] Formato fixed-width text (347 caracteres/línea)
+  - [x] 3 tipos de registro (Movimientos, Neto, Totales por área)
+  - [x] Validación: sólo planillas PROCESADAS/CERRADAS
+  - [x] 3 rutas REST registradas + menú en sidebar
+- [ ] Connector SAP Business One
+- [ ] QuickBooks Online API
+- [ ] Export asientos contables automáticos (genérico)
+- [ ] Integración ERP empresariales
+
+#### **Subfase 9.3: Conectores Gubernamentales** *(1-2 semanas)*
+- [ ] API Ministerio de Trabajo
+- [ ] Integración CSS Panamá
+- [ ] Reportes automáticos DGI
 
 ---
 
@@ -782,7 +847,7 @@
 - **Testing Automation**: Unit tests + E2E + cobertura 80% (3-4 semanas)
 
 ### 📅 **Q3 2026** *(Jul - Sep 2026)*
-- **Integraciones Bancarias**: ACH + reconciliación + archivos planos (4-6 semanas)
+- **Integraciones Bancarias Panamá**: 7 bancos con ACH (Banco General, Banistmo, BAC, BNP, Global, Credicorp, Caja de Ahorros) + arquitectura base + reconciliación (**6-8 semanas**, actualizado Abr-2026)
 - **Security Enhancements**: 2FA + encryption + audit avanzado (2-3 semanas)
 - **Advanced Analytics**: Proyecciones + comparativas + KPIs (3-4 semanas)
 
