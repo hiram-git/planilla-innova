@@ -691,6 +691,36 @@ class BusinessCalendar extends Model
     }
 
     /**
+     * Decide si un empleado debe marcar ausencia/tardanza en una fecha.
+     *
+     * Reglas:
+     * - Si tiene override personal en employee_daily_schedules → sí (tiene jornada asignada)
+     * - Si el calendario empresarial marca el día como LABORAL → sí
+     * - En cualquier otro caso (domingo, FERIADO, NO_LABORAL, DUELO_NACIONAL sin override) → no
+     *
+     * Si no hay info del calendario empresarial, se usa fallback lunes–viernes.
+     *
+     * @param array|null $dayInfo            Fila de business_calendar (null si no existe)
+     * @param string     $date               Fecha Y-m-d (usada solo para el fallback)
+     * @param bool       $hasPersonalOverride Si el empleado tiene override personal ese día
+     * @return bool
+     */
+    public static function shouldMarkAbsence(?array $dayInfo, string $date, bool $hasPersonalOverride): bool
+    {
+        if ($hasPersonalOverride) {
+            return true;
+        }
+
+        if ($dayInfo) {
+            return ($dayInfo['day_type'] ?? null) === 'LABORAL';
+        }
+
+        // Fallback: sin registro en business_calendar, asumir lunes–viernes
+        $dayOfWeek = (int) date('N', strtotime($date));
+        return $dayOfWeek >= 1 && $dayOfWeek <= 5;
+    }
+
+    /**
      * Crear un nuevo día en el calendario
      * Método genérico para compatibilidad con CalendarSyncService
      */

@@ -62,6 +62,8 @@ class WorkScheduleResolver
                 'lunch_out_tolerance_after'  => $override['lunch_out_tolerance_after'] ?? 0,
                 'lunch_in_tolerance_before'  => $override['lunch_in_tolerance_before'] ?? 0,
                 'lunch_in_tolerance_after'   => $override['lunch_in_tolerance_after'] ?? 0,
+                'lunch_flexible'             => (int)($override['lunch_flexible'] ?? 0),
+                'lunch_flexible_minutes'     => (int)($override['lunch_flexible_minutes'] ?? 0),
                 'date'                       => $date,
                 'employee_id'               => $employeeId,
                 'is_personal_override'       => true,  // flag: ignorar día no laboral del calendario empresarial
@@ -95,6 +97,8 @@ class WorkScheduleResolver
             'lunch_out_tolerance_after'  => $schedule['lunch_out_tolerance_after'] ?? 0,
             'lunch_in_tolerance_before'  => $schedule['lunch_in_tolerance_before'] ?? 0,
             'lunch_in_tolerance_after'   => $schedule['lunch_in_tolerance_after'] ?? 0,
+            'lunch_flexible'             => (int)($schedule['lunch_flexible'] ?? 0),
+            'lunch_flexible_minutes'     => (int)($schedule['lunch_flexible_minutes'] ?? 0),
             'date'                       => $date,
             'employee_id'               => $employeeId,
             'is_personal_override'       => false,

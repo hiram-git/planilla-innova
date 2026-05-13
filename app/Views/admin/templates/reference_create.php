@@ -198,6 +198,35 @@ if ($route_name === 'schedules') {
                                     </div>
                                 </div>
                             </div>
+
+                            <hr class="my-2">
+
+                            <div class="row align-items-start">
+                                <div class="col-lg-3 col-md-6 col-12 mb-3">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="lunch_flexible" name="lunch_flexible" value="1" ' . (!empty($_SESSION['old_data']['lunch_flexible']) ? 'checked' : '') . '>
+                                        <label class="custom-control-label font-weight-bold" for="lunch_flexible">
+                                            <i class="fas fa-utensils"></i> Almuerzo flexible
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Descuenta minutos fijos sin penalizar exceso ni tardanza por almuerzo. Los campos rígidos de almuerzo quedan como referencia visual.
+                                    </small>
+                                </div>
+                                <div class="col-lg-3 col-md-6 col-12 mb-3" id="lunch_flexible_wrapper" style="' . (empty($_SESSION['old_data']['lunch_flexible']) ? 'display: none;' : '') . '">
+                                    <label class="font-weight-bold mb-1" for="lunch_flexible_minutes">Minutos de almuerzo</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" class="form-control" id="lunch_flexible_minutes"
+                                               name="lunch_flexible_minutes" min="1" max="120" step="1"
+                                               value="' . (int)($_SESSION['old_data']['lunch_flexible_minutes'] ?? 0) . '"
+                                               placeholder="ej. 30">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">min</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Requerido si almuerzo flexible está activo (1–120)</small>
+                                </div>
+                            </div>
                         </div>
                     </div>';
 }
@@ -236,6 +265,23 @@ if ($route_name === 'schedules') {
             showMaskOnHover: false,
             showMaskOnFocus: true
         });
+
+        // Toggle visibilidad de "Minutos de almuerzo" según checkbox de almuerzo flexible
+        var $flexCheckbox = $("#lunch_flexible");
+        var $flexWrapper  = $("#lunch_flexible_wrapper");
+        var $flexInput    = $("#lunch_flexible_minutes");
+
+        function toggleFlexibleLunch() {
+            if ($flexCheckbox.is(":checked")) {
+                $flexWrapper.show();
+            } else {
+                $flexWrapper.hide();
+                $flexInput.val(0);
+            }
+        }
+
+        $flexCheckbox.on("change", toggleFlexibleLunch);
+        toggleFlexibleLunch();
     });
     </script>';
 }

@@ -246,6 +246,62 @@ class AttendanceDetail
     }
 
     /**
+     * Elimina TODOS los detalles ABSENT auto-generados de un header.
+     *
+     * Útil cuando un día se reprocesa y resulta ser no-laboral sin overrides personales:
+     * toda la basura auto-generada previa debe desaparecer.
+     *
+     * Solo borra filas con:
+     * - status = 'ABSENT'
+     * - sin marcaciones reales (time_in y time_out NULL)
+     * - notes empieza con 'Ausencia detectada automáticamente'
+     *
+     * @param int $headerId
+     * @return int Cantidad de filas borradas
+     */
+    public function deleteAutoAbsencesByHeader($headerId)
+    {
+        $sql = "DELETE FROM {$this->table}
+                WHERE header_id = ?
+                  AND status = 'ABSENT'
+                  AND time_in IS NULL
+                  AND time_out IS NULL
+                  AND notes LIKE 'Ausencia detectada automáticamente%'";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$headerId]);
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Elimina el detalle ABSENT auto-generado de un empleado en un header específico.
+     *
+     * Solo borra filas que cumplen TODAS estas condiciones (para no tocar ausencias
+     * manuales ni justificadas):
+     * - status = 'ABSENT'
+     * - sin marcaciones reales (time_in y time_out NULL)
+     * - notes empieza con 'Ausencia detectada automáticamente'
+     *
+     * Se usa al reprocesar marcaciones cuando antes el calendario empresarial no
+     * estaba inicializado y se crearon ausencias incorrectas.
+     *
+     * @param int $headerId
+     * @param int $employeeId
+     * @return bool
+     */
+    public function deleteAutoAbsenceByEmployeeAndHeader($headerId, $employeeId)
+    {
+        $sql = "DELETE FROM {$this->table}
+                WHERE header_id = ?
+                  AND employee_id = ?
+                  AND status = 'ABSENT'
+                  AND time_in IS NULL
+                  AND time_out IS NULL
+                  AND notes LIKE 'Ausencia detectada automáticamente%'";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$headerId, $employeeId]);
+    }
+
+    /**
      * Inserta múltiples registros en batch
      */
     public function bulkInsert($records)

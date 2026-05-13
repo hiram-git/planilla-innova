@@ -41,6 +41,13 @@ class Schedule extends ReferenceController
             $errors['codigo'] = 'El código ya está registrado';
         }
 
+        // Validar almuerzo flexible
+        $lunchFlexible = !empty($data['lunch_flexible']) ? 1 : 0;
+        $lunchFlexibleMinutes = (int)($data['lunch_flexible_minutes'] ?? 0);
+        if ($lunchFlexible && ($lunchFlexibleMinutes < 1 || $lunchFlexibleMinutes > 120)) {
+            $errors['lunch_flexible_minutes'] = 'Si el almuerzo flexible está activo, los minutos deben estar entre 1 y 120';
+        }
+
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
             $_SESSION['old_data'] = $data;
@@ -65,6 +72,9 @@ class Schedule extends ReferenceController
                 'lunch_out_tolerance_after' => (int)($data['lunch_out_tolerance_after'] ?? 0),
                 'lunch_in_tolerance_before' => (int)($data['lunch_in_tolerance_before'] ?? 0),
                 'lunch_in_tolerance_after' => (int)($data['lunch_in_tolerance_after'] ?? 0),
+                // Almuerzo flexible
+                'lunch_flexible' => $lunchFlexible,
+                'lunch_flexible_minutes' => $lunchFlexible ? $lunchFlexibleMinutes : 0,
                 'activo' => 1
             ];
 
@@ -105,6 +115,13 @@ class Schedule extends ReferenceController
             $errors['edit_codigo'] = 'El código ya está registrado';
         }
 
+        // Validar almuerzo flexible
+        $lunchFlexible = !empty($data['edit_lunch_flexible']) ? 1 : 0;
+        $lunchFlexibleMinutes = (int)($data['edit_lunch_flexible_minutes'] ?? 0);
+        if ($lunchFlexible && ($lunchFlexibleMinutes < 1 || $lunchFlexibleMinutes > 120)) {
+            $errors['edit_lunch_flexible_minutes'] = 'Si el almuerzo flexible está activo, los minutos deben estar entre 1 y 120';
+        }
+
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
             $_SESSION['old_data'] = $data;
@@ -129,6 +146,9 @@ class Schedule extends ReferenceController
                 'lunch_out_tolerance_after' => (int)($data['edit_lunch_out_tolerance_after'] ?? 0),
                 'lunch_in_tolerance_before' => (int)($data['edit_lunch_in_tolerance_before'] ?? 0),
                 'lunch_in_tolerance_after' => (int)($data['edit_lunch_in_tolerance_after'] ?? 0),
+                // Almuerzo flexible
+                'lunch_flexible' => $lunchFlexible,
+                'lunch_flexible_minutes' => $lunchFlexible ? $lunchFlexibleMinutes : 0,
                 'activo' => isset($data['edit_activo']) ? 1 : 0
             ];
 

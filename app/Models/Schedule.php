@@ -24,7 +24,9 @@ class Schedule extends ReferenceModel
         'time_in_tolerance_before', 'time_in_tolerance_after',
         'time_out_tolerance_before', 'time_out_tolerance_after',
         'lunch_out_tolerance_before', 'lunch_out_tolerance_after',
-        'lunch_in_tolerance_before', 'lunch_in_tolerance_after'
+        'lunch_in_tolerance_before', 'lunch_in_tolerance_after',
+        // Almuerzo flexible (descuenta minutos fijos sin penalizar exceso)
+        'lunch_flexible', 'lunch_flexible_minutes'
     ];
 
     /**

@@ -791,16 +791,27 @@ class AttendanceSyncService
         $this->log("Iniciando detección de ausencias para período: {$this->stats['min_date']} - {$this->stats['max_date']}");
 
         try {
-            // 1. Obtener días laborables en el rango
+            // 1. Días a analizar:
+            //    - Todos los LABORAL en el rango (de business_calendar)
+            //    - Más los días NO laborales que tengan al menos un override personal
+            //      en employee_daily_schedules (un empleado que sí debe trabajar ese día)
             $workingDays = $this->businessCalendar->getWorkingDaysList(
                 $this->stats['min_date'],
                 $this->stats['max_date']
             );
 
-            $this->stats['working_days_checked'] = count($workingDays);
+            $overrideDays = $this->getDaysWithPersonalOverrides(
+                $this->stats['min_date'],
+                $this->stats['max_date']
+            );
 
-            if (empty($workingDays)) {
-                $this->log("No hay días laborables en el rango especificado");
+            $daysToCheck = array_values(array_unique(array_merge($workingDays, $overrideDays)));
+            sort($daysToCheck);
+
+            $this->stats['working_days_checked'] = count($daysToCheck);
+
+            if (empty($daysToCheck)) {
+                $this->log("No hay días laborables ni overrides personales en el rango especificado");
                 return;
             }
 
@@ -813,10 +824,10 @@ class AttendanceSyncService
                 return;
             }
 
-            $this->log("Analizando {$this->stats['working_days_checked']} días laborables para {$this->stats['employees_checked']} empleados");
+            $this->log("Analizando {$this->stats['working_days_checked']} días (LABORAL + overrides personales) para {$this->stats['employees_checked']} empleados");
 
-            // 3. Por cada día laboral, verificar si faltan marcaciones
-            foreach ($workingDays as $date) {
+            // 3. Por cada día, verificar ausencias por empleado
+            foreach ($daysToCheck as $date) {
                 $this->processAbsentDay($date, $employees);
             }
 
@@ -830,48 +841,52 @@ class AttendanceSyncService
     }
 
     /**
-     * Procesar un día que podría tener ausencias
-     * Crea header + details si hay empleados sin marcación
+     * Procesar un día que podría tener ausencias.
+     *
+     * Por cada empleado activo sin marcación:
+     *   1) Limpia su detail ABSENT auto-generado previo (si quedó basura porque
+     *      el calendario empresarial no estaba inicializado).
+     *   2) Aplica BusinessCalendar::shouldMarkAbsence — solo crea ABSENT si:
+     *      - tiene override personal en employee_daily_schedules, o
+     *      - el día es LABORAL.
      *
      * @param string $date Fecha a procesar (Y-m-d)
-     * @param array $employees Lista de empleados activos
+     * @param array $employees Lista de empleados activos con marca_asistencia=1
      * @return void
      */
     private function processAbsentDay($date, $employees)
     {
-        $absentEmployees = [];
-
-        // 1. Identificar empleados sin marcación ese día
-        foreach ($employees as $employee) {
-            // Verificar si el empleado estaba activo en esa fecha
-            if (!$this->isEmployeeActiveOnDate($employee, $date)) {
-                continue;
-            }
-
-            // Verificar si tiene marcación en attendance_records
-            if (!$this->hasAttendanceRecord($employee['id'], $date)) {
-                $absentEmployees[] = $employee;
-            }
-        }
-
-        // Si no hay ausentes, no hacer nada
-        if (empty($absentEmployees)) {
-            return;
-        }
-
-        $this->log("Día {$date}: detectados " . count($absentEmployees) . " empleados ausentes");
-
         try {
-            // 2. Verificar si ya existe header para este día
+            $dailyScheduleModel = new \App\Models\EmployeeDailySchedule();
+            $employeesWithPersonalOverride = $dailyScheduleModel->getEmployeeIdsWithOverrideForDate($date);
+            $dayInfo = $this->businessCalendar->getDayInfo($date) ?: null;
+
+            // 1. Identificar empleados activos sin marcación ese día
+            $candidates = [];
+            foreach ($employees as $employee) {
+                if (!$this->isEmployeeActiveOnDate($employee, $date)) {
+                    continue;
+                }
+                if ($this->hasAttendanceRecord($employee['id'], $date)) {
+                    continue;
+                }
+                $candidates[] = $employee;
+            }
+
+            if (empty($candidates)) {
+                return;
+            }
+
+            // 2. Asegurar header (necesario tanto para limpieza como para upsert)
             $headerModel = new AttendanceHeader();
+            $detailModel = new AttendanceDetail();
             $existingHeader = $headerModel->getByDate($date);
 
             if ($existingHeader) {
                 $headerId = $existingHeader['id'];
-                $this->log("Usando header existente ID {$headerId} para {$date}");
             } else {
-                // 3. Crear header para el día
-                $headerId = $this->createAbsenceHeader($date, count($absentEmployees));
+                // Crear header preliminar con 0; el conteo final se recalcula al cerrar el día
+                $headerId = $this->createAbsenceHeader($date, 0);
                 if (!$headerId) {
                     $this->log("Error: No se pudo crear header para {$date}");
                     return;
@@ -879,9 +894,34 @@ class AttendanceSyncService
                 $this->log("Header creado ID {$headerId} para {$date}");
             }
 
-            // 4. Crear attendance_detail + absence_log para cada ausente
-            foreach ($absentEmployees as $employee) {
-                $this->createAbsenceRecords($headerId, $employee, $date);
+            // 3. Procesar cada candidato por separado
+            $createdCount = 0;
+            foreach ($candidates as $employee) {
+                $hasOverride = in_array((int)$employee['id'], $employeesWithPersonalOverride, true);
+
+                // (1) Limpieza idempotente del ABSENT auto previo
+                $detailModel->deleteAutoAbsenceByEmployeeAndHeader($headerId, $employee['id']);
+
+                // (2) Aplicar regla
+                if (!BusinessCalendar::shouldMarkAbsence($dayInfo, $date, $hasOverride)) {
+                    continue;
+                }
+
+                // (3) Crear ABSENT — resolver schedule del override si aplica
+                $scheduleId = $employee['schedule_id'] ?? null;
+                if ($hasOverride) {
+                    $overrideRecord = $dailyScheduleModel->getForDate((int)$employee['id'], $date);
+                    if ($overrideRecord) {
+                        $scheduleId = $overrideRecord['schedule_id'];
+                    }
+                }
+
+                $this->createAbsenceRecords($headerId, $employee, $date, $scheduleId);
+                $createdCount++;
+            }
+
+            if ($createdCount > 0) {
+                $this->log("Día {$date}: {$createdCount} ausencias creadas tras limpieza por empleado");
             }
 
         } catch (Exception $e) {
@@ -928,29 +968,32 @@ class AttendanceSyncService
     }
 
     /**
-     * Crear registros de ausencia en attendance_detail y attendance_absence_log
+     * Crear registro de ausencia en attendance_detail.
+     *
+     * Nota: ya no se escribe en attendance_absence_log; la fuente de verdad de
+     * ausencias por empleado/día es attendance_detail.status = 'ABSENT'.
      *
      * @param int $headerId ID del header
      * @param array $employee Datos del empleado
      * @param string $date Fecha de la ausencia
+     * @param int|null $scheduleId Schedule resuelto (override personal o base)
      * @return void
      */
-    private function createAbsenceRecords($headerId, $employee, $date)
+    private function createAbsenceRecords($headerId, $employee, $date, $scheduleId = null)
     {
         try {
             $detailModel = new AttendanceDetail();
 
-            // 1. Verificar si ya existe el detalle para evitar duplicados
+            // Verificar si ya existe el detalle para evitar duplicados
             if ($detailModel->exists($headerId, $employee['id'])) {
                 $this->log("Ya existe detalle para empleado {$employee['id']} en header {$headerId}");
                 return;
             }
 
-            // 2. Crear registro en attendance_detail
             $detailData = [
                 'header_id' => $headerId,
                 'employee_id' => $employee['id'],
-                'schedule_id' => null,
+                'schedule_id' => $scheduleId,
                 'time_in' => null,
                 'time_out' => null,
                 'scheduled_time_in' => null,
@@ -965,7 +1008,7 @@ class AttendanceSyncService
                 'justification_type' => null,
                 'justification_notes' => null,
                 'justification_document' => null,
-                'notes' => 'Ausencia detectada automáticamente - sin marcación en API'
+                'notes' => 'Ausencia detectada automáticamente - Sin marcación'
             ];
 
             $detailId = $detailModel->create($detailData);
@@ -973,26 +1016,34 @@ class AttendanceSyncService
             if ($detailId) {
                 $this->log("Detalle creado ID {$detailId} para empleado {$employee['id']} ({$employee['firstname']} {$employee['lastname']})");
                 $this->stats['missing_days_detected']++;
+                $this->stats['absences_created']++;
             }
-
-            // 3. Crear registro en attendance_absence_log
-            $absence = [
-                'employee_id' => $employee['id'],
-                'date' => $date,
-                'absence_type' => 'UNJUSTIFIED',
-                'is_working_day' => true,
-                'day_type' => 'LABORAL',
-                'detected_at' => date('Y-m-d H:i:s'),
-                'detection_method' => 'AUTO_SYNC'
-            ];
-
-            $this->absenceDetector->saveAbsence($absence);
-            $this->stats['absences_created']++;
 
         } catch (Exception $e) {
             $this->stats['absences_errors']++;
             $this->errors[] = "Error creando registros de ausencia para empleado {$employee['id']} en {$date}: " . $e->getMessage();
             error_log("Error createAbsenceRecords: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener lista de fechas (Y-m-d) en un rango que tengan al menos un
+     * override personal en employee_daily_schedules.
+     */
+    private function getDaysWithPersonalOverrides(string $startDate, string $endDate): array
+    {
+        try {
+            $sql = "SELECT DISTINCT date
+                    FROM employee_daily_schedules
+                    WHERE date BETWEEN ? AND ?
+                    ORDER BY date ASC";
+            $stmt = $this->db->getConnection()->prepare($sql);
+            $stmt->execute([$startDate, $endDate]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            return array_map(fn($r) => $r['date'], $rows);
+        } catch (Exception $e) {
+            error_log("Error getDaysWithPersonalOverrides: " . $e->getMessage());
+            return [];
         }
     }
 
