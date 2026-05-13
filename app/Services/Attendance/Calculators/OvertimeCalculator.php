@@ -429,7 +429,34 @@ class OvertimeCalculator
         // Calcular minutos de almuerzo reales con tolerancia cuando hay marcaciones y horario
         $computedLunchMinutes = $lunchMinutes;
 
-        if (is_array($schedule) && (!empty($lunchOut) || !empty($lunchIn))) {
+        // Almuerzo flexible: ventana de DURACIÓN [flexMin - tolOutAfter, flexMin + tolInAfter].
+        // Si la duración real cae dentro → usar la duración fija (sin penalizar ni premiar).
+        // Si excede el máximo → usar duración real (el exceso reduce las horas trabajadas).
+        // Si es menor al mínimo → usar duración fija (no se premia regreso temprano con horas extras).
+        $isLunchFlexible = is_array($schedule)
+            && !empty($schedule['lunch_flexible'])
+            && (int)$schedule['lunch_flexible'] === 1
+            && (int)($schedule['lunch_flexible_minutes'] ?? 0) > 0;
+
+        if ($isLunchFlexible) {
+            $flexMin = (int)$schedule['lunch_flexible_minutes'];
+            if (!empty($lunchOut) && !empty($lunchIn)) {
+                $outDT = $this->toDateTimeWithBase($lunchOut, $baseDate);
+                $inDT  = $this->toDateTimeWithBase($lunchIn, $baseDate);
+                $actualLunchMin = max(0, (int)round(($inDT->getTimestamp() - $outDT->getTimestamp()) / 60));
+
+                $tolBelow = (int)($schedule['lunch_out_tolerance_after'] ?? 0);
+                $tolAbove = (int)($schedule['lunch_in_tolerance_after'] ?? 0);
+                $minAllowed = max(0, $flexMin - $tolBelow);
+                $maxAllowed = $flexMin + $tolAbove;
+
+                $computedLunchMinutes = ($actualLunchMin > $maxAllowed)
+                    ? $actualLunchMin
+                    : $flexMin;
+            } else {
+                $computedLunchMinutes = $flexMin;
+            }
+        } elseif (is_array($schedule) && (!empty($lunchOut) || !empty($lunchIn))) {
             $lunchCalc = $this->scheduleResolver->calculateLunchWithTolerance(
                 $lunchOut,
                 $lunchIn,
