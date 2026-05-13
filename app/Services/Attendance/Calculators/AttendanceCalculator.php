@@ -117,8 +117,27 @@ class AttendanceCalculator
         $lunchFlexibleMinutes = (int)($schedule['lunch_flexible_minutes'] ?? 0);
 
         if ($isLunchFlexible && $lunchFlexibleMinutes > 0) {
-            $lunchTimeMinutes = $lunchFlexibleMinutes;
-            $lunchExceededMinutes = 0;
+            // Ventana de duración: [flexMin - tolOutAfter, flexMin + tolInAfter]
+            // Solo se penaliza (se descuenta de horas trabajadas) si la duración real EXCEDE el máximo.
+            if ($lunchOut && $lunchIn) {
+                $outDT = new DateTime($lunchOut);
+                $inDT = new DateTime($lunchIn);
+                $actualLunchMin = max(0, (int)round(($inDT->getTimestamp() - $outDT->getTimestamp()) / 60));
+
+                $tolAbove = (int)($schedule['lunch_in_tolerance_after'] ?? 0);
+                $maxAllowed = $lunchFlexibleMinutes + $tolAbove;
+
+                if ($actualLunchMin > $maxAllowed) {
+                    $lunchTimeMinutes = $actualLunchMin;
+                    $lunchExceededMinutes = $actualLunchMin - $lunchFlexibleMinutes;
+                } else {
+                    $lunchTimeMinutes = $lunchFlexibleMinutes;
+                    $lunchExceededMinutes = 0;
+                }
+            } else {
+                $lunchTimeMinutes = $lunchFlexibleMinutes;
+                $lunchExceededMinutes = 0;
+            }
         } elseif ($hasLunchPeriod) {
             // Si hay horario programado de almuerzo, aplicar tolerancias
             if ($lunchOut && $lunchIn) {
@@ -159,6 +178,7 @@ class AttendanceCalculator
 
         // En días feriados no se calculan tardanzas (el empleado no está obligado a trabajar)
         if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
+            $toleranceBefore = $schedule['time_in_tolerance_before'] ?? 0;
             $toleranceAfter = $schedule['time_in_tolerance_after'] ?? 0;
             $tardinessMinutes = $this->scheduleResolver->calculateTardinessWithTolerance(
                 $timeIn,
@@ -167,12 +187,16 @@ class AttendanceCalculator
             );
             $isLate = $tardinessMinutes > 0;
 
-            // Si está dentro de tolerancia (tardanza = 0), ajustar a hora programada
-            if ($tardinessMinutes == 0 && $toleranceAfter > 0) {
+            // Si está dentro de la ventana de tolerancia, ajustar a hora programada.
+            // La ventana es [schedule_time_in - toleranceBefore, schedule_time_in + toleranceAfter].
+            // Aplicar tanto si llegó antes como si llegó después dentro de la ventana.
+            if ($tardinessMinutes == 0) {
                 $actualTimeIn = new \DateTime($timeIn);
                 $scheduledTimeIn = new \DateTime($schedule['time_in']);
-                // Solo ajustar si marcó DESPUÉS de la hora programada (dentro de tolerancia)
-                if ($actualTimeIn > $scheduledTimeIn) {
+                $windowStart = (clone $scheduledTimeIn)->modify("-{$toleranceBefore} minutes");
+                $windowEnd   = (clone $scheduledTimeIn)->modify("+{$toleranceAfter} minutes");
+
+                if ($actualTimeIn >= $windowStart && $actualTimeIn <= $windowEnd) {
                     $adjustedTimeIn = $schedule['time_in'];
                 }
             }
@@ -184,18 +208,24 @@ class AttendanceCalculator
         // En días feriados no se calcula salida anticipada
         if ($schedule && !($dayInfo['is_holiday'] ?? false)) {
             $toleranceBefore = $schedule['time_out_tolerance_before'] ?? 0;
+            $toleranceAfter  = $schedule['time_out_tolerance_after'] ?? 0;
             $earlyDepartureMinutes = $this->scheduleResolver->calculateEarlyDepartureWithTolerance(
                 $timeOut,
                 $schedule['time_out'],
                 $toleranceBefore
             );
 
-            // Si está dentro de tolerancia (salida anticipada = 0), ajustar a hora programada
-            if ($earlyDepartureMinutes == 0 && $toleranceBefore > 0) {
+            // Si está dentro de la ventana de tolerancia, ajustar a hora programada.
+            // La ventana es [schedule_time_out - toleranceBefore, schedule_time_out + toleranceAfter].
+            // Aplicar tanto si salió antes como si salió después dentro de la ventana
+            // (esto evita que la marcación posterior al horario genere horas extras espurias).
+            if ($earlyDepartureMinutes == 0) {
                 $actualTimeOut = new \DateTime($timeOut);
                 $scheduledTimeOut = new \DateTime($schedule['time_out']);
-                // Solo ajustar si salió ANTES de la hora programada (dentro de tolerancia)
-                if ($actualTimeOut < $scheduledTimeOut) {
+                $windowStart = (clone $scheduledTimeOut)->modify("-{$toleranceBefore} minutes");
+                $windowEnd   = (clone $scheduledTimeOut)->modify("+{$toleranceAfter} minutes");
+
+                if ($actualTimeOut >= $windowStart && $actualTimeOut <= $windowEnd) {
                     $adjustedTimeOut = $schedule['time_out'];
                 }
             }
@@ -615,6 +645,7 @@ class AttendanceCalculator
 
         // No calcular tardanzas en feriados - CON TOLERANCIA
         if ($schedule && $timeIn && !($dayInfo['is_holiday'] ?? false)) {
+            $toleranceBefore = $schedule['time_in_tolerance_before'] ?? 0;
             $toleranceAfter = $schedule['time_in_tolerance_after'] ?? 0;
             $tardinessMinutes = $this->scheduleResolver->calculateTardinessWithTolerance(
                 $timeIn,
@@ -623,11 +654,14 @@ class AttendanceCalculator
             );
             $isLate = $tardinessMinutes > 0;
 
-            // Si está dentro de tolerancia, ajustar a hora programada
-            if ($tardinessMinutes == 0 && $toleranceAfter > 0) {
+            // Si está dentro de la ventana de tolerancia, ajustar a hora programada
+            if ($tardinessMinutes == 0) {
                 $actualTimeIn = new \DateTime($timeIn);
                 $scheduledTimeIn = new \DateTime($schedule['time_in']);
-                if ($actualTimeIn > $scheduledTimeIn) {
+                $windowStart = (clone $scheduledTimeIn)->modify("-{$toleranceBefore} minutes");
+                $windowEnd   = (clone $scheduledTimeIn)->modify("+{$toleranceAfter} minutes");
+
+                if ($actualTimeIn >= $windowStart && $actualTimeIn <= $windowEnd) {
                     $adjustedTimeIn = $schedule['time_in'];
                 }
             }
