@@ -27,7 +27,8 @@ class EmployeeDailySchedule extends Model
                        s.time_in_tolerance_before, s.time_in_tolerance_after,
                        s.time_out_tolerance_before, s.time_out_tolerance_after,
                        s.lunch_out_tolerance_before, s.lunch_out_tolerance_after,
-                       s.lunch_in_tolerance_before, s.lunch_in_tolerance_after
+                       s.lunch_in_tolerance_before, s.lunch_in_tolerance_after,
+                       s.lunch_flexible, s.lunch_flexible_minutes
                 FROM {$this->table} eds
                 JOIN schedules s ON eds.schedule_id = s.id
                 WHERE eds.employee_id = ? AND eds.date = ?

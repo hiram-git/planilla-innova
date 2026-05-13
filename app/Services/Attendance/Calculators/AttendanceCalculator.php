@@ -109,7 +109,17 @@ class AttendanceCalculator
         $lunchTimeMinutes = 0;
         $lunchExceededMinutes = 0;
 
-        if ($hasLunchPeriod) {
+        // Almuerzo flexible: descuenta minutos fijos del horario, ignora horario rígido
+        // y no penaliza exceso. Las marcaciones lunch_out/lunch_in se conservan en BD
+        // pero NO se usan para calcular tardanza/exceso. Si están fuera del rango
+        // time_in–time_out (válidos), igual se ignoran y se descuenta el fijo.
+        $isLunchFlexible = !empty($schedule['lunch_flexible']) && (int)$schedule['lunch_flexible'] === 1;
+        $lunchFlexibleMinutes = (int)($schedule['lunch_flexible_minutes'] ?? 0);
+
+        if ($isLunchFlexible && $lunchFlexibleMinutes > 0) {
+            $lunchTimeMinutes = $lunchFlexibleMinutes;
+            $lunchExceededMinutes = 0;
+        } elseif ($hasLunchPeriod) {
             // Si hay horario programado de almuerzo, aplicar tolerancias
             if ($lunchOut && $lunchIn) {
                 $lunchTol = $this->scheduleResolver->calculateLunchWithTolerance(

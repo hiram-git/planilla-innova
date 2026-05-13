@@ -1,0 +1,31 @@
+-- Rollback: 2026_05_13_add_lunch_flexible_to_schedules
+--
+-- NOTA: Este rollback NO debe ejecutarse automáticamente por migrate_all_tenants.php.
+-- Las sentencias están comentadas a propósito para que el runner las marque como
+-- ejecutadas sin realizar cambios destructivos.
+--
+-- Si realmente se necesita revertir manualmente (NO RECOMENDADO):
+--
+-- SET @col_exists := (
+--     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+--     WHERE TABLE_SCHEMA = DATABASE()
+--       AND TABLE_NAME = 'schedules'
+--       AND COLUMN_NAME = 'lunch_flexible_minutes'
+-- );
+-- SET @sql := IF(@col_exists = 1,
+--     'ALTER TABLE schedules DROP COLUMN lunch_flexible_minutes',
+--     'SELECT "Column lunch_flexible_minutes does not exist, skipping" AS info'
+-- );
+-- PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+--
+-- SET @col_exists := (
+--     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+--     WHERE TABLE_SCHEMA = DATABASE()
+--       AND TABLE_NAME = 'schedules'
+--       AND COLUMN_NAME = 'lunch_flexible'
+-- );
+-- SET @sql := IF(@col_exists = 1,
+--     'ALTER TABLE schedules DROP COLUMN lunch_flexible',
+--     'SELECT "Column lunch_flexible does not exist, skipping" AS info'
+-- );
+-- PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
