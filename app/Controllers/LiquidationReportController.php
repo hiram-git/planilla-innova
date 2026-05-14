@@ -912,7 +912,7 @@ class LiquidationReportController extends LiquidationController
             $pdf->SetFont('helvetica', '', 9);
             $pdf->Cell($firmaWidth, 5, $gerencia_name, 0, 0, 'C');
             $pdf->Cell($firmaWidth, 5, $rrhh_name, 0, 0, 'C');
-            $pdf->Cell($firmaWidth, 5, $employee_info['firstname'], 0, 1, 'C');
+            $pdf->Cell($firmaWidth, 5, $employee_info['firstname'] ?? 'N/A', 0, 1, 'C');
 
             $pdf->Ln(1);
 
@@ -922,7 +922,7 @@ class LiquidationReportController extends LiquidationController
             $pdf->SetFont('helvetica', '', 8);
             $pdf->Cell($firmaWidth, 5, '(Gerencia)', 0, 0, 'C');
             $pdf->Cell($firmaWidth, 5, '(Recursos Humanos)', 0, 0, 'C');
-            $pdf->Cell($firmaWidth, 5, $employee_info['lastname'], 0, 1, 'C');
+            $pdf->Cell($firmaWidth, 5, $employee_info['lastname'] ?? 'N/A', 0, 1, 'C');
 
             $pdf->Ln(1);
 
