@@ -1074,24 +1074,42 @@ class PDFReportController extends Controller
             $conceptos = $stmtConceptos->fetchAll(\PDO::FETCH_ASSOC);
 
             foreach ($conceptos as $concepto) {
+                // Extraer los tipos de acumulado desde la propia fórmula ACUMULADOS("...")
+                // del concepto, igual que hace el motor calcularAcumuladosSeguro().
+                // Esto evita sumar por concepto_id (que capturaba acumulados de tipo
+                // XIII_MES generados por décimos previos → "décimo de décimo").
+                $tiposAcumulado = [];
+                if (preg_match('/ACUMULADOS\s*\(\s*["\']([^"\']+)["\']/i', $concepto['formula'], $m)) {
+                    $tiposAcumulado = array_filter(array_map('trim', explode(',', $m[1])));
+                }
+                // Fallback conservador si no se pudo parsear la fórmula
+                if (empty($tiposAcumulado)) {
+                    $tiposAcumulado = ['SALARIO_BASE'];
+                }
+
                 // Consultar acumulados mes a mes del empleado para este concepto
+                // Usar la misma lógica que calcularAcumuladosSeguro() del motor de fórmulas
+                // Nota: se usa `pc.fecha_hasta > ?` (estricto) para que una quincena que
+                // solo toca el inicio del período de décimo (termina en fecha_desde) NO cuente.
+                $placeholders = implode(',', array_fill(0, count($tiposAcumulado), '?'));
                 $sql = "SELECT
                             ape.mes,
                             SUM(ape.monto) as amount
                         FROM acumulados_por_empleado ape
                         LEFT JOIN planilla_cabecera pc ON ape.planilla_id = pc.id
                         WHERE ape.employee_id = ?
-                            AND (ape.concepto_id = ? OR ape.tipo_acumulado = 'SALARIO_BASE')
+                            AND ape.tipo_acumulado IN ($placeholders)
                             AND (
                                 (ape.planilla_id = 0 AND DATE(CONCAT(ape.ano, '-', LPAD(ape.mes, 2, '0'), '-01')) BETWEEN ? AND ?)
                                 OR
-                                (ape.planilla_id != 0 AND pc.fecha_hasta >= ? AND pc.fecha_desde <= ?)
+                                (ape.planilla_id != 0 AND pc.fecha_hasta > ? AND pc.fecha_desde <= ?)
                             )
                         GROUP BY ape.mes
                         ORDER BY ape.mes ASC";
 
+                $params = array_merge([$employeeId], $tiposAcumulado, [$iniPeriodo, $finPeriodo, $iniPeriodo, $finPeriodo]);
                 $stmt = $connection->prepare($sql);
-                $stmt->execute([$employeeId, $concepto['id'], $iniPeriodo, $finPeriodo, $iniPeriodo, $finPeriodo]);
+                $stmt->execute($params);
                 $monthlyData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 if (!empty($monthlyData)) {

@@ -574,9 +574,9 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
     const dailySalary = <?= $vacation_data['daily_salary'] ?? 0 ?>;
     const annualBalance = <?= $vacation_data['annual_balance']['saldo_disponible_year'] ?? 30 ?>;
     const currentYear = <?= $vacation_data['current_year'] ?? date('Y') ?>;
-    const diasDisfrutadosYear = <?= $vacation_data['annual_balance']['dias_disfrutados_year'] ?? 0 ?>;
-    const diasAnuales = <?= $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30 ?>;
-    const saldoDisfrute = diasAnuales - diasDisfrutadosYear;
+    let diasDisfrutadosYear = <?= $vacation_data['annual_balance']['dias_disfrutados_year'] ?? 0 ?>;
+    let diasAnuales = <?= $vacation_data['annual_balance']['dias_vacaciones_anuales'] ?? 30 ?>;
+    let saldoDisfrute = diasAnuales - diasDisfrutadosYear;
 
     // Calcular días del rango y actualizar resumen
     function updateCalculation() {
@@ -764,7 +764,11 @@ $pageTitle = "Nueva Solicitud de Vacaciones - " . htmlspecialchars($employee['fi
                     $('#dias_vacaciones_disfrute').val(data.dias_vacaciones_anuales);
 
                     // Calcular saldo disponible para disfrute del año específico
-                    const saldoDisfrute = data.dias_vacaciones_anuales - data.dias_disfrutados_year;
+                    // Actualizar variables del año seleccionado para que las validaciones de disfrute
+                    // (updateValidations y submit) usen este año y no el año actual cargado al inicio
+                    diasAnuales = parseInt(data.dias_vacaciones_anuales) || 30;
+                    diasDisfrutadosYear = parseFloat(data.dias_disfrutados_year) || 0;
+                    saldoDisfrute = diasAnuales - diasDisfrutadosYear;
                     $('#saldo_dias_disfrute').val(saldoDisfrute);
 
                     // Actualizar los valores máximos de los campos
